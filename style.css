@@ -1,13 +1,17 @@
---- style.css ---
 body {
   font-family: Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background: #f8f9fa;
-  color: #333;
+  color: #fff;
+}
+body.background {
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 header {
-  background: #002244;
+  background: rgba(0, 34, 68, 0.95);
   color: white;
   display: flex;
   justify-content: space-between;
@@ -44,7 +48,7 @@ main {
   padding: 20px;
 }
 footer {
-  background: #002244;
+  background: rgba(0, 34, 68, 0.95);
   color: white;
   text-align: center;
   padding: 15px 10px;
