@@ -3,6 +3,9 @@ body {
   margin: 0;
   padding: 0;
   color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 body.background {
   background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
@@ -10,41 +13,8 @@ body.background {
   background-size: cover;
   background-repeat: no-repeat;
 }
-header {
-  background: rgba(0, 34, 68, 0.95);
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 20px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-header .logo {
-  height: 50px;
-}
-nav a {
-  color: white;
-  text-decoration: none;
-  margin-left: 15px;
-  font-weight: bold;
-}
-nav a.active {
-  text-decoration: underline;
-}
-.button.remote-header {
-  background: #ff6600;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-weight: bold;
-  color: white;
-  text-decoration: none;
-  transition: background 0.3s ease;
-}
-.button.remote-header:hover {
-  background: #cc5200;
-}
 main {
+  flex: 1;
   padding: 20px;
 }
 footer {
@@ -52,17 +22,15 @@ footer {
   color: white;
   text-align: center;
   padding: 15px 10px;
-  position: relative;
-  bottom: 0;
-  width: 100%;
 }
-.hero {
-  text-align: center;
+.hero, .about-preview, .products-preview, .cta {
+  margin-bottom: 40px;
 }
 .banner {
   width: 100%;
-  max-height: 300px;
+  height: 420px;
   object-fit: cover;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .button {
   background: #00bfff;
@@ -77,11 +45,11 @@ footer {
 .button:hover {
   background: #009acd;
 }
-.button.remote {
-  background: #00bfff;
-  font-weight: bold;
-  display: inline-block;
-}
-.button.remote:hover {
-  background: #007acc;
-}
+
+/* layout helpers */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.card { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 16px; }
+.store h2 { margin-bottom: 8px; }
+.store .store-note { margin-top: 14px; opacity: .95; }
+.inline-link { color: #00bfff; text-decoration: underline; }
