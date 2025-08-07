@@ -53,3 +53,7 @@ footer {
 .store h2 { margin-bottom: 8px; }
 .store .store-note { margin-top: 14px; opacity: .95; }
 .inline-link { color: #00bfff; text-decoration: underline; }
+.logo {
+  max-height: 80px;
+  width: auto;
+}
