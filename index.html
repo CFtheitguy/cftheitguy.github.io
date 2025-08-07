@@ -24,6 +24,33 @@
       <p>We streamline your operations with cutting-edge IT solutions, ensuring efficiency and scalability.</p>
       <a href="https://www.speedtest.net/" class="button">Run a Speed test</a>
     </section>
+    <section class="about-preview">
+      <h2>About Linear Tech</h2>
+      <p>At Linear Tech, we specialize in delivering dependable and innovative IT services tailored to the needs of small and medium-sized businesses. Whether you need managed IT services, cybersecurity solutions, cloud migrations, or network infrastructure, our team has the expertise to keep your business running smoothly. We pride ourselves on quick response times, transparent communication, and solutions that grow with your business.</p>
+      <p>Our mission is simple: to be your trusted IT partner, ensuring your technology works seamlessly so you can focus on what matters most—running your business.</p>
+    </section>
+    <section class="products-preview">
+      <h2>We Also Supply Office Technology</h2>
+      <p>Linear Tech offers a wide selection of office hardware and technology solutions, including PCs, laptops, VOIP phones, networking equipment, and more. Partner with us to get competitive pricing and expert guidance on the right tools for your business.</p>
+    </section>
+    <section class="store container">
+      <h2>Buy Office Tech Through Us</h2>
+      <p>We can source, configure, and deploy all the hardware your team needs — with warranty tracking and setup included.</p>
+      <div class="grid">
+        <div class="card"><h3>Computers</h3><p>Desktops & laptops for every role, pre-configured and secured.</p></div>
+        <div class="card"><h3>Monitors & Peripherals</h3><p>Monitors, keyboards, mice, docks, webcams, and headsets.</p></div>
+        <div class="card"><h3>Networking</h3><p>Firewalls, switches, Wi‑Fi access points, and cabling.</p></div>
+        <div class="card"><h3>VoIP Phones</h3><p>Desk phones and headsets ready to plug into your provider.</p></div>
+        <div class="card"><h3>Servers & NAS</h3><p>On‑prem servers, storage, and backup appliances.</p></div>
+        <div class="card"><h3>Printers & Scanners</h3><p>Office printers, MFPs, and high‑speed document scanners.</p></div>
+      </div>
+      <p class="store-note">Need pricing? <a href="contact.html" class="inline-link">Request a quote</a> and we’ll recommend the right gear.</p>
+    </section>
+    <section class="cta">
+      <h2>Ready to Upgrade Your IT?</h2>
+      <p>Contact us today to discuss how we can help you achieve your technology goals with cost-effective and secure solutions.</p>
+      <a href="contact.html" class="button">Contact Us</a>
+    </section>
   </main>
   <footer>
     <p>Contact us: 845-604-1462 | support@linearit.co</p>
@@ -31,3 +58,61 @@
   </footer>
 </body>
 </html>
+
+--- style.css ---
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+body.background {
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+main {
+  flex: 1;
+  padding: 20px;
+}
+footer {
+  background: rgba(0, 34, 68, 0.95);
+  color: white;
+  text-align: center;
+  padding: 15px 10px;
+}
+.hero, .about-preview, .products-preview, .cta {
+  margin-bottom: 40px;
+}
+.banner {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.button {
+  background: #00bfff;
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  display: inline-block;
+  margin-top: 20px;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+.button:hover {
+  background: #009acd;
+}
+
+/* layout helpers */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.card { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 16px; }
+.store h2 { margin-bottom: 8px; }
+.store .store-note { margin-top: 14px; opacity: .95; }
+.inline-link { color: #00bfff; text-decoration: underline; }
+
