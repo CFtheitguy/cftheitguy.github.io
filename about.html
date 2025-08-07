@@ -6,11 +6,21 @@
   <title>About - Linear Tech</title>
   <link rel="stylesheet" href="style.css" />
   <style>
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 30px;
+      background: rgba(0, 34, 68, 0.95);
+    }
+    .logo {
+      max-height: 80px;
+    }
     nav {
       display: flex;
       justify-content: center;
       gap: 20px;
-      margin: 20px 0;
+      flex: 1;
     }
     nav a {
       color: white;
@@ -20,17 +30,20 @@
     nav a.active {
       text-decoration: underline;
     }
-    header, main, footer {
-      text-align: center;
-    }
-    .button {
-      margin-left: auto;
-      margin-right: auto;
-    }
     .remote-header {
-      position: absolute;
-      top: 20px;
-      right: 20px;
+      background: #00bfff;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    .remote-header:hover {
+      background: #009acd;
+    }
+    main, footer {
+      text-align: center;
     }
     .store .grid {
       justify-content: center;
@@ -46,7 +59,7 @@
       <a href="services.html">Services</a>
       <a href="contact.html">Contact</a>
     </nav>
-    <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" class="button remote-header">Get Remote Support Now!</a>
+    <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" class="remote-header">Get Remote Support Now!</a>
   </header>
 
   <main>
