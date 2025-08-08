@@ -3,29 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Contact Linear Tech</title>
+  <title>Contact - Linear Tech</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Minimal page-specific styles so it looks good even if external CSS hiccups */
+    .page-wrap { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+    .form-card { background: rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.12);
+                 border-radius:10px; padding:20px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row .full { grid-column: 1/-1; }
+    label { display:block; margin:10px 0 6px; font-weight:bold; }
+    input, textarea { width:100%; padding:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.2); color:#fff; }
+    textarea { min-height: 160px; resize: vertical; }
+    .note { opacity: .9; font-size: .95rem; margin-top: 6px; }
+    .submit-row { margin-top: 14px; display:flex; gap:12px; align-items:center; }
+    .button { background:#00bfff; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; display:inline-block; cursor:pointer; border:none; }
+    .button:hover { background:#009acd; }
+    .muted { opacity:.85; font-size:.9rem; }
+    /* Header layout (logo left, nav center, support right) */
+    header { background: rgba(0,34,68,.95); color:#fff; display:flex; align-items:center; justify-content:space-between; padding:10px 20px; gap:10px; }
+    .header-left{flex:1} .header-center{flex:2; display:flex; justify-content:center; gap:18px;} .header-right{flex:1; display:flex; justify-content:flex-end}
+    header .logo{height:50px} nav a{color:#fff; text-decoration:none; font-weight:bold} nav a.active{text-decoration:underline}
+    .remote-header{background:#ff6600; padding:8px 16px; border-radius:4px; color:#fff; text-decoration:none; font-weight:bold}
+    .remote-header:hover{background:#cc5200}
+  </style>
 </head>
 <body class="background">
   <header>
-    <img src="assets/logo.png" alt="Linear Tech Logo" class="logo" />
-    <nav>
+    <div class="header-left">
+      <img src="assets/logo.png" alt="Linear Tech Logo" class="logo" />
+    </div>
+    <nav class="header-center">
       <a href="index.html">Home</a>
       <a href="about.html">About</a>
       <a href="services.html">Services</a>
       <a href="contact.html" class="active">Contact</a>
     </nav>
-    <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" class="button remote-header">Get Remote Support Now!</a>
+    <div class="header-right">
+      <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" class="remote-header">Get Remote Support Now!</a>
+    </div>
   </header>
-  <main>
-    <h2>Contact Us</h2>
-    <p>Need support or have questions? Reach out:</p>
-    <ul>
-      <li><strong>Phone:</strong> 845-604-1462</li>
-      <li><strong>Email:</strong> support@linearit.co</li>
-    </ul>
-    <p>We typically respond within 1 hour.</p>
+
+  <main class="page-wrap">
+    <h1>Contact Linear Tech</h1>
+    <p class="muted">Drop us a line and we’ll get back to you ASAP.</p>
+
+    <!-- FREE email form via FormSubmit -->
+    <form class="form-card" action="https://formsubmit.co/support@linearit.co" method="POST">
+      <!-- Required for better deliverability/UX -->
+      <input type="hidden" name="_subject" value="New message from Linear Tech website">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_captcha" value="true">
+      <input type="text" name="_honey" style="display:none"> <!-- honeypot -->
+      <input type="hidden" name="_next" value="https://www.linearit.co/thank-you.html">
+
+      <div class="form-row">
+        <div>
+          <label for="name">Your Name *</label>
+          <input id="name" name="name" type="text" required>
+        </div>
+        <div>
+          <label for="company">Company</label>
+          <input id="company" name="company" type="text">
+        </div>
+        <div>
+          <label for="email">Email *</label>
+          <input id="email" name="email" type="email" required>
+        </div>
+        <div>
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel">
+        </div>
+        <div class="full">
+          <label for="message">How can we help? *</label>
+          <textarea id="message" name="message" required></textarea>
+        </div>
+      </div>
+
+      <div class="submit-row">
+        <button type="submit" class="button">Send Message</button>
+        <span class="note">We’ll reply within one business day.</span>
+      </div>
+    </form>
   </main>
+
   <footer>
     <p>Contact us: 845-604-1462 | support@linearit.co</p>
     <p>&copy; 2025 Linear Tech. All rights reserved.</p>
