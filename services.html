@@ -2,35 +2,249 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Our Services - Linear Tech</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Services - Linear Tech</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* ---- Page-specific styles to ensure it looks great even if style.css is flaky ---- */
+    body { color:#fff; margin:0; font-family: Arial, sans-serif; }
+    body.background{ background: linear-gradient(to right, #0f2027,#203a43,#2c5364); background-attachment:fixed; }
+    header{ background: rgba(0,34,68,.95); color:#fff; display:flex; align-items:center; justify-content:space-between; padding:10px 20px; gap:10px; }
+    .header-left{flex:1} .header-center{flex:2; display:flex; justify-content:center; gap:18px;} .header-right{flex:1; display:flex; justify-content:flex-end}
+    header .logo{height:50px} nav a{color:#fff; text-decoration:none; font-weight:bold} nav a.active{text-decoration:underline}
+    .remote-header{background:#ff6600; padding:8px 16px; border-radius:4px; color:#fff; text-decoration:none; font-weight:bold}
+    .remote-header:hover{background:#cc5200}
+
+    main{overflow:hidden}
+    .hero-slim{
+      text-align:center; padding:42px 16px 30px;
+      background: linear-gradient(135deg, rgba(0,0,0,.25), rgba(0,0,0,.1));
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .hero-slim h1{margin:0 0 10px; font-size:40px; line-height:1.1}
+    .hero-slim p{max-width:900px; margin:0 auto; opacity:.95}
+
+    /* Process / timeline */
+    .process{max-width:1100px; margin:32px auto; padding:0 20px}
+    .steps{display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr));}
+    .step{background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:16px}
+    .step h3{margin:.2rem 0}
+    .kicker{opacity:.85; font-size:.95rem; margin-top:6px}
+
+    /* Full-width service sections */
+    .section{
+      display:flex; align-items:center; justify-content:center; text-align:left;
+      padding:56px 20px; gap:28px; border-top:1px solid rgba(255,255,255,.08);
+    }
+    .section-inner{max-width:1100px; width:100%; display:grid; grid-template-columns: 1.2fr 1fr; gap:28px}
+    .section.alt .section-inner{grid-template-columns: 1fr 1.2fr;}
+    .copy h2{margin:0 0 8px; font-size:32px}
+    .copy p{opacity:.95}
+    .bullets{margin-top:8px}
+    .bullets li{margin:6px 0}
+    .visual{
+      min-height:260px; border-radius:12px;
+      background-size:cover; background-position:center; border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 8px 22px rgba(0,0,0,.18);
+    }
+    /* Pretty gradients as fallbacks if no images are uploaded */
+    .g1{ background-image: linear-gradient(135deg,#0f8ecf, #0a3050); }
+    .g2{ background-image: linear-gradient(135deg,#2d8f6f, #0a3040); }
+    .g3{ background-image: linear-gradient(135deg,#7b5bd6, #1b1b3a); }
+    .g4{ background-image: linear-gradient(135deg,#d66e5b, #3a1b1b); }
+    .g5{ background-image: linear-gradient(135deg,#5bb5d6, #142a3a); }
+    .g6{ background-image: linear-gradient(135deg,#5bd65b, #1b3a1b); }
+
+    /* Accordions */
+    .faq{max-width:1100px; margin:24px auto 8px; padding:0 20px}
+    details{background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:12px 16px; margin:10px 0}
+    details summary{cursor:pointer; font-weight:bold}
+    details[open]{background:rgba(0,0,0,.32)}
+
+    /* CTA */
+    .cta {text-align:center; padding:40px 20px 60px}
+    .button { background:#00bfff; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; display:inline-block; }
+    .button:hover{ background:#009acd; }
+
+    /* Responsive */
+    @media (max-width: 900px){
+      .section-inner{grid-template-columns: 1fr}
+    }
+  </style>
 </head>
 <body class="background">
   <header>
-    <img src="assets/logo.png" alt="Linear Tech Logo" class="logo" />
-    <nav>
+    <div class="header-left">
+      <img src="assets/logo.png" alt="Linear Tech Logo" class="logo"/>
+    </div>
+    <nav class="header-center">
       <a href="index.html">Home</a>
       <a href="about.html">About</a>
       <a href="services.html" class="active">Services</a>
       <a href="contact.html">Contact</a>
     </nav>
-    <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" class="button remote-header">Get Remote Support Now!</a>
+    <div class="header-right">
+      <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" class="remote-header">Get Remote Support Now!</a>
+    </div>
   </header>
+
   <main>
-    <h2>Our Services</h2>
-    <ul>
-      <li>📦 Managed IT Services</li>
-      <li>🛡️ Cybersecurity & Endpoint Protection</li>
-      <li>☁️ Cloud Migrations & Backup Solutions</li>
-      <li>🛧 Network Design & Maintenance</li>
-      <li>💻 Remote Support & Helpdesk</li>
-      <li>📞 VoIP & Communications</li>
-    </ul>
+    <!-- Intro -->
+    <section class="hero-slim">
+      <h1>Services that keep your business moving</h1>
+      <p>Predictable, secure, and fast IT—delivered with clear communication and proactive support.</p>
+    </section>
+
+    <!-- Process -->
+    <section class="process">
+      <div class="steps">
+        <div class="step">
+          <h3>1) Assess & Plan</h3>
+          <p class="kicker">Discovery, health check, and a clear roadmap aligned to your goals.</p>
+        </div>
+        <div class="step">
+          <h3>2) Stabilize & Secure</h3>
+          <p class="kicker">Patch, protect, and back up—reduce risk while improving performance.</p>
+        </div>
+        <div class="step">
+          <h3>3) Modernize</h3>
+          <p class="kicker">Cloud, collaboration, and workflow improvements that save time.</p>
+        </div>
+        <div class="step">
+          <h3>4) Monitor & Support</h3>
+          <p class="kicker">24/7 monitoring and a responsive helpdesk to keep teams productive.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Managed IT -->
+    <section class="section">
+      <div class="section-inner">
+        <div class="copy">
+          <h2>Managed IT Services</h2>
+          <p>We take ownership of your day-to-day IT: monitoring, patching, endpoint management, and a friendly helpdesk. Get predictable costs and fewer surprises.</p>
+          <ul class="bullets">
+            <li>24/7 monitoring & alerting</li>
+            <li>Helpdesk with fast SLAs</li>
+            <li>Asset & warranty tracking</li>
+            <li>Onboarding/offboarding processes</li>
+          </ul>
+        </div>
+        <div class="visual g1" style="background-image:url('assets/services-managed.jpg');"></div>
+      </div>
+    </section>
+
+    <!-- Security -->
+    <section class="section alt">
+      <div class="section-inner">
+        <div class="visual g2" style="background-image:url('assets/services-security.jpg');"></div>
+        <div class="copy">
+          <h2>Cybersecurity</h2>
+          <p>Protect what matters: endpoints, email, identities, and data. We harden systems and implement layered security that fits your size and risk profile.</p>
+          <ul class="bullets">
+            <li>EDR/AV, patching, and hardening</li>
+            <li>Email security & phishing defense</li>
+            <li>MFA & conditional access</li>
+            <li>Backup & recovery testing</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cloud & Backup -->
+    <section class="section">
+      <div class="section-inner">
+        <div class="copy">
+          <h2>Cloud & Backup</h2>
+          <p>Move smart, not just fast. We migrate, right-size, and protect your data with reliable, tested backups and disaster recovery plans.</p>
+          <ul class="bullets">
+            <li>Microsoft 365 migrations</li>
+            <li>SharePoint/OneDrive architecture</li>
+            <li>Server & NAS backup strategies</li>
+            <li>DR runbooks and recovery drills</li>
+          </ul>
+        </div>
+        <div class="visual g3" style="background-image:url('assets/services-cloud.jpg');"></div>
+      </div>
+    </section>
+
+    <!-- Networking -->
+    <section class="section alt">
+      <div class="section-inner">
+        <div class="visual g4" style="background-image:url('assets/services-network.jpg');"></div>
+        <div class="copy">
+          <h2>Networks that Scale</h2>
+          <p>Wi-Fi that just works. Firewalls that protect without slowing you down. VPNs for remote users. We design for performance and growth.</p>
+          <ul class="bullets">
+            <li>Firewalls, switches, VLANs</li>
+            <li>Business Wi-Fi design</li>
+            <li>Site-to-site & remote VPN</li>
+            <li>ISP & failover planning</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Microsoft 365 & Email -->
+    <section class="section">
+      <div class="section-inner">
+        <div class="copy">
+          <h2>Microsoft 365 & Email</h2>
+          <p>Licensing, migrations, and best-practice configuration for Exchange Online, Teams, SharePoint, and OneDrive—plus user training that sticks.</p>
+          <ul class="bullets">
+            <li>Mailbox migrations & hybrid</li>
+            <li>SharePoint structure & permissions</li>
+            <li>Data retention & DLP policies</li>
+            <li>Secure collaboration setup</li>
+          </ul>
+        </div>
+        <div class="visual g5" style="background-image:url('assets/services-m365.jpg');"></div>
+      </div>
+    </section>
+
+    <!-- Remote Support & Hardware Supply -->
+    <section class="section alt">
+      <div class="section-inner">
+        <div class="visual g6" style="background-image:url('assets/services-hardware.jpg');"></div>
+        <div class="copy">
+          <h2>Remote Support & Office Hardware</h2>
+          <p>Click “Get Remote Support Now” for instant help, or let us source your PCs, VoIP phones, and networking gear—with setup and warranty tracking included.</p>
+          <ul class="bullets">
+            <li>Instant remote assistance</li>
+            <li>Laptops, desktops, and monitors</li>
+            <li>VoIP phones & headsets</li>
+            <li>Firewalls, Wi-Fi, and cabling</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQs (accordion) -->
+    <section class="faq">
+      <h2>FAQs</h2>
+      <details>
+        <summary>How fast is your response time?</summary>
+        <p>Most tickets receive a first response within one business hour. Critical issues are prioritized immediately.</p>
+      </details>
+      <details>
+        <summary>Do you offer after-hours support?</summary>
+        <p>Yes—clients can opt into after-hours coverage and on-call escalation for critical systems.</p>
+      </details>
+      <details>
+        <summary>Can you work with our existing vendors?</summary>
+        <p>Absolutely. We coordinate with ISPs, line-of-business software vendors, and copier/phone providers to own the outcome end-to-end.</p>
+      </details>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta">
+      <a href="contact.html" class="button">Get in Touch</a>
+    </section>
   </main>
+
   <footer>
-    <p>Contact us: 845-604-1462 | <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4a393f3a3a25383e0a2623242f2b38233e642925">[email&#160;protected]</a></p>
+    <p>Contact us: 845-604-1462 | support@linearit.co</p>
     <p>&copy; 2025 Linear Tech. All rights reserved.</p>
   </footer>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</body>
 </html>
