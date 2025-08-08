@@ -1,3 +1,99 @@
+<section class="service">
+  <img src="assets/services-managed.jpg" alt="Managed IT Services">
+  <h2>Managed IT Services</h2>
+  <p>Proactive monitoring, maintenance, and 24/7 helpdesk to keep your systems running smoothly.</p>
+</section>
+
+<section class="service">
+  <img src="assets/services-security.jpg" alt="Cybersecurity Solutions">
+  <h2>Cybersecurity Solutions</h2>
+  <p>Advanced threat protection, firewalls, MFA, and ongoing security audits to protect your data and reputation.</p>
+</section>
+
+<section class="service">
+  <img src="assets/services-cloud.jpg" alt="Cloud Solutions">
+  <h2>Cloud Solutions</h2>
+  <p>Migrate, optimize, and manage your cloud environment for maximum performance and scalability.</p>
+</section>
+
+<section class="service">
+  <img src="assets/services-network.jpg" alt="Network Infrastructure">
+  <h2>Network Infrastructure</h2>
+  <p>High-performance wired and wireless networks designed for speed, reliability, and growth.</p>
+</section>
+
+<section class="service">
+  <img src="assets/services-workspace.jpg" alt="Workspace & Email Setup">
+  <h2>Workspace & Email Setup</h2>
+  <p>Professional configuration and migration for Microsoft Azure, Google Workspace, and business email systems.</p>
+</section>
+
+<section class="service">
+  <img src="assets/services-hardware.jpg" alt="Hardware & Procurement">
+  <h2>Hardware & Procurement</h2>
+  <p>Competitive pricing and expert sourcing for desktops, laptops, servers, networking gear, and office tech.</p>
+</section>
+I swapped:
+
+services-m365.jpg → services-workspace.jpg
+
+Title: Workspace & Email Setup
+
+Description: Includes Azure and Google Workspace to make it universal.
+
+Do you want me to also design a matching professional image for assets/services-workspace.jpg so it fits the other ones? That way, the services page will look perfectly consistent.
+
+
+
+
+
+
+You said:
+where should i put this code?
+
+ChatGPT said:
+You’ll put that code inside your services.html file, replacing the part where your current service “cards” or boxes are.
+
+Here’s the exact process:
+
+1. Open services.html.
+It should be in the same folder as your index.html, about.html, etc.
+
+2. Find your current services section.
+You’ll see something like:
+
+html
+Edit
+<section class="container grid">
+  <div class="card"> ... </div>
+  <div class="card"> ... </div>
+</section>
+or something similar where your six service boxes are listed.
+
+3. Remove that whole section and paste my updated code in its place.
+Make sure you keep the <header> and <footer> parts untouched.
+
+4. Save the file and make sure the new images (services-managed.jpg, services-security.jpg, etc.) are in your assets folder.
+
+If you want, I can rewrite the entire services.html for you with the new design already in place so you can just replace your file and it will work immediately. That would also make sure the formatting looks fresh and professional instead of the old card layout.
+
+Do you want me to do that full rewrite?
+
+
+
+
+
+
+You said:
+i dont want to make mistaeks so please give me the whole page and i will replace it
+
+ChatGPT said:
+Perfect—here’s a complete services.html you can drop in (replace your current file). It uses a modern, full-width layout (no cards), includes your header/footer, and has inline CSS so it looks right even if style.css hiccups. It also uses Workspace & Email Setup (Azure/Google) instead of M365.
+
+Upload this as: services.html in the repo root (same place as index.html).
+
+html
+Edit
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,70 +102,49 @@
   <title>Services - Linear Tech</title>
   <link rel="stylesheet" href="style.css"/>
   <style>
-    /* ---- Page-specific styles to ensure it looks great even if style.css is flaky ---- */
-    body { color:#fff; margin:0; font-family: Arial, sans-serif; }
-    body.background{ background: linear-gradient(to right, #0f2027,#203a43,#2c5364); background-attachment:fixed; }
-    header{ background: rgba(0,34,68,.95); color:#fff; display:flex; align-items:center; justify-content:space-between; padding:10px 20px; gap:10px; }
-    .header-left{flex:1} .header-center{flex:2; display:flex; justify-content:center; gap:18px;} .header-right{flex:1; display:flex; justify-content:flex-end}
-    header .logo{height:50px} nav a{color:#fff; text-decoration:none; font-weight:bold} nav a.active{text-decoration:underline}
-    .remote-header{background:#ff6600; padding:8px 16px; border-radius:4px; color:#fff; text-decoration:none; font-weight:bold}
+    /* Page-specific CSS to ensure it looks good even if style.css doesn't load */
+    body{margin:0;font-family:Arial, sans-serif;color:#fff}
+    body.background{background:linear-gradient(to right,#0f2027,#203a43,#2c5364);background-attachment:fixed}
+    header{background:rgba(0,34,68,.95);display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:10px}
+    .header-left{flex:1} .header-center{flex:2;display:flex;justify-content:center;gap:18px}
+    .header-right{flex:1;display:flex;justify-content:flex-end}
+    header .logo{height:50px} nav a{color:#fff;text-decoration:none;font-weight:bold} nav a.active{text-decoration:underline}
+    .remote-header{background:#ff6600;padding:8px 16px;border-radius:4px;color:#fff;text-decoration:none;font-weight:bold}
     .remote-header:hover{background:#cc5200}
 
-    main{overflow:hidden}
-    .hero-slim{
-      text-align:center; padding:42px 16px 30px;
-      background: linear-gradient(135deg, rgba(0,0,0,.25), rgba(0,0,0,.1));
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .hero-slim h1{margin:0 0 10px; font-size:40px; line-height:1.1}
-    .hero-slim p{max-width:900px; margin:0 auto; opacity:.95}
+    .hero-slim{text-align:center;padding:42px 16px 30px;background:linear-gradient(135deg,rgba(0,0,0,.25),rgba(0,0,0,.1));border-bottom:1px solid rgba(255,255,255,.08)}
+    .hero-slim h1{margin:0 0 10px;font-size:40px;line-height:1.1}
+    .hero-slim p{max-width:900px;margin:0 auto;opacity:.95}
 
-    /* Process / timeline */
-    .process{max-width:1100px; margin:32px auto; padding:0 20px}
-    .steps{display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr));}
-    .step{background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:16px}
-    .step h3{margin:.2rem 0}
-    .kicker{opacity:.85; font-size:.95rem; margin-top:6px}
+    .process{max-width:1100px;margin:32px auto;padding:0 20px}
+    .steps{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+    .step{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:16px}
+    .step h3{margin:.2rem 0}.kicker{opacity:.9;font-size:.95rem;margin-top:6px}
 
-    /* Full-width service sections */
-    .section{
-      display:flex; align-items:center; justify-content:center; text-align:left;
-      padding:56px 20px; gap:28px; border-top:1px solid rgba(255,255,255,.08);
-    }
-    .section-inner{max-width:1100px; width:100%; display:grid; grid-template-columns: 1.2fr 1fr; gap:28px}
-    .section.alt .section-inner{grid-template-columns: 1fr 1.2fr;}
-    .copy h2{margin:0 0 8px; font-size:32px}
-    .copy p{opacity:.95}
-    .bullets{margin-top:8px}
+    .section{display:flex;align-items:center;justify-content:center;padding:56px 20px;border-top:1px solid rgba(255,255,255,.08)}
+    .section-inner{max-width:1100px;width:100%;display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center}
+    .section.alt .section-inner{grid-template-columns:1fr 1.2fr}
+    .copy h2{margin:0 0 8px;font-size:32px}
+    .copy p{opacity:.96}
+    .bullets{margin-top:8px;padding-left:18px}
     .bullets li{margin:6px 0}
-    .visual{
-      min-height:260px; border-radius:12px;
-      background-size:cover; background-position:center; border:1px solid rgba(255,255,255,.12);
-      box-shadow:0 8px 22px rgba(0,0,0,.18);
-    }
-    /* Pretty gradients as fallbacks if no images are uploaded */
-    .g1{ background-image: linear-gradient(135deg,#0f8ecf, #0a3050); }
-    .g2{ background-image: linear-gradient(135deg,#2d8f6f, #0a3040); }
-    .g3{ background-image: linear-gradient(135deg,#7b5bd6, #1b1b3a); }
-    .g4{ background-image: linear-gradient(135deg,#d66e5b, #3a1b1b); }
-    .g5{ background-image: linear-gradient(135deg,#5bb5d6, #142a3a); }
-    .g6{ background-image: linear-gradient(135deg,#5bd65b, #1b3a1b); }
+    .visual{min-height:260px;border-radius:12px;background-size:cover;background-position:center;border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 22px rgba(0,0,0,.18)}
+    .g1{background-image:linear-gradient(135deg,#0f8ecf,#0a3050)}
+    .g2{background-image:linear-gradient(135deg,#2d8f6f,#0a3040)}
+    .g3{background-image:linear-gradient(135deg,#7b5bd6,#1b1b3a)}
+    .g4{background-image:linear-gradient(135deg,#d66e5b,#3a1b1b)}
+    .g5{background-image:linear-gradient(135deg,#5bb5d6,#142a3a)}
+    .g6{background-image:linear-gradient(135deg,#5bd65b,#1b3a1b)}
 
-    /* Accordions */
-    .faq{max-width:1100px; margin:24px auto 8px; padding:0 20px}
-    details{background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.12); border-radius:8px; padding:12px 16px; margin:10px 0}
-    details summary{cursor:pointer; font-weight:bold}
-    details[open]{background:rgba(0,0,0,.32)}
+    .faq{max-width:1100px;margin:24px auto 8px;padding:0 20px}
+    details{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:12px 16px;margin:10px 0}
+    details summary{cursor:pointer;font-weight:bold} details[open]{background:rgba(0,0,0,.32)}
 
-    /* CTA */
-    .cta {text-align:center; padding:40px 20px 60px}
-    .button { background:#00bfff; color:#fff; padding:10px 20px; border-radius:6px; text-decoration:none; display:inline-block; }
-    .button:hover{ background:#009acd; }
+    .cta{text-align:center;padding:40px 20px 60px}
+    .button{background:#00bfff;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block}
+    .button:hover{background:#009acd}
 
-    /* Responsive */
-    @media (max-width: 900px){
-      .section-inner{grid-template-columns: 1fr}
-    }
+    @media (max-width:900px){.section-inner{grid-template-columns:1fr}}
   </style>
 </head>
 <body class="background">
@@ -89,7 +164,6 @@
   </header>
 
   <main>
-    <!-- Intro -->
     <section class="hero-slim">
       <h1>Services that keep your business moving</h1>
       <p>Predictable, secure, and fast IT—delivered with clear communication and proactive support.</p>
@@ -98,22 +172,10 @@
     <!-- Process -->
     <section class="process">
       <div class="steps">
-        <div class="step">
-          <h3>1) Assess & Plan</h3>
-          <p class="kicker">Discovery, health check, and a clear roadmap aligned to your goals.</p>
-        </div>
-        <div class="step">
-          <h3>2) Stabilize & Secure</h3>
-          <p class="kicker">Patch, protect, and back up—reduce risk while improving performance.</p>
-        </div>
-        <div class="step">
-          <h3>3) Modernize</h3>
-          <p class="kicker">Cloud, collaboration, and workflow improvements that save time.</p>
-        </div>
-        <div class="step">
-          <h3>4) Monitor & Support</h3>
-          <p class="kicker">24/7 monitoring and a responsive helpdesk to keep teams productive.</p>
-        </div>
+        <div class="step"><h3>1) Assess & Plan</h3><p class="kicker">Discovery, health check, and a roadmap aligned to your goals.</p></div>
+        <div class="step"><h3>2) Stabilize & Secure</h3><p class="kicker">Patch, protect, and back up—reduce risk while improving performance.</p></div>
+        <div class="step"><h3>3) Modernize</h3><p class="kicker">Cloud, collaboration, and workflow improvements that save time.</p></div>
+        <div class="step"><h3>4) Monitor & Support</h3><p class="kicker">24/7 monitoring and a responsive helpdesk to keep teams productive.</p></div>
       </div>
     </section>
 
@@ -158,7 +220,7 @@
           <h2>Cloud & Backup</h2>
           <p>Move smart, not just fast. We migrate, right-size, and protect your data with reliable, tested backups and disaster recovery plans.</p>
           <ul class="bullets">
-            <li>Microsoft 365 migrations</li>
+            <li>Microsoft 365 / Google Workspace migrations</li>
             <li>SharePoint/OneDrive architecture</li>
             <li>Server & NAS backup strategies</li>
             <li>DR runbooks and recovery drills</li>
@@ -185,20 +247,20 @@
       </div>
     </section>
 
-    <!-- Microsoft 365 & Email -->
+    <!-- Workspace & Email Setup / Azure -->
     <section class="section">
       <div class="section-inner">
         <div class="copy">
-          <h2>Microsoft 365 & Email</h2>
-          <p>Licensing, migrations, and best-practice configuration for Exchange Online, Teams, SharePoint, and OneDrive—plus user training that sticks.</p>
+          <h2>Workspace & Email Setup (Azure / Google)</h2>
+          <p>Licensing, migrations, and best-practice configuration for Exchange/Outlook, Gmail/Workspace, and Azure identity—plus user training that sticks.</p>
           <ul class="bullets">
             <li>Mailbox migrations & hybrid</li>
-            <li>SharePoint structure & permissions</li>
-            <li>Data retention & DLP policies</li>
-            <li>Secure collaboration setup</li>
+            <li>Azure AD / Entra ID, SSO & MFA</li>
+            <li>SharePoint / Drive structure & permissions</li>
+            <li>Data retention, DLP & compliance</li>
           </ul>
         </div>
-        <div class="visual g5" style="background-image:url('assets/services-m365.jpg');"></div>
+        <div class="visual g5" style="background-image:url('assets/services-workspace.jpg');"></div>
       </div>
     </section>
 
@@ -219,7 +281,7 @@
       </div>
     </section>
 
-    <!-- FAQs (accordion) -->
+    <!-- FAQs -->
     <section class="faq">
       <h2>FAQs</h2>
       <details>
@@ -236,7 +298,6 @@
       </details>
     </section>
 
-    <!-- CTA -->
     <section class="cta">
       <a href="contact.html" class="button">Get in Touch</a>
     </section>
