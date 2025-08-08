@@ -4,7 +4,120 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Linear Tech - Home</title>
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+    }
+    body.background {
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      background-attachment: fixed;
+      background-size: cover;
+      background-repeat: no-repeat;
+    }
+    header {
+      background: rgba(0, 34, 68, 0.95);
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    header .logo {
+      height: 50px;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 15px;
+      font-weight: bold;
+    }
+    nav a.active {
+      text-decoration: underline;
+    }
+    .button.remote-header {
+      background: #ff6600;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      color: white;
+      text-decoration: none;
+      transition: background 0.3s ease;
+    }
+    .button.remote-header:hover {
+      background: #cc5200;
+    }
+    main {
+      padding: 20px;
+    }
+    footer {
+      background: rgba(0, 34, 68, 0.95);
+      color: white;
+      text-align: center;
+      padding: 15px 10px;
+      position: relative;
+      bottom: 0;
+      width: 100%;
+    }
+    .hero {
+      text-align: center;
+    }
+    .banner {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+    }
+    .button {
+      background: #00bfff;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 20px;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    .button:hover {
+      background: #009acd;
+    }
+    .button.remote {
+      background: #00bfff;
+      font-weight: bold;
+      display: inline-block;
+    }
+    .button.remote:hover {
+      background: #007acc;
+    }
+    /* Added for grid layout */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .card {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+    .card h3 {
+      margin-top: 0;
+    }
+    .highlight {
+      text-align: center;
+    }
+  </style>
 </head>
 <body class="background">
   <header>
@@ -19,18 +132,16 @@
   </header>
 
   <main>
-    <!-- Hero Banner -->
     <section class="hero">
       <img src="assets/banner.png" alt="Tech Background" class="banner" />
       <h1>Empower Your Business in The Digital Age</h1>
       <p>We streamline your operations with cutting-edge IT solutions, ensuring efficiency and scalability.</p>
       <div class="hero-actions">
-        <a href="https://www.speedtest.net/" class="button">Run a Speed Test</a>
+        <a href="https://www.speedtest.net/" class="button">Run a Speed test</a>
         <a href="services.html" class="button outline">Explore Services</a>
       </div>
     </section>
 
-    <!-- Intro -->
     <section class="container intro">
       <h2>Why Linear Tech?</h2>
       <p>
@@ -40,7 +151,6 @@
       </p>
     </section>
 
-    <!-- Services Grid -->
     <section class="container grid">
       <div class="card">
         <h3>Proactive Managed IT</h3>
@@ -52,7 +162,7 @@
       </div>
       <div class="card">
         <h3>Cloud & Backup</h3>
-        <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement reliable, tested backups and disaster recovery.</p>
+        <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement reliable, tested backups and DR.</p>
       </div>
       <div class="card">
         <h3>Networks that Scale</h3>
@@ -60,7 +170,6 @@
       </div>
     </section>
 
-    <!-- Industries -->
     <section class="container highlight">
       <h2>Industries We Support</h2>
       <p>Medical billing, retail, print shops, professional services, and more. We tailor SLAs and onboarding to your workflows.</p>
@@ -68,7 +177,6 @@
     </section>
   </main>
 
-  <!-- Footer -->
   <footer>
     <p>Contact us: 845-604-1462 | support@linearit.co</p>
     <p>&copy; 2025 Linear Tech. All rights reserved.</p>
