@@ -85,3 +85,29 @@ footer {
 .button.remote:hover {
   background: #007acc;
 }
+
+/* === NEW styles to make service boxes work === */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.card {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+.card h3 {
+  margin-top: 0;
+}
+.highlight {
+  text-align: center;
+}
