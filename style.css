@@ -1,16 +1,25 @@
+/* Make sure header always stays on top */
 body {
-  font-family: Arial, sans-serif;
   margin: 0;
-  padding: 0;
+  font-family: Arial, sans-serif;
   color: #fff;
-}
-body.background {
   background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
   background-attachment: fixed;
   background-size: cover;
   background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-top: 74px; /* Prevent content hiding under fixed header */
 }
+
+/* Fixed header styling */
 header {
+  position: fixed; /* stay pinned at top */
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
   background: rgba(0, 34, 68, 0.95);
   color: white;
   display: flex;
@@ -19,10 +28,13 @@ header {
   padding: 10px 20px;
   flex-wrap: wrap;
   gap: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
 }
+
 header .logo {
   height: 50px;
 }
+
 nav a {
   color: white;
   text-decoration: none;
@@ -32,6 +44,7 @@ nav a {
 nav a.active {
   text-decoration: underline;
 }
+
 .button.remote-header {
   background: #ff6600;
   padding: 8px 16px;
@@ -44,9 +57,12 @@ nav a.active {
 .button.remote-header:hover {
   background: #cc5200;
 }
+
 main {
+  flex: 1;
   padding: 20px;
 }
+
 footer {
   background: rgba(0, 34, 68, 0.95);
   color: white;
@@ -56,6 +72,7 @@ footer {
   bottom: 0;
   width: 100%;
 }
+
 .hero {
   text-align: center;
 }
@@ -64,6 +81,7 @@ footer {
   max-height: 300px;
   object-fit: cover;
 }
+
 .button {
   background: #00bfff;
   color: white;
@@ -77,6 +95,7 @@ footer {
 .button:hover {
   background: #009acd;
 }
+
 .button.remote {
   background: #00bfff;
   font-weight: bold;
@@ -84,30 +103,4 @@ footer {
 }
 .button.remote:hover {
   background: #007acc;
-}
-
-/* === NEW styles to make service boxes work === */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-.card {
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-}
-.card h3 {
-  margin-top: 0;
-}
-.highlight {
-  text-align: center;
 }
