@@ -40,9 +40,13 @@
     .g5{background-image:linear-gradient(135deg,#5bb5d6,#142a3a)}
     .g6{background-image:linear-gradient(135deg,#5bd65b,#1b3a1b)}
 
+    /* FAQ */
     .faq{max-width:1100px;margin:24px auto 8px;padding:0 20px}
-    details{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:12px 16px;margin:10px 0}
-    details summary{cursor:pointer;font-weight:bold} details[open]{background:rgba(0,0,0,.32)}
+    .faq h2{margin:0 0 10px;font-size:28px}
+    .faq details{background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:12px 16px;margin:10px 0}
+    .faq details summary{cursor:pointer;font-weight:bold;list-style:none}
+    .faq details[open]{background:rgba(0,0,0,.32)}
+    .faq details summary::-webkit-details-marker{display:none}
 
     .cta{text-align:center;padding:40px 20px 60px}
     .button{background:#00bfff;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block}
@@ -185,22 +189,22 @@
       </div>
     </section>
 
-<!-- Pricing -->
-<section class="section">
-  <div class="section-inner">
-    <div class="copy">
-      <h2>Simple, Usage-Based Pricing</h2>
-      <p>We don’t charge “per PC.” Instead, we price based on how your company actually uses IT—so light-usage teams aren’t overpaying, and growing teams get predictable costs.</p>
-      <ul class="bullets">
-        <li><strong>Usage-based, not per-device:</strong> Fair for mixed roles and seasonal teams.</li>
-        <li><strong>Transparent monthly rate:</strong> No surprise add-ons for routine support.</li>
-        <li><strong>Scales with your needs:</strong> Adjust as your workflows and headcount change.</li>
-      </ul>
-      <p class="kicker"><em>How we set it:</em> We use the <strong>first quarter</strong> to benchmark real usage and establish a fair, average monthly fee going forward.</p>
-    </div>
-    <div class="visual g5" style="background-image:url('assets/services-pricing.jpg');"></div>
-  </div>
-</section>
+    <!-- Pricing -->
+    <section class="section">
+      <div class="section-inner">
+        <div class="copy">
+          <h2>Simple, Usage-Based Pricing</h2>
+          <p>We don’t charge “per PC.” Instead, we price based on how your company actually uses IT—so light-usage teams aren’t overpaying, and growing teams get predictable costs.</p>
+          <ul class="bullets">
+            <li><strong>Usage-based, not per-device:</strong> Fair for mixed roles and seasonal teams.</li>
+            <li><strong>Transparent monthly rate:</strong> No surprise add-ons for routine support.</li>
+            <li><strong>Scales with your needs:</strong> Adjust as your workflows and headcount change.</li>
+          </ul>
+          <p class="kicker"><em>How we set it:</em> We use the <strong>first quarter</strong> to benchmark real usage and establish a fair, average monthly fee going forward.</p>
+        </div>
+        <div class="visual g5" style="background-image:url('assets/services-pricing.jpg');"></div>
+      </div>
+    </section>
 
     <!-- FAQs -->
     <section class="faq">
@@ -217,11 +221,11 @@
         <summary>Can you work with our existing vendors?</summary>
         <p>Absolutely. We coordinate with ISPs, line-of-business software vendors, and copier/phone providers to own the outcome end-to-end.</p>
       </details>
-    </section>
-    <details>
+      <details>
         <summary>How do you price your services?</summary>
-        <p>We don’t bill per device. We price based on actual company usage. During the first quarter, we benchmark real support demand, tickets, and scope. Then we set a fair, predictable monthly average going forward.</p>
+        <p>We don’t bill per device. We price based on actual company usage. During the first quarter, we benchmark real support demand, tickets, and scope—then set a fair, predictable monthly average going forward.</p>
       </details>
+    </section>
 
     <section class="cta">
       <a href="contact.html" class="button">Get in Touch</a>
