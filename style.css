@@ -19,6 +19,10 @@ header {
   padding: 10px 20px;
   flex-wrap: wrap;
   gap: 10px;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
 }
 header .logo {
   height: 50px;
@@ -46,6 +50,7 @@ nav a.active {
 }
 main {
   padding: 20px;
+  margin-top: 70px;
 }
 footer {
   background: rgba(0, 34, 68, 0.95);
