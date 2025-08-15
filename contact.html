@@ -53,6 +53,7 @@
     header {
       background: rgba(0,34,68,.95); color:#fff; display:flex; align-items:center;
       justify-content:space-between; padding:10px 20px; gap:10px;
+      position:sticky; top:0; width:100%; z-index:1000;
     }
     .header-left{flex:1}
     .header-center{flex:2; display:flex; justify-content:center; gap:18px;}
@@ -69,6 +70,7 @@
     @media (max-width:600px){
       .form-row{ grid-template-columns:1fr; }
     }
+    main{margin-top:70px}
   </style>
 </head>
 <body class="background">

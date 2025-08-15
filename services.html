@@ -9,7 +9,7 @@
     /* Page-specific CSS to ensure it looks good even if style.css doesn't load */
     body{margin:0;font-family:Arial, sans-serif;color:#fff}
     body.background{background:linear-gradient(to right,#0f2027,#203a43,#2c5364);background-attachment:fixed}
-    header{background:rgba(0,34,68,.95);display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:10px}
+    header{background:rgba(0,34,68,.95);display:flex;align-items:center;justify-content:space-between;padding:10px 20px;gap:10px;position:sticky;top:0;width:100%;z-index:1000}
     .header-left{flex:1} .header-center{flex:2;display:flex;justify-content:center;gap:18px}
     .header-right{flex:1;display:flex;justify-content:flex-end}
     header .logo{height:50px} nav a{color:#fff;text-decoration:none;font-weight:bold} nav a.active{text-decoration:underline}
@@ -51,6 +51,8 @@
     .cta{text-align:center;padding:40px 20px 60px}
     .button{background:#00bfff;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;display:inline-block}
     .button:hover{background:#009acd}
+
+    main{margin-top:70px}
 
     @media (max-width:900px){.section-inner{grid-template-columns:1fr}}
   </style>
