@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Linear Desk — Agent Dashboard</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .sla-warn { border-color: #f59e0b !important; }
+    .sla-breach { border-color: #ef4444 !important; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div class="max-w-7xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">Linear Desk — Agent Dashboard</h1>
+      <div class="flex items-center gap-2">
+        <button id="btnShowLogin" class="px-3 py-2 rounded-lg border">Login</button>
+      </div>
+    </header>
+
+    <section id="loginBox" class="mb-6 hidden">
+      <div class="bg-white border rounded-xl p-4 max-w-sm">
+        <h2 class="font-semibold mb-2">Agent Login</h2>
+        <input id="password" type="password" placeholder="Staff password" class="w-full border rounded-lg px-3 py-2 mb-3">
+        <button id="btnLogin" class="bg-black text-white px-4 py-2 rounded-lg">Login</button>
+        <p id="loginMsg" class="text-sm mt-2"></p>
+      </div>
+    </section>
+
+    <nav class="flex flex-wrap gap-2 mb-4">
+      <button data-view="open" class="tab px-3 py-2 rounded-lg border bg-white">All Open</button>
+      <button data-view="mine" class="tab px-3 py-2 rounded-lg border">My Queue</button>
+      <button data-view="waiting" class="tab px-3 py-2 rounded-lg border">Waiting</button>
+      <button data-view="closed" class="tab px-3 py-2 rounded-lg border">Closed</button>
+      <div class="ml-auto flex items-center gap-2">
+        <input id="assignee" placeholder="@username (for My Queue)" class="border rounded-lg px-3 py-2" />
+        <input id="search" placeholder="Search…" class="border rounded-lg px-3 py-2" />
+        <button id="btnSearch" class="px-3 py-2 rounded-lg border">Search</button>
+      </div>
+    </nav>
+
+    <div id="list" class="grid gap-3"></div>
+
+    <template id="cardTpl">
+      <article class="bg-white border rounded-xl p-4">
+        <header class="flex justify-between items-start">
+          <div>
+            <a class="text-lg font-semibold ticket-link" target="_blank"></a>
+            <div class="text-sm text-gray-600 meta mt-1"></div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <select class="status border rounded-lg px-2 py-1">
+              <option value="new">new</option>
+              <option value="in-progress">in-progress</option>
+              <option value="waiting">waiting</option>
+              <option value="closed">closed</option>
+            </select>
+            <input class="assignee border rounded-lg px-2 py-1" placeholder="assignee" />
+            <button class="assign px-3 py-1 border rounded-lg">Assign</button>
+            <button class="close px-3 py-1 border rounded-lg">Close</button>
+            <button class="reopen px-3 py-1 border rounded-lg">Reopen</button>
+          </div>
+        </header>
+        <section class="mt-3 grid gap-2">
+          <div class="flex items-center gap-2">
+            <select class="macro border rounded-lg px-2 py-1">
+              <option value="">Macros…</option>
+              <option>On it—investigating now.</option>
+              <option>Waiting on user to confirm resolution.</option>
+              <option>Escalating for deeper review.</option>
+            </select>
+            <span class="text-xs text-gray-500">Macros fill the comment box; they do not email the client.</span>
+          </div>
+          <textarea class="comment w-full border rounded-lg px-3 py-2" rows="2" placeholder="Add a quick comment…"></textarea>
+          <div class="flex justify-end">
+            <button class="addComment bg-black text-white px-3 py-1 rounded-lg">Comment</button>
+          </div>
+        </section>
+      </article>
+    </template>
+  </div>
+
+  <script>
+    const API_BASE = "https://api.help.linearit.co"; // Worker custom domain (configure in Cloudflare)
+
+    const $ = (s, el=document) => el.querySelector(s);
+    const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+    const list = $("#list");
+
+    $("#btnShowLogin").onclick = () => $("#loginBox").classList.toggle("hidden");
+    $("#btnLogin").onclick = async () => {
+      const password = $("#password").value.trim();
+      $("#loginMsg").textContent = "Logging in…";
+      const res = await fetch(`${API_BASE}/admin/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', body: JSON.stringify({ password })
+      });
+      const j = await res.json();
+      if (!res.ok) { $("#loginMsg").textContent = `❌ ${j.error || 'Login failed'}`; return; }
+      $("#loginMsg").textContent = "✅ Logged in";
+      load("open");
+    };
+
+    let currentView = "open";
+    $$(".tab").forEach(b => b.onclick = () => { $$(".tab").forEach(x=>x.classList.remove("bg-white")); b.classList.add("bg-white"); load(b.dataset.view); });
+    $("#btnSearch").onclick = () => load("search");
+
+    function ageInfo(iso) {
+      const dt = new Date(iso);
+      const mins = Math.floor((Date.now() - dt.getTime())/60000);
+      const hrs = Math.floor(mins/60);
+      const days = Math.floor(hrs/24);
+      return {mins, hrs, days};
+    }
+    function findLabel(labels, prefix) {
+      const f = (labels||[]).find(l => l.name.startsWith(prefix));
+      return f ? f.name.split(":")[1].trim() : "";
+    }
+    function slaClass(item) {
+      const age = ageInfo(item.created_at);
+      const high = (item.labels||[]).some(l => l.name === 'priority: high');
+      if (!high) return "";
+      if (age.hrs >= 8) return "sla-breach";
+      if (age.hrs >= 6) return "sla-warn";
+      return "";
+    }
+
+    async function load(view) {
+      currentView = view;
+      list.innerHTML = "Loading…";
+      const params = new URLSearchParams();
+      params.set('view', view);
+      const assignee = $("#assignee").value.trim().replace(/^@/, '');
+      if (view === 'mine' && assignee) params.set('assignee', assignee);
+      const q = $("#search").value.trim();
+      if (view === 'search' && q) params.set('q', q);
+      const res = await fetch(`${API_BASE}/admin/tickets?${params}`, { credentials: 'include' });
+      const j = await res.json();
+      if (!res.ok) { list.textContent = `Error: ${j.error || 'Failed to load'}`; return; }
+      render(j.items || []);
+    }
+
+    function render(items) {
+      list.innerHTML = "";
+      items.forEach(it => {
+        const t = $("#cardTpl").content.cloneNode(true);
+        const link = $(".ticket-link", t);
+        link.textContent = `#${it.number} · ${it.title}`;
+        link.href = it.html_url;
+        const meta = $(".meta", t);
+        const age = ageInfo(it.created_at);
+        const upd = new Date(it.updated_at || it.created_at).toLocaleString();
+        meta.textContent = `opened ${age.days}d ${age.hrs%24}h ago · updated ${upd} · labels: ${(it.labels||[]).map(l=>l.name).join(', ')}`;
+
+        const article = t.firstElementChild;
+        const cls = slaClass(it);
+        if (cls) article.classList.add(cls);
+
+        const statusSel = $(".status", t);
+        statusSel.value = findLabel(it.labels, "status:") || (it.state === 'closed' ? 'closed' : 'new');
+
+        const assignBtn = $(".assign", t);
+        const assigneeInput = $(".assignee", t);
+        const closeBtn = $(".close", t);
+        const reopenBtn = $(".reopen", t);
+        const commentBtn = $(".addComment", t);
+        const commentTa = $(".comment", t);
+        const macro = $(".macro", t);
+
+        macro.onchange = () => { if (macro.value) commentTa.value = macro.value; };
+
+        statusSel.onchange = async () => {
+          await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            credentials:'include', body: JSON.stringify({ status: statusSel.value })
+          });
+          load(currentView);
+        };
+        assignBtn.onclick = async () => {
+          const a = assigneeInput.value.trim(); if (!a) return;
+          await fetch(`${API_BASE}/admin/tickets/${it.number}/assign`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            credentials:'include', body: JSON.stringify({ assignee: a })
+          });
+          load(currentView);
+        };
+        closeBtn.onclick = async () => {
+          await fetch(`${API_BASE}/admin/tickets/${it.number}/close`, { method:'POST', credentials:'include' });
+          load(currentView);
+        };
+        reopenBtn.onclick = async () => {
+          await fetch(`${API_BASE}/admin/tickets/${it.number}/reopen`, { method:'POST', credentials:'include' });
+          load(currentView);
+        };
+        commentBtn.onclick = async () => {
+          const text = commentTa.value.trim(); if (!text) return;
+          await fetch(`${API_BASE}/admin/tickets/${it.number}/comment`, {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            credentials:'include', body: JSON.stringify({ text })
+          });
+          const status = findLabel(it.labels, "status:");
+          if (status === "new") {
+            await fetch(`${API_BASE}/admin/tickets/${it.number}/status`, {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              credentials:'include', body: JSON.stringify({ status: "in-progress" })
+            });
+          }
+          commentTa.value = "";
+          load(currentView);
+        };
+
+        list.appendChild(t);
+      });
+    }
+  </script>
+</body>
+</html>

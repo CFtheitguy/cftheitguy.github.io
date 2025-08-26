@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Linear Desk — Submit a Ticket</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-900">
+  <main class="max-w-xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-2">Submit a Ticket</h1>
+    <p class="text-sm text-gray-600 mb-6">Tell us what's going on. We'll follow up by email.</p>
+
+    <form id="ticketForm" class="space-y-4 bg-white border rounded-xl p-4">
+      <div>
+        <label class="block text-sm font-medium">Your name</label>
+        <input name="name" class="mt-1 w-full rounded-lg border px-3 py-2" required>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Email</label>
+        <input name="email" type="email" class="mt-1 w-full rounded-lg border px-3 py-2" required>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Subject</label>
+        <input name="subject" class="mt-1 w-full rounded-lg border px-3 py-2" required>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium">Priority</label>
+          <select name="priority" class="mt-1 w-full rounded-lg border px-3 py-2">
+            <option value="low">Low</option>
+            <option value="normal" selected>Normal</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Category</label>
+          <select name="category" class="mt-1 w-full rounded-lg border px-3 py-2">
+            <option value="general" selected>General</option>
+            <option value="password">Password</option>
+            <option value="network">Network</option>
+            <option value="printer">Printer</option>
+            <option value="software">Software</option>
+            <option value="hardware">Hardware</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Message</label>
+        <textarea name="message" rows="6" class="mt-1 w-full rounded-lg border px-3 py-2" required></textarea>
+      </div>
+      <!-- Honeypot -->
+      <input name="honeypot" class="hidden" tabindex="-1" autocomplete="off" />
+      <button class="rounded-lg bg-black text-white px-4 py-2" type="submit">Send Ticket</button>
+      <p id="result" class="text-sm mt-3"></p>
+    </form>
+  </main>
+
+  <script>
+    const API = "https://api.help.linearit.co"; // Worker custom domain (configure in Cloudflare)
+    const form = document.getElementById('ticketForm');
+    const result = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      result.textContent = "Sending...";
+      const data = Object.fromEntries(new FormData(form).entries());
+      try {
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const j = await res.json();
+        if (!res.ok) throw j;
+        result.innerHTML = `✅ Ticket created: <a class="underline" target="_blank" href="${j.issue_url}">#${j.issue_number}</a>`;
+        form.reset();
+      } catch (err) {
+        result.textContent = `❌ Error: ${err.error || 'Unknown error'}`;
+      }
+    });
+  </script>
+</body>
+</html>
