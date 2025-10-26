@@ -1,0 +1,11 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Tech;Linear;;;
+FN:Linear Tech
+ORG:Linear Tech
+TITLE:IT Services & Support
+EMAIL;TYPE=work:chaim@linearit.co
+TEL;TYPE=work:+1-845-604-1462
+ADR;TYPE=work:;;Monroe;NY;;USA
+URL:https://linearit.co
+END:VCARD
