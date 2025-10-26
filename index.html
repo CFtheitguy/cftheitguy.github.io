@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Linear Tech — Straightforward IT Excellence</title>
+  <meta name="description" content="Linear Tech MSP — Fast, secure, and hassle‑free technology solutions. Proactive IT, security, backups, and networks that scale." />
+  <link rel="preload" href="assets/banner.png" as="image" />
+  <style>
+    :root{
+      --brand-blue:#1f6feb;           /* Linear Tech blue */
+      --ink:#0f2b46;                  /* dark ink */
+      --ink-soft:#234a6b;
+      --bg:#e7f2fa;                   /* light blue page bg */
+      --card:rgba(255,255,255,.85);   /* glass card */
+      --accent:#ff7a00;               /* CTA orange */
+      --radius:18px;
+      --shadow:0 10px 25px rgba(3,27,78,.12);
+      scroll-behavior:smooth;         /* base smooth scroll */
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg)}
+
+    /* Header / Nav */
+    .nav{
+      position:fixed;inset:0 0 auto 0;height:68px;display:flex;align-items:center;gap:16px;z-index:1000;
+      padding:10px 22px;transition:background-color .25s, box-shadow .25s;backdrop-filter:saturate(120%) blur(6px);
+    }
+    .nav.transparent{background:linear-gradient(180deg, rgba(7,23,43,.55), rgba(7,23,43,.10));box-shadow:none}
+    .nav.solid{background:#0b2643f2; box-shadow:0 6px 18px rgba(1,9,20,.35)}
+    .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:20px;width:100%}
+    .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:.2px}
+    .brand-img{height:38px;width:auto;display:block;object-fit:contain}
+
+    .menu{margin-left:auto;display:flex;gap:22px;align-items:center}
+    .menu a{color:#fff;text-decoration:none;font-weight:600;opacity:.92}
+    .menu a.active{color:#fff;text-decoration:none;border-bottom:2px solid var(--accent)}
+    .cta{background:var(--accent);color:#111;padding:10px 14px;border-radius:999px;font-weight:800}
+
+    /* Responsive menu */
+    .hamburger{display:none;background:transparent;border:0;color:#fff;font-size:28px;cursor:pointer}
+    @media (max-width:880px){
+      .menu{position:fixed;top:68px;left:0;right:0;flex-direction:column;background:#0b2643f2;padding:14px 22px;max-height:0;overflow:hidden;transition:max-height .25s}
+      .menu.open{max-height:260px}
+      .hamburger{display:block;margin-left:auto}
+      .cta{align-self:flex-start}
+    }
+
+    /* Hero */
+    .hero{min-height:78vh;display:grid;place-items:center;text-align:center;color:#fff;position:relative;background:#0b2643 !important}
+    .hero::before{content:"";position:absolute;inset:0;background:
+      linear-gradient(180deg, rgba(11,38,67,.70), rgba(11,38,67,.65)),
+      image-set(url('assets/banner.webp') type('image/webp'), url('assets/banner.png') type('image/png'));
+    background-position:center 20%;
+    background-size:cover;
+    background-repeat:no-repeat;
+    z-index:-2}
+@media (prefers-reduced-data: reduce){.hero::before{background:linear-gradient(180deg, rgba(11,38,67,.80), rgba(11,38,67,.70))}}
+    .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(7,23,43,.55), rgba(7,23,43,.40));z-index:-1}
+    .hero .wrap{max-width:1050px;padding:120px 20px 60px}
+    .hero h1{font-size:clamp(36px,6vw,64px);line-height:1.1;margin:0 0 12px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.45)}
+    .hero p{font-size:clamp(18px,2.2vw,22px);opacity:.98;margin:0 0 28px;color:#eef5ff;text-shadow:0 1px 6px rgba(0,0,0,.35)}
+    .hero .actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+    .btn{appearance:none;border:0;padding:12px 18px;border-radius:12px;font-weight:800;cursor:pointer}
+    .btn.primary{background:var(--brand-blue);color:#fff}
+    .btn.ghost{background:transparent;color:#fff;border:2px solid #ffffff80}
+    .btn:hover{transform:translateY(-1px)}
+
+    /* Sections */
+    section{scroll-margin-top:84px}
+    .section{padding:70px 20px}
+    .container{max-width:1200px;margin:0 auto}
+    .h2{font-size:clamp(28px,4vw,40px);margin:0 0 10px}
+    .lead{color:var(--ink-soft);font-size:18px;margin:0 0 30px}
+
+    /* Feature cards */
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+    @media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:640px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow);border:1px solid #ffffffd0}
+    .card h3{margin:6px 0 6px;font-size:20px;color:var(--ink)}    /* Contact */
+    .contact{display:grid;grid-template-columns:1.2fr .8fr;gap:24px}
+    @media (max-width:900px){.contact{grid-template-columns:1fr}}
+    .contact form{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+    .input{width:100%;padding:12px 14px;border:1px solid #d7e6f5;border-radius:12px;margin:6px 0 12px;font-size:16px}
+    /* Map */
+    .map-wrap{position:relative;width:100%;height:360px}
+    .map-embed{border:0;width:100%;height:100%;display:block}
+    @media (max-width:900px){.map-wrap{height:300px}}
+    .footer{padding:22px 20px;border-top:1px solid #cfe0f2;color:#3a5a79;text-align:center;background:#f6fbff}
+    /* FAQ accordion */
+    details.faq{background:#fff;border:1px solid #d7e6f5;border-radius:14px;padding:14px 16px;margin:10px 0;box-shadow:var(--shadow)}
+    details.faq[open]{background:#f9fcff}
+    details.faq summary{list-style:none;cursor:pointer;font-weight:700;font-size:18px}
+    details.faq summary::-webkit-details-marker{display:none}
+    .faq-body{color:var(--ink-soft);padding-top:8px}
+
+    /* Extra richness: stats + testimonials */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:24px 0}
+    .stat{background:var(--card);border-radius:var(--radius);padding:16px;text-align:center;border:1px solid #ffffffd0;box-shadow:var(--shadow)}
+    .stat .num{font-size:clamp(28px,4vw,40px);font-weight:900;color:var(--brand-blue)}
+    .testimonials{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:24px 0}
+    .quote{background:#fff;border:1px solid #d7e6f5;border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+    .quote footer{opacity:.8;margin-top:8px}
+    @media (max-width:980px){.stats{grid-template-columns:repeat(2,1fr)}.testimonials{grid-template-columns:1fr}}
+
+    /* CTA stripe */
+    .cta-stripe{background:linear-gradient(90deg,#0f2b46,#184a81);color:#fff;padding:28px 20px}
+    .cta-stripe .container{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .cta-stripe .btn{border:2px solid #fff}
+  </style>
+<style>
+  /* No-JS image fallback: keep hero dark if image blocked */
+  noscript .hero{background:#0b2643}
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="nav transparent" id="nav">
+    <div class="nav-inner">
+      <a href="#home" class="brand" aria-label="Linear Tech Home">
+        <img src="assets/logo.png" alt="Linear Tech logo" class="brand-img" onerror="this.style.display='none'">
+        <span></span>
+      </a>
+
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+
+      <nav class="menu" id="menu">
+        <a href="#home" data-link>Home</a>
+        <a href="#about" data-link>About</a>
+        <a href="#services" data-link>Services</a>
+        <a href="#faq" data-link>FAQ</a>
+        <a href="#contact" data-link>Contact</a>
+        <a class="cta" href="/remote" target="_blank" rel="noopener">Get Remote Support</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section id="home" class="hero">
+    <div class="wrap container">
+      <h1>We Keep Your Business Running</h1>
+      <p>Fast, secure, and hassle‑free technology solutions — so you can focus on your business.</p>
+      <div class="actions">
+        <a class="btn primary" href="#services">Explore Services</a>
+        <a class="btn ghost" href="https://www.speedtest.net" target="_blank" rel="noopener">Run a Speed Test</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="section">
+    <div class="container">
+      <h2 class="h2">Empower Your Business in the Digital Age</h2>
+      <p class="lead">Linear Tech is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response. We streamline operations with proactive monitoring and patching, strong security, reliable backups, and networks that scale.</p>
+
+      <div class="grid">
+        <article class="card">
+          <h3>Proactive Managed IT</h3>
+          <p>24/7 monitoring, patch management, and helpdesk keep devices healthy and your team productive.</p>
+        </article>
+        <article class="card">
+          <h3>Security First</h3>
+          <p>Endpoint protection, email security, MFA, and policies to defend today’s threats.</p>
+        </article>
+        <article class="card">
+          <h3>Cloud & Backup</h3>
+          <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement tested backup & DR.</p>
+        </article>
+        <article class="card">
+          <h3>Networks that Scale</h3>
+          <p>Wi‑Fi to firewalls and VPNs — we design, deploy, and maintain stable, fast networks.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section id="services" class="section">
+    <div class="container">
+      <h2 class="h2">Services</h2>
+      <p class="lead">Choose the coverage you need — we can manage your full environment or augment your existing team.</p>
+
+      <div class="grid">
+        <article class="card"><h3>Managed Endpoint</h3><p>Windows & macOS hardening, updates, antivirus/EDR, asset & license tracking.</p></article>
+        <article class="card"><h3>Microsoft 365</h3><p>Tenant setup, Intune, ENTRA ID/MFA, email hygiene, SharePoint & automation.</p></article>
+        <article class="card"><h3>Backup & DR</h3><p>Workstation & server backups (onsite/cloud), restore drills, ransomware resilience.</p></article>
+        <article class="card"><h3>Networking</h3><p>Switching, Wi‑Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring & alerts.</p></article>
+        <article class="card"><h3>Support Desk</h3><p>Friendly help when you need it — remote & onsite, clear SLAs, simple billing.</p></article>
+        <article class="card"><h3>Advisory</h3><p>Road‑mapping, budgeting, and audits to keep IT predictable and aligned to goals.</p></article>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="num">99.9%</div><div>Uptime targets</div></div>
+        <div class="stat"><div class="num">15 min</div><div>Avg first response</div></div>
+        <div class="stat"><div class="num">365</div><div>Days monitored</div></div>
+        <div class="stat"><div class="num">24/7</div><div>Alerting & support</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="section">
+    <div class="container" itemscope itemtype="https://schema.org/FAQPage">
+      <h2 class="h2">Frequently Asked Questions</h2>
+      <p class="lead">Quick answers about onboarding, support, pricing, and security.</p>
+
+      <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <summary itemprop="name">What does onboarding look like?</summary>
+        <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">We start with a discovery session and a light audit of endpoints, network, and cloud. Then we deploy agents, document your environment, define SLAs, and roll out quick wins in the first 14–30 days.</p>
+        </div>
+      </details>
+
+      <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <summary itemprop="name">How do you price Managed Services?</summary>
+        <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">Most clients choose a per‑device or per‑user monthly plan covering monitoring, patching, security, and support. Project work (migrations, new sites, etc.) is scoped separately with a fixed or hourly quote.</p>
+        </div>
+      </details>
+
+      <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <summary itemprop="name">Can you support remote and multi‑site teams?</summary>
+        <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi‑Fi and switching for consistent performance in each location.</p>
+        </div>
+      </details>
+
+      <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <summary itemprop="name">What security controls do you implement?</summary>
+        <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">MFA/conditional access, least‑privilege accounts, next‑gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs.</p>
+        </div>
+      </details>
+
+      <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <summary itemprop="name">Do you work with existing IT teams?</summary>
+        <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">Absolutely. We can be your full MSP or an extension to handle helpdesk, patching, or projects while your team focuses on strategy.</p>
+        </div>
+      </details>
+
+      <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
+        <summary itemprop="name">How fast can we start?</summary>
+        <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+          <p itemprop="text">Discovery can begin this week; agent deployment usually the same or next day. Full onboarding typically completes within 2–4 weeks depending on scope.</p>
+        </div>
+      </details>
+
+      <div class="testimonials">
+        <blockquote class="quote">“Linear Tech stabilized our Wi‑Fi and printers in one visit. Our staff stopped losing time.”<footer>— Office Manager, Healthcare</footer></blockquote>
+        <blockquote class="quote">“Clear communication, fast turnarounds, and they explain things in plain English.”<footer>— COO, Retail</footer></blockquote>
+        <blockquote class="quote">“They migrated us to M365 and set up Intune. Onboarding new hires is now painless.”<footer>— HR Lead, Manufacturing</footer></blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-stripe">
+    <div class="container">
+      <div><strong>Ready to modernize your IT?</strong><br>Let’s discuss your environment and priorities.</div>
+      <a class="btn ghost" href="#contact">Book a quick consult</a>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact" class="section">
+    <div class="container">
+      <h2 class="h2">Contact</h2>
+      <p class="lead">Tell us a bit about your environment, and we’ll get right back to you.</p>
+
+      <div class="contact">
+        <form action="https://formspree.io/f/REPLACE_WITH_FORMSPREE_ID" method="POST">
+          <label>Name</label>
+          <input class="input" type="text" name="name" required />
+          <label>Email</label>
+          <input class="input" type="email" name="email" required />
+          <label>Company</label>
+          <input class="input" type="text" name="company" />
+          <label>Message</label>
+          <textarea class="input" name="message" rows="5" placeholder="How can we help?"></textarea>
+          <button class="btn primary" type="submit">Send Message</button>
+        </form>
+
+        <div>
+          <div class="card">
+            <h3>Linear Tech</h3>
+            <p>Monroe, NY · United States</p>
+            <p><strong>Email:</strong> <a href="mailto:chaim@linearit.co">chaim@linearit.co</a></p>
+            <p><strong>Phone:</strong> <a href="tel:+1-845-604-1462">(845) 604‑1462</a></p>
+            <p><a class="btn" style="background:#f0f6ff;color:var(--brand-blue);font-weight:800" href="assets/LinearTech.vcf">Download vCard</a></p>
+          </div>
+
+          <div class="card" style="padding:0;overflow:hidden;margin-top:18px">
+            <div class="map-wrap">
+              <iframe class="map-embed" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Linear%20Tech%20Monroe%20NY&output=embed"></iframe>
+            </div>
+            <div style="padding:12px 14px">
+              <strong>Visit us</strong><br>Monroe, NY
+              <div style="margin-top:8px">
+                <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=Linear%20Tech%20Monroe%20NY" target="_blank" rel="noopener">Get Directions</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  <footer class="footer">© <span id="year"></span> Linear Tech · Straightforward IT Excellence</footer>
+
+  <script>
+    // Sticky nav style change + active link highlighting + smooth anchor offset
+    const nav = document.getElementById('nav');
+    const menu = document.getElementById('menu');
+    const hamburger = document.getElementById('hamburger');
+
+    const setNavAppearance = () => {
+      if (window.scrollY > 4) {nav.classList.add('solid'); nav.classList.remove('transparent');}
+      else {nav.classList.add('transparent'); nav.classList.remove('solid');}
+    };
+    setNavAppearance();
+    window.addEventListener('scroll', setNavAppearance, {passive:true});
+
+    // mobile menu toggle
+    hamburger.addEventListener('click', ()=> menu.classList.toggle('open'));
+    [...menu.querySelectorAll('a[data-link]')].forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
+
+    // active link observer
+    const links = [...document.querySelectorAll('a[data-link]')];
+    const ids = links.map(a=>a.getAttribute('href'));
+    const sections = ids.map(id=>document.querySelector(id));
+    const obs = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting){
+          links.forEach(l=>l.classList.toggle('active', l.getAttribute('href') === ('#'+e.target.id)));
+        }
+      });
+    },{rootMargin:'-56px 0px -70% 0px', threshold:.25});
+    sections.forEach(s=>s && obs.observe(s));
+
+    // year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+  <!-- JSON‑LD FAQ for rich results -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type": "Question","name": "What does onboarding look like?","acceptedAnswer": {"@type":"Answer","text":"We start with a discovery session and a light audit of endpoints, network, and cloud. Then we deploy agents, document your environment, define SLAs, and roll out quick wins in the first 14–30 days."}},
+      {"@type": "Question","name": "How do you price Managed Services?","acceptedAnswer": {"@type":"Answer","text":"Most clients choose a per‑device or per‑user monthly plan covering monitoring, patching, security, and support. Project work is scoped separately with a fixed or hourly quote."}},
+      {"@type": "Question","name": "Can you support remote and multi‑site teams?","acceptedAnswer": {"@type":"Answer","text":"Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi‑Fi and switching for consistent performance in each location."}},
+      {"@type": "Question","name": "What security controls do you implement?","acceptedAnswer": {"@type":"Answer","text":"MFA/conditional access, least‑privilege, next‑gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs."}},
+      {"@type": "Question","name": "Do you work with existing IT teams?","acceptedAnswer": {"@type":"Answer","text":"Yes, we can be your full MSP or an extension to handle helpdesk, patching, or projects while your team focuses on strategy."}},
+      {"@type": "Question","name": "How fast can we start?","acceptedAnswer": {"@type":"Answer","text":"Discovery can begin this week; agent deployment usually the same or next day. Full onboarding typically completes within 2–4 weeks depending on scope."}}
+    ]
+  }
+  </script>
+</body>
+</html>
