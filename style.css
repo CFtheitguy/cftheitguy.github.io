@@ -5,7 +5,7 @@ body {
   color: #fff;
 }
 body.background {
-  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  background: linear-gradient(to right, #5595d4, #5594d4, #5595d4);
   background-attachment: fixed;
   background-size: cover;
   background-repeat: no-repeat;
