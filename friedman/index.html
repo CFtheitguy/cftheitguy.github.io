@@ -25,7 +25,6 @@
       width: 100%;
     }
     h1 { margin: 0 0 20px; color: #333; }
-    h2 { color: #667eea; margin-top: 30px; font-size: 20px; }
     p { color: #666; }
     input {
       width: 100%;
@@ -65,7 +64,6 @@
     }
     .hidden { display: none; }
     
-    /* Folder Styles */
     .folder {
       margin: 20px 0;
       border: 2px solid #e0e0e0;
@@ -109,10 +107,9 @@
       background: #f8f9fa;
     }
     .folder.open .folder-content {
-       max-height: 1000px;
+      max-height: 2000px;
     }
     
-    /* File Item Styles */
     .file-item {
       padding: 15px 20px;
       background: white;
@@ -135,10 +132,6 @@
       font-weight: 600;
       color: #333;
       margin-bottom: 4px;
-    }
-    .file-meta {
-      font-size: 13px;
-      color: #999;
     }
     .file-actions {
       display: flex;
@@ -221,33 +214,7 @@
         </div>
         <span class="folder-arrow">▶</span>
       </div>
-      <div class="folder-content">
-        <!-- Invoice Files -->
-        <div class="file-item">
-          <div class="file-info">
-            <div class="file-name">Invoice #2026-001</div>
-            <div class="file-meta">Date: January 5, 2026 • Amount: $450.00 • Status: Paid</div>
-          </div>
-          <div class="file-actions">
-            <a href="assets/friedman/invoices/invoice-001.pdf" class="btn-view" target="_blank">View</a>
-            <a href="assets/friedman/invoices/invoice-001.pdf" class="btn-download" download>Download</a>
-          </div>
-        </div>
-
-        <div class="file-item">
-          <div class="file-info">
-            <div class="file-name">Invoice #2026-002</div>
-            <div class="file-meta">Date: January 12, 2026 • Amount: $325.00 • Status: Open</div>
-          </div>
-          <div class="file-actions">
-            <a href="assets/friedman/invoices/invoice-002.pdf" class="btn-view" target="_blank">View</a>
-            <a href="assets/friedman/invoices/invoice-002.pdf" class="btn-download" download>Download</a>
-          </div>
-        </div>
-
-        <!-- Add more invoice files here -->
-        <!-- <div class="empty-folder">No invoices available</div> -->
-      </div>
+      <div class="folder-content" id="invoicesList"></div>
     </div>
 
     <!-- Tickets Folder -->
@@ -259,35 +226,10 @@
         </div>
         <span class="folder-arrow">▶</span>
       </div>
-      <div class="folder-content">
-        <!-- Ticket Files -->
-        <div class="file-item">
-          <div class="file-info">
-            <div class="file-name">Ticket #TKT-567 - Email Issues</div>
-            <div class="file-meta">Date: January 11, 2026 • Status: Open • Priority: High</div>
-          </div>
-          <div class="file-actions">
-            <a href="assets/friedman/tickets/ticket-567.pdf" class="btn-view" target="_blank">View</a>
-            <a href="assets/friedman/tickets/ticket-567.pdf" class="btn-download" download>Download</a>
-          </div>
-        </div>
-
-        <div class="file-item">
-          <div class="file-info">
-            <div class="file-name">Ticket #TKT-566 - Printer Setup</div>
-            <div class="file-meta">Date: January 8, 2026 • Status: Resolved • Priority: Medium</div>
-          </div>
-          <div class="file-actions">
-            <a href="assets/friedman/tickets/ticket-566.pdf" class="btn-view" target="_blank">View</a>
-            <a href="assets/friedman/tickets/ticket-566.pdf" class="btn-download" download>Download</a>
-          </div>
-        </div>
-
-        <!-- Add more ticket files here -->
-      </div>
+      <div class="folder-content" id="ticketsList"></div>
     </div>
 
-    <!-- Documents/PDFs Folder -->
+    <!-- Documents Folder -->
     <div class="folder" id="documentsFolder">
       <div class="folder-header" onclick="toggleFolder('documentsFolder')">
         <div class="folder-title">
@@ -296,42 +238,42 @@
         </div>
         <span class="folder-arrow">▶</span>
       </div>
-      <div class="folder-content">
-        <!-- Document Files -->
-        <div class="file-item">
-          <div class="file-info">
-            <div class="file-name">Service Agreement 2026</div>
-            <div class="file-meta">Uploaded: January 1, 2026 • Size: 2.4 MB</div>
-          </div>
-          <div class="file-actions">
-            <a href="assets/friedman/documents/service-agreement.pdf" class="btn-view" target="_blank">View</a>
-            <a href="assets/friedman/documents/service-agreement.pdf" class="btn-download" download>Download</a>
-          </div>
-        </div>
-
-        <div class="file-item">
-          <div class="file-info">
-            <div class="file-name">Network Diagram</div>
-            <div class="file-meta">Uploaded: December 15, 2025 • Size: 1.8 MB</div>
-          </div>
-          <div class="file-actions">
-            <a href="assets/friedman/documents/network-diagram.pdf" class="btn-view" target="_blank">View</a>
-            <a href="assets/friedman/documents/network-diagram.pdf" class="btn-download" download>Download</a>
-          </div>
-        </div>
-
-        <!-- Add more document files here -->
-      </div>
+      <div class="folder-content" id="documentsList"></div>
     </div>
 
     <button class="logout-btn" onclick="logout()">🚪 Logout</button>
   </div>
 
   <script>
-    // Set your credentials here
-    const validUsername = "yes";
-    const validPassword = "no";
+    // ========================================
+    // CONFIGURATION - Just add your PDF filenames here!
+    // ========================================
+    
+    const validUsername = "friedman";
+    const validPassword = "YourSecurePassword123!";
 
+    // Add your PDF filenames here (just the filename, not the full path)
+    const invoices = [
+      "invoice-001.pdf",
+      "invoice-002.pdf",
+      "invoice-003.pdf"
+    ];
+
+    const tickets = [
+      "ticket-567.pdf",
+      "ticket-566.pdf",
+      "ticket-565.pdf"
+    ];
+
+    const documents = [
+      "service-agreement.pdf",
+      "network-diagram.pdf",
+      "backup-policy.pdf"
+    ];
+
+    // ========================================
+    // Login Function
+    // ========================================
     function checkLogin() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
@@ -341,6 +283,7 @@
         document.getElementById('contentBox').classList.remove('hidden');
         document.getElementById('error').classList.add('hidden');
         sessionStorage.setItem('loggedIn', 'true');
+        loadFiles();
       } else {
         document.getElementById('error').classList.remove('hidden');
       }
@@ -354,7 +297,55 @@
       document.getElementById('password').value = '';
     }
 
-    // Toggle folder open/close
+    // ========================================
+    // Load Files into Folders
+    // ========================================
+    function loadFiles() {
+      // Load Invoices
+      const invoicesList = document.getElementById('invoicesList');
+      if (invoices.length === 0) {
+        invoicesList.innerHTML = '<div class="empty-folder">No invoices available</div>';
+      } else {
+        invoicesList.innerHTML = invoices.map(file => createFileItem(file, 'invoices')).join('');
+      }
+
+      // Load Tickets
+      const ticketsList = document.getElementById('ticketsList');
+      if (tickets.length === 0) {
+        ticketsList.innerHTML = '<div class="empty-folder">No tickets available</div>';
+      } else {
+        ticketsList.innerHTML = tickets.map(file => createFileItem(file, 'tickets')).join('');
+      }
+
+      // Load Documents
+      const documentsList = document.getElementById('documentsList');
+      if (documents.length === 0) {
+        documentsList.innerHTML = '<div class="empty-folder">No documents available</div>';
+      } else {
+        documentsList.innerHTML = documents.map(file => createFileItem(file, 'documents')).join('');
+      }
+    }
+
+    function createFileItem(filename, folder) {
+      const path = `assets/${folder}/${filename}`;
+      const displayName = filename.replace('.pdf', '').replace(/-/g, ' ').replace(/_/g, ' ');
+      
+      return `
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">${displayName}</div>
+          </div>
+          <div class="file-actions">
+            <a href="${path}" class="btn-view" target="_blank">View</a>
+            <a href="${path}" class="btn-download" download>Download</a>
+          </div>
+        </div>
+      `;
+    }
+
+    // ========================================
+    // Toggle Folder Open/Close
+    // ========================================
     function toggleFolder(folderId) {
       const folder = document.getElementById(folderId);
       folder.classList.toggle('open');
@@ -364,6 +355,7 @@
     if (sessionStorage.getItem('loggedIn') === 'true') {
       document.getElementById('loginBox').classList.add('hidden');
       document.getElementById('contentBox').classList.remove('hidden');
+      loadFiles();
     }
 
     // Allow Enter key to login
