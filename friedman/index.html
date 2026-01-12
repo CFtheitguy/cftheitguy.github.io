@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Friedman Portal - Linear Tech</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 20px;
+    }
+    .login-box, .content-box {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 900px;
+      width: 100%;
+    }
+    h1 { margin: 0 0 20px; color: #333; }
+    h2 { color: #667eea; margin-top: 30px; font-size: 20px; }
+    p { color: #666; }
+    input {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: transform 0.2s;
+    }
+    button:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .error { 
+      color: #e74c3c; 
+      margin-top: 10px;
+      padding: 10px;
+      background: #ffe5e5;
+      border-radius: 8px;
+    }
+    .hidden { display: none; }
+    
+    /* Folder Styles */
+    .folder {
+      margin: 20px 0;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .folder-header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 15px 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s;
+    }
+    .folder-header:hover {
+      background: linear-gradient(135deg, #7688f0, #8659b8);
+    }
+    .folder-icon {
+      font-size: 24px;
+      margin-right: 10px;
+    }
+    .folder-title {
+      display: flex;
+      align-items: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .folder-arrow {
+      font-size: 20px;
+      transition: transform 0.3s;
+    }
+    .folder.open .folder-arrow {
+      transform: rotate(90deg);
+    }
+    .folder-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      background: #f8f9fa;
+    }
+    .folder.open .folder-content {
+       max-height: 1000px;
+    }
+    
+    /* File Item Styles */
+    .file-item {
+      padding: 15px 20px;
+      background: white;
+      margin: 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-left: 4px solid #667eea;
+      transition: all 0.2s;
+    }
+    .file-item:hover {
+      transform: translateX(5px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .file-info {
+      flex: 1;
+    }
+    .file-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .file-meta {
+      font-size: 13px;
+      color: #999;
+    }
+    .file-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-download, .btn-view {
+      padding: 8px 16px;
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: all 0.2s;
+      display: inline-block;
+    }
+    .btn-download:hover, .btn-view:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+    }
+    .btn-view {
+      background: #27ae60;
+    }
+    .btn-view:hover {
+      background: #229954;
+    }
+    
+    .empty-folder {
+      padding: 30px;
+      text-align: center;
+      color: #999;
+      font-style: italic;
+    }
+    
+    .logout-btn {
+      background: #e74c3c;
+      margin-top: 30px;
+    }
+    .logout-btn:hover {
+      background: #c0392b;
+    }
+
+    .header-box {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .header-box h1 {
+      color: white;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Form -->
+  <div id="loginBox" class="login-box">
+    <h1>🔐 Client Portal</h1>
+    <p>Please enter your credentials to access your files</p>
+    <input type="text" id="username" placeholder="Username" autocomplete="username" />
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+    <button onclick="checkLogin()">Login</button>
+    <p id="error" class="error hidden">❌ Invalid username or password</p>
+  </div>
+
+  <!-- Protected Content -->
+  <div id="contentBox" class="content-box hidden">
+    <div class="header-box">
+      <h1>Welcome to Your Portal! 👋</h1>
+      <p style="margin: 5px 0 0 0; opacity: 0.9;">Access your invoices, tickets, and documents</p>
+    </div>
+
+    <!-- Invoices Folder -->
+    <div class="folder" id="invoicesFolder">
+      <div class="folder-header" onclick="toggleFolder('invoicesFolder')">
+        <div class="folder-title">
+          <span class="folder-icon">📄</span>
+          <span>Invoices</span>
+        </div>
+        <span class="folder-arrow">▶</span>
+      </div>
+      <div class="folder-content">
+        <!-- Invoice Files -->
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">Invoice #2026-001</div>
+            <div class="file-meta">Date: January 5, 2026 • Amount: $450.00 • Status: Paid</div>
+          </div>
+          <div class="file-actions">
+            <a href="assets/friedman/invoices/invoice-001.pdf" class="btn-view" target="_blank">View</a>
+            <a href="assets/friedman/invoices/invoice-001.pdf" class="btn-download" download>Download</a>
+          </div>
+        </div>
+
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">Invoice #2026-002</div>
+            <div class="file-meta">Date: January 12, 2026 • Amount: $325.00 • Status: Open</div>
+          </div>
+          <div class="file-actions">
+            <a href="assets/friedman/invoices/invoice-002.pdf" class="btn-view" target="_blank">View</a>
+            <a href="assets/friedman/invoices/invoice-002.pdf" class="btn-download" download>Download</a>
+          </div>
+        </div>
+
+        <!-- Add more invoice files here -->
+        <!-- <div class="empty-folder">No invoices available</div> -->
+      </div>
+    </div>
+
+    <!-- Tickets Folder -->
+    <div class="folder" id="ticketsFolder">
+      <div class="folder-header" onclick="toggleFolder('ticketsFolder')">
+        <div class="folder-title">
+          <span class="folder-icon">🎫</span>
+          <span>Support Tickets</span>
+        </div>
+        <span class="folder-arrow">▶</span>
+      </div>
+      <div class="folder-content">
+        <!-- Ticket Files -->
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">Ticket #TKT-567 - Email Issues</div>
+            <div class="file-meta">Date: January 11, 2026 • Status: Open • Priority: High</div>
+          </div>
+          <div class="file-actions">
+            <a href="assets/friedman/tickets/ticket-567.pdf" class="btn-view" target="_blank">View</a>
+            <a href="assets/friedman/tickets/ticket-567.pdf" class="btn-download" download>Download</a>
+          </div>
+        </div>
+
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">Ticket #TKT-566 - Printer Setup</div>
+            <div class="file-meta">Date: January 8, 2026 • Status: Resolved • Priority: Medium</div>
+          </div>
+          <div class="file-actions">
+            <a href="assets/friedman/tickets/ticket-566.pdf" class="btn-view" target="_blank">View</a>
+            <a href="assets/friedman/tickets/ticket-566.pdf" class="btn-download" download>Download</a>
+          </div>
+        </div>
+
+        <!-- Add more ticket files here -->
+      </div>
+    </div>
+
+    <!-- Documents/PDFs Folder -->
+    <div class="folder" id="documentsFolder">
+      <div class="folder-header" onclick="toggleFolder('documentsFolder')">
+        <div class="folder-title">
+          <span class="folder-icon">📁</span>
+          <span>Documents</span>
+        </div>
+        <span class="folder-arrow">▶</span>
+      </div>
+      <div class="folder-content">
+        <!-- Document Files -->
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">Service Agreement 2026</div>
+            <div class="file-meta">Uploaded: January 1, 2026 • Size: 2.4 MB</div>
+          </div>
+          <div class="file-actions">
+            <a href="assets/friedman/documents/service-agreement.pdf" class="btn-view" target="_blank">View</a>
+            <a href="assets/friedman/documents/service-agreement.pdf" class="btn-download" download>Download</a>
+          </div>
+        </div>
+
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">Network Diagram</div>
+            <div class="file-meta">Uploaded: December 15, 2025 • Size: 1.8 MB</div>
+          </div>
+          <div class="file-actions">
+            <a href="assets/friedman/documents/network-diagram.pdf" class="btn-view" target="_blank">View</a>
+            <a href="assets/friedman/documents/network-diagram.pdf" class="btn-download" download>Download</a>
+          </div>
+        </div>
+
+        <!-- Add more document files here -->
+      </div>
+    </div>
+
+    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+  </div>
+
+  <script>
+    // Set your credentials here
+    const validUsername = "yes";
+    const validPassword = "no";
+
+    function checkLogin() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (username === validUsername && password === validPassword) {
+        document.getElementById('loginBox').classList.add('hidden');
+        document.getElementById('contentBox').classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+        sessionStorage.setItem('loggedIn', 'true');
+      } else {
+        document.getElementById('error').classList.remove('hidden');
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('loggedIn');
+      document.getElementById('loginBox').classList.remove('hidden');
+      document.getElementById('contentBox').classList.add('hidden');
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+
+    // Toggle folder open/close
+    function toggleFolder(folderId) {
+      const folder = document.getElementById(folderId);
+      folder.classList.toggle('open');
+    }
+
+    // Check if already logged in
+    if (sessionStorage.getItem('loggedIn') === 'true') {
+      document.getElementById('loginBox').classList.add('hidden');
+      document.getElementById('contentBox').classList.remove('hidden');
+    }
+
+    // Allow Enter key to login
+    document.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !document.getElementById('loginBox').classList.contains('hidden')) {
+        checkLogin();
+      }
+    });
+  </script>
+
+</body>
+</html>

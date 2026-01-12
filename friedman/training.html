@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Friedman Portal - Linear Tech</title>
+ <style>
+   * { box-sizing: border-box; }
+   body {
+     font-family: system-ui, -apple-system, sans-serif;
+     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+     min-height: 100vh;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     margin: 0;
+     padding: 20px;
+   }
+   .login-box, .content-box {
+     background: white;
+     padding: 40px;
+     border-radius: 20px;
+     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+     max-width: 800px;
+     width: 100%;
+   }
+   h1 { margin: 0 0 20px; color: #333; }
+   h3 { color: #667eea; margin-top: 30px; }
+   p { color: #666; }
+   input {
+     width: 100%;
+     padding: 14px;
+     margin: 10px 0;
+     border: 2px solid #ddd;
+     border-radius: 10px;
+     font-size: 16px;
+   }
+   input:focus {
+     outline: none;
+     border-color: #667eea;
+   }
+   button {
+     width: 100%;
+     padding: 14px;
+     background: linear-gradient(135deg, #667eea, #764ba2);
+     color: white;
+     border: none;
+     border-radius: 10px;
+     font-size: 16px;
+     font-weight: bold;
+     cursor: pointer;
+     margin-top: 10px;
+     transition: transform 0.2s;
+   }
+   button:hover { 
+     transform: translateY(-2px);
+     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+   }
+   .error { 
+     color: #e74c3c; 
+     margin-top: 10px;
+     padding: 10px;
+     background: #ffe5e5;
+     border-radius: 8px;
+   }
+   .hidden { display: none; }
+   .video-container { 
+     margin: 25px 0;
+     background: #f8f9fa;
+     padding: 20px;
+     border-radius: 12px;
+   }
+   video, iframe { 
+     width: 100%; 
+     border-radius: 10px;
+     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+   }
+   .logout-btn {
+     background: #e74c3c;
+     margin-top: 30px;
+   }
+   .logout-btn:hover {
+     background: #c0392b;
+   }
+ </style>
+</head>
+<body>
+
+ <!-- Login Form -->
+ <div id="loginBox" class="login-box">
+   <h1>🔐 Client Portal</h1>
+   <p>Please enter your credentials to access training materials</p>
+   <input type="text" id="username" placeholder="Username" autocomplete="username" />
+   <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
+   <button onclick="checkLogin()">Login</button>
+   <p id="error" class="error hidden">❌ Invalid username or password</p>
+ </div>
+
+ <!-- Protected Content -->
+ <div id="contentBox" class="content-box hidden">
+   <h1>Welcome to Your Training Portal! 👋</h1>
+   <p>Here are your exclusive training videos:</p>
+   
+   <!-- Video 1 - GitHub Release hosted -->
+   <div class="video-container">
+     <h3>📹 Video 1: Introduction</h3>
+     <video controls>
+       <source src="https://github.com/yourusername/yourrepo/releases/download/v1.0/video1.mp4" type="video/mp4">
+       Your browser does not support the video tag.
+     </video>
+   </div>
+   
+   <!-- Video 2 - Google Drive hosted -->
+   <div class="video-container">
+     <h3>📹 Video 2: Setup Guide</h3>
+     <iframe src="https://drive.google.com/file/d/YOUR_GOOGLE_DRIVE_FILE_ID/preview" width="100%" height="480" allow="autoplay"></iframe>
+   </div>
+
+   <!-- Video 3 - Another video -->
+   <div class="video-container">
+     <h3>📹 Video 3: Advanced Features</h3>
+     <video controls>
+       <source src="https://github.com/yourusername/yourrepo/releases/download/v1.0/video3.mp4" type="video/mp4">
+       Your browser does not support the video tag.
+     </video>
+   </div>
+
+   <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+ </div>
+
+ <script>
+   // Set your credentials here
+   const validUsername = "yes";
+   const validPassword = "no";
+
+   function checkLogin() {
+     const username = document.getElementById('username').value;
+     const password = document.getElementById('password').value;
+     
+     if (username === validUsername && password === validPassword) {
+       document.getElementById('loginBox').classList.add('hidden');
+       document.getElementById('contentBox').classList.remove('hidden');
+       document.getElementById('error').classList.add('hidden');
+       sessionStorage.setItem('loggedIn', 'true');
+     } else {
+       document.getElementById('error').classList.remove('hidden');
+     }
+   }
+
+   function logout() {
+     sessionStorage.removeItem('loggedIn');
+     document.getElementById('loginBox').classList.remove('hidden');
+     document.getElementById('contentBox').classList.add('hidden');
+     document.getElementById('username').value = '';
+     document.getElementById('password').value = '';
+   }
+
+   // Check if already logged in
+   if (sessionStorage.getItem('loggedIn') === 'true') {
+     document.getElementById('loginBox').classList.add('hidden');
+     document.getElementById('contentBox').classList.remove('hidden');
+   }
+
+   // Allow Enter key to login
+   document.addEventListener('keypress', function(e) {
+     if (e.key === 'Enter' && !document.getElementById('loginBox').classList.contains('hidden')) {
+       checkLogin();
+     }
+   });
+ </script>
+
+</body>
+</html>
