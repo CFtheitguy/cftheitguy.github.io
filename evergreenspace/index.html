@@ -301,7 +301,8 @@
     // ========================================
     function loadFiles() {
       // Load Invoices
-      const invoicesList = document.getElementById('invoicesList');
+      
+      const invoices = await fetchInvoiceList();
       if (invoices.length === 0) {
         invoicesList.innerHTML = '<div class="empty-folder">No invoices available</div>';
       } else {
@@ -323,6 +324,54 @@
       } else {
         documentsList.innerHTML = documents.map(file => createFileItem(file, 'documents')).join('');
       }
+    }
+
+    async function fetchInvoiceList() {
+      const invoicesFromListing = await fetchInvoiceListFromDirectory();
+      if (invoicesFromListing.length > 0) {
+        return invoicesFromListing;
+      }
+
+      try {
+        const response = await fetch(invoicesManifestPath, { cache: 'no-store' });
+        if (!response.ok) {
+          return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    async function fetchInvoiceListFromDirectory() {
+      try {
+        const response = await fetch('assets/invoices/', { cache: 'no-store' });
+        if (!response.ok) {
+          return [];
+        }
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('text/html')) {
+          return [];
+        }
+        const html = await response.text();
+        return extractPdfLinksFromListing(html);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function extractPdfLinksFromListing(html) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const links = Array.from(doc.querySelectorAll('a[href]'));
+      const files = links
+        .map(link => link.getAttribute('href'))
+        .filter(Boolean)
+        .map(href => href.split('/').pop())
+        .filter(filename => filename && filename.toLowerCase().endsWith('.pdf'));
+
+      return Array.from(new Set(files));
     }
 
     function createFileItem(filename, folder) {
@@ -349,24 +398,3 @@
       const folder = document.getElementById(folderId);
       folder.classList.toggle('open');
     }
-
-    // Check if already logged in
-    if (sessionStorage.getItem('loggedIn') === 'true') {
-      document.getElementById('loginBox').classList.add('hidden');
-      document.getElementById('contentBox').classList.remove('hidden');
-      loadFiles();
-    }
-
-    // Allow Enter key to login
-    document.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter' && !document.getElementById('loginBox').classList.contains('hidden')) {
-        checkLogin();
-      }
-    });
-  </script>
-
-</body>
-</html>
-
-
-
