@@ -125,9 +125,7 @@
       transform: translateX(5px);
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    .file-info {
-      flex: 1;
-    }
+    .file-info { flex: 1; }
     .file-name {
       font-weight: 600;
       color: #333;
@@ -184,6 +182,12 @@
       color: white;
       margin: 0;
     }
+
+    .note {
+      font-size: 13px;
+      color: #777;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -196,6 +200,10 @@
     <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
     <button onclick="checkLogin()">Login</button>
     <p id="error" class="error hidden">❌ Invalid username or password</p>
+
+    <div class="note">
+      ✅ Invoices auto-load from <b>assets/invoices/invoices.json</b>
+    </div>
   </div>
 
   <!-- Protected Content -->
@@ -246,35 +254,54 @@
 
   <script>
     // ========================================
-    // CONFIGURATION - Just add your PDF filenames here!
+    // CONFIGURATION
     // ========================================
-    
-    const validUsername = "8452120083";
-    const validPassword = "28getzilberger";
+    const validUsername = "friedman";
+    const validPassword = "YourSecurePassword123!";
 
-    // Add your PDF filenames here (just the filename, not the full path)
-    const invoices = [
-  "Invoice_0445_2026-01-12 (2).pdf",
-  "Invoice_2424_2025-12-08.pdf",
-  "Invoice_2427_2025-12-10.pdf",
-  "Invoice_2432_2025-12-16.pdf",
-  "Invoice_2436_2025-12-22 (1).pdf",
-  "Invoice_2438_2025-12-24.pdf",
-  "Invoice_2441_2025-12-29.pdf"
-];
+    // Auto-loaded from JSON
+    let invoices = [];
 
+    // Manual (you can upgrade these later too if you want)
     const tickets = [
       "Invoice_0445_2026-01-12.pdf"
     ];
 
     const documents = [
-      "Invoice_0445_2026-01-n12.pdf"
+      "Invoice_0445_2026-01-12.pdf"
     ];
+
+    // ========================================
+    // Load invoice list from JSON manifest
+    // ========================================
+    async function loadInvoiceFiles() {
+      try {
+        const res = await fetch("assets/invoices/invoices.json", { cache: "no-store" });
+
+        if (!res.ok) {
+          console.warn("invoices.json not found or not accessible.");
+          invoices = [];
+          return;
+        }
+
+        const data = await res.json();
+
+        // keep only PDFs
+        invoices = Array.isArray(data)
+          ? data.filter(x => typeof x === "string" && x.toLowerCase().endsWith(".pdf"))
+          : [];
+
+      } catch (err) {
+        console.error("Could not load invoices.json", err);
+        invoices = [];
+      }
+    }
+
     // ========================================
     // Login Function
     // ========================================
-    function checkLogin() {
-      const username = document.getElementById('username').value;
+    async function checkLogin() {
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
 
       if (username === validUsername && password === validPassword) {
@@ -282,6 +309,8 @@
         document.getElementById('contentBox').classList.remove('hidden');
         document.getElementById('error').classList.add('hidden');
         sessionStorage.setItem('loggedIn', 'true');
+
+        await loadInvoiceFiles();
         loadFiles();
       } else {
         document.getElementById('error').classList.remove('hidden');
@@ -301,12 +330,13 @@
     // ========================================
     function loadFiles() {
       // Load Invoices
-      
-      const invoices = await fetchInvoiceList();
-      if (invoices.length === 0) {
+      const invoicesList = document.getElementById('invoicesList');
+      if (!invoices || invoices.length === 0) {
         invoicesList.innerHTML = '<div class="empty-folder">No invoices available</div>';
       } else {
-        invoicesList.innerHTML = invoices.map(file => createFileItem(file, 'invoices')).join('');
+        // sort newest first if invoice numbers are increasing
+        const sorted = [...invoices].sort().reverse();
+        invoicesList.innerHTML = sorted.map(file => createFileItem(file, 'invoices')).join('');
       }
 
       // Load Tickets
@@ -326,62 +356,30 @@
       }
     }
 
-    async function fetchInvoiceList() {
-      const invoicesFromListing = await fetchInvoiceListFromDirectory();
-      if (invoicesFromListing.length > 0) {
-        return invoicesFromListing;
-      }
-
-      try {
-        const response = await fetch(invoicesManifestPath, { cache: 'no-store' });
-        if (!response.ok) {
-          return [];
-        }
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        return [];
-      }
-    }
-
-    async function fetchInvoiceListFromDirectory() {
-      try {
-        const response = await fetch('assets/invoices/', { cache: 'no-store' });
-        if (!response.ok) {
-          return [];
-        }
-        const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('text/html')) {
-          return [];
-        }
-        const html = await response.text();
-        return extractPdfLinksFromListing(html);
-      } catch (error) {
-        return [];
-      }
-    }
-
-    function extractPdfLinksFromListing(html) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      const links = Array.from(doc.querySelectorAll('a[href]'));
-      const files = links
-        .map(link => link.getAttribute('href'))
-        .filter(Boolean)
-        .map(href => href.split('/').pop())
-        .filter(filename => filename && filename.toLowerCase().endsWith('.pdf'));
-
-      return Array.from(new Set(files));
+    function escapeHtml(str) {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
     function createFileItem(filename, folder) {
+      const safeFilename = escapeHtml(filename);
       const path = `assets/${folder}/${filename}`;
-      const displayName = filename.replace('.pdf', '').replace(/-/g, ' ').replace(/_/g, ' ');
-      
+
+      const displayName = filename
+        .replace(/\.pdf$/i, '')
+        .replace(/-/g, ' ')
+        .replace(/_/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
       return `
         <div class="file-item">
           <div class="file-info">
-            <div class="file-name">${displayName}</div>
+            <div class="file-name">${escapeHtml(displayName)}</div>
           </div>
           <div class="file-actions">
             <a href="${path}" class="btn-view" target="_blank">View</a>
@@ -395,6 +393,26 @@
     // Toggle Folder Open/Close
     // ========================================
     function toggleFolder(folderId) {
-      const folder = document.getElementById(folderId);
-      folder.classList.toggle('open');
+      document.getElementById(folderId).classList.toggle('open');
     }
+
+    // ========================================
+    // Auto-Login if sessionStorage says logged in
+    // ========================================
+    if (sessionStorage.getItem('loggedIn') === 'true') {
+      document.getElementById('loginBox').classList.add('hidden');
+      document.getElementById('contentBox').classList.remove('hidden');
+
+      loadInvoiceFiles().then(loadFiles);
+    }
+
+    // Allow Enter key to login
+    document.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !document.getElementById('loginBox').classList.contains('hidden')) {
+        checkLogin();
+      }
+    });
+  </script>
+
+</body>
+</html>
