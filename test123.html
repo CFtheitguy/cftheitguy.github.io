@@ -414,14 +414,14 @@
 
     /* Floating Action Buttons */
     .fab{
-      position:fixed;
-      right:18px;
-      bottom:18px;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      z-index:3000;
-    }
+  position:fixed;
+  right:26px;
+  bottom:92px; /* leave room for Tawk chat bubble */
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  z-index:2500; /* below chat widget */
+}
     .fab a{
       display:inline-flex;
       align-items:center;
