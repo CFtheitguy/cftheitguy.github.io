@@ -4,124 +4,508 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Linear Tech — Straightforward IT Excellence</title>
-  <meta name="description" content="Linear Tech MSP — Fast, secure, and hassle‑free technology solutions. Proactive IT, security, backups, and networks that scale." />
+
+  <meta name="description" content="Linear Tech MSP — Fast, secure, and hassle-free technology solutions. Proactive IT, security, backups, and networks that scale." />
+
   <link rel="preload" href="assets/banner.png" as="image" />
+
   <style>
-    :root{
-      --brand-blue:#1f6feb;           /* Linear Tech blue */
-      --ink:#0f2b46;                  /* dark ink */
-      --ink-soft:#295477;
-      --bg:#e7f2fa;                   /* light blue page bg */
-      --card:rgba(255,255,255,.85);   /* glass card */
-      --accent:#ff7a00;               /* CTA orange */
-      --radius:18px;
-      --shadow:0 10px 25px rgba(3,27,78,.12);
-      scroll-behavior:smooth;         /* base smooth scroll */
+  :root{
+    --brand-blue:#1f6feb;
+    --ink:#0f2b46;
+    --ink-soft:#295477;
+    --bg:#e7f2fa;
+    --card:rgba(255,255,255,.86);
+    --accent:#ff7a00;
+    --radius:20px;
+    --shadow:0 14px 40px rgba(3,27,78,.12);
+    scroll-behavior:smooth;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg)}
+  a{color:inherit}
+  img{max-width:100%;display:block}
+  section{scroll-margin-top:86px}
+
+  /* Header / Nav */
+  .nav{
+    position:fixed; inset:0 0 auto 0;
+    height:72px;
+    display:flex; align-items:center;
+    z-index:1000;
+    padding:10px 22px;
+    transition:background-color .25s, box-shadow .25s;
+    backdrop-filter:saturate(130%) blur(10px);
+  }
+  .nav.transparent{
+    background:linear-gradient(180deg, rgba(7,23,43,.60), rgba(7,23,43,.12));
+    box-shadow:none
+  }
+  .nav.solid{
+    background:#0b2643f2;
+    box-shadow:0 8px 22px rgba(1,9,20,.35)
+  }
+
+  .nav-inner{
+    max-width:1200px;
+    margin:0 auto;
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    text-decoration:none;
+    font-weight:900;
+    letter-spacing:.2px;
+    color:#fff;
+  }
+  .brand-img{
+    height:42px;
+    width:auto;
+    object-fit:contain;
+    filter: drop-shadow(0 8px 22px rgba(0,0,0,.28));
+  }
+
+  .menu{
+    margin-left:auto;
+    display:flex;
+    gap:22px;
+    align-items:center
+  }
+  .menu a{
+    color:#fff;
+    text-decoration:none;
+    font-weight:750;
+    opacity:.92
+  }
+  .menu a:hover{opacity:1}
+  .menu a.active{
+    border-bottom:2px solid var(--accent);
+    padding-bottom:3px;
+    opacity:1;
+  }
+
+  .cta{
+    background:var(--accent);
+    color:#111;
+    padding:10px 14px;
+    border-radius:999px;
+    font-weight:950;
+    box-shadow:0 10px 26px rgba(255,122,0,.28);
+    transition: transform .15s ease;
+  }
+  .cta:hover{transform:translateY(-1px)}
+
+  /* Responsive menu */
+  .hamburger{
+    display:none;
+    background:transparent;
+    border:0;
+    color:#fff;
+    font-size:30px;
+    cursor:pointer;
+    margin-left:auto;
+  }
+  @media (max-width:880px){
+    .hamburger{display:block}
+    .menu{
+      position:fixed;
+      top:72px; left:0; right:0;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:14px;
+      padding:14px 22px 18px;
+      background:#0b2643f2;
+      max-height:0;
+      overflow:hidden;
+      transition:max-height .25s ease;
     }
+    .menu.open{max-height:360px}
+    .cta{align-self:flex-start}
+  }
 
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;color:var(--ink);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg)}
+  /* =========================
+     HERO (Animated + Vibrant)
+     ========================= */
+  .hero{
+    min-height:84vh;
+    display:grid;
+    place-items:center;
+    text-align:center;
+    color:#fff;
+    position:relative;
+    background:#0b2643;
+    isolation:isolate;
+    overflow:hidden; /* important for animated glow */
+  }
 
-    /* Header / Nav */
-    .nav{
-      position:fixed;inset:0 0 auto 0;height:68px;display:flex;align-items:center;gap:16px;z-index:1000;
-      padding:10px 22px;transition:background-color .25s, box-shadow .25s;backdrop-filter:saturate(120%) blur(6px);
-    }
-    .nav.transparent{background:linear-gradient(180deg, rgba(7,23,43,.55), rgba(7,23,43,.10));box-shadow:none}
-    .nav.solid{background:#0b2643f2; box-shadow:0 6px 18px rgba(1,9,20,.35)}
-    .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:20px;width:100%}
-    .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:700;font-size:20px;letter-spacing:.2px}
-    .brand-img{height:38px;width:auto;display:block;object-fit:contain}
-
-    .menu{margin-left:auto;display:flex;gap:22px;align-items:center}
-    .menu a{color:#fff;text-decoration:none;font-weight:600;opacity:.92}
-    .menu a.active{color:#fff;text-decoration:none;border-bottom:2px solid var(--accent)}
-    .cta{background:var(--accent);color:#111;padding:10px 14px;border-radius:999px;font-weight:800}
-
-    /* Responsive menu */
-    .hamburger{display:none;background:transparent;border:0;color:#fff;font-size:28px;cursor:pointer}
-    @media (max-width:880px){
-      .menu{position:fixed;top:68px;left:0;right:0;flex-direction:column;background:#0b2643f2;padding:14px 22px;max-height:0;overflow:hidden;transition:max-height .25s}
-      .menu.open{max-height:260px}
-      .hamburger{display:block;margin-left:auto}
-      .cta{align-self:flex-start}
-    }
-
-    /* Hero */
-    .hero{min-height:78vh;display:grid;place-items:center;text-align:center;color:#fff;position:relative;background:#0b2643 !important}
-    .hero::before{content:"";position:absolute;inset:0;background:
-      linear-gradient(180deg, rgba(11,38,67,.70), rgba(11,38,67,.65)),
+  /* Base: image + deep gradient */
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      radial-gradient(900px 520px at 50% 18%, rgba(31,111,235,.55), transparent 62%),
+      linear-gradient(180deg, rgba(8,26,50,.72), rgba(4,16,34,.78)),
       image-set(url('assets/banner.webp') type('image/webp'), url('assets/banner.png') type('image/png'));
     background-position:center 20%;
     background-size:cover;
     background-repeat:no-repeat;
-    z-index:-2}
-@media (prefers-reduced-data: reduce){.hero::before{background:linear-gradient(180deg, rgba(11,38,67,.80), rgba(11,38,67,.70))}}
-    .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg, rgba(7,23,43,.55), rgba(7,23,43,.40));z-index:-1}
-    .hero .wrap{max-width:1050px;padding:120px 20px 60px}
-    .hero h1{font-size:clamp(36px,6vw,64px);line-height:1.1;margin:0 0 12px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.45)}
-    .hero p{font-size:clamp(18px,2.2vw,22px);opacity:.98;margin:0 0 28px;color:#eef5ff;text-shadow:0 1px 6px rgba(0,0,0,.35)}
-    .hero .actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-    .btn{appearance:none;border:0;padding:12px 18px;border-radius:12px;font-weight:800;cursor:pointer}
-    .btn.primary{background:var(--brand-blue);color:#fff}
-    .btn.ghost{background:transparent;color:#fff;border:2px solid #ffffff80}
-    .btn:hover{transform:translateY(-1px)}
+    z-index:-3;
+    filter:saturate(1.18) contrast(1.08);
+  }
 
-    /* Sections */
-    section{scroll-margin-top:84px}
-    .section{padding:70px 20px}
-    .container{max-width:1200px;margin:0 auto}
-    .h2{font-size:clamp(28px,4vw,40px);margin:0 0 10px}
-    .lead{color:var(--ink-soft);font-size:18px;margin:0 0 30px}
+  /* Moving Aurora layer */
+  .hero::after{
+    content:"";
+    position:absolute;
+    inset:-40%;
+    z-index:-2;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(0,200,255,.22), transparent 55%),
+      radial-gradient(circle at 70% 40%, rgba(31,111,235,.22), transparent 60%),
+      radial-gradient(circle at 50% 80%, rgba(255,122,0,.10), transparent 55%);
+    filter: blur(40px);
+    opacity:.85;
+    animation: heroAurora 14s ease-in-out infinite alternate;
+  }
 
-    /* Feature cards */
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
-    @media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
-    @media (max-width:640px){.grid{grid-template-columns:1fr}}
-    .card{background:var(--card);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow);border:1px solid #ffffffd0}
-    .card h3{margin:6px 0 6px;font-size:20px;color:var(--ink)}    /* Contact */
-    .contact{display:grid;grid-template-columns:1.2fr .8fr;gap:24px}
-    @media (max-width:900px){.contact{grid-template-columns:1fr}}
-    .contact form{background:#fff;border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-    .input{width:100%;padding:12px 14px;border:1px solid #d7e6f5;border-radius:12px;margin:6px 0 12px;font-size:16px}
-    /* Map */
-    .map-wrap{position:relative;width:100%;height:360px}
-    .map-embed{border:0;width:100%;height:100%;display:block}
-    @media (max-width:900px){.map-wrap{height:300px}}
-    .footer{padding:22px 20px;border-top:1px solid #cfe0f2;color:#3a5a79;text-align:center;background:#f6fbff}
-    /* FAQ accordion */
-    details.faq{background:#fff;border:1px solid #d7e6f5;border-radius:14px;padding:14px 16px;margin:10px 0;box-shadow:var(--shadow)}
-    details.faq[open]{background:#f9fcff}
-    details.faq summary{list-style:none;cursor:pointer;font-weight:700;font-size:18px}
-    details.faq summary::-webkit-details-marker{display:none}
-    .faq-body{color:var(--ink-soft);padding-top:8px}
+  @keyframes heroAurora{
+    0%   { transform: translate(-2%, -2%) scale(1.05); }
+    50%  { transform: translate(3%, 1%) scale(1.08); }
+    100% { transform: translate(-1%, 3%) scale(1.06); }
+  }
 
-    /* Extra richness: stats + testimonials */
-    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:24px 0}
-    .stat{background:var(--card);border-radius:var(--radius);padding:16px;text-align:center;border:1px solid #ffffffd0;box-shadow:var(--shadow)}
-    .stat .num{font-size:clamp(28px,4vw,40px);font-weight:900;color:var(--brand-blue)}
-    .testimonials{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:24px 0}
-    .quote{background:#fff;border:1px solid #d7e6f5;border-radius:14px;padding:16px;box-shadow:var(--shadow)}
-    .quote footer{opacity:.8;margin-top:8px}
-    @media (max-width:980px){.stats{grid-template-columns:repeat(2,1fr)}.testimonials{grid-template-columns:1fr}}
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce){
+    .hero::after{ animation:none; }
+  }
 
-    /* CTA stripe */
-    .cta-stripe{background:linear-gradient(90deg,#0f2b46,#184a81);color:#fff;padding:28px 20px}
-    .cta-stripe .container{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .cta-stripe .btn{border:2px solid #fff}
-  </style>
-<style>
-  /* No-JS image fallback: keep hero dark if image blocked */
-  noscript .hero{background:#0b2643}
+  .hero .wrap{max-width:1100px;padding:135px 20px 64px; position:relative; z-index:5;}
+
+  .pill{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.22);
+    color:#fff;
+    font-weight:800;
+    font-size:13px;
+    letter-spacing:.3px;
+    margin:0 auto 14px;
+    backdrop-filter: blur(10px);
+  }
+  .pill::before{content:"●"; color:var(--accent); font-size:12px}
+
+  .hero h1{
+    font-size:clamp(38px,6vw,68px);
+    line-height:1.06;
+    margin:0 0 14px;
+    color:#fff;
+    text-shadow:0 2px 10px rgba(0,0,0,.46)
+  }
+  .hero p{
+    font-size:clamp(18px,2.1vw,22px);
+    opacity:.98;
+    margin:0 0 28px;
+    color:#eef5ff;
+    text-shadow:0 1px 6px rgba(0,0,0,.35)
+  }
+
+  .hero .actions{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  .btn{
+    appearance:none;
+    border:0;
+    padding:12px 18px;
+    border-radius:14px;
+    font-weight:950;
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease;
+    user-select:none;
+  }
+  .btn.primary{
+    background:var(--brand-blue);
+    color:#fff;
+    box-shadow: 0 12px 30px rgba(31,111,235,.32);
+  }
+  .btn.ghost{
+    background:transparent;
+    color:#fff;
+    border:2px solid rgba(255,255,255,.42);
+  }
+  .btn:hover{
+    transform:translateY(-2px);
+    box-shadow: 0 16px 38px rgba(0,0,0,.22);
+  }
+
+  .trust{
+    margin-top:18px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    justify-content:center;
+    opacity:.95;
+  }
+  .trust span{
+    font-size:13px;
+    font-weight:850;
+    padding:7px 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.10);
+    border:1px solid rgba(255,255,255,.18);
+  }
+
+  /* Sections */
+  .section{padding:74px 20px}
+  .container{max-width:1200px;margin:0 auto}
+  .h2{font-size:clamp(28px,4vw,42px);margin:0 0 10px}
+  .lead{color:var(--ink-soft);font-size:18px;margin:0 0 32px}
+
+  /* Section separators */
+  .section.alt{
+    background:linear-gradient(180deg, rgba(246,251,255,.55), rgba(246,251,255,.25));
+    border-top:1px solid rgba(207,224,242,.70);
+    border-bottom:1px solid rgba(207,224,242,.70);
+  }
+
+  /* Cards */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  @media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:640px){.grid{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px 18px 16px;
+    box-shadow:var(--shadow);
+    border:1px solid rgba(255,255,255,.85);
+    transition: transform .18s ease, box-shadow .18s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 22px 58px rgba(3,27,78,.16);
+  }
+  .card h3{
+    margin:10px 0 6px;
+    font-size:20px;
+    color:var(--ink);
+  }
+  .card p{margin:0;color:var(--ink-soft)}
+
+  .icon-badge{
+    width:44px; height:44px;
+    border-radius:14px;
+    display:grid; place-items:center;
+    background:rgba(31,111,235,.10);
+    border:1px solid rgba(31,111,235,.18);
+  }
+  .icon-badge svg{
+    width:24px;height:24px;
+    fill:none;
+    stroke:var(--brand-blue);
+    stroke-width:2;
+    stroke-linecap:round;
+    stroke-linejoin:round
+  }
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:26px 0 0}
+  .stat{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    text-align:center;
+    border:1px solid rgba(255,255,255,.85);
+    box-shadow:var(--shadow);
+  }
+  .stat .num{
+    font-size:clamp(28px,4vw,42px);
+    font-weight:1000;
+    color:var(--brand-blue);
+    letter-spacing:-.02em;
+  }
+  .stat div:last-child{color:var(--ink-soft);font-weight:750}
+
+  @media (max-width:980px){
+    .stats{grid-template-columns:repeat(2,1fr)}
+  }
+
+  /* FAQ */
+  details.faq{
+    background:#fff;
+    border:1px solid #d7e6f5;
+    border-radius:16px;
+    padding:14px 16px;
+    margin:10px 0;
+    box-shadow:var(--shadow)
+  }
+  details.faq[open]{background:#f9fcff}
+  details.faq summary{
+    list-style:none;
+    cursor:pointer;
+    font-weight:900;
+    font-size:18px
+  }
+  details.faq summary::-webkit-details-marker{display:none}
+  .faq-body{color:var(--ink-soft);padding-top:8px}
+
+  /* Testimonials */
+  .testimonials{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:26px 0 0}
+  .quote{
+    background:#fff;
+    border:1px solid #d7e6f5;
+    border-radius:16px;
+    padding:16px;
+    box-shadow:var(--shadow);
+    position:relative;
+  }
+  .quote::before{
+    content:"“";
+    position:absolute;
+    top:-8px;
+    left:14px;
+    font-size:44px;
+    opacity:.15;
+    font-weight:1000;
+    color:var(--brand-blue);
+  }
+  .quote footer{opacity:.8;margin-top:10px;font-weight:750}
+  @media (max-width:980px){
+    .testimonials{grid-template-columns:1fr}
+  }
+
+  /* Contact */
+  .contact{display:grid;grid-template-columns:1.2fr .8fr;gap:24px}
+  @media (max-width:900px){.contact{grid-template-columns:1fr}}
+
+  .contact form{
+    background:#fff;
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:var(--shadow);
+    border:1px solid rgba(215,230,245,.85);
+  }
+  .input{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid #d7e6f5;
+    border-radius:14px;
+    margin:6px 0 12px;
+    font-size:16px;
+    outline:none;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .input:focus{
+    border-color: rgba(31,111,235,.55);
+    box-shadow:0 0 0 4px rgba(31,111,235,.14);
+  }
+
+  .form-note{
+    margin-top:10px;
+    color:var(--ink-soft);
+    font-size:14px;
+  }
+
+  /* Map */
+  .map-wrap{position:relative;width:100%;height:360px}
+  .map-embed{border:0;width:100%;height:100%;display:block}
+  @media (max-width:900px){.map-wrap{height:300px}}
+
+  /* CTA stripe */
+  .cta-stripe{
+    background:linear-gradient(90deg,#0f2b46,#184a81);
+    color:#fff;
+    padding:30px 20px
+  }
+  .cta-stripe .container{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap
+  }
+  .cta-stripe .btn{
+    border:2px solid rgba(255,255,255,.75);
+    color:#fff;
+  }
+
+  /* Footer */
+  .footer{
+    padding:26px 20px;
+    border-top:1px solid #cfe0f2;
+    color:#3a5a79;
+    text-align:center;
+    background:#f6fbff;
+  }
+
+  /* Floating Action Buttons */
+  .fab{
+    position:fixed;
+    right:26px;
+    bottom:92px; /* room for Tawk widget */
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    z-index:2500; /* below chat */
+  }
+  .fab a{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:12px 14px;
+    border-radius:999px;
+    text-decoration:none;
+    font-weight:1000;
+    box-shadow: 0 16px 40px rgba(0,0,0,.28);
+    transition: transform .15s ease, box-shadow .15s ease;
+    white-space:nowrap;
+  }
+  .fab a:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 20px 48px rgba(0,0,0,.32);
+  }
+  .fab .call{ background: var(--accent); color:#111; }
+  .fab .email{ background: #ffffff; color: var(--ink); }
+  .fab .remote{ background: var(--brand-blue); color:#fff; }
+
+  /* On big screens push FAB left so it NEVER overlaps chat */
+  @media (min-width: 900px){
+    .fab{ right:110px; }
+  }
+
+  @media (max-width:520px){
+    .fab a span{ display:none; }
+  }
 </style>
 </head>
+
 <body>
   <!-- Header -->
   <header class="nav transparent" id="nav">
     <div class="nav-inner">
       <a href="#home" class="brand" aria-label="Linear Tech Home">
         <img src="assets/logo.png" alt="Linear Tech logo" class="brand-img" onerror="this.style.display='none'">
-        <span></span>
       </a>
 
       <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
@@ -132,13 +516,14 @@
         <a href="#services" data-link>Services</a>
         <a href="#faq" data-link>FAQ</a>
         <a href="#contact" data-link>Contact</a>
-<a class="cta"
-   href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest"
-   target="_blank"
-   rel="noopener"
-   title="Download Remote Support Tool">
-   Get Remote Support
-</a>
+
+        <a class="cta"
+          href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest"
+          target="_blank"
+          rel="noopener"
+          title="Download Remote Support Tool">
+          Get Remote Support
+        </a>
       </nav>
     </div>
   </header>
@@ -146,37 +531,65 @@
   <!-- Hero -->
   <section id="home" class="hero">
     <div class="wrap container">
+      <div class="pill">Managed IT • Security-first • Fast response</div>
+
       <h1>We Keep Your Business Running</h1>
-      <p>Fast, secure, and hassle‑free technology solutions — so you can focus on your business.</p>
+      <p>Fast, secure, and hassle-free technology solutions — so you can focus on your business.</p>
+
       <div class="actions">
-        <a class="btn primary" href="#services">Explore Services</a>
-        <a class="btn ghost" href="https://www.speedtest.net" target="_blank" rel="noopener">Run a Speed Test</a>
+        <a class="btn primary" href="#contact">📅 Book a Quick Consult</a>
+        <a class="btn ghost" href="tel:+18456041462">📞 Call (845) 604-1462</a>
+      </div>
+
+      <div class="trust" aria-label="Core capabilities">
+        <span>Microsoft 365</span>
+        <span>Intune / Entra ID</span>
+        <span>Backup & DR</span>
+        <span>Network & Wi-Fi</span>
       </div>
     </div>
   </section>
 
   <!-- About -->
-  <section id="about" class="section">
+  <section id="about" class="section alt">
     <div class="container">
       <h2 class="h2">Empower Your Business in the Digital Age</h2>
-      <p class="lead">Linear Tech is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response. We streamline operations with proactive monitoring and patching, strong security, reliable backups, and networks that scale.</p>
+      <p class="lead">
+        Linear Tech is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response.
+        We streamline operations with proactive monitoring and patching, strong security, reliable backups, and networks that scale.
+      </p>
 
       <div class="grid">
         <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/><path d="M12 8a4 4 0 0 0 0 8"/></svg>
+          </div>
           <h3>Proactive Managed IT</h3>
           <p>24/7 monitoring, patch management, and helpdesk keep devices healthy and your team productive.</p>
         </article>
+
         <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
           <h3>Security First</h3>
           <p>Endpoint protection, email security, MFA, and policies to defend today’s threats.</p>
         </article>
+
         <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M20 16.5a4.5 4.5 0 0 0-4.5-4.5H6a4 4 0 0 0 0 8h9.5A4.5 4.5 0 0 0 20 16.5z"/><path d="M8 12a4 4 0 0 1 7.8-1.2"/></svg>
+          </div>
           <h3>Cloud & Backup</h3>
           <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement tested backup & DR.</p>
         </article>
+
         <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 18h16"/><path d="M7 6v12"/><path d="M17 6v12"/></svg>
+          </div>
           <h3>Networks that Scale</h3>
-          <p>Wi‑Fi to firewalls and VPNs — we design, deploy, and maintain stable, fast networks.</p>
+          <p>Wi-Fi to firewalls and VPNs — we design, deploy, and maintain stable, fast networks.</p>
         </article>
       </div>
     </div>
@@ -189,15 +602,56 @@
       <p class="lead">Choose the coverage you need — we can manage your full environment or augment your existing team.</p>
 
       <div class="grid">
-        <article class="card"><h3>Managed Endpoint</h3><p>Windows & macOS hardening, updates, antivirus/EDR, asset & license tracking.</p></article>
-        <article class="card"><h3>Microsoft 365</h3><p>Tenant setup, Intune, ENTRA ID/MFA, email hygiene, SharePoint & automation.</p></article>
-        <article class="card"><h3>Backup & DR</h3><p>Workstation & server backups (onsite/cloud), restore drills, ransomware resilience.</p></article>
-        <article class="card"><h3>Networking</h3><p>Switching, Wi‑Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring & alerts.</p></article>
-        <article class="card"><h3>Support Desk</h3><p>Friendly help when you need it — remote & onsite, clear SLAs, simple billing.</p></article>
-        <article class="card"><h3>Advisory</h3><p>Road‑mapping, budgeting, and audits to keep IT predictable and aligned to goals.</p></article>
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 20h10"/><path d="M9 16v4"/><path d="M15 16v4"/></svg>
+          </div>
+          <h3>Managed Endpoint</h3>
+          <p>Windows & macOS hardening, updates, antivirus/EDR, asset & license tracking.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M7 8l5-5 5 5"/><path d="M7 16l5 5 5-5"/></svg>
+          </div>
+          <h3>Microsoft 365</h3>
+          <p>Tenant setup, Intune, Entra ID/MFA, email hygiene, SharePoint & automation.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M22 4l-7 7"/><path d="M15 4h7v7"/></svg>
+          </div>
+          <h3>Backup & DR</h3>
+          <p>Workstation & server backups (onsite/cloud), restore drills, ransomware resilience.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/><path d="M8 6v12"/></svg>
+          </div>
+          <h3>Networking</h3>
+          <p>Switching, Wi-Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring & alerts.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+          </div>
+          <h3>Support Desk</h3>
+          <p>Friendly help when you need it — remote & onsite, clear SLAs, simple billing.</p>
+        </article>
+
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 20v-6"/><path d="M6 20v-10"/><path d="M18 20V10"/><path d="M4 4h16"/><path d="M4 4v4"/></svg>
+          </div>
+          <h3>Advisory</h3>
+          <p>Road-mapping, budgeting, and audits to keep IT predictable and aligned to goals.</p>
+        </article>
       </div>
 
-      <div class="stats">
+      <div class="stats" aria-label="Service highlights">
         <div class="stat"><div class="num">99.9%</div><div>Uptime targets</div></div>
         <div class="stat"><div class="num">15 min</div><div>Avg first response</div></div>
         <div class="stat"><div class="num">365</div><div>Days monitored</div></div>
@@ -207,7 +661,7 @@
   </section>
 
   <!-- FAQ -->
-  <section id="faq" class="section">
+  <section id="faq" class="section alt">
     <div class="container" itemscope itemtype="https://schema.org/FAQPage">
       <h2 class="h2">Frequently Asked Questions</h2>
       <p class="lead">Quick answers about onboarding, support, pricing, and security.</p>
@@ -222,21 +676,21 @@
       <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
         <summary itemprop="name">How do you price Managed Services?</summary>
         <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">Most clients choose a per‑device or per‑user monthly plan covering monitoring, patching, security, and support. Project work (migrations, new sites, etc.) is scoped separately with a fixed or hourly quote.</p>
+          <p itemprop="text">Most clients choose a per-device or per-user monthly plan covering monitoring, patching, security, and support. Project work (migrations, new sites, etc.) is scoped separately with a fixed or hourly quote.</p>
         </div>
       </details>
 
       <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
-        <summary itemprop="name">Can you support remote and multi‑site teams?</summary>
+        <summary itemprop="name">Can you support remote and multi-site teams?</summary>
         <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi‑Fi and switching for consistent performance in each location.</p>
+          <p itemprop="text">Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi-Fi and switching for consistent performance in each location.</p>
         </div>
       </details>
 
       <details class="faq" itemprop="mainEntity" itemscope itemtype="https://schema.org/Question">
         <summary itemprop="name">What security controls do you implement?</summary>
         <div class="faq-body" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
-          <p itemprop="text">MFA/conditional access, least‑privilege accounts, next‑gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs.</p>
+          <p itemprop="text">MFA/conditional access, least-privilege accounts, next-gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs.</p>
         </div>
       </details>
 
@@ -255,16 +709,20 @@
       </details>
 
       <div class="testimonials">
-        <blockquote class="quote">“Linear Tech stabilized our Wi‑Fi and printers in one visit. Our staff stopped losing time.”<footer>— Office Manager, Healthcare</footer></blockquote>
-        <blockquote class="quote">“Clear communication, fast turnarounds, and they explain things in plain English.”<footer>— COO, Retail</footer></blockquote>
-        <blockquote class="quote">“They migrated us to M365 and set up Intune. Onboarding new hires is now painless.”<footer>— HR Lead, Manufacturing</footer></blockquote>
+        <blockquote class="quote">“Linear Tech stabilized our Wi-Fi and printers in one visit. Our staff stopped losing time.”<footer>— Office Manager, Healthcare</footer></blockquote>
+        <blockquote class="quote">“Clear communication, fast turnarounds, and they explain things in plain English.”<footer>— Operations Lead, Retail</footer></blockquote>
+        <blockquote class="quote">“They migrated us to Microsoft 365 and set up Intune. Onboarding new hires is now painless.”<footer>— HR Lead, Manufacturing</footer></blockquote>
       </div>
     </div>
   </section>
 
+  <!-- CTA stripe -->
   <section class="cta-stripe">
     <div class="container">
-      <div><strong>Ready to modernize your IT?</strong><br>Let’s discuss your environment and priorities.</div>
+      <div>
+        <strong style="font-size:18px">Ready to modernize your IT?</strong><br>
+        Let’s discuss your environment and priorities.
+      </div>
       <a class="btn ghost" href="#contact">Book a quick consult</a>
     </div>
   </section>
@@ -276,47 +734,80 @@
       <p class="lead">Tell us a bit about your environment, and we’ll get right back to you.</p>
 
       <div class="contact">
-        <form class="form-card" action="https://formsubmit.co/chaim@linearit.co" method="POST">
-          <label>Name</label>
-          <input class="input" type="text" name="name" required />
-          <label>Email</label>
-          <input class="input" type="email" name="email" required />
-          <label>Company</label>
-          <input class="input" type="text" name="company" />
-          <label>Message</label>
+        <form action="https://formsubmit.co/chaim@linearit.co" method="POST">
+          <!-- FormSubmit enhancements -->
+          <input type="hidden" name="_subject" value="New website request (Linear Tech)">
+          <input type="text" name="_honey" style="display:none">
+          <input type="hidden" name="_captcha" value="true">
+
+          <label><strong>Name</strong></label>
+          <input class="input" type="text" name="name" required placeholder="Your name" />
+
+          <label><strong>Email</strong></label>
+          <input class="input" type="email" name="email" required placeholder="you@company.com" />
+
+          <label><strong>Company</strong></label>
+          <input class="input" type="text" name="company" placeholder="Company name (optional)" />
+
+          <label><strong>Message</strong></label>
           <textarea class="input" name="message" rows="5" placeholder="How can we help?"></textarea>
+
           <button class="btn primary" type="submit">Send Message</button>
+
+          <div class="form-note">
+            Typical response time: <strong>same day</strong> during business hours.
+          </div>
         </form>
 
         <div>
           <div class="card">
-            <h3>Linear Tech</h3>
-            <p>Monroe, NY · United States</p>
-            <p><strong>Email:</strong> <a href="mailto:chaim@linearit.co">chaim@linearit.co</a></p>
-            <p><strong>Phone:</strong> <a href="tel:+1-845-604-1462">(845) 604‑1462</a></p>
-            <p><a class="btn" style="background:#f0f6ff;color:var(--brand-blue);font-weight:800" href="assets/LinearTech.vcf">Download vCard</a></p>
+            <h3 style="margin:0 0 6px">Linear Tech</h3>
+            <p style="margin:0 0 10px;color:var(--ink-soft);font-weight:750">Monroe, NY · United States</p>
+
+            <p><strong>Email:</strong> <a href="mailto:support@linearit.co">support@linearit.co</a></p>
+            <p><strong>Phone:</strong> <a href="tel:+1-845-604-1462">(845) 604-1462</a></p>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+              <a class="btn" style="background:#f0f6ff;color:var(--brand-blue);font-weight:950" href="assets/LinearTech.vcf">📇 Download vCard</a>
+              <a class="btn" style="background:#fff;border:1px solid #d7e6f5;color:var(--ink);font-weight:950" href="https://www.speedtest.net" target="_blank" rel="noopener">⚡ Speed Test</a>
+            </div>
           </div>
 
           <div class="card" style="padding:0;overflow:hidden;margin-top:18px">
             <div class="map-wrap">
-              <iframe class="map-embed" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Linear%20Tech%20Monroe%20NY&output=embed"></iframe>
+              <iframe
+                class="map-embed"
+                loading="lazy"
+                allowfullscreen
+                referrerpolicy="no-referrer-when-downgrade"
+                src="https://www.google.com/maps?q=Linear%20Tech%20Monroe%20NY&output=embed"></iframe>
             </div>
             <div style="padding:12px 14px">
               <strong>Visit us</strong><br>Monroe, NY
               <div style="margin-top:8px">
-                <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=Linear%20Tech%20Monroe%20NY" target="_blank" rel="noopener">Get Directions</a>
+                <a class="btn" href="https://www.google.com/maps/dir/?api=1&destination=Linear%20Tech%20Monroe%20NY" target="_blank" rel="noopener">🧭 Get Directions</a>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </div> <!-- /contact grid -->
+    </div> <!-- /container -->
+  </section>
 
-    </section>
+  <!-- Footer -->
+  <footer class="footer">
+    © <span id="year"></span> Linear Tech · Straightforward IT Excellence
+  </footer>
 
-  <footer class="footer">© <span id="year"></span> Linear Tech · Straightforward IT Excellence</footer>
+  <!-- Floating quick actions -->
+  <div class="fab" aria-label="Quick actions">
+    <a class="call" href="tel:+18456041462" title="Call Linear Tech">📞 <span>Call Now</span></a>
+    <a class="email" href="mailto:support@linearit.co" title="Email Linear Tech">✉️ <span>Email</span></a>
+    <a class="remote" href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" target="_blank" rel="noopener">🛠️ <span>Remote Support</span></a>
+  </div>
 
   <script>
-    // Sticky nav style change + active link highlighting + smooth anchor offset
+    // Sticky nav appearance
     const nav = document.getElementById('nav');
     const menu = document.getElementById('menu');
     const hamburger = document.getElementById('hamburger');
@@ -328,14 +819,15 @@
     setNavAppearance();
     window.addEventListener('scroll', setNavAppearance, {passive:true});
 
-    // mobile menu toggle
+    // Mobile menu toggle
     hamburger.addEventListener('click', ()=> menu.classList.toggle('open'));
     [...menu.querySelectorAll('a[data-link]')].forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
 
-    // active link observer
+    // Active link observer
     const links = [...document.querySelectorAll('a[data-link]')];
     const ids = links.map(a=>a.getAttribute('href'));
-    const sections = ids.map(id=>document.querySelector(id));
+    const sections = ids.map(id=>document.querySelector(id)).filter(Boolean);
+
     const obs = new IntersectionObserver((entries)=>{
       entries.forEach(e=>{
         if(e.isIntersecting){
@@ -343,39 +835,42 @@
         }
       });
     },{rootMargin:'-56px 0px -70% 0px', threshold:.25});
-    sections.forEach(s=>s && obs.observe(s));
 
-    // year
+    sections.forEach(s=>obs.observe(s));
+
+    // Year
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
-  <!-- JSON‑LD FAQ for rich results -->
+
+  <!-- JSON-LD FAQ for rich results -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
       {"@type": "Question","name": "What does onboarding look like?","acceptedAnswer": {"@type":"Answer","text":"We start with a discovery session and a light audit of endpoints, network, and cloud. Then we deploy agents, document your environment, define SLAs, and roll out quick wins in the first 14–30 days."}},
-      {"@type": "Question","name": "How do you price Managed Services?","acceptedAnswer": {"@type":"Answer","text":"Most clients choose a per‑device or per‑user monthly plan covering monitoring, patching, security, and support. Project work is scoped separately with a fixed or hourly quote."}},
-      {"@type": "Question","name": "Can you support remote and multi‑site teams?","acceptedAnswer": {"@type":"Answer","text":"Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi‑Fi and switching for consistent performance in each location."}},
-      {"@type": "Question","name": "What security controls do you implement?","acceptedAnswer": {"@type":"Answer","text":"MFA/conditional access, least‑privilege, next‑gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs."}},
-      {"@type": "Question","name": "Do you work with existing IT teams?","acceptedAnswer": {"@type":"Answer","text":"Yes, we can be your full MSP or an extension to handle helpdesk, patching, or projects while your team focuses on strategy."}},
+      {"@type": "Question","name": "How do you price Managed Services?","acceptedAnswer": {"@type":"Answer","text":"Most clients choose a per-device or per-user monthly plan covering monitoring, patching, security, and support. Project work (migrations, new sites, etc.) is scoped separately with a fixed or hourly quote."}},
+      {"@type": "Question","name": "Can you support remote and multi-site teams?","acceptedAnswer": {"@type":"Answer","text":"Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi-Fi and switching for consistent performance in each location."}},
+      {"@type": "Question","name": "What security controls do you implement?","acceptedAnswer": {"@type":"Answer","text":"MFA/conditional access, least-privilege accounts, next-gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs."}},
+      {"@type": "Question","name": "Do you work with existing IT teams?","acceptedAnswer": {"@type":"Answer","text":"Absolutely. We can be your full MSP or an extension to handle helpdesk, patching, or projects while your team focuses on strategy."}},
       {"@type": "Question","name": "How fast can we start?","acceptedAnswer": {"@type":"Answer","text":"Discovery can begin this week; agent deployment usually the same or next day. Full onboarding typically completes within 2–4 weeks depending on scope."}}
     ]
   }
   </script>
-<!--Start of Tawk.to Script-->
-<script type="text/javascript">
-var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-(function(){
-var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-s1.async=true;
-s1.src='https://embed.tawk.to/6967d3f1cd894f197b19d503/1jeup7pqb';
-s1.charset='UTF-8';
-s1.setAttribute('crossorigin','*');
-s0.parentNode.insertBefore(s1,s0);
-})();
-</script>
-<!--End of Tawk.to Script-->
-  
+
+  <!--Start of Tawk.to Script-->
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+  s1.async=true;
+  s1.src='https://embed.tawk.to/6967d3f1cd894f197b19d503/1jeup7pqb';
+  s1.charset='UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+  <!--End of Tawk.to Script-->
+
 </body>
 </html>
