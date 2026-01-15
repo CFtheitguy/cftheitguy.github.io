@@ -1,28 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -167,10 +142,9 @@
     position:relative;
     background:#0b2643;
     isolation:isolate;
-    overflow:hidden; /* important for animated glow */
+    overflow:hidden;
   }
 
-  /* Base: image + deep gradient */
   .hero::before{
     content:"";
     position:absolute; inset:0;
@@ -185,7 +159,6 @@
     filter:saturate(1.18) contrast(1.08);
   }
 
-  /* Moving Aurora layer */
   .hero::after{
     content:"";
     position:absolute;
@@ -206,7 +179,6 @@
     100% { transform: translate(-1%, 3%) scale(1.06); }
   }
 
-  /* Reduced motion support */
   @media (prefers-reduced-motion: reduce){
     .hero::after{ animation:none; }
   }
@@ -304,7 +276,6 @@
   .h2{font-size:clamp(28px,4vw,42px);margin:0 0 10px}
   .lead{color:var(--ink-soft);font-size:18px;margin:0 0 32px}
 
-  /* Section separators */
   .section.alt{
     background:linear-gradient(180deg, rgba(246,251,255,.55), rgba(246,251,255,.25));
     border-top:1px solid rgba(207,224,242,.70);
@@ -312,7 +283,11 @@
   }
 
   /* Cards */
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:24px; /* improved */
+  }
   @media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:640px){.grid{grid-template-columns:1fr}}
 
@@ -353,8 +328,19 @@
     stroke-linejoin:round
   }
 
+  /* ✅ Services: more spacing from stats so it doesn't look like same "type of cards" */
+  #services .grid{
+    gap:26px;           /* slightly more than other sections */
+    margin-bottom:64px; /* IMPORTANT separation */
+  }
+
   /* Stats */
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:26px 0 0}
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:26px;
+    margin:0;
+  }
   .stat{
     background:var(--card);
     border-radius:var(--radius);
@@ -487,11 +473,11 @@
   .fab{
     position:fixed;
     right:26px;
-    bottom:92px; /* room for Tawk widget */
+    bottom:92px;
     display:flex;
     flex-direction:column;
     gap:10px;
-    z-index:2500; /* below chat */
+    z-index:2500;
   }
   .fab a{
     display:inline-flex;
@@ -514,11 +500,9 @@
   .fab .email{ background: #ffffff; color: var(--ink); }
   .fab .remote{ background: var(--brand-blue); color:#fff; }
 
-  /* On big screens push FAB left so it NEVER overlaps chat */
   @media (min-width: 900px){
     .fab{ right:110px; }
   }
-
   @media (max-width:520px){
     .fab a span{ display:none; }
   }
@@ -626,6 +610,7 @@
       <h2 class="h2">Services</h2>
       <p class="lead">Choose the coverage you need — we can manage your full environment or augment your existing team.</p>
 
+      <!-- ✅ Services grid now has 8 boxes -->
       <div class="grid">
         <article class="card">
           <div class="icon-badge" aria-hidden="true">
@@ -673,6 +658,24 @@
           </div>
           <h3>Advisory</h3>
           <p>Road-mapping, budgeting, and audits to keep IT predictable and aligned to goals.</p>
+        </article>
+
+        <!-- ✅ NEW box 7 -->
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>
+          </div>
+          <h3>Security</h3>
+          <p>MFA enforcement, phishing defense, security baselines, audits & incident readiness.</p>
+        </article>
+
+        <!-- ✅ NEW box 8 -->
+        <article class="card">
+          <div class="icon-badge" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3 7h18"/><path d="M5 7v14"/><path d="M19 7v14"/><path d="M7 11h10"/><path d="M7 15h10"/></svg>
+          </div>
+          <h3>Cloud & Servers</h3>
+          <p>Server management, virtualization, cloud planning, monitoring, patching & performance.</p>
         </article>
       </div>
 
@@ -760,7 +763,6 @@
 
       <div class="contact">
         <form action="https://formsubmit.co/chaim@linearit.co" method="POST">
-          <!-- FormSubmit enhancements -->
           <input type="hidden" name="_subject" value="New website request (Linear Tech)">
           <input type="text" name="_honey" style="display:none">
           <input type="hidden" name="_captcha" value="true">
@@ -815,8 +817,8 @@
             </div>
           </div>
         </div>
-      </div> <!-- /contact grid -->
-    </div> <!-- /container -->
+      </div>
+    </div>
   </section>
 
   <!-- Footer -->
@@ -832,7 +834,6 @@
   </div>
 
   <script>
-    // Sticky nav appearance
     const nav = document.getElementById('nav');
     const menu = document.getElementById('menu');
     const hamburger = document.getElementById('hamburger');
@@ -844,11 +845,9 @@
     setNavAppearance();
     window.addEventListener('scroll', setNavAppearance, {passive:true});
 
-    // Mobile menu toggle
     hamburger.addEventListener('click', ()=> menu.classList.toggle('open'));
     [...menu.querySelectorAll('a[data-link]')].forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));
 
-    // Active link observer
     const links = [...document.querySelectorAll('a[data-link]')];
     const ids = links.map(a=>a.getAttribute('href'));
     const sections = ids.map(id=>document.querySelector(id)).filter(Boolean);
@@ -863,11 +862,9 @@
 
     sections.forEach(s=>obs.observe(s));
 
-    // Year
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>
 
-  <!-- JSON-LD FAQ for rich results -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
