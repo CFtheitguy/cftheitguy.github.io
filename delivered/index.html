@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Delivery Confirmation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Immediate redirect to SMS -->
+  <meta http-equiv="refresh"
+        content="0;url=sms:+18456041462?&body=Your%20order%20was%20just%20delivered">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f7fb;
+      text-align: center;
+      padding: 20px;
+    }
+    .box {
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      max-width: 420px;
+    }
+    a {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 14px 22px;
+      background: #667eea;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Opening Messages…</h2>
+    <p>If nothing happens, tap the button below.</p>
+
+    <!-- Fallback button -->
+    <a href="sms:+18456041462?&body=Your%20order%20was%20just%20delivered">
+      📩 Send delivery confirmation
+    </a>
+  </div>
+</body>
+</html>
