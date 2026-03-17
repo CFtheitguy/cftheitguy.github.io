@@ -28,115 +28,127 @@
   img{max-width:100%;display:block}
   section{scroll-margin-top:86px}
 
-  /* Header / Nav */
-  .nav{
-  position:fixed; inset:0 0 auto 0;
-  min-height:96px;
-  display:flex; align-items:center;
+/* Header / Nav */
+.nav{
+  position:fixed;
+  inset:0 0 auto 0;
+  min-height:104px;
+  display:flex;
+  align-items:center;
   z-index:1000;
-  padding:14px 30px;
+  padding:12px 30px;
   transition:background-color .25s, box-shadow .25s;
   backdrop-filter:saturate(130%) blur(10px);
 }
 
+.nav.transparent{
+  background:linear-gradient(180deg, rgba(7,23,43,.60), rgba(7,23,43,.12));
+  box-shadow:none;
+}
+
+.nav.solid{
+  background:#0b2643f2;
+  box-shadow:0 8px 22px rgba(1,9,20,.35);
+}
+
+.nav-inner{
+  max-width:1200px;
+  margin:0 auto;
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  text-decoration:none;
+  font-weight:900;
+  letter-spacing:.2px;
+  color:#fff;
+}
+
 .brand-img{
-  height:72px;
+  height:82px;
   width:auto;
   object-fit:contain;
   display:block;
-  filter: drop-shadow(0 8px 22px rgba(0,0,0,.28));
+  max-width:none;
+  filter:drop-shadow(0 8px 22px rgba(0,0,0,.28));
 }
-  .nav.transparent{
-    background:linear-gradient(180deg, rgba(7,23,43,.60), rgba(7,23,43,.12));
-    box-shadow:none
-  }
-  .nav.solid{
-    background:#0b2643f2;
-    box-shadow:0 8px 22px rgba(1,9,20,.35)
-  }
 
-  .nav-inner{
-    max-width:1200px;
-    margin:0 auto;
-    width:100%;
-    display:flex;
-    align-items:center;
-    gap:16px;
-  }
+.menu{
+  margin-left:auto;
+  display:flex;
+  gap:22px;
+  align-items:center;
+}
 
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    text-decoration:none;
-    font-weight:900;
-    letter-spacing:.2px;
-    color:#fff;
-  }
-  .brand-img{
-    height:90px;
-    width:auto;
-    object-fit:contain;
-    filter: drop-shadow(0 8px 22px rgba(0,0,0,.28));
-  }
+.menu a{
+  color:#fff;
+  text-decoration:none;
+  font-weight:750;
+  opacity:.92;
+}
+
+.menu a:hover{opacity:1}
+
+.menu a.active{
+  border-bottom:2px solid var(--accent);
+  padding-bottom:3px;
+  opacity:1;
+}
+
+.cta{
+  background:var(--accent);
+  color:#111;
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:950;
+  box-shadow:0 10px 26px rgba(255,122,0,.28);
+  transition:transform .15s ease;
+}
+
+.cta:hover{transform:translateY(-1px)}
+
+/* Responsive menu */
+.hamburger{
+  display:none;
+  background:transparent;
+  border:0;
+  color:#fff;
+  font-size:30px;
+  cursor:pointer;
+  margin-left:auto;
+}
+
+@media (max-width:880px){
+  .hamburger{display:block}
 
   .menu{
-    margin-left:auto;
-    display:flex;
-    gap:22px;
-    align-items:center
-  }
-  .menu a{
-    color:#fff;
-    text-decoration:none;
-    font-weight:750;
-    opacity:.92
-  }
-  .menu a:hover{opacity:1}
-  .menu a.active{
-    border-bottom:2px solid var(--accent);
-    padding-bottom:3px;
-    opacity:1;
+    position:fixed;
+    top:104px;
+    left:0;
+    right:0;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:14px;
+    padding:14px 22px 18px;
+    background:#0b2643f2;
+    max-height:0;
+    overflow:hidden;
+    transition:max-height .25s ease;
   }
 
-  .cta{
-    background:var(--accent);
-    color:#111;
-    padding:10px 14px;
-    border-radius:999px;
-    font-weight:950;
-    box-shadow:0 10px 26px rgba(255,122,0,.28);
-    transition: transform .15s ease;
-  }
-  .cta:hover{transform:translateY(-1px)}
+  .menu.open{max-height:360px}
+  .cta{align-self:flex-start}
 
-  /* Responsive menu */
-  .hamburger{
-    display:none;
-    background:transparent;
-    border:0;
-    color:#fff;
-    font-size:30px;
-    cursor:pointer;
-    margin-left:auto;
+  .brand-img{
+    height:68px;
   }
-  @media (max-width:880px){
-    .hamburger{display:block}
-    .menu{
-      position:fixed;
-      top:72px; left:0; right:0;
-      flex-direction:column;
-      align-items:flex-start;
-      gap:14px;
-      padding:14px 22px 18px;
-      background:#0b2643f2;
-      max-height:0;
-      overflow:hidden;
-      transition:max-height .25s ease;
-    }
-    .menu.open{max-height:360px}
-    .cta{align-self:flex-start}
-  }
+}
 
   /* =========================
      HERO (Animated + Vibrant)
