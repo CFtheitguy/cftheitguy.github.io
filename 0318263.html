@@ -28,222 +28,131 @@
   img{max-width:100%;display:block}
   section{scroll-margin-top:86px}
 
-  /* Header / Nav */
-  .nav{
-    position:fixed;
-    inset:0 0 auto 0;
-    min-height:104px;
-    display:flex;
-    align-items:center;
-    z-index:1000;
-    padding:12px 30px;
-    transition:background-color .25s, box-shadow .25s;
-    backdrop-filter:saturate(130%) blur(10px);
-  }
+/* The Header / Nav */
+.nav{
+  position:fixed;
+  inset:0 0 auto 0;
+  min-height:104px;
+  display:flex;
+  align-items:center;
+  z-index:1000;
+  padding:12px 30px;
+  transition:background-color .25s, box-shadow .25s;
+  backdrop-filter:saturate(130%) blur(10px);
+}
 
-  .nav.transparent{
-    background:linear-gradient(180deg, rgba(7,23,43,.60), rgba(7,23,43,.12));
-    box-shadow:none;
-  }
+.nav.transparent{
+  background:linear-gradient(180deg, rgba(7,23,43,.60), rgba(7,23,43,.12));
+  box-shadow:none;
+}
 
-  .nav.solid{
-    background:#0b2643f2;
-    box-shadow:0 8px 22px rgba(1,9,20,.35);
-  }
+.nav.solid{
+  background:#0b2643f2;
+  box-shadow:0 8px 22px rgba(1,9,20,.35);
+}
 
-  .nav-inner{
-    max-width:1200px;
-    margin:0 auto;
-    width:100%;
-    display:flex;
-    align-items:center;
-    gap:16px;
-  }
+.nav-inner{
+  max-width:1200px;
+  margin:0 auto;
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
 
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    text-decoration:none;
-    font-weight:900;
-    letter-spacing:.2px;
-    color:#fff;
-  }
+.brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  text-decoration:none;
+  font-weight:900;
+  letter-spacing:.2px;
+  color:#fff;
+}
 
-  .brand-img{
-    height:96px;
-    width:auto;
-    object-fit:contain;
-    display:block;
-    max-width:none;
-    filter:drop-shadow(0 8px 22px rgba(0,0,0,.28));
-  }
+.brand-img{
+  height:96px;
+  width:auto;
+  object-fit:contain;
+  display:block;
+  max-width:none;
+  filter:drop-shadow(0 8px 22px rgba(0,0,0,.28));
+}
+
+.menu{
+  margin-left:auto;
+  display:flex;
+  gap:22px;
+  align-items:center;
+}
+
+.menu a{
+  color:#fff;
+  text-decoration:none;
+  font-weight:750;
+  opacity:.92;
+}
+
+.menu a:hover{opacity:1}
+
+.menu a.active{
+  border-bottom:2px solid var(--accent);
+  padding-bottom:3px;
+  opacity:1;
+}
+
+.cta{
+  background:var(--accent);
+  color:#111;
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:950;
+  box-shadow:0 10px 26px rgba(255,122,0,.28);
+  transition:transform .15s ease;
+}
+
+.cta:hover{transform:translateY(-1px)}
+
+/* Responsive menu */
+.hamburger{
+  display:none;
+  background:transparent;
+  border:0;
+  color:#fff;
+  font-size:30px;
+  cursor:pointer;
+  margin-left:auto;
+}
+
+@media (max-width:880px){
+  .hamburger{display:block}
 
   .menu{
-    margin-left:auto;
-    display:flex;
-    gap:22px;
-    align-items:center;
-  }
-
-  .menu a{
-    color:#fff;
-    text-decoration:none;
-    font-weight:750;
-    opacity:.92;
-  }
-
-  .menu a:hover{opacity:1}
-
-  .menu a.active{
-    border-bottom:2px solid var(--accent);
-    padding-bottom:3px;
-    opacity:1;
-  }
-
-  .cta{
-    background:var(--accent);
-    color:#111;
-    padding:10px 14px;
-    border-radius:999px;
-    font-weight:950;
-    box-shadow:0 10px 26px rgba(255,122,0,.28);
-    transition:transform .15s ease;
-  }
-
-  .cta:hover{transform:translateY(-1px)}
-
-  .hamburger{
-    display:none;
-    background:transparent;
-    border:0;
-    color:#fff;
-    font-size:30px;
-    cursor:pointer;
-    margin-left:auto;
-  }
-
-  @media (max-width:880px){
-    .hamburger{display:block}
-
-    .menu{
-      position:fixed;
-      top:104px;
-      left:0;
-      right:0;
-      flex-direction:column;
-      align-items:flex-start;
-      gap:14px;
-      padding:14px 22px 18px;
-      background:#0b2643f2;
-      max-height:0;
-      overflow:hidden;
-      transition:max-height .25s ease;
-    }
-
-    .menu.open{max-height:360px}
-    .cta{align-self:flex-start}
-
-    .brand-img{
-      height:78px;
-    }
-  }
-
-  /* Logo intro */
-  .logo-intro{
     position:fixed;
-    inset:0;
-    background:
-      radial-gradient(900px 520px at 50% 18%, rgba(31,111,235,.35), transparent 62%),
-      linear-gradient(180deg, rgba(8,26,50,.96), rgba(4,16,34,.98));
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:6000;
+    top:104px;
+    left:0;
+    right:0;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:14px;
+    padding:14px 22px 18px;
+    background:#0b2643f2;
+    max-height:0;
     overflow:hidden;
-    transition:opacity .55s ease, visibility .55s ease;
+    transition:max-height .25s ease;
   }
 
-  .logo-intro::after{
-    content:"";
-    position:absolute;
-    inset:-30%;
-    background:
-      radial-gradient(circle at 30% 30%, rgba(0,200,255,.16), transparent 45%),
-      radial-gradient(circle at 70% 40%, rgba(31,111,235,.18), transparent 48%),
-      radial-gradient(circle at 50% 78%, rgba(255,122,0,.10), transparent 40%);
-    filter:blur(36px);
-    animation:introGlow 6s ease-in-out infinite alternate;
-    pointer-events:none;
+  .menu.open{max-height:360px}
+  .cta{align-self:flex-start}
+
+  .brand-img{
+    height:78px;
   }
+}
 
-  .logo-intro img{
-    position:relative;
-    z-index:2;
-    width:min(60vw, 760px);
-    max-width:none;
-    filter:drop-shadow(0 18px 45px rgba(0,0,0,.38));
-    animation:logoFlyIn 2.4s cubic-bezier(.22,.8,.2,1) forwards;
-    transform-origin:center center;
-  }
-
-  .logo-intro.hide{
-    opacity:0;
-    visibility:hidden;
-    pointer-events:none;
-  }
-
-  @keyframes logoFlyIn{
-    0%{
-      transform:translate(0,0) scale(1);
-      opacity:0;
-    }
-    12%{
-      transform:translate(0,0) scale(1);
-      opacity:1;
-    }
-    58%{
-      transform:translate(0,0) scale(1);
-      opacity:1;
-    }
-    100%{
-      transform:translate(-39vw, -35vh) scale(.18);
-      opacity:1;
-    }
-  }
-
-  @keyframes introGlow{
-    0%{transform:translate(-2%, -1%) scale(1.02)}
-    100%{transform:translate(2%, 2%) scale(1.08)}
-  }
-
-  @media (max-width:880px){
-    .logo-intro img{
-      width:min(82vw, 560px);
-      animation:logoFlyInMobile 2.3s cubic-bezier(.22,.8,.2,1) forwards;
-    }
-
-    @keyframes logoFlyInMobile{
-      0%{
-        transform:translate(0,0) scale(1);
-        opacity:0;
-      }
-      12%{
-        transform:translate(0,0) scale(1);
-        opacity:1;
-      }
-      58%{
-        transform:translate(0,0) scale(1);
-        opacity:1;
-      }
-      100%{
-        transform:translate(-30vw, -38vh) scale(.22);
-        opacity:1;
-      }
-    }
-  }
-
-  /* Hero */
+  /* =========================
+     HERO (Animated + Vibrant)
+     ========================= */
   .hero{
     min-height:84vh;
     display:grid;
@@ -266,7 +175,7 @@
     background-position:center 20%;
     background-size:cover;
     background-repeat:no-repeat;
-    z-index:-4;
+    z-index:-3;
     filter:saturate(1.18) contrast(1.08);
   }
 
@@ -274,7 +183,7 @@
     content:"";
     position:absolute;
     inset:-40%;
-    z-index:-3;
+    z-index:-2;
     background:
       radial-gradient(circle at 30% 30%, rgba(0,200,255,.22), transparent 55%),
       radial-gradient(circle at 70% 40%, rgba(31,111,235,.22), transparent 60%),
@@ -290,40 +199,11 @@
     100% { transform: translate(-1%, 3%) scale(1.06); }
   }
 
-  .hero-network{
-    position:absolute;
-    inset:0;
-    z-index:1;
-    pointer-events:none;
-    overflow:hidden;
+  @media (prefers-reduced-motion: reduce){
+    .hero::after{ animation:none; }
   }
 
-  .hero-grid{
-    position:absolute;
-    inset:0;
-    opacity:.10;
-    background-image:
-      linear-gradient(rgba(133,197,255,.12) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(133,197,255,.12) 1px, transparent 1px);
-    background-size:48px 48px;
-    mask-image:radial-gradient(circle at 50% 35%, rgba(0,0,0,1), rgba(0,0,0,.35) 62%, transparent 100%);
-    -webkit-mask-image:radial-gradient(circle at 50% 35%, rgba(0,0,0,1), rgba(0,0,0,.35) 62%, transparent 100%);
-  }
-
-  #networkCanvas{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    opacity:.95;
-  }
-
-  .hero .wrap{
-    max-width:1100px;
-    padding:135px 20px 64px;
-    position:relative;
-    z-index:5;
-  }
+  .hero .wrap{max-width:1100px;padding:135px 20px 64px; position:relative; z-index:5;}
 
   .pill{
     display:inline-flex;
@@ -422,10 +302,11 @@
     border-bottom:1px solid rgba(207,224,242,.70);
   }
 
+  /* Cards */
   .grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
-    gap:24px;
+    gap:24px; /* improved */
   }
   @media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
   @media (max-width:640px){.grid{grid-template-columns:1fr}}
@@ -467,11 +348,13 @@
     stroke-linejoin:round
   }
 
+  /* ✅ Services: more spacing from stats so it doesn't look like same "type of cards" */
   #services .grid{
-    gap:26px;
-    margin-bottom:64px;
+    gap:26px;           /* slightly more than other sections */
+    margin-bottom:64px; /* IMPORTANT separation */
   }
 
+  /* Stats */
   .stats{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -498,6 +381,7 @@
     .stats{grid-template-columns:repeat(2,1fr)}
   }
 
+  /* FAQ */
   details.faq{
     background:#fff;
     border:1px solid #d7e6f5;
@@ -516,6 +400,7 @@
   details.faq summary::-webkit-details-marker{display:none}
   .faq-body{color:var(--ink-soft);padding-top:8px}
 
+  /* Testimonials */
   .testimonials{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:26px 0 0}
   .quote{
     background:#fff;
@@ -540,6 +425,7 @@
     .testimonials{grid-template-columns:1fr}
   }
 
+  /* Contact */
   .contact{display:grid;grid-template-columns:1.2fr .8fr;gap:24px}
   @media (max-width:900px){.contact{grid-template-columns:1fr}}
 
@@ -571,10 +457,12 @@
     font-size:14px;
   }
 
+  /* Map */
   .map-wrap{position:relative;width:100%;height:360px}
   .map-embed{border:0;width:100%;height:100%;display:block}
   @media (max-width:900px){.map-wrap{height:300px}}
 
+  /* CTA stripe */
   .cta-stripe{
     background:linear-gradient(90deg,#0f2b46,#184a81);
     color:#fff;
@@ -592,6 +480,7 @@
     color:#fff;
   }
 
+  /* Footer */
   .footer{
     padding:26px 20px;
     border-top:1px solid #cfe0f2;
@@ -600,6 +489,7 @@
     background:#f6fbff;
   }
 
+  /* Floating Action Buttons */
   .fab{
     position:fixed;
     right:26px;
@@ -636,24 +526,11 @@
   @media (max-width:520px){
     .fab a span{ display:none; }
   }
-
-  @media (prefers-reduced-motion: reduce){
-    .logo-intro,
-    .logo-intro::after,
-    .logo-intro img,
-    .hero::after{
-      animation:none !important;
-      transition:none !important;
-    }
-  }
-  </style>
+</style>
 </head>
 
 <body>
-  <div class="logo-intro" id="logoIntro">
-    <img src="assets/logo.png" alt="Linear Tech logo intro">
-  </div>
-
+  <!-- Header -->
   <header class="nav transparent" id="nav">
     <div class="nav-inner">
       <a href="#home" class="brand" aria-label="Linear Tech Home">
@@ -680,12 +557,8 @@
     </div>
   </header>
 
+  <!-- Hero -->
   <section id="home" class="hero">
-    <div class="hero-network" id="heroNetwork" aria-hidden="true">
-      <div class="hero-grid"></div>
-      <canvas id="networkCanvas"></canvas>
-    </div>
-
     <div class="wrap container">
       <div class="pill">Managed IT • Security-first • Fast response</div>
 
@@ -706,6 +579,7 @@
     </div>
   </section>
 
+  <!-- About -->
   <section id="about" class="section alt">
     <div class="container">
       <h2 class="h2">Empower Your Business in the Digital Age</h2>
@@ -750,11 +624,13 @@
     </div>
   </section>
 
+  <!-- Services -->
   <section id="services" class="section">
     <div class="container">
       <h2 class="h2">Services</h2>
       <p class="lead">Choose the coverage you need — we can manage your full environment or augment your existing team.</p>
 
+      <!-- ✅ Services grid now has 8 boxes -->
       <div class="grid">
         <article class="card">
           <div class="icon-badge" aria-hidden="true">
@@ -804,6 +680,7 @@
           <p>Road-mapping, budgeting, and audits to keep IT predictable and aligned to goals.</p>
         </article>
 
+        <!-- ✅ NEW box 7 -->
         <article class="card">
           <div class="icon-badge" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>
@@ -812,6 +689,7 @@
           <p>MFA enforcement, phishing defense, security baselines, audits & incident readiness.</p>
         </article>
 
+        <!-- ✅ NEW box 8 -->
         <article class="card">
           <div class="icon-badge" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M3 7h18"/><path d="M5 7v14"/><path d="M19 7v14"/><path d="M7 11h10"/><path d="M7 15h10"/></svg>
@@ -830,6 +708,7 @@
     </div>
   </section>
 
+  <!-- FAQ -->
   <section id="faq" class="section alt">
     <div class="container" itemscope itemtype="https://schema.org/FAQPage">
       <h2 class="h2">Frequently Asked Questions</h2>
@@ -885,6 +764,7 @@
     </div>
   </section>
 
+  <!-- CTA stripe -->
   <section class="cta-stripe">
     <div class="container">
       <div>
@@ -895,6 +775,7 @@
     </div>
   </section>
 
+  <!-- Contact -->
   <section id="contact" class="section">
     <div class="container">
       <h2 class="h2">Contact</h2>
@@ -960,10 +841,12 @@
     </div>
   </section>
 
+  <!-- Footer -->
   <footer class="footer">
     © <span id="year"></span> Linear Tech · Straightforward IT Excellence
   </footer>
 
+  <!-- Floating quick actions -->
   <div class="fab" aria-label="Quick actions">
     <a class="call" href="tel:+18456041462" title="Call Linear Tech">📞 <span>Call Now</span></a>
     <a class="email" href="mailto:support@linearit.co" title="Email Linear Tech">✉️ <span>Email</span></a>
@@ -974,7 +857,6 @@
     const nav = document.getElementById('nav');
     const menu = document.getElementById('menu');
     const hamburger = document.getElementById('hamburger');
-    const logoIntro = document.getElementById('logoIntro');
 
     const setNavAppearance = () => {
       if (window.scrollY > 4) {nav.classList.add('solid'); nav.classList.remove('transparent');}
@@ -1001,128 +883,6 @@
     sections.forEach(s=>obs.observe(s));
 
     document.getElementById('year').textContent = new Date().getFullYear();
-
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        logoIntro.classList.add('hide');
-      }, 2350);
-    });
-
-    (function () {
-      const canvas = document.getElementById("networkCanvas");
-      if (!canvas) return;
-
-      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (reduced) return;
-
-      const ctx = canvas.getContext("2d");
-      let width = 0;
-      let height = 0;
-      let nodes = [];
-      let mouse = { x: null, y: null, active: false };
-
-      function resize() {
-        const dpr = window.devicePixelRatio || 1;
-        width = canvas.offsetWidth;
-        height = canvas.offsetHeight;
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        const count = Math.max(36, Math.min(70, Math.floor(width / 24)));
-        nodes = Array.from({ length: count }, () => ({
-          x: Math.random() * width,
-          y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: (Math.random() - 0.5) * 0.35,
-          r: 1.8 + Math.random() * 2.8
-        }));
-      }
-
-      function draw() {
-        ctx.clearRect(0, 0, width, height);
-
-        for (const n of nodes) {
-          n.x += n.vx;
-          n.y += n.vy;
-
-          if (n.x < -20) n.x = width + 20;
-          if (n.x > width + 20) n.x = -20;
-          if (n.y < -20) n.y = height + 20;
-          if (n.y > height + 20) n.y = -20;
-        }
-
-        for (let i = 0; i < nodes.length; i++) {
-          for (let j = i + 1; j < nodes.length; j++) {
-            const a = nodes[i];
-            const b = nodes[j];
-            const dx = a.x - b.x;
-            const dy = a.y - b.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist < 150) {
-              const alpha = (1 - dist / 150) * 0.22;
-              ctx.strokeStyle = `rgba(135, 200, 255, ${alpha})`;
-              ctx.lineWidth = 1;
-              ctx.beginPath();
-              ctx.moveTo(a.x, a.y);
-              ctx.lineTo(b.x, b.y);
-              ctx.stroke();
-            }
-          }
-        }
-
-        if (mouse.active && mouse.x !== null && mouse.y !== null) {
-          for (const n of nodes) {
-            const dx = n.x - mouse.x;
-            const dy = n.y - mouse.y;
-            const dist = Math.hypot(dx, dy);
-
-            if (dist < 180) {
-              const alpha = (1 - dist / 180) * 0.30;
-              ctx.strokeStyle = `rgba(90, 180, 255, ${alpha})`;
-              ctx.lineWidth = 1.2;
-              ctx.beginPath();
-              ctx.moveTo(n.x, n.y);
-              ctx.lineTo(mouse.x, mouse.y);
-              ctx.stroke();
-            }
-          }
-        }
-
-        for (const n of nodes) {
-          const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 6);
-          glow.addColorStop(0, "rgba(160,220,255,.85)");
-          glow.addColorStop(0.35, "rgba(90,180,255,.22)");
-          glow.addColorStop(1, "rgba(90,180,255,0)");
-          ctx.fillStyle = glow;
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r * 6, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = "rgba(195,235,255,.95)";
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        requestAnimationFrame(draw);
-      }
-
-      window.addEventListener("resize", resize);
-      canvas.addEventListener("mousemove", (e) => {
-        const rect = canvas.getBoundingClientRect();
-        mouse.x = e.clientX - rect.left;
-        mouse.y = e.clientY - rect.top;
-        mouse.active = true;
-      });
-      canvas.addEventListener("mouseleave", () => {
-        mouse.active = false;
-      });
-
-      resize();
-      draw();
-    })();
   </script>
 
   <script type="application/ld+json">
