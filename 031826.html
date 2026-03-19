@@ -28,7 +28,7 @@
   img{max-width:100%;display:block}
   section{scroll-margin-top:86px}
 
-  /* The Header / Nav */
+  /* Header / Nav */
   .nav{
     position:fixed;
     inset:0 0 auto 0;
@@ -113,7 +113,6 @@
 
   .cta:hover{transform:translateY(-1px)}
 
-  /* Responsive menu */
   .hamburger{
     display:none;
     background:transparent;
@@ -244,9 +243,7 @@
     }
   }
 
-  /* =========================
-     HERO (Animated + Vibrant)
-     ========================= */
+  /* Hero */
   .hero{
     min-height:84vh;
     display:grid;
@@ -293,57 +290,32 @@
     100% { transform: translate(-1%, 3%) scale(1.06); }
   }
 
-  .hero-binary{
+  .hero-network{
     position:absolute;
     inset:0;
-    overflow:hidden;
     z-index:1;
     pointer-events:none;
-  }
-
-  .hero-binary span{
-    position:absolute;
-    color:rgba(133, 197, 255, 0.18);
-    font-family:Consolas, "Courier New", monospace;
-    font-weight:800;
-    user-select:none;
-    white-space:nowrap;
-    text-shadow:0 0 18px rgba(31,111,235,.20);
-    animation-name:floatBinary;
-    animation-timing-function:linear;
-    animation-iteration-count:infinite;
-    will-change:transform, opacity;
-  }
-
-  @keyframes floatBinary{
-    0%{
-      transform:translate3d(0,110vh,0) rotate(0deg);
-      opacity:0;
-    }
-    10%{
-      opacity:1;
-    }
-    90%{
-      opacity:1;
-    }
-    100%{
-      transform:translate3d(34px,-22vh,0) rotate(8deg);
-      opacity:0;
-    }
+    overflow:hidden;
   }
 
   .hero-grid{
     position:absolute;
     inset:0;
-    z-index:0;
-    pointer-events:none;
-    opacity:.16;
+    opacity:.10;
     background-image:
-      linear-gradient(rgba(133,197,255,.13) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(133,197,255,.13) 1px, transparent 1px);
-    background-size:46px 46px;
-    mask-image:radial-gradient(circle at 50% 35%, rgba(0,0,0,1), rgba(0,0,0,.3) 60%, transparent 100%);
-    -webkit-mask-image:radial-gradient(circle at 50% 35%, rgba(0,0,0,1), rgba(0,0,0,.3) 60%, transparent 100%);
+      linear-gradient(rgba(133,197,255,.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(133,197,255,.12) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(circle at 50% 35%, rgba(0,0,0,1), rgba(0,0,0,.35) 62%, transparent 100%);
+    -webkit-mask-image:radial-gradient(circle at 50% 35%, rgba(0,0,0,1), rgba(0,0,0,.35) 62%, transparent 100%);
+  }
+
+  #networkCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:.95;
   }
 
   .hero .wrap{
@@ -450,7 +422,6 @@
     border-bottom:1px solid rgba(207,224,242,.70);
   }
 
-  /* Cards */
   .grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -501,7 +472,6 @@
     margin-bottom:64px;
   }
 
-  /* Stats */
   .stats{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -528,7 +498,6 @@
     .stats{grid-template-columns:repeat(2,1fr)}
   }
 
-  /* FAQ */
   details.faq{
     background:#fff;
     border:1px solid #d7e6f5;
@@ -547,7 +516,6 @@
   details.faq summary::-webkit-details-marker{display:none}
   .faq-body{color:var(--ink-soft);padding-top:8px}
 
-  /* Testimonials */
   .testimonials{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:26px 0 0}
   .quote{
     background:#fff;
@@ -572,7 +540,6 @@
     .testimonials{grid-template-columns:1fr}
   }
 
-  /* Contact */
   .contact{display:grid;grid-template-columns:1.2fr .8fr;gap:24px}
   @media (max-width:900px){.contact{grid-template-columns:1fr}}
 
@@ -604,12 +571,10 @@
     font-size:14px;
   }
 
-  /* Map */
   .map-wrap{position:relative;width:100%;height:360px}
   .map-embed{border:0;width:100%;height:100%;display:block}
   @media (max-width:900px){.map-wrap{height:300px}}
 
-  /* CTA stripe */
   .cta-stripe{
     background:linear-gradient(90deg,#0f2b46,#184a81);
     color:#fff;
@@ -627,7 +592,6 @@
     color:#fff;
   }
 
-  /* Footer */
   .footer{
     padding:26px 20px;
     border-top:1px solid #cfe0f2;
@@ -636,7 +600,6 @@
     background:#f6fbff;
   }
 
-  /* Floating Action Buttons */
   .fab{
     position:fixed;
     right:26px;
@@ -678,8 +641,7 @@
     .logo-intro,
     .logo-intro::after,
     .logo-intro img,
-    .hero::after,
-    .hero-binary span{
+    .hero::after{
       animation:none !important;
       transition:none !important;
     }
@@ -692,7 +654,6 @@
     <img src="assets/logo.png" alt="Linear Tech logo intro">
   </div>
 
-  <!-- Header -->
   <header class="nav transparent" id="nav">
     <div class="nav-inner">
       <a href="#home" class="brand" aria-label="Linear Tech Home">
@@ -719,10 +680,11 @@
     </div>
   </header>
 
-  <!-- Hero -->
   <section id="home" class="hero">
-    <div class="hero-grid" aria-hidden="true"></div>
-    <div class="hero-binary" id="heroBinary" aria-hidden="true"></div>
+    <div class="hero-network" id="heroNetwork" aria-hidden="true">
+      <div class="hero-grid"></div>
+      <canvas id="networkCanvas"></canvas>
+    </div>
 
     <div class="wrap container">
       <div class="pill">Managed IT • Security-first • Fast response</div>
@@ -744,7 +706,6 @@
     </div>
   </section>
 
-  <!-- About -->
   <section id="about" class="section alt">
     <div class="container">
       <h2 class="h2">Empower Your Business in the Digital Age</h2>
@@ -789,7 +750,6 @@
     </div>
   </section>
 
-  <!-- Services -->
   <section id="services" class="section">
     <div class="container">
       <h2 class="h2">Services</h2>
@@ -870,7 +830,6 @@
     </div>
   </section>
 
-  <!-- FAQ -->
   <section id="faq" class="section alt">
     <div class="container" itemscope itemtype="https://schema.org/FAQPage">
       <h2 class="h2">Frequently Asked Questions</h2>
@@ -926,7 +885,6 @@
     </div>
   </section>
 
-  <!-- CTA stripe -->
   <section class="cta-stripe">
     <div class="container">
       <div>
@@ -937,7 +895,6 @@
     </div>
   </section>
 
-  <!-- Contact -->
   <section id="contact" class="section">
     <div class="container">
       <h2 class="h2">Contact</h2>
@@ -1003,12 +960,10 @@
     </div>
   </section>
 
-  <!-- Footer -->
   <footer class="footer">
     © <span id="year"></span> Linear Tech · Straightforward IT Excellence
   </footer>
 
-  <!-- Floating quick actions -->
   <div class="fab" aria-label="Quick actions">
     <a class="call" href="tel:+18456041462" title="Call Linear Tech">📞 <span>Call Now</span></a>
     <a class="email" href="mailto:support@linearit.co" title="Email Linear Tech">✉️ <span>Email</span></a>
@@ -1020,7 +975,6 @@
     const menu = document.getElementById('menu');
     const hamburger = document.getElementById('hamburger');
     const logoIntro = document.getElementById('logoIntro');
-    const heroBinary = document.getElementById('heroBinary');
 
     const setNavAppearance = () => {
       if (window.scrollY > 4) {nav.classList.add('solid'); nav.classList.remove('transparent');}
@@ -1055,63 +1009,119 @@
     });
 
     (function () {
-      if (!heroBinary) return;
+      const canvas = document.getElementById("networkCanvas");
+      if (!canvas) return;
 
-      const binaryStrings = [
-        "01001001","10110101","00110110","11001010",
-        "01010101","10101010","01100110","10011001",
-        "00110011","11100011","01001100","11010010",
-        "01101001","10010110","01011010","11100101"
-      ];
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (reduced) return;
 
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (prefersReducedMotion) return;
+      const ctx = canvas.getContext("2d");
+      let width = 0;
+      let height = 0;
+      let nodes = [];
+      let mouse = { x: null, y: null, active: false };
 
-      function createBinary(initial = false) {
-        const el = document.createElement("span");
-        el.textContent = binaryStrings[Math.floor(Math.random() * binaryStrings.length)];
+      function resize() {
+        const dpr = window.devicePixelRatio || 1;
+        width = canvas.offsetWidth;
+        height = canvas.offsetHeight;
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        const left = Math.random() * 100;
-        const size = 16 + Math.random() * 34;
-        const duration = 12 + Math.random() * 12;
-        const delay = initial ? Math.random() * 10 : 0;
-        const drift = (-25 + Math.random() * 50).toFixed(1);
-        const rotate = (-8 + Math.random() * 16).toFixed(1);
-        const opacity = (0.10 + Math.random() * 0.16).toFixed(2);
-
-        el.style.left = left + "%";
-        el.style.fontSize = size + "px";
-        el.style.animationDuration = duration + "s";
-        el.style.animationDelay = delay + "s";
-        el.style.opacity = opacity;
-        el.style.setProperty("--drift-x", drift + "px");
-        el.style.setProperty("--rotate-end", rotate + "deg");
-
-        heroBinary.appendChild(el);
-
-        const removeAfter = (duration + delay + 1) * 1000;
-        setTimeout(() => {
-          el.remove();
-        }, removeAfter);
+        const count = Math.max(36, Math.min(70, Math.floor(width / 24)));
+        nodes = Array.from({ length: count }, () => ({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+          r: 1.8 + Math.random() * 2.8
+        }));
       }
 
-      for (let i = 0; i < 30; i++) {
-        createBinary(true);
+      function draw() {
+        ctx.clearRect(0, 0, width, height);
+
+        for (const n of nodes) {
+          n.x += n.vx;
+          n.y += n.vy;
+
+          if (n.x < -20) n.x = width + 20;
+          if (n.x > width + 20) n.x = -20;
+          if (n.y < -20) n.y = height + 20;
+          if (n.y > height + 20) n.y = -20;
+        }
+
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i];
+            const b = nodes[j];
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 150) {
+              const alpha = (1 - dist / 150) * 0.22;
+              ctx.strokeStyle = `rgba(135, 200, 255, ${alpha})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        if (mouse.active && mouse.x !== null && mouse.y !== null) {
+          for (const n of nodes) {
+            const dx = n.x - mouse.x;
+            const dy = n.y - mouse.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 180) {
+              const alpha = (1 - dist / 180) * 0.30;
+              ctx.strokeStyle = `rgba(90, 180, 255, ${alpha})`;
+              ctx.lineWidth = 1.2;
+              ctx.beginPath();
+              ctx.moveTo(n.x, n.y);
+              ctx.lineTo(mouse.x, mouse.y);
+              ctx.stroke();
+            }
+          }
+        }
+
+        for (const n of nodes) {
+          const glow = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r * 6);
+          glow.addColorStop(0, "rgba(160,220,255,.85)");
+          glow.addColorStop(0.35, "rgba(90,180,255,.22)");
+          glow.addColorStop(1, "rgba(90,180,255,0)");
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r * 6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(195,235,255,.95)";
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        requestAnimationFrame(draw);
       }
 
-      setInterval(() => {
-        createBinary(false);
-      }, 650);
+      window.addEventListener("resize", resize);
+      canvas.addEventListener("mousemove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+        mouse.active = true;
+      });
+      canvas.addEventListener("mouseleave", () => {
+        mouse.active = false;
+      });
 
-      let mouseX = 0;
-      let mouseY = 0;
-
-      window.addEventListener("mousemove", (e) => {
-        const { innerWidth, innerHeight } = window;
-        mouseX = ((e.clientX / innerWidth) - 0.5) * 12;
-        mouseY = ((e.clientY / innerHeight) - 0.5) * 8;
-        heroBinary.style.transform = `translate(${mouseX}px, ${mouseY}px)`;
-      }, { passive: true });
+      resize();
+      draw();
     })();
   </script>
 
