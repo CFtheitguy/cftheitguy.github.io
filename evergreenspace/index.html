@@ -30,13 +30,17 @@
   pointer-events: none;
 }
     .login-box, .content-box {
-      background: white;
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      max-width: 900px;
-      width: 100%;
-    }
+  background: rgba(255,255,255,0.96);
+  padding: 40px;
+  border-radius: 20px;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(10px);
+  max-width: 900px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
     h1 { margin: 0 0 20px; color: #333; }
     p { color: #666; }
     input {
