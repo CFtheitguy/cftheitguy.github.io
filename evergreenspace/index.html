@@ -202,6 +202,53 @@
       color: #777;
       margin-top: 8px;
     }
+    .bg-floaters {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.floater {
+  position: absolute;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  animation: float 12s ease-in-out infinite;
+}
+
+.f1 {
+  width: 140px;
+  height: 140px;
+  top: 10%;
+  left: 10%;
+}
+
+.f2 {
+  width: 80px;
+  height: 80px;
+  top: 25%;
+  right: 15%;
+}
+
+.f3 {
+  width: 200px;
+  height: 200px;
+  bottom: 10%;
+  left: 8%;
+}
+
+.f4 {
+  width: 120px;
+  height: 120px;
+  bottom: 15%;
+  right: 10%;
+}
+
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
   </style>
 </head>
 <body>
