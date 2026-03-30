@@ -7,15 +7,20 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0;
-      padding: 20px;
-    }
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.15), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(30, 64, 175, 0.15), transparent 40%),
+    linear-gradient(135deg, #0f172a 0%, #162033 40%, #1e293b 100%);
+}
     .login-box, .content-box {
       background: white;
       padding: 40px;
