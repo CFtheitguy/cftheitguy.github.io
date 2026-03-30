@@ -101,14 +101,15 @@
       transform: rotate(90deg);
     }
     .folder-content {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-      background: #f8f9fa;
-    }
-    .folder.open .folder-content {
-      max-height: 2000px;
-    }
+  max-height: 0;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+  background: #f8f9fa;
+}
+
+.folder.open .folder-content {
+  max-height: 80vh;
+}
     
     .file-item {
       padding: 15px 20px;
