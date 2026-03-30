@@ -1,0 +1,52 @@
+name: Update invoices.json
+
+on:
+  push:
+    paths:
+      - 'evergreenspace/assets/invoices/**'
+      - '.github/workflows/update-invoices.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-invoice-manifest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Generate invoices.json
+        run: |
+          python <<'PY'
+          import os, json
+
+          folder = 'evergreenspace/assets/invoices'
+          os.makedirs(folder, exist_ok=True)
+
+          files = []
+          for f in os.listdir(folder):
+              if f.lower().endswith('.pdf'):
+                  files.append(f)
+
+          files.sort(reverse=True)
+
+          output = os.path.join(folder, 'invoices.json')
+          with open(output, 'w', encoding='utf-8') as fp:
+              json.dump(files, fp, indent=2)
+
+          print(f"Updated {output} with {len(files)} invoices")
+          PY
+
+      - name: Commit changes if needed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add evergreenspace/assets/invoices/invoices.json
+          git diff --cached --quiet || git commit -m "Auto-update invoices.json"
+
+      - name: Push changes
+        run: |
+          git push
