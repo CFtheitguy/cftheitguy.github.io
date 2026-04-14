@@ -1,185 +1,627 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Linear Tech - Home</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Linear Tech — Straightforward IT Excellence</title>
+  <meta name="description" content="Linear Tech MSP — Fast, secure, and hassle-free technology solutions. Proactive IT, security, backups, and networks that scale." />
+  <meta property="og:title" content="Linear Tech — Straightforward IT Excellence" />
+  <meta property="og:description" content="Fast, secure, and hassle-free technology solutions. Proactive IT, security, backups, and networks that scale." />
+  <meta property="og:type" content="website" />
+  <link rel="preload" href="assets/banner.png" as="image" />
   <style>
+    :root {
+      --primary: #1a5490;
+      --primary-light: #2470b8;
+      --foreground: #1a2e42;
+      --muted: #5a7a96;
+      --bg: #eef4f9;
+      --card: #ffffff;
+      --accent: #e86a00;
+      --border: #d4e1ed;
+      --navy: #0e2235;
+      --navy-light: #17334d;
+      --radius: 10px;
+      --shadow: 0 4px 24px hsla(210, 40%, 20%, 0.08);
+      --shadow-hover: 0 8px 32px hsla(210, 40%, 20%, 0.14);
+      scroll-behavior: smooth;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
     body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      color: #fff;
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--foreground);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    body.background {
-      background: linear-gradient(to right, #5595D4, #5595D4, #5595D4);
-      background-attachment: fixed;
-      background-size: cover;
-      background-repeat: no-repeat;
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+    section { scroll-margin-top: 80px; }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+
+    /* ─── NAV ─── */
+    .nav {
+      position: fixed; inset: 0 0 auto 0; z-index: 1000;
+      transition: background .3s, box-shadow .3s;
+      backdrop-filter: saturate(130%) blur(10px);
     }
-    header {
-      background: rgba(0, 34, 68, 0.95);
-      color: white;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 20px;
-      flex-wrap: wrap;
-      gap: 10px;
+    .nav.transparent { background: linear-gradient(180deg, rgba(14,34,53,.6), transparent); }
+    .nav.solid { background: rgba(14,34,53,.95); box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto; width: 100%;
+      display: flex; align-items: center; padding: 12px 24px; gap: 16px;
     }
-    header .logo {
-      height: 50px;
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-img { height: 56px; width: auto; }
+    .menu { margin-left: auto; display: flex; gap: 28px; align-items: center; }
+    .menu a {
+      color: rgba(255,255,255,.85); font-weight: 600; font-size: 14px;
+      letter-spacing: .3px; transition: color .15s;
     }
-    nav a {
-      color: white;
-      text-decoration: none;
-      margin-left: 15px;
-      font-weight: bold;
+    .menu a:hover, .menu a.active { color: #fff; }
+    .menu a.active { border-bottom: 2px solid var(--accent); padding-bottom: 2px; }
+    .cta-nav {
+      background: var(--accent); color: #fff; padding: 9px 18px;
+      border-radius: 999px; font-weight: 700; font-size: 13px;
+      transition: transform .15s; box-shadow: 0 4px 14px rgba(232,106,0,.25);
     }
-    nav a.active {
-      text-decoration: underline;
+    .cta-nav:hover { transform: translateY(-1px); }
+    .hamburger {
+      display: none; background: transparent; border: 0;
+      color: #fff; font-size: 28px; cursor: pointer; margin-left: auto;
     }
-    .button.remote-header {
-      background: #ff6600;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-weight: bold;
-      color: white;
-      text-decoration: none;
-      transition: background 0.3s ease;
+
+    @media (max-width: 880px) {
+      .hamburger { display: block; }
+      .menu {
+        position: fixed; top: 80px; left: 0; right: 0;
+        flex-direction: column; align-items: flex-start;
+        gap: 14px; padding: 16px 24px 20px;
+        background: rgba(14,34,53,.96); backdrop-filter: blur(10px);
+        max-height: 0; overflow: hidden; transition: max-height .3s ease;
+      }
+      .menu.open { max-height: 400px; }
     }
-    .button.remote-header:hover {
-      background: #cc5200;
-    }
-    main {
-      padding: 20px;
-    }
-    footer {
-      background: rgba(0, 34, 68, 0.95);
-      color: white;
-      text-align: center;
-      padding: 15px 10px;
-      position: relative;
-      bottom: 0;
-      width: 100%;
-    }
+
+    /* ─── HERO ─── */
     .hero {
-      text-align: center;
+      min-height: 85vh; display: flex; align-items: center; justify-content: center;
+      text-align: center; color: #fff; position: relative;
+      background: var(--navy); overflow: hidden;
     }
-    .banner {
-      width: 100%;
-      max-height: 300px;
-      object-fit: cover;
+    .hero::before {
+      content: ""; position: absolute; inset: 0;
+      background:
+        linear-gradient(180deg, rgba(14,34,53,.78), rgba(14,34,53,.88)),
+        url('assets/banner.png');
+      background-size: cover; background-position: center 20%;
+      z-index: 0;
     }
-    .button {
-      background: #00bfff;
-      color: white;
-      padding: 10px 20px;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 20px;
-      border-radius: 4px;
-      transition: background 0.3s;
+    .hero-grid {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: .06;
+      background-image:
+        linear-gradient(rgba(133,197,255,.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(133,197,255,.2) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(circle at 50% 40%, #000, transparent 70%);
+      -webkit-mask-image: radial-gradient(circle at 50% 40%, #000, transparent 70%);
     }
-    .button:hover {
-      background: #009acd;
+    .hero .wrap {
+      max-width: 800px; padding: 140px 20px 80px; position: relative; z-index: 5;
     }
-    .button.remote {
-      background: #00bfff;
-      font-weight: bold;
-      display: inline-block;
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: 999px; font-size: 12px;
+      font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      margin-bottom: 20px; backdrop-filter: blur(6px);
     }
-    .button.remote:hover {
-      background: #007acc;
+    .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .hero h1 {
+      font-size: clamp(36px, 5.5vw, 64px); line-height: 1.08;
+      font-weight: 800; margin: 0 0 16px; letter-spacing: -.02em;
     }
-    /* Added for grid layout */
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 20px;
+    .hero p {
+      font-size: clamp(17px, 2vw, 20px); color: rgba(238,245,255,.85);
+      margin: 0 0 32px; line-height: 1.6;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-top: 20px;
+    .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 24px; border-radius: 10px; font-weight: 700;
+      font-size: 14px; border: 0; cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
     }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--primary); color: #fff;
+      box-shadow: 0 8px 24px rgba(26,84,144,.3);
+    }
+    .btn-ghost {
+      background: transparent; color: #fff;
+      border: 2px solid rgba(255,255,255,.3);
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,.6); }
+    .trust-badges { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 24px; }
+    .trust-badges span {
+      font-size: 12px; font-weight: 600; padding: 6px 14px;
+      border-radius: 999px; background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.7);
+    }
+
+    /* ─── SECTIONS ─── */
+    .section { padding: 80px 20px; }
+    .section-alt { background: rgba(246,250,255,.6); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .section h2 { font-size: clamp(26px, 3.5vw, 38px); font-weight: 800; margin: 0 0 8px; letter-spacing: -.01em; }
+    .section .lead { color: var(--muted); font-size: 16px; margin: 0 0 40px; max-width: 600px; line-height: 1.7; }
+
+    /* ─── CARDS ─── */
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    @media (max-width: 1000px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 640px) { .grid-4 { grid-template-columns: 1fr; } }
     .card {
-      background: rgba(0,0,0,0.25);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px;
-      padding: 16px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+      background: var(--card); border-radius: var(--radius); padding: 24px;
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+      transition: transform .2s, box-shadow .2s;
     }
-    .card h3 {
-      margin-top: 0;
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+    .card-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: grid; place-items: center;
+      background: rgba(26,84,144,.08); margin-bottom: 16px;
     }
-    .highlight {
-      text-align: center;
+    .card-icon svg { width: 22px; height: 22px; fill: none; stroke: var(--primary); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .card h3 { font-size: 17px; font-weight: 700; margin: 0 0 6px; }
+    .card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+
+    /* ─── STATS ─── */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 48px; }
+    .stat {
+      background: var(--card); border-radius: var(--radius); padding: 24px;
+      text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+    .stat .num { font-size: clamp(26px, 3.5vw, 38px); font-weight: 800; color: var(--primary); letter-spacing: -.02em; }
+    .stat .label { color: var(--muted); font-weight: 600; font-size: 14px; margin-top: 2px; }
+    @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ─── FAQ ─── */
+    .faq-list { max-width: 800px; }
+    .faq-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    .faq-btn {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; background: none; border: 0; cursor: pointer;
+      font: inherit; font-size: 15px; font-weight: 700; color: var(--foreground); text-align: left;
+    }
+    .faq-btn svg { width: 18px; height: 18px; stroke: var(--muted); stroke-width: 2.5; fill: none; transition: transform .3s; flex-shrink: 0; margin-left: 12px; }
+    .faq-item.open .faq-btn svg { transform: rotate(180deg); }
+    .faq-body {
+      max-height: 0; overflow: hidden; transition: max-height .3s ease;
+    }
+    .faq-body-inner { padding: 0 24px 18px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+    .faq-item.open .faq-body { max-height: 200px; }
+
+    /* ─── TESTIMONIALS ─── */
+    .testimonials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 48px; }
+    .quote {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow);
+      position: relative;
+    }
+    .quote::before {
+      content: "\201C"; position: absolute; top: -4px; left: 18px;
+      font-size: 48px; font-weight: 800; color: rgba(26,84,144,.12);
+    }
+    .quote p { font-size: 14px; line-height: 1.7; font-style: italic; color: var(--foreground); opacity: .9; margin-bottom: 12px; }
+    .quote footer { font-size: 13px; font-weight: 600; color: var(--muted); }
+    @media (max-width: 900px) { .testimonials { grid-template-columns: 1fr; } }
+
+    /* ─── CTA STRIPE ─── */
+    .cta-stripe { background: var(--navy); color: #fff; padding: 48px 20px; }
+    .cta-stripe .container {
+      display: flex; gap: 20px; align-items: center;
+      justify-content: space-between; flex-wrap: wrap;
+    }
+    .cta-stripe h2 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; }
+    .cta-stripe p { color: rgba(255,255,255,.6); margin-top: 4px; font-size: 15px; }
+    .cta-stripe .btn {
+      border: 2px solid rgba(255,255,255,.5); color: #fff; background: transparent;
+      padding: 12px 24px;
+    }
+    .cta-stripe .btn:hover { border-color: #fff; background: rgba(255,255,255,.08); }
+
+    /* ─── CONTACT ─── */
+    .contact-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 24px; }
+    @media (max-width: 900px) { .contact-grid { grid-template-columns: 1fr; } }
+    .contact-form {
+      background: var(--card); border-radius: var(--radius); padding: 32px;
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+    .contact-form label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .contact-form .input {
+      width: 100%; padding: 11px 14px; border: 1px solid var(--border);
+      border-radius: 8px; margin-bottom: 16px; font-size: 14px; outline: none;
+      transition: border-color .15s, box-shadow .15s; background: var(--bg);
+    }
+    .contact-form .input:focus { border-color: rgba(26,84,144,.4); box-shadow: 0 0 0 3px rgba(26,84,144,.1); }
+    .contact-form textarea.input { resize: vertical; min-height: 100px; }
+    .btn-submit {
+      width: 100%; padding: 13px; border: 0; border-radius: 8px;
+      background: var(--primary); color: #fff; font-weight: 700;
+      font-size: 14px; cursor: pointer; transition: transform .15s;
+    }
+    .btn-submit:hover { transform: translateY(-1px); }
+    .form-note { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+    .contact-info {
+      background: var(--card); border-radius: var(--radius); padding: 28px;
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+    }
+    .contact-info h3 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+    .contact-info .info-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 14px; color: var(--muted); }
+    .contact-info .info-row svg { width: 18px; height: 18px; stroke: var(--primary); fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 2px; }
+    .contact-info a:hover { color: var(--foreground); }
+    .info-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .info-links a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 12px; font-weight: 600; transition: background .15s;
+    }
+    .info-links a:hover { background: var(--bg); }
+
+    .map-wrap { margin-top: 16px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
+    .map-wrap iframe { width: 100%; height: 220px; border: 0; display: block; }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      padding: 24px 20px; border-top: 1px solid var(--border);
+      text-align: center; font-size: 14px; color: var(--muted); background: #f6faff;
+    }
+
+    /* ─── FAB ─── */
+    .fab {
+      position: fixed; right: 24px; bottom: 24px;
+      display: flex; flex-direction: column; gap: 10px; z-index: 2500;
+    }
+    .fab a {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 16px; border-radius: 999px; font-weight: 700; font-size: 13px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.2); transition: transform .15s;
+      white-space: nowrap;
+    }
+    .fab a:hover { transform: translateY(-2px); }
+    .fab .call { background: var(--accent); color: #fff; }
+    .fab .email { background: #fff; color: var(--foreground); }
+    .fab .remote { background: var(--primary); color: #fff; }
+    @media (min-width: 900px) { .fab { right: 80px; } }
+    @media (max-width: 520px) { .fab a span { display: none; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
     }
   </style>
 </head>
-<body class="background">
-  <header>
-    <img src="assets/logo.png" alt="Linear Tech Logo" class="logo" />
-    <nav>
-      <a href="index.html" class="active">Home</a>
-      <a href="about.html">About</a>
-      <a href="services.html">Services</a>
-      <a href="contact.html">Contact</a>
-    </nav>
-    <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" class="button remote-header">Get Remote Support Now!</a>
+<body>
+
+  <!-- NAV -->
+  <header class="nav transparent" id="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#home">
+        <img class="brand-img" src="assets/logo.png" alt="Linear Tech" />
+      </a>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">☰</button>
+      <nav class="menu" id="menu">
+        <a href="#home" data-link>Home</a>
+        <a href="#about" data-link>About</a>
+        <a href="#services" data-link>Services</a>
+        <a href="#faq" data-link>FAQ</a>
+        <a href="#contact" data-link>Contact</a>
+        <a class="cta-nav" href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" target="_blank" rel="noopener">Remote Support</a>
+      </nav>
+    </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <img src="assets/banner.png" alt="Tech Background" class="banner" />
-      <h1>Empower Your Business in The Digital Age</h1>
-      <p>We streamline your operations with cutting-edge IT solutions, ensuring efficiency and scalability.</p>
+  <!-- HERO -->
+  <section class="hero" id="home">
+    <div class="hero-grid"></div>
+    <div class="wrap">
+      <div class="pill"><span class="pill-dot"></span> Managed IT · Security-first · Fast Response</div>
+      <h1>We Keep Your Business Running</h1>
+      <p>Fast, secure, and hassle-free technology solutions — so you can focus on what matters most.</p>
       <div class="hero-actions">
-        <a href="https://speed.cloudflare.com/" class="button">Run a Speed test</a>
-        <a href="services.html" class="button outline">Explore Services</a>
+        <a class="btn btn-primary" href="#contact">📅 Book a Consult</a>
+        <a class="btn btn-ghost" href="tel:8456041462">📞 (845) 604-1462</a>
       </div>
-    </section>
+      <div class="trust-badges">
+        <span>Microsoft 365</span>
+        <span>Intune / Entra ID</span>
+        <span>Backup & DR</span>
+        <span>Network & Wi-Fi</span>
+      </div>
+    </div>
+  </section>
 
-    <section class="container intro">
-      <h2>Why Linear Tech?</h2>
-      <p>
-        Linear Tech is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response.
-        We handle the day-to-day IT so you can focus on your business: from proactive monitoring and patching to security,
-        backups, networking, and cloud. Our approach is simple: <strong>be predictable, be secure, and be fast</strong>.
-      </p>
-    </section>
+  <!-- ABOUT -->
+  <section class="section" id="about">
+    <div class="container">
+      <h2>Empower Your Business in the Digital Age</h2>
+      <p class="lead">Linear Tech is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response. We streamline operations with proactive monitoring, strong security, reliable backups, and networks that scale.</p>
+      <div class="grid-4">
+        <div class="card">
+          <div class="card-icon"><svg><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <h3>Proactive Managed IT</h3>
+          <p>24/7 monitoring, patch management, and helpdesk keep devices healthy and your team productive.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Security First</h3>
+          <p>Endpoint protection, email security, MFA, and policies to defend against today's threats.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></div>
+          <h3>Cloud & Backup</h3>
+          <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement tested backup & DR.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg></div>
+          <h3>Networks That Scale</h3>
+          <p>Wi-Fi to firewalls and VPNs — we design, deploy, and maintain stable, fast networks.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <section class="container grid">
-      <div class="card">
-        <h3>Proactive Managed IT</h3>
-        <p>24/7 monitoring, patch management, and helpdesk support keep your devices healthy and your team productive.</p>
+  <!-- SERVICES -->
+  <section class="section section-alt" id="services">
+    <div class="container">
+      <h2>Services</h2>
+      <p class="lead">Choose the coverage you need — we can manage your full environment or augment your existing team.</p>
+      <div class="grid-4">
+        <div class="card">
+          <div class="card-icon"><svg><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <h3>Managed Endpoint</h3>
+          <p>Windows & macOS hardening, updates, antivirus/EDR, asset & license tracking.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <h3>Microsoft 365</h3>
+          <p>Tenant setup, Intune, Entra ID/MFA, email hygiene, SharePoint & automation.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div>
+          <h3>Backup & DR</h3>
+          <p>Workstation & server backups (onsite/cloud), restore drills, ransomware resilience.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><rect x="1" y="6" width="22" height="12" rx="2"/><line x1="17" y1="6" x2="17" y2="18"/><line x1="7" y1="6" x2="7" y2="18"/></svg></div>
+          <h3>Networking</h3>
+          <p>Switching, Wi-Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring & alerts.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></div>
+          <h3>Support Desk</h3>
+          <p>Friendly help when you need it — remote & onsite, clear SLAs, simple billing.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+          <h3>Advisory</h3>
+          <p>Road-mapping, budgeting, and audits to keep IT predictable and aligned to goals.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg></div>
+          <h3>Security</h3>
+          <p>MFA enforcement, phishing defense, security baselines, audits & incident readiness.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"><svg><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg></div>
+          <h3>Cloud & Servers</h3>
+          <p>Server management, virtualization, cloud planning, monitoring, patching & performance.</p>
+        </div>
       </div>
-      <div class="card">
-        <h3>Security First</h3>
-        <p>Endpoint protection, email security, MFA, and backup strategies designed to protect against today’s threats.</p>
-      </div>
-      <div class="card">
-        <h3>Cloud & Backup</h3>
-        <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement reliable, tested backups and DR.</p>
-      </div>
-      <div class="card">
-        <h3>Networks that Scale</h3>
-        <p>From Wi-Fi to firewalls and VPNs—we design, deploy, and maintain fast, stable networks for growing teams.</p>
-      </div>
-    </section>
 
-    <section class="container highlight">
-      <h2>Industries We Support</h2>
-      <p>Medical billing, retail, print shops, professional services, and more. We tailor SLAs and onboarding to your workflows.</p>
-      <a href="contact.html" class="button">Get in Touch</a>
-    </section>
-  </main>
+      <div class="stats">
+        <div class="stat"><div class="num">99.9%</div><div class="label">Uptime targets</div></div>
+        <div class="stat"><div class="num">15 min</div><div class="label">Avg first response</div></div>
+        <div class="stat"><div class="num">365</div><div class="label">Days monitored</div></div>
+        <div class="stat"><div class="num">24/7</div><div class="label">Alerting & support</div></div>
+      </div>
+    </div>
+  </section>
 
-  <footer>
-    <p>Contact us: 845-604-1462 | support@linearit.co</p>
-    <p>&copy; 2025 Linear Tech. All rights reserved.</p>
-  </footer>
+  <!-- FAQ -->
+  <section class="section" id="faq">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      <p class="lead">Quick answers about onboarding, support, pricing, and security.</p>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-btn">What does onboarding look like?<svg><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="faq-body"><div class="faq-body-inner">We start with a discovery session and a light audit of endpoints, network, and cloud. Then we deploy agents, document your environment, define SLAs, and roll out quick wins in the first 14–30 days.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-btn">How do you price Managed Services?<svg><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="faq-body"><div class="faq-body-inner">Most clients choose a per-device or per-user monthly plan covering monitoring, patching, security, and support. Project work (migrations, new sites, etc.) is scoped separately with a fixed or hourly quote.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-btn">Can you support remote and multi-site teams?<svg><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="faq-body"><div class="faq-body-inner">Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi-Fi and switching for consistent performance in each location.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-btn">What security controls do you implement?<svg><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="faq-body"><div class="faq-body-inner">MFA/conditional access, least-privilege accounts, next-gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-btn">Do you work with existing IT teams?<svg><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="faq-body"><div class="faq-body-inner">Absolutely. We can be your full MSP or an extension to handle helpdesk, patching, or projects while your team focuses on strategy.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-btn">How fast can we start?<svg><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="faq-body"><div class="faq-body-inner">Discovery can begin this week; agent deployment usually the same or next day. Full onboarding typically completes within 2–4 weeks depending on scope.</div></div>
+        </div>
+      </div>
+
+      <div class="testimonials">
+        <div class="quote">
+          <p>Linear Tech stabilized our Wi-Fi and printers in one visit. Our staff stopped losing time.</p>
+          <footer>— Office Manager, Healthcare</footer>
+        </div>
+        <div class="quote">
+          <p>Clear communication, fast turnarounds, and they explain things in plain English.</p>
+          <footer>— Operations Lead, Retail</footer>
+        </div>
+        <div class="quote">
+          <p>They migrated us to Microsoft 365 and set up Intune. Onboarding new hires is now painless.</p>
+          <footer>— HR Lead, Manufacturing</footer>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA STRIPE -->
+  <section class="cta-stripe">
+    <div class="container">
+      <div>
+        <h2>Ready to modernize your IT?</h2>
+        <p>Let's discuss your environment and priorities.</p>
+      </div>
+      <a class="btn" href="#contact">Book a Quick Consult</a>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section section-alt" id="contact">
+    <div class="container">
+      <h2>Contact</h2>
+      <p class="lead">Tell us a bit about your environment, and we'll get right back to you.</p>
+      <div class="contact-grid">
+        <form class="contact-form" action="https://formsubmit.co/support@linearit.co" method="POST">
+          <input type="hidden" name="_subject" value="New website request (Linear Tech)">
+          <input type="text" name="_honey" style="display:none">
+          <input type="hidden" name="_captcha" value="true">
+          <label>Name</label>
+          <input class="input" type="text" name="name" required placeholder="Your name" />
+          <label>Email</label>
+          <input class="input" type="email" name="email" required placeholder="you@company.com" />
+          <label>Company</label>
+          <input class="input" type="text" name="company" placeholder="Company name" />
+          <label>Message</label>
+          <textarea class="input" name="message" rows="4" required placeholder="How can we help?"></textarea>
+          <button class="btn-submit" type="submit">Send Message</button>
+          <p class="form-note">Typical response time: same day during business hours.</p>
+        </form>
+        <div>
+          <div class="contact-info">
+            <h3>Linear Tech</h3>
+            <div class="info-row">
+              <svg><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Monroe, NY · United States
+            </div>
+            <div class="info-row">
+              <svg><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <a href="mailto:support@linearit.co">support@linearit.co</a>
+            </div>
+            <div class="info-row">
+              <svg><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <a href="tel:8456041462">(845) 604-1462</a>
+            </div>
+            <div class="info-links">
+              <a href="https://linearit.co/contact.vcf">📇 Download vCard</a>
+              <a href="https://fast.com" target="_blank" rel="noopener">⚡ Speed Test</a>
+            </div>
+          </div>
+          <div class="map-wrap">
+            <iframe title="Linear Tech Location" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d48196.344!2d-74.21!3d41.33!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c2dd1e62aa7bc1%3A0xa0e2d2f81c02b5e5!2sMonroe%2C+NY!5e0!3m2!1sen!2sus!4v1" loading="lazy"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">© <span id="year"></span> Linear Tech · Straightforward IT Excellence</footer>
+
+  <!-- FAB -->
+  <div class="fab">
+    <a class="call" href="tel:8456041462" title="Call Linear Tech">📞 <span>Call Now</span></a>
+    <a class="email" href="mailto:support@linearit.co" title="Email Linear Tech">✉️ <span>Email</span></a>
+    <a class="remote" href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&y=Guest" target="_blank" rel="noopener">🛠️ <span>Remote Support</span></a>
+  </div>
+
+  <script>
+    /* Nav scroll */
+    const nav = document.getElementById('nav');
+    const menu = document.getElementById('menu');
+    const hamburger = document.getElementById('hamburger');
+
+    const setNav = () => {
+      if (window.scrollY > 10) { nav.classList.add('solid'); nav.classList.remove('transparent'); }
+      else { nav.classList.add('transparent'); nav.classList.remove('solid'); }
+    };
+    setNav();
+    window.addEventListener('scroll', setNav, { passive: true });
+
+    hamburger.addEventListener('click', () => menu.classList.toggle('open'));
+    [...menu.querySelectorAll('a[data-link]')].forEach(a => a.addEventListener('click', () => menu.classList.remove('open')));
+
+    /* Active section */
+    const links = [...document.querySelectorAll('a[data-link]')];
+    const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+        }
+      });
+    }, { rootMargin: '-80px 0px -60% 0px', threshold: .2 });
+    sections.forEach(s => obs.observe(s));
+
+    /* Year */
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    /* FAQ accordion */
+    document.querySelectorAll('.faq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.parentElement;
+        const wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+        if (!wasOpen) item.classList.add('open');
+      });
+    });
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"What does onboarding look like?","acceptedAnswer":{"@type":"Answer","text":"We start with a discovery session and a light audit of endpoints, network, and cloud. Then we deploy agents, document your environment, define SLAs, and roll out quick wins in the first 14–30 days."}},
+      {"@type":"Question","name":"How do you price Managed Services?","acceptedAnswer":{"@type":"Answer","text":"Most clients choose a per-device or per-user monthly plan covering monitoring, patching, security, and support. Project work is scoped separately with a fixed or hourly quote."}},
+      {"@type":"Question","name":"Can you support remote and multi-site teams?","acceptedAnswer":{"@type":"Answer","text":"Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones."}},
+      {"@type":"Question","name":"What security controls do you implement?","acceptedAnswer":{"@type":"Answer","text":"MFA/conditional access, least-privilege accounts, next-gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups."}},
+      {"@type":"Question","name":"Do you work with existing IT teams?","acceptedAnswer":{"@type":"Answer","text":"Absolutely. We can be your full MSP or an extension to handle helpdesk, patching, or projects."}},
+      {"@type":"Question","name":"How fast can we start?","acceptedAnswer":{"@type":"Answer","text":"Discovery can begin this week; full onboarding typically completes within 2–4 weeks."}}
+    ]
+  }
+  </script>
+
+  <!--Start of Tawk.to Script-->
+  <script type="text/javascript">
+  var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+  (function(){
+  var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+  s1.async=true;
+  s1.src='https://embed.tawk.to/6967d3f1cd894f197b19d503/1jeup7pqb';
+  s1.charset='UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+  })();
+  </script>
+  <!--End of Tawk.to Script-->
+
 </body>
 </html>
