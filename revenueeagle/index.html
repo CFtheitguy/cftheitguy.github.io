@@ -408,8 +408,8 @@
             <div class="ticket-status" id="ticketsStatus">Loading ticket sheet...</div>
 
             <div class="ticket-toolbar">
-              <a href="assets/tickets/CRM.xlsx" class="btn btn-view" target="_blank" rel="noopener">Open Excel File</a>
-              <a href="assets/tickets/CRM.xlsx" class="btn btn-download" download>Download Excel</a>
+              <a href="/revenueeagle/assets/tickets/CRM.xlsx" class="btn btn-view" target="_blank" rel="noopener">Open Excel File</a>
+              <a href="/revenueeagle/assets/tickets/CRM.xlsx" class="btn btn-download" download>Download Excel</a>
             </div>
 
             <div class="sheet-box">
@@ -442,17 +442,19 @@
   </div>
 
   <script>
-    let invoices = [];
-    let documents = [
-      "Invoice_0445_2026-01-12.pdf"
-    ];
+    const CLIENT_BASE = "/revenueeagle";
+    const INVOICES_JSON = `${CLIENT_BASE}/assets/invoices/invoices.json`;
+    const DOCUMENTS_JSON = `${CLIENT_BASE}/assets/documents/documents.json`;
+    const TICKETS_XLSX = `${CLIENT_BASE}/assets/tickets/CRM.xlsx`;
 
+    let invoices = [];
+    let documents = [];
     let ticketsSheetLoaded = false;
     let ticketsHot = null;
 
     async function loadInvoiceFiles() {
       try {
-        const res = await fetch("assets/invoices/invoices.json", { cache: "no-store" });
+        const res = await fetch(INVOICES_JSON, { cache: "no-store" });
         if (!res.ok) {
           invoices = [];
           return;
@@ -465,6 +467,24 @@
       } catch (err) {
         console.error("Could not load invoices.json", err);
         invoices = [];
+      }
+    }
+
+    async function loadDocumentFiles() {
+      try {
+        const res = await fetch(DOCUMENTS_JSON, { cache: "no-store" });
+        if (!res.ok) {
+          documents = [];
+          return;
+        }
+
+        const data = await res.json();
+        documents = Array.isArray(data)
+          ? data.filter(x => typeof x === "string")
+          : [];
+      } catch (err) {
+        console.error("Could not load documents.json", err);
+        documents = [];
       }
     }
 
@@ -487,13 +507,16 @@
 
     function createFileItem(filename, folder) {
       const safeDisplay = escapeHtml(prettyName(filename));
-      const safePath = `assets/${folder}/${encodeURIComponent(filename)}`;
+      const extension = filename.includes(".")
+        ? filename.split(".").pop().toUpperCase()
+        : "FILE";
+      const safePath = `${CLIENT_BASE}/assets/${folder}/${encodeURIComponent(filename)}`;
 
       return `
         <div class="file-item">
           <div class="file-info">
             <div class="file-name">${safeDisplay}</div>
-            <div class="file-sub">PDF file</div>
+            <div class="file-sub">${extension} file</div>
           </div>
           <div class="file-actions">
             <a href="${safePath}" class="btn btn-view" target="_blank" rel="noopener">View</a>
@@ -512,17 +535,18 @@
       const documentsList = document.getElementById("documentsList");
 
       const sortedInvoices = [...invoices].sort().reverse();
+      const sortedDocuments = [...documents].sort().reverse();
 
       invoicesList.innerHTML = sortedInvoices.length
         ? sortedInvoices.map(f => createFileItem(f, "invoices")).join("")
         : '<div class="empty-folder">No invoices available</div>';
 
-      documentsList.innerHTML = documents.length
-        ? documents.map(f => createFileItem(f, "documents")).join("")
+      documentsList.innerHTML = sortedDocuments.length
+        ? sortedDocuments.map(f => createFileItem(f, "documents")).join("")
         : '<div class="empty-folder">No documents available</div>';
 
       setCount("invoicesCount", sortedInvoices.length, "file");
-      setCount("documentsCount", documents.length, "file");
+      setCount("documentsCount", sortedDocuments.length, "file");
     }
 
     async function loadTicketsSpreadsheet() {
@@ -532,7 +556,7 @@
       const container = document.getElementById("ticketsSpreadsheet");
 
       try {
-        const response = await fetch("assets/tickets/CRM.xlsx", { cache: "no-store" });
+        const response = await fetch(TICKETS_XLSX, { cache: "no-store" });
         if (!response.ok) {
           throw new Error("Could not load CRM.xlsx");
         }
@@ -550,7 +574,7 @@
 
         if (!data.length) {
           status.textContent = "No rows found in the Excel sheet.";
-          setCount("ticketsCount", 0, "row");
+          setCount("ticketsCount", 0, "ticket");
           return;
         }
 
@@ -592,184 +616,8 @@
       }
     }
 
-    loadInvoiceFiles().then(loadFiles);
+    Promise.all([loadInvoiceFiles(), loadDocumentFiles()]).then(loadFiles);
     setCount("ticketsCount", 0, "ticket");
   </script>
-  <script>
-  const CLIENT_BASE = "/revenueeagle";
-  const INVOICES_JSON = `${CLIENT_BASE}/assets/invoices/invoices.json`;
-  const DOCUMENTS_JSON = `${CLIENT_BASE}/assets/documents/documents.json`;
-  const TICKETS_XLSX = `${CLIENT_BASE}/assets/tickets/CRM.xlsx`;
-
-  let invoices = [];
-  let documents = [];
-  let ticketsSheetLoaded = false;
-  let ticketsHot = null;
-
-  async function loadInvoiceFiles() {
-    try {
-      const res = await fetch(INVOICES_JSON, { cache: "no-store" });
-      if (!res.ok) {
-        invoices = [];
-        return;
-      }
-
-      const data = await res.json();
-      invoices = Array.isArray(data)
-        ? data.filter(x => typeof x === "string" && x.toLowerCase().endsWith(".pdf"))
-        : [];
-    } catch (err) {
-      console.error("Could not load invoices.json", err);
-      invoices = [];
-    }
-  }
-
-  async function loadDocumentFiles() {
-    try {
-      const res = await fetch(DOCUMENTS_JSON, { cache: "no-store" });
-      if (!res.ok) {
-        documents = [];
-        return;
-      }
-
-      const data = await res.json();
-      documents = Array.isArray(data)
-        ? data.filter(x => typeof x === "string")
-        : [];
-    } catch (err) {
-      console.error("Could not load documents.json", err);
-      documents = [];
-    }
-  }
-
-  function escapeHtml(str) {
-    return str
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  function prettyName(filename) {
-    return filename
-      .replace(/\.[^.]+$/i, "")
-      .replace(/[-_]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
-
-  function createFileItem(filename, folder) {
-    const safeDisplay = escapeHtml(prettyName(filename));
-    const safePath = `${CLIENT_BASE}/assets/${folder}/${encodeURIComponent(filename)}`;
-
-    return `
-      <div class="file-item">
-        <div class="file-info">
-          <div class="file-name">${safeDisplay}</div>
-          <div class="file-sub">${filename.split('.').pop().toUpperCase()} file</div>
-        </div>
-        <div class="file-actions">
-          <a href="${safePath}" class="btn btn-view" target="_blank" rel="noopener">View</a>
-          <a href="${safePath}" class="btn btn-download" download>Download</a>
-        </div>
-      </div>
-    `;
-  }
-
-  function setCount(id, count, label) {
-    document.getElementById(id).textContent = `${count} ${count === 1 ? label : label + "s"}`;
-  }
-
-  function loadFiles() {
-    const invoicesList = document.getElementById("invoicesList");
-    const documentsList = document.getElementById("documentsList");
-
-    const sortedInvoices = [...invoices].sort().reverse();
-    const sortedDocuments = [...documents].sort().reverse();
-
-    invoicesList.innerHTML = sortedInvoices.length
-      ? sortedInvoices.map(f => createFileItem(f, "invoices")).join("")
-      : '<div class="empty-folder">No invoices available</div>';
-
-    documentsList.innerHTML = sortedDocuments.length
-      ? sortedDocuments.map(f => createFileItem(f, "documents")).join("")
-      : '<div class="empty-folder">No documents available</div>';
-
-    setCount("invoicesCount", sortedInvoices.length, "file");
-    setCount("documentsCount", sortedDocuments.length, "file");
-  }
-
-  async function loadTicketsSpreadsheet() {
-    if (ticketsSheetLoaded) return;
-
-    const status = document.getElementById("ticketsStatus");
-    const container = document.getElementById("ticketsSpreadsheet");
-
-    try {
-      const response = await fetch(TICKETS_XLSX, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Could not load CRM.xlsx");
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: "array" });
-
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-
-      const data = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1,
-        defval: ""
-      });
-
-      if (!data.length) {
-        status.textContent = "No rows found in the Excel sheet.";
-        setCount("ticketsCount", 0, "ticket");
-        return;
-      }
-
-      ticketsHot = new Handsontable(container, {
-        data: data,
-        rowHeaders: true,
-        colHeaders: true,
-        readOnly: true,
-        licenseKey: "non-commercial-and-evaluation",
-        width: "100%",
-        height: "100%",
-        stretchH: "all",
-        manualColumnResize: true,
-        manualRowResize: true,
-        filters: true,
-        dropdownMenu: true,
-        contextMenu: true
-      });
-
-      const rowCount = Math.max(data.length - 1, 0);
-      status.textContent = `Loaded sheet: ${firstSheetName}`;
-      setCount("ticketsCount", rowCount, "ticket");
-      ticketsSheetLoaded = true;
-    } catch (error) {
-      console.error(error);
-      status.textContent = "Error loading ticket sheet: " + error.message;
-      setCount("ticketsCount", 0, "ticket");
-    }
-  }
-
-  function toggleFolder(folderId) {
-    const folder = document.getElementById(folderId);
-    const isOpening = !folder.classList.contains("open");
-
-    folder.classList.toggle("open");
-
-    if (folderId === "ticketsFolder" && isOpening) {
-      loadTicketsSpreadsheet();
-    }
-  }
-
-  Promise.all([loadInvoiceFiles(), loadDocumentFiles()]).then(loadFiles);
-  setCount("ticketsCount", 0, "ticket");
-</script>
-  
 </body>
 </html>
