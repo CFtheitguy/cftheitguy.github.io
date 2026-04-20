@@ -1,0 +1,44 @@
+name: Update RevenueEagle invoices.json
+
+on:
+  push:
+    paths:
+      - 'revenueeagle/assets/invoices/**'
+      - '.github/workflows/update-revenueeagle-invoices.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-invoices-json:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Generate invoices.json
+        shell: bash
+        run: |
+          mkdir -p revenueeagle/assets/invoices
+
+          find revenueeagle/assets/invoices -maxdepth 1 -type f \( -iname "*.pdf" \) -printf "%f\n" \
+            | sort -r \
+            | python3 -c 'import json,sys; print(json.dumps([line.strip() for line in sys.stdin if line.strip()], indent=2))' \
+            > revenueeagle/assets/invoices/invoices.json
+
+      - name: Commit updated invoices.json
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add revenueeagle/assets/invoices/invoices.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update revenueeagle invoices.json"
+            git push
+          fi
