@@ -1,8 +1,8 @@
-﻿"invoice %23","Billed","Date and Time","Client","Time Worked","Description for Invoice","Issue","IT Notes","Status","the ticket number is the date plus the ticket number of that day"
-,"N/A","4/20/2026 12:55 PM","revenue eagle","On phone ","Na","Ms office ","Done ","Done",
-,"Yes","4/13/2026 12:53 PM","revenue eagle","15 min","Software ","Ms activation","Done","Done",
-"2,497","Yes","3/22/2026 12:40 PM","revenue eagle",".5","update and security check","update all pc","needed to update the and the pc","Done",
-"2,303","Yes","7/3/2025 10:35 AM","revenue eagle",".5","backup setup","backup","2google and 1ms","In progress",
-,"N/A","4/29/2025 2:01 PM","revenue eagle","N/A","N/A","backup got dissconnected","password to onedrive was changed","Done",
-,"Yes","9/10/2024 4:31 PM","revenue eagle","0.42 of an hour","phone setup","voip not working","the viop phone in office stopped working so we checked the ip address and is was a rendom so we changed it to the one on the pc with one number later 10.20.102.19 255.255.252.2 and bingo","Done",
-,"Yes","9/9/2024 10:36 AM","revenue eagle","na","backup","backup set up for google workspace","for yoely","Done",
+﻿invoice %23,Billed,Date and Time,Client,Time Worked,Description for Invoice,Issue,IT Notes,Status,the ticket number is the date plus the ticket number of that day
+,N/A,4/20/2026 12:55,revenue eagle,On phone ,Na,Ms office ,Done ,Done,
+,Yes,4/13/2026 12:53,revenue eagle,15 min,Software ,Ms activation,Done,Done,
+"2,497",Yes,3/22/2026 12:40,revenue eagle,0.5,update and security check,update all pc,needed to update the and the pc,Done,
+"2,303",Yes,7/3/2025 10:35,revenue eagle,0.5,backup setup,backup,2google and 1ms,In progress,
+,N/A,4/29/2025 14:01,revenue eagle,N/A,N/A,backup got dissconnected,password to onedrive was changed,Done,
+,Yes,9/10/2024 16:31,revenue eagle,0.42 of an hour,phone setup,voip not working,the viop phone in office stopped working so we checked the ip address and is was a rendom so we changed it to the one on the pc with one number later 10.20.102.19 255.255.252.2 and bingo,Done,
+,Yes,9/9/2024 10:36,revenue eagle,na,backup,backup set up for google workspace,for yoely,Done,
