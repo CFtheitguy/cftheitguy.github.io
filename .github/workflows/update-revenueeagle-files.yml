@@ -1,0 +1,58 @@
+name: Update RevenueEagle file indexes
+
+on:
+  push:
+    paths:
+      - 'revenueeagle/assets/invoices/**'
+      - 'revenueeagle/assets/documents/**'
+      - '.github/workflows/update-revenueeagle-files.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-json:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Generate invoices.json
+        shell: bash
+        run: |
+          mkdir -p revenueeagle/assets/invoices
+
+          find revenueeagle/assets/invoices -maxdepth 1 -type f \( -iname "*.pdf" \) -printf "%f\n" \
+            | grep -v '^invoices\.json$' \
+            | sort -r \
+            | python3 -c 'import json,sys; print(json.dumps([line.strip() for line in sys.stdin if line.strip()], indent=2))' \
+            > revenueeagle/assets/invoices/invoices.json
+
+      - name: Generate documents.json
+        shell: bash
+        run: |
+          mkdir -p revenueeagle/assets/documents
+
+          find revenueeagle/assets/documents -maxdepth 1 -type f -printf "%f\n" \
+            | grep -v '^documents\.json$' \
+            | sort -r \
+            | python3 -c 'import json,sys; print(json.dumps([line.strip() for line in sys.stdin if line.strip()], indent=2))' \
+            > revenueeagle/assets/documents/documents.json
+
+      - name: Commit updated JSON files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add revenueeagle/assets/invoices/invoices.json
+          git add revenueeagle/assets/documents/documents.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update RevenueEagle file indexes"
+            git push
+          fi
