@@ -595,5 +595,181 @@
     loadInvoiceFiles().then(loadFiles);
     setCount("ticketsCount", 0, "ticket");
   </script>
+  <script>
+  const CLIENT_BASE = "/revenueeagle";
+  const INVOICES_JSON = `${CLIENT_BASE}/assets/invoices/invoices.json`;
+  const DOCUMENTS_JSON = `${CLIENT_BASE}/assets/documents/documents.json`;
+  const TICKETS_XLSX = `${CLIENT_BASE}/assets/tickets/CRM.xlsx`;
+
+  let invoices = [];
+  let documents = [];
+  let ticketsSheetLoaded = false;
+  let ticketsHot = null;
+
+  async function loadInvoiceFiles() {
+    try {
+      const res = await fetch(INVOICES_JSON, { cache: "no-store" });
+      if (!res.ok) {
+        invoices = [];
+        return;
+      }
+
+      const data = await res.json();
+      invoices = Array.isArray(data)
+        ? data.filter(x => typeof x === "string" && x.toLowerCase().endsWith(".pdf"))
+        : [];
+    } catch (err) {
+      console.error("Could not load invoices.json", err);
+      invoices = [];
+    }
+  }
+
+  async function loadDocumentFiles() {
+    try {
+      const res = await fetch(DOCUMENTS_JSON, { cache: "no-store" });
+      if (!res.ok) {
+        documents = [];
+        return;
+      }
+
+      const data = await res.json();
+      documents = Array.isArray(data)
+        ? data.filter(x => typeof x === "string")
+        : [];
+    } catch (err) {
+      console.error("Could not load documents.json", err);
+      documents = [];
+    }
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function prettyName(filename) {
+    return filename
+      .replace(/\.[^.]+$/i, "")
+      .replace(/[-_]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function createFileItem(filename, folder) {
+    const safeDisplay = escapeHtml(prettyName(filename));
+    const safePath = `${CLIENT_BASE}/assets/${folder}/${encodeURIComponent(filename)}`;
+
+    return `
+      <div class="file-item">
+        <div class="file-info">
+          <div class="file-name">${safeDisplay}</div>
+          <div class="file-sub">${filename.split('.').pop().toUpperCase()} file</div>
+        </div>
+        <div class="file-actions">
+          <a href="${safePath}" class="btn btn-view" target="_blank" rel="noopener">View</a>
+          <a href="${safePath}" class="btn btn-download" download>Download</a>
+        </div>
+      </div>
+    `;
+  }
+
+  function setCount(id, count, label) {
+    document.getElementById(id).textContent = `${count} ${count === 1 ? label : label + "s"}`;
+  }
+
+  function loadFiles() {
+    const invoicesList = document.getElementById("invoicesList");
+    const documentsList = document.getElementById("documentsList");
+
+    const sortedInvoices = [...invoices].sort().reverse();
+    const sortedDocuments = [...documents].sort().reverse();
+
+    invoicesList.innerHTML = sortedInvoices.length
+      ? sortedInvoices.map(f => createFileItem(f, "invoices")).join("")
+      : '<div class="empty-folder">No invoices available</div>';
+
+    documentsList.innerHTML = sortedDocuments.length
+      ? sortedDocuments.map(f => createFileItem(f, "documents")).join("")
+      : '<div class="empty-folder">No documents available</div>';
+
+    setCount("invoicesCount", sortedInvoices.length, "file");
+    setCount("documentsCount", sortedDocuments.length, "file");
+  }
+
+  async function loadTicketsSpreadsheet() {
+    if (ticketsSheetLoaded) return;
+
+    const status = document.getElementById("ticketsStatus");
+    const container = document.getElementById("ticketsSpreadsheet");
+
+    try {
+      const response = await fetch(TICKETS_XLSX, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Could not load CRM.xlsx");
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+
+      const data = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        defval: ""
+      });
+
+      if (!data.length) {
+        status.textContent = "No rows found in the Excel sheet.";
+        setCount("ticketsCount", 0, "ticket");
+        return;
+      }
+
+      ticketsHot = new Handsontable(container, {
+        data: data,
+        rowHeaders: true,
+        colHeaders: true,
+        readOnly: true,
+        licenseKey: "non-commercial-and-evaluation",
+        width: "100%",
+        height: "100%",
+        stretchH: "all",
+        manualColumnResize: true,
+        manualRowResize: true,
+        filters: true,
+        dropdownMenu: true,
+        contextMenu: true
+      });
+
+      const rowCount = Math.max(data.length - 1, 0);
+      status.textContent = `Loaded sheet: ${firstSheetName}`;
+      setCount("ticketsCount", rowCount, "ticket");
+      ticketsSheetLoaded = true;
+    } catch (error) {
+      console.error(error);
+      status.textContent = "Error loading ticket sheet: " + error.message;
+      setCount("ticketsCount", 0, "ticket");
+    }
+  }
+
+  function toggleFolder(folderId) {
+    const folder = document.getElementById(folderId);
+    const isOpening = !folder.classList.contains("open");
+
+    folder.classList.toggle("open");
+
+    if (folderId === "ticketsFolder" && isOpening) {
+      loadTicketsSpreadsheet();
+    }
+  }
+
+  Promise.all([loadInvoiceFiles(), loadDocumentFiles()]).then(loadFiles);
+  setCount("ticketsCount", 0, "ticket");
+</script>
+  
 </body>
 </html>
