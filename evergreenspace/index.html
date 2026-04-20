@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Client Portal - Linear Tech</title>
+
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
   <style>
     * { box-sizing: border-box; }
 
@@ -75,7 +83,7 @@
     }
 
     .shell {
-      max-width: 980px;
+      max-width: 1180px;
       margin: 0 auto;
       position: relative;
       z-index: 2;
@@ -194,7 +202,7 @@
     }
 
     .folder.open .folder-content {
-      max-height: 1000px;
+      max-height: 1400px;
       overflow-y: auto;
     }
 
@@ -291,6 +299,41 @@
       text-align: center;
     }
 
+    .ticket-sheet-wrap {
+      padding: 14px;
+    }
+
+    .ticket-status {
+      font-size: 14px;
+      color: #475569;
+      margin-bottom: 12px;
+    }
+
+    .ticket-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .ticket-toolbar a {
+      text-decoration: none;
+    }
+
+    .sheet-box {
+      background: #fff;
+      border: 1px solid #dbe3ee;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+    }
+
+    #ticketsSpreadsheet {
+      width: 100%;
+      height: 70vh;
+      min-height: 520px;
+    }
+
     @media (max-width: 700px) {
       body { padding: 14px; }
       .content-box { padding: 16px; border-radius: 18px; }
@@ -305,6 +348,10 @@
       }
       .btn {
         width: auto;
+      }
+      #ticketsSpreadsheet {
+        height: 60vh;
+        min-height: 420px;
       }
     }
   </style>
@@ -357,7 +404,18 @@
           <span class="folder-arrow">▶</span>
         </div>
         <div class="folder-content">
-          <div class="file-list" id="ticketsList"></div>
+          <div class="ticket-sheet-wrap">
+            <div class="ticket-status" id="ticketsStatus">Loading ticket sheet...</div>
+
+            <div class="ticket-toolbar">
+              <a href="assets/tickets/CRM.xlsx" class="btn btn-view" target="_blank" rel="noopener">Open Excel File</a>
+              <a href="assets/tickets/CRM.xlsx" class="btn btn-download" download>Download Excel</a>
+            </div>
+
+            <div class="sheet-box">
+              <div id="ticketsSpreadsheet"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -385,14 +443,12 @@
 
   <script>
     let invoices = [];
-
-    const tickets = [
+    let documents = [
       "Invoice_0445_2026-01-12.pdf"
     ];
 
-    const documents = [
-      "Invoice_0445_2026-01-12.pdf"
-    ];
+    let ticketsSheetLoaded = false;
+    let ticketsHot = null;
 
     async function loadInvoiceFiles() {
       try {
@@ -423,7 +479,7 @@
 
     function prettyName(filename) {
       return filename
-        .replace(/\.pdf$/i, "")
+        .replace(/\.[^.]+$/i, "")
         .replace(/[-_]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
@@ -453,7 +509,6 @@
 
     function loadFiles() {
       const invoicesList = document.getElementById("invoicesList");
-      const ticketsList = document.getElementById("ticketsList");
       const documentsList = document.getElementById("documentsList");
 
       const sortedInvoices = [...invoices].sort().reverse();
@@ -462,24 +517,83 @@
         ? sortedInvoices.map(f => createFileItem(f, "invoices")).join("")
         : '<div class="empty-folder">No invoices available</div>';
 
-      ticketsList.innerHTML = tickets.length
-        ? tickets.map(f => createFileItem(f, "tickets")).join("")
-        : '<div class="empty-folder">No support tickets available</div>';
-
       documentsList.innerHTML = documents.length
         ? documents.map(f => createFileItem(f, "documents")).join("")
         : '<div class="empty-folder">No documents available</div>';
 
       setCount("invoicesCount", sortedInvoices.length, "file");
-      setCount("ticketsCount", tickets.length, "file");
       setCount("documentsCount", documents.length, "file");
     }
 
+    async function loadTicketsSpreadsheet() {
+      if (ticketsSheetLoaded) return;
+
+      const status = document.getElementById("ticketsStatus");
+      const container = document.getElementById("ticketsSpreadsheet");
+
+      try {
+        const response = await fetch("assets/tickets/CRM.xlsx", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("Could not load CRM.xlsx");
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        const data = XLSX.utils.sheet_to_json(worksheet, {
+          header: 1,
+          defval: ""
+        });
+
+        if (!data.length) {
+          status.textContent = "No rows found in the Excel sheet.";
+          setCount("ticketsCount", 0, "row");
+          return;
+        }
+
+        ticketsHot = new Handsontable(container, {
+          data: data,
+          rowHeaders: true,
+          colHeaders: true,
+          readOnly: true,
+          licenseKey: "non-commercial-and-evaluation",
+          width: "100%",
+          height: "100%",
+          stretchH: "all",
+          manualColumnResize: true,
+          manualRowResize: true,
+          filters: true,
+          dropdownMenu: true,
+          contextMenu: true
+        });
+
+        const rowCount = Math.max(data.length - 1, 0);
+        status.textContent = `Loaded sheet: ${firstSheetName}`;
+        setCount("ticketsCount", rowCount, "ticket");
+        ticketsSheetLoaded = true;
+      } catch (error) {
+        console.error(error);
+        status.textContent = "Error loading ticket sheet: " + error.message;
+        setCount("ticketsCount", 0, "ticket");
+      }
+    }
+
     function toggleFolder(folderId) {
-      document.getElementById(folderId).classList.toggle("open");
+      const folder = document.getElementById(folderId);
+      const isOpening = !folder.classList.contains("open");
+
+      folder.classList.toggle("open");
+
+      if (folderId === "ticketsFolder" && isOpening) {
+        loadTicketsSpreadsheet();
+      }
     }
 
     loadInvoiceFiles().then(loadFiles);
+    setCount("ticketsCount", 0, "ticket");
   </script>
 </body>
 </html>
