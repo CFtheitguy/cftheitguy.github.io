@@ -1,163 +1,485 @@
-<body>
-<div class="bg-floaters">
-  <span class="floater f1"></span>
-  <span class="floater f2"></span>
-  <span class="floater f3"></span>
-  <span class="floater f4"></span>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Client Portal - Linear Tech</title>
+  <style>
+    * { box-sizing: border-box; }
 
-<!-- Portal Content ONLY -->
-<div id="contentBox" class="content-box">
-  <div class="header-box">
-    <h1>Welcome to Your Portal! 👋</h1>
-    <p style="margin: 5px 0 0 0; opacity: 0.9;">
-      Access your invoices, tickets, and documents
-    </p>
-  </div>
-
-  <!-- Invoices -->
-  <div class="folder" id="invoicesFolder">
-    <div class="folder-header" onclick="toggleFolder('invoicesFolder')">
-      <div class="folder-title">
-        <span class="folder-icon">📄</span>
-        <span>Invoices</span>
-      </div>
-      <span class="folder-arrow">▶</span>
-    </div>
-    <div class="folder-content" id="invoicesList"></div>
-  </div>
-
-  <!-- Tickets -->
-  <div class="folder" id="ticketsFolder">
-    <div class="folder-header" onclick="toggleFolder('ticketsFolder')">
-      <div class="folder-title">
-        <span class="folder-icon">🎫</span>
-        <span>Support Tickets</span>
-      </div>
-      <span class="folder-arrow">▶</span>
-    </div>
-    <div class="folder-content" id="ticketsList"></div>
-  </div>
-
-  <!-- Documents -->
-  <div class="folder" id="documentsFolder">
-    <div class="folder-header" onclick="toggleFolder('documentsFolder')">
-      <div class="folder-title">
-        <span class="folder-icon">📁</span>
-        <span>Documents</span>
-      </div>
-      <span class="folder-arrow">▶</span>
-    </div>
-    <div class="folder-content" id="documentsList"></div>
-  </div>
-</div>
-
-<script>
-// ========================================
-// DATA
-// ========================================
-let invoices = [];
-
-const tickets = [
-  "Invoice_0445_2026-01-12.pdf"
-];
-
-const documents = [
-  "Invoice_0445_2026-01-12.pdf"
-];
-
-// ========================================
-// LOAD INVOICES
-// ========================================
-async function loadInvoiceFiles() {
-  try {
-    const res = await fetch("assets/invoices/invoices.json", { cache: "no-store" });
-
-    if (!res.ok) {
-      invoices = [];
-      return;
+    :root{
+      --bg1:#0f172a;
+      --bg2:#162033;
+      --bg3:#1e293b;
+      --panel:rgba(255,255,255,0.96);
+      --panel-border:rgba(255,255,255,0.26);
+      --text:#1f2937;
+      --muted:#6b7280;
+      --brand1:#1f3b57;
+      --brand2:#2b4c6f;
+      --brand3:#355d87;
+      --line:#e5e7eb;
+      --green:#1f8f5f;
+      --green2:#16734d;
+      --blue:#2c5aa0;
+      --blue2:#23477f;
+      --shadow:0 25px 70px rgba(0,0,0,.35);
     }
 
-    const data = await res.json();
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      padding: 28px;
+      background:
+        radial-gradient(circle at top left, rgba(59,130,246,.16), transparent 38%),
+        radial-gradient(circle at bottom right, rgba(30,64,175,.15), transparent 40%),
+        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 40%, var(--bg3) 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
 
-    invoices = Array.isArray(data)
-      ? data.filter(x => typeof x === "string" && x.toLowerCase().endsWith(".pdf"))
-      : [];
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,.02), rgba(0,0,0,.18));
+      pointer-events: none;
+    }
 
-  } catch (err) {
-    console.error("Could not load invoices.json", err);
-    invoices = [];
-  }
-}
+    .bg-floaters {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
 
-// ========================================
-// LOAD FILES INTO UI
-// ========================================
-function loadFiles() {
-  const invoicesList = document.getElementById('invoicesList');
+    .floater {
+      position: absolute;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+      border: 1px solid rgba(255,255,255,.06);
+      box-shadow: 0 20px 50px rgba(0,0,0,.18);
+      animation: float 14s ease-in-out infinite;
+    }
 
-  if (!invoices.length) {
-    invoicesList.innerHTML = '<div class="empty-folder">No invoices available</div>';
-  } else {
-    const sorted = [...invoices].sort().reverse();
-    invoicesList.innerHTML = sorted.map(f => createFileItem(f, 'invoices')).join('');
-  }
+    .f1 { width: 140px; height: 140px; top: 70px; left: 80px; }
+    .f2 { width: 80px; height: 80px; top: 210px; right: 120px; animation-delay: -2s; }
+    .f3 { width: 200px; height: 200px; bottom: 55px; left: 65px; animation-delay: -4s; }
+    .f4 { width: 120px; height: 120px; bottom: 70px; right: 90px; animation-delay: -1s; }
 
-  const ticketsList = document.getElementById('ticketsList');
-  ticketsList.innerHTML = tickets.length
-    ? tickets.map(f => createFileItem(f, 'tickets')).join('')
-    : '<div class="empty-folder">No tickets available</div>';
+    @keyframes float {
+      0%,100% { transform: translateY(0px); }
+      50% { transform: translateY(-18px); }
+    }
 
-  const documentsList = document.getElementById('documentsList');
-  documentsList.innerHTML = documents.length
-    ? documents.map(f => createFileItem(f, 'documents')).join('')
-    : '<div class="empty-folder">No documents available</div>';
-}
+    .shell {
+      max-width: 980px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
 
-// ========================================
-// HELPERS
-// ========================================
-function escapeHtml(str) {
-  return str
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+    .content-box {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
 
-function createFileItem(filename, folder) {
-  const safe = escapeHtml(filename);
-  const path = `assets/${folder}/${filename}`;
+    .header-box {
+      background: linear-gradient(135deg, #16263a, #1f3b57 55%, #2c4a68);
+      color: white;
+      padding: 24px;
+      border-radius: 18px;
+      margin-bottom: 22px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
 
-  const display = filename
-    .replace(/\.pdf$/i, '')
-    .replace(/[-_]/g, ' ')
-    .trim();
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
 
-  return `
-    <div class="file-item">
-      <div class="file-info">
-        <div class="file-name">${display}</div>
+    .header-box h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+
+    .header-box p {
+      margin: 8px 0 0;
+      color: rgba(255,255,255,.88);
+      font-size: 15px;
+    }
+
+    .badge {
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.15);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .folder {
+      margin: 16px 0;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
+    }
+
+    .folder-header {
+      background: linear-gradient(135deg, var(--brand1), var(--brand2));
+      color: white;
+      padding: 16px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: .2s ease;
+    }
+
+    .folder-header:hover {
+      background: linear-gradient(135deg, #27496b, var(--brand3));
+    }
+
+    .folder-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .folder-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .folder-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .folder-count {
+      font-size: 13px;
+      opacity: .86;
+    }
+
+    .folder-arrow {
+      font-size: 18px;
+      transition: transform .25s ease;
+      flex-shrink: 0;
+    }
+
+    .folder.open .folder-arrow {
+      transform: rotate(90deg);
+    }
+
+    .folder-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .28s ease;
+      background: #f8fafc;
+    }
+
+    .folder.open .folder-content {
+      max-height: 1000px;
+      overflow-y: auto;
+    }
+
+    .file-list {
+      padding: 10px;
+    }
+
+    .file-item {
+      background: white;
+      border: 1px solid #e8edf3;
+      border-left: 5px solid #4f7ecb;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .file-item:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(15,23,42,.08);
+    }
+
+    .file-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .file-name {
+      font-weight: 700;
+      color: #1f2937;
+      word-break: break-word;
+      margin-bottom: 4px;
+    }
+
+    .file-sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      text-decoration: none;
+      padding: 9px 14px;
+      border-radius: 10px;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      display: inline-block;
+      transition: .18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-view {
+      background: linear-gradient(135deg, var(--green), #22a06b);
+    }
+
+    .btn-view:hover {
+      background: linear-gradient(135deg, var(--green2), #19885a);
+    }
+
+    .btn-download {
+      background: linear-gradient(135deg, var(--blue), #3a6fc0);
+    }
+
+    .btn-download:hover {
+      background: linear-gradient(135deg, var(--blue2), #2f5fa7);
+    }
+
+    .empty-folder {
+      padding: 30px 18px;
+      text-align: center;
+      color: #94a3b8;
+      font-style: italic;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      font-size: 13px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 14px; }
+      .content-box { padding: 16px; border-radius: 18px; }
+      .header-box { padding: 18px; }
+      .file-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .file-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .btn {
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-floaters">
+    <span class="floater f1"></span>
+    <span class="floater f2"></span>
+    <span class="floater f3"></span>
+    <span class="floater f4"></span>
+  </div>
+
+  <div class="shell">
+    <div class="content-box">
+      <div class="header-box">
+        <div class="header-top">
+          <div>
+            <h1>Welcome to Your Portal! 👋</h1>
+            <p>Access your invoices, tickets, and documents.</p>
+          </div>
+          <div class="badge">Linear Tech Secure Portal</div>
+        </div>
       </div>
-      <div class="file-actions">
-        <a href="${path}" class="btn-view" target="_blank">View</a>
-        <a href="${path}" class="btn-download" download>Download</a>
+
+      <div class="folder open" id="invoicesFolder">
+        <div class="folder-header" onclick="toggleFolder('invoicesFolder')">
+          <div class="folder-left">
+            <span class="folder-icon">📄</span>
+            <div>
+              <div class="folder-name">Invoices</div>
+              <div class="folder-count" id="invoicesCount">Loading...</div>
+            </div>
+          </div>
+          <span class="folder-arrow">▶</span>
+        </div>
+        <div class="folder-content">
+          <div class="file-list" id="invoicesList"></div>
+        </div>
+      </div>
+
+      <div class="folder" id="ticketsFolder">
+        <div class="folder-header" onclick="toggleFolder('ticketsFolder')">
+          <div class="folder-left">
+            <span class="folder-icon">🎫</span>
+            <div>
+              <div class="folder-name">Support Tickets</div>
+              <div class="folder-count" id="ticketsCount">Loading...</div>
+            </div>
+          </div>
+          <span class="folder-arrow">▶</span>
+        </div>
+        <div class="folder-content">
+          <div class="file-list" id="ticketsList"></div>
+        </div>
+      </div>
+
+      <div class="folder" id="documentsFolder">
+        <div class="folder-header" onclick="toggleFolder('documentsFolder')">
+          <div class="folder-left">
+            <span class="folder-icon">📁</span>
+            <div>
+              <div class="folder-name">Documents</div>
+              <div class="folder-count" id="documentsCount">Loading...</div>
+            </div>
+          </div>
+          <span class="folder-arrow">▶</span>
+        </div>
+        <div class="folder-content">
+          <div class="file-list" id="documentsList"></div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Need help? Contact Linear Tech for support.
       </div>
     </div>
-  `;
-}
+  </div>
 
-// ========================================
-// UI
-// ========================================
-function toggleFolder(id) {
-  document.getElementById(id).classList.toggle('open');
-}
+  <script>
+    let invoices = [];
 
-// ========================================
-// INIT
-// ========================================
-loadInvoiceFiles().then(loadFiles);
-</script>
+    const tickets = [
+      "Invoice_0445_2026-01-12.pdf"
+    ];
+
+    const documents = [
+      "Invoice_0445_2026-01-12.pdf"
+    ];
+
+    async function loadInvoiceFiles() {
+      try {
+        const res = await fetch("assets/invoices/invoices.json", { cache: "no-store" });
+        if (!res.ok) {
+          invoices = [];
+          return;
+        }
+
+        const data = await res.json();
+        invoices = Array.isArray(data)
+          ? data.filter(x => typeof x === "string" && x.toLowerCase().endsWith(".pdf"))
+          : [];
+      } catch (err) {
+        console.error("Could not load invoices.json", err);
+        invoices = [];
+      }
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function prettyName(filename) {
+      return filename
+        .replace(/\.pdf$/i, "")
+        .replace(/[-_]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function createFileItem(filename, folder) {
+      const safeDisplay = escapeHtml(prettyName(filename));
+      const safePath = `assets/${folder}/${encodeURIComponent(filename)}`;
+
+      return `
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-name">${safeDisplay}</div>
+            <div class="file-sub">PDF file</div>
+          </div>
+          <div class="file-actions">
+            <a href="${safePath}" class="btn btn-view" target="_blank" rel="noopener">View</a>
+            <a href="${safePath}" class="btn btn-download" download>Download</a>
+          </div>
+        </div>
+      `;
+    }
+
+    function setCount(id, count, label) {
+      document.getElementById(id).textContent = `${count} ${count === 1 ? label : label + "s"}`;
+    }
+
+    function loadFiles() {
+      const invoicesList = document.getElementById("invoicesList");
+      const ticketsList = document.getElementById("ticketsList");
+      const documentsList = document.getElementById("documentsList");
+
+      const sortedInvoices = [...invoices].sort().reverse();
+
+      invoicesList.innerHTML = sortedInvoices.length
+        ? sortedInvoices.map(f => createFileItem(f, "invoices")).join("")
+        : '<div class="empty-folder">No invoices available</div>';
+
+      ticketsList.innerHTML = tickets.length
+        ? tickets.map(f => createFileItem(f, "tickets")).join("")
+        : '<div class="empty-folder">No support tickets available</div>';
+
+      documentsList.innerHTML = documents.length
+        ? documents.map(f => createFileItem(f, "documents")).join("")
+        : '<div class="empty-folder">No documents available</div>';
+
+      setCount("invoicesCount", sortedInvoices.length, "file");
+      setCount("ticketsCount", tickets.length, "file");
+      setCount("documentsCount", documents.length, "file");
+    }
+
+    function toggleFolder(folderId) {
+      document.getElementById(folderId).classList.toggle("open");
+    }
+
+    loadInvoiceFiles().then(loadFiles);
+  </script>
 </body>
+</html>
