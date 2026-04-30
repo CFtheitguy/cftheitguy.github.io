@@ -3,7 +3,7 @@ name: Update invoices.json
 on:
   push:
     paths:
-      - 'evergreenspace/assets/invoices/**'
+      - '*/assets/*/invoices/**'
       - '.github/workflows/update-invoices.yml'
   workflow_dispatch:
 
@@ -18,35 +18,38 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Generate invoices.json
+      - name: Generate invoices.json for all clients
         run: |
           python <<'PY'
           import os, json
 
-          folder = 'evergreenspace/assets/invoices'
-          os.makedirs(folder, exist_ok=True)
+          clients = ["evergreenspace", "family", "revenueeagle", "tristatesolar"]
 
-          files = []
-          for f in os.listdir(folder):
-              if f.lower().endswith('.pdf'):
-                  files.append(f)
+          for client in clients:
+              folder = f"{client}/assets/{client}/invoices"
+              os.makedirs(folder, exist_ok=True)
 
-          files.sort(reverse=True)
+              files = []
+              for f in os.listdir(folder):
+                  if f.lower().endswith('.pdf'):
+                      files.append(f)
 
-          output = os.path.join(folder, 'invoices.json')
-          with open(output, 'w', encoding='utf-8') as fp:
-              json.dump(files, fp, indent=2)
+              files.sort(reverse=True)
 
-          print(f"Updated {output} with {len(files)} invoices")
+              output = os.path.join(folder, 'invoices.json')
+              with open(output, 'w', encoding='utf-8') as fp:
+                  json.dump(files, fp, indent=2)
+
+              print(f"{client}: {len(files)} invoices")
+
           PY
 
       - name: Commit changes if needed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add evergreenspace/assets/invoices/invoices.json
+          git add */assets/*/invoices/invoices.json
           git diff --cached --quiet || git commit -m "Auto-update invoices.json"
 
       - name: Push changes
-        run: |
-          git push
+        run: git push
