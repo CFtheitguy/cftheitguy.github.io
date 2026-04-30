@@ -526,60 +526,55 @@
     }
 
     async function loadTicketsSpreadsheet() {
-      if (ticketsSheetLoaded) return;
+  if (ticketsSheetLoaded) return;
 
-      const status = document.getElementById("ticketsStatus");
-      const container = document.getElementById("ticketsSpreadsheet");
+  const status = document.getElementById("ticketsStatus");
+  const container = document.getElementById("ticketsSpreadsheet");
 
-      try {
-        const response = await fetch("assets/tickets/CRM.xlsx", { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error("Could not load CRM.xlsx");
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: "array" });
-
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-
-        const data = XLSX.utils.sheet_to_json(worksheet, {
-          header: 1,
-          defval: ""
-        });
-
-        if (!data.length) {
-          status.textContent = "No rows found in the Excel sheet.";
-          setCount("ticketsCount", 0, "row");
-          return;
-        }
-
-        ticketsHot = new Handsontable(container, {
-          data: data,
-          rowHeaders: true,
-          colHeaders: true,
-          readOnly: true,
-          licenseKey: "non-commercial-and-evaluation",
-          width: "100%",
-          height: "100%",
-          stretchH: "all",
-          manualColumnResize: true,
-          manualRowResize: true,
-          filters: true,
-          dropdownMenu: true,
-          contextMenu: true
-        });
-
-        const rowCount = Math.max(data.length - 1, 0);
-        status.textContent = `Loaded sheet: ${firstSheetName}`;
-        setCount("ticketsCount", rowCount, "ticket");
-        ticketsSheetLoaded = true;
-      } catch (error) {
-        console.error(error);
-        status.textContent = "Error loading ticket sheet: " + error.message;
-        setCount("ticketsCount", 0, "ticket");
-      }
+  try {
+    const response = await fetch("assets/tickets/CRM.csv", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("Could not load CRM.csv");
     }
+
+    const text = await response.text();
+
+    // Convert CSV → array
+    const rows = text.split("\n").map(row => row.split(","));
+
+    if (!rows.length) {
+      status.textContent = "No rows found in the CSV.";
+      setCount("ticketsCount", 0, "row");
+      return;
+    }
+
+    ticketsHot = new Handsontable(container, {
+      data: rows,
+      rowHeaders: true,
+      colHeaders: true,
+      readOnly: true,
+      licenseKey: "non-commercial-and-evaluation",
+      width: "100%",
+      height: "100%",
+      stretchH: "all",
+      manualColumnResize: true,
+      manualRowResize: true,
+      filters: true,
+      dropdownMenu: true,
+      contextMenu: true
+    });
+
+    const rowCount = Math.max(rows.length - 1, 0);
+    status.textContent = "Loaded CRM.csv";
+    setCount("ticketsCount", rowCount, "ticket");
+    ticketsSheetLoaded = true;
+
+  } catch (error) {
+    console.error(error);
+    status.textContent = "Error loading ticket sheet: " + error.message;
+    setCount("ticketsCount", 0, "ticket");
+  }
+}
 
     function toggleFolder(folderId) {
       const folder = document.getElementById(folderId);
