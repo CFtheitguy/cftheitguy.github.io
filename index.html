@@ -1246,34 +1246,45 @@ color-scheme:light !important;}</style><style type="text/css">.tawk-button-hover
 
     <div class="contact-layout">
       <div class="contact-form">
-        <https://formspree.io/f/mjgzyppb>
-          <input type="hidden" name="_subject" value="New website request (Linear Tech)">
-          <input type="text" name="_honey" style="display:none">
-          <input type="hidden" name="_captcha" value="true">
+        <form action="https://formspree.io/f/mjgzyppb" method="POST">
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="f-name">Name</label>
-              <input class="field" id="f-name" type="text" name="name" required="" placeholder="Your name">
-            </div>
-            <div class="form-group">
-              <label for="f-email">Email</label>
-              <input class="field" id="f-email" type="email" name="email" required="" placeholder="you@company.com">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="f-company">Company</label>
-            <input class="field" id="f-company" type="text" name="company" placeholder="Company name (optional)">
-          </div>
-          <div class="form-group">
-            <label for="f-msg">Message</label>
-            <textarea class="field" id="f-msg" name="message" rows="5" placeholder="How can we help?"></textarea>
-          </div>
-          <div class="form-submit">
-            <button class="btn orange" type="submit">Send Message →</button>
-            <span class="form-note">Typically <strong>same-day</strong> response</span>
-          </div>
-        </form>
+  <input type="hidden" name="_subject" value="New website request (Linear Tech)">
+  <input type="text" name="_honey" style="display:none">
+  <input type="hidden" name="_captcha" value="true">
+
+  <!-- Ninja hidden fields -->
+  <input type="hidden" id="deviceField" name="Device">
+  <input type="hidden" id="userField" name="User">
+  <input type="hidden" id="orgField" name="Organization">
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="f-name">Name</label>
+      <input class="field" id="f-name" type="text" name="name" required placeholder="Your name">
+    </div>
+
+    <div class="form-group">
+      <label for="f-email">Email</label>
+      <input class="field" id="f-email" type="email" name="email" required placeholder="you@company.com">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="f-company">Company</label>
+    <input class="field" id="f-company" type="text" name="company" placeholder="Company name (optional)">
+  </div>
+
+  <div class="form-group">
+    <label for="f-msg">Message</label>
+    <textarea class="field" id="f-msg" name="message" rows="5" placeholder="How can we help?"></textarea>
+  </div>
+
+  <div class="form-submit">
+    <button class="btn orange" type="submit">Send Message →</button>
+    <span class="form-note">Typically <strong>same-day</strong> response</span>
+  </div>
+
+</form>
       </div>
 
       <div class="contact-info">
