@@ -1,0 +1,196 @@
+<!-- Newsletter Subscribe Box -->
+<section class="newsletter-box" id="newsletter">
+  <div class="newsletter-content">
+    <h2>Get Our Weekly Tech Tip</h2>
+    <p>
+      One short, useful, slightly funny email every week about computers,
+      scams, passwords, cybersecurity, and all the tech stuff people usually
+      pretend they understand.
+    </p>
+
+    <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="newsletter-form">
+      <input type="email" name="email" placeholder="Enter your email" required>
+      <input type="hidden" name="source" value="Linear Tech Website Newsletter Box">
+      <button type="submit">Sign Me Up</button>
+    </form>
+
+    <small>No spam. Just helpful tech tips. We hate annoying emails too.</small>
+  </div>
+</section>
+
+<!-- Newsletter Popup -->
+<div class="newsletter-popup-overlay" id="newsletterPopup">
+  <div class="newsletter-popup">
+    <button class="newsletter-close" onclick="closeNewsletterPopup()">×</button>
+
+    <h2>Want Simple Tech Tips?</h2>
+    <p>
+      Join our weekly newsletter for quick computer and cybersecurity tips
+      written in normal human language — no tech dictionary required.
+    </p>
+
+    <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="newsletter-form">
+      <input type="email" name="email" placeholder="Your email address" required>
+      <input type="hidden" name="source" value="Linear Tech Website Newsletter Popup">
+      <button type="submit">Subscribe</button>
+    </form>
+
+    <small>One page max. Once a week. Zero boring lectures.</small>
+  </div>
+</div>
+
+<style>
+  .newsletter-box {
+    padding: 50px 20px;
+    background: #f5f8ff;
+    text-align: center;
+  }
+
+  .newsletter-content {
+    max-width: 700px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 35px 25px;
+    border-radius: 18px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+  }
+
+  .newsletter-content h2,
+  .newsletter-popup h2 {
+    margin-bottom: 12px;
+    color: #1f6feb;
+    font-size: 28px;
+  }
+
+  .newsletter-content p,
+  .newsletter-popup p {
+    color: #333;
+    font-size: 17px;
+    line-height: 1.6;
+    margin-bottom: 22px;
+  }
+
+  .newsletter-form {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .newsletter-form input[type="email"] {
+    padding: 14px 16px;
+    width: 280px;
+    max-width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .newsletter-form button {
+    padding: 14px 22px;
+    background: #ff7a00;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+
+  .newsletter-form button:hover {
+    background: #e66d00;
+    transform: translateY(-1px);
+  }
+
+  .newsletter-content small,
+  .newsletter-popup small {
+    color: #666;
+    font-size: 13px;
+  }
+
+  .newsletter-popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .newsletter-popup {
+    position: relative;
+    background: #ffffff;
+    max-width: 480px;
+    width: 100%;
+    padding: 35px 25px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
+    animation: newsletterPopIn 0.25s ease;
+  }
+
+  .newsletter-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: #777;
+  }
+
+  .newsletter-close:hover {
+    color: #000;
+  }
+
+  @keyframes newsletterPopIn {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .newsletter-content h2,
+    .newsletter-popup h2 {
+      font-size: 24px;
+    }
+
+    .newsletter-form {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .newsletter-form input[type="email"],
+    .newsletter-form button {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  function closeNewsletterPopup() {
+    document.getElementById("newsletterPopup").style.display = "none";
+    localStorage.setItem("newsletterPopupClosed", "true");
+  }
+
+  window.addEventListener("load", function () {
+    const popupClosed = localStorage.getItem("newsletterPopupClosed");
+
+    if (!popupClosed) {
+      setTimeout(function () {
+        document.getElementById("newsletterPopup").style.display = "flex";
+      }, 5000);
+    }
+  });
+</script>
