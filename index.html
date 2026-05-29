@@ -1422,5 +1422,162 @@ document.getElementById("orgField").value =
   params.get("org") || "";
 </script>
 
+  <!-- Newsletter Popup Only -->
+<div class="newsletter-popup-overlay" id="newsletterPopup">
+  <div class="newsletter-popup">
+    <button class="newsletter-close" onclick="closeNewsletterPopup()">×</button>
+
+    <h2>Want Simple Tech Tips?</h2>
+    <p>
+      Join our weekly newsletter for quick computer and cybersecurity tips
+      written in normal human language — no tech dictionary required.
+    </p>
+
+    <form action="https://formspree.io/f/mjgzyppb" method="POST" class="newsletter-form">
+      <input type="email" name="email" placeholder="Your email address" required>
+      <input type="hidden" name="source" value="Linear Tech Website Newsletter Popup">
+      <button type="submit">Subscribe</button>
+    </form>
+
+    <small>One page max. Once a week. Zero boring lectures.</small>
+  </div>
+</div>
+
+<style>
+  .newsletter-popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .newsletter-popup {
+    position: relative;
+    background: #ffffff;
+    max-width: 480px;
+    width: 100%;
+    padding: 35px 25px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25);
+    animation: newsletterPopIn 0.25s ease;
+  }
+
+  .newsletter-popup h2 {
+    margin-bottom: 12px;
+    color: #1f6feb;
+    font-size: 28px;
+  }
+
+  .newsletter-popup p {
+    color: #333;
+    font-size: 17px;
+    line-height: 1.6;
+    margin-bottom: 22px;
+  }
+
+  .newsletter-form {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .newsletter-form input[type="email"] {
+    padding: 14px 16px;
+    width: 280px;
+    max-width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .newsletter-form button {
+    padding: 14px 22px;
+    background: #ff7a00;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+
+  .newsletter-form button:hover {
+    background: #e66d00;
+    transform: translateY(-1px);
+  }
+
+  .newsletter-popup small {
+    color: #666;
+    font-size: 13px;
+  }
+
+  .newsletter-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: #777;
+  }
+
+  .newsletter-close:hover {
+    color: #000;
+  }
+
+  @keyframes newsletterPopIn {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .newsletter-popup h2 {
+      font-size: 24px;
+    }
+
+    .newsletter-form {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .newsletter-form input[type="email"],
+    .newsletter-form button {
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  function closeNewsletterPopup() {
+    document.getElementById("newsletterPopup").style.display = "none";
+    localStorage.setItem("newsletterPopupClosed", "true");
+  }
+
+  window.addEventListener("load", function () {
+    const popupClosed = localStorage.getItem("newsletterPopupClosed");
+
+    if (!popupClosed) {
+      setTimeout(function () {
+        document.getElementById("newsletterPopup").style.display = "flex";
+      }, 5000);
+    }
+  });
+</script>
 </body>
 </html>
