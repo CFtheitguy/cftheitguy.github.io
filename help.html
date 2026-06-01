@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Get Help | Linear Tech</title>
+  <meta name="description" content="Submit a support request to the Linear Tech helpdesk." />
+  <link rel="icon" href="/assets/logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --border-focus: #4a90d9;
+      --accent: #1a6fc4;
+      --accent-light: #e8f1fb;
+      --text: #1a202c;
+      --text-muted: #64748b;
+      --text-dim: #a0aec0;
+      --green: #38a169;
+      --green-light: #f0faf4;
+      --red: #e53e3e;
+      --red-light: #fff5f5;
+      --sans: 'DM Sans', sans-serif;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* NAV */
+    nav {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 62px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo img { height: 30px; display: block; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; list-style: none; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none;
+      font-size: 0.875rem; transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-pill {
+      background: var(--accent-light);
+      color: var(--accent) !important;
+      border: 1px solid #c3d9f4;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem !important;
+      font-weight: 500;
+    }
+    .nav-pill:hover { background: #d6e9fb !important; }
+    .nav-hamburger { display: none; cursor: pointer; color: var(--text-muted); font-size: 1.3rem; }
+
+    /* PAGE */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3.5rem 1.5rem 5rem;
+    }
+
+    .page-icon {
+      width: 52px; height: 52px;
+      background: var(--accent-light);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .page-title {
+      font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .page-sub {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      text-align: center;
+      margin-bottom: 2.25rem;
+      max-width: 380px;
+      line-height: 1.6;
+    }
+
+    /* CARD */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 2rem 2rem 1.75rem;
+      width: 100%; max-width: 520px;
+    }
+
+    .field { margin-bottom: 1.25rem; }
+    .field label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+      letter-spacing: 0.01em;
+    }
+
+    .field textarea,
+    .field select {
+      width: 100%;
+      background: #fafbfc;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 0.95rem;
+      padding: 0.7rem 0.9rem;
+      outline: none;
+      transition: border-color 0.18s, background 0.18s;
+      appearance: none;
+    }
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--border-focus);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(74,144,217,0.12);
+    }
+    .field textarea::placeholder { color: var(--text-dim); }
+    .field textarea { resize: vertical; min-height: 150px; line-height: 1.65; }
+
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.9rem center;
+      background-color: #fafbfc;
+      padding-right: 2.25rem;
+      cursor: pointer;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 0.25rem;
+    }
+    .submit-btn:hover { background: #155fa0; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { background: #a0bdd8; cursor: not-allowed; }
+
+    .card-footer {
+      text-align: center;
+      margin-top: 1.1rem;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    /* SUCCESS */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 1.5rem 0 0.5rem;
+    }
+    .success-icon {
+      width: 54px; height: 54px;
+      background: var(--green-light);
+      border: 1.5px solid #9ae6b4;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.1rem;
+      font-size: 1.4rem;
+      color: var(--green);
+    }
+    .success-state h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text); }
+    .success-state p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+    .success-state a {
+      display: inline-block; margin-top: 1.5rem;
+      color: var(--accent); font-size: 0.85rem; text-decoration: none;
+      font-weight: 500;
+    }
+    .success-state a:hover { text-decoration: underline; }
+
+    /* ERROR */
+    .error-msg {
+      display: none;
+      background: var(--red-light);
+      border: 1px solid #fed7d7;
+      border-radius: var(--radius);
+      color: var(--red);
+      font-size: 0.85rem;
+      padding: 0.65rem 0.9rem;
+      margin-top: 0.75rem;
+      text-align: center;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 2rem;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      background: #fff;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    @media (max-width: 580px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      .nav-hamburger { display: block; }
+      .card { padding: 1.5rem 1.25rem; }
+      main { padding: 2.5rem 1rem 4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="https://www.linearit.co/#home">
+    <img src="https://www.linearit.co/assets/logo.png" alt="Linear Tech" />
+  </a>
+  <ul class="nav-links">
+    <li><a href="https://www.linearit.co/#home">Home</a></li>
+    <li><a href="https://www.linearit.co/#services">Services</a></li>
+    <li><a href="https://www.linearit.co/#faq">FAQ</a></li>
+    <li><a href="https://www.linearit.co/#contact">Contact</a></li>
+    <li><a class="nav-pill" href="https://linearit.rmmservices.net/" target="_blank">🔒 Client Login</a></li>
+    <li><a class="nav-pill" href="https://linearit.rmmservices.net/connect/#/3147536854" target="_blank" style="background:#f0faf4;color:#38a169 !important;border-color:#9ae6b4;">🛠 Remote Support</a></li>
+  </ul>
+  <span class="nav-hamburger" onclick="this.previousElementSibling.style.display = this.previousElementSibling.style.display === 'flex' ? 'none' : 'flex'">☰</span>
+</nav>
+
+<main>
+  <div class="page-icon">🛟</div>
+  <h1 class="page-title">How can we help?</h1>
+  <p class="page-sub">Tell us what's going on and we'll get right on it.</p>
+
+  <div class="card">
+    <div id="form-view">
+      <form id="ticket-form">
+
+        <div class="field">
+          <label for="priority">How urgent is this?</label>
+          <select id="priority" name="priority">
+            <option value="Normal">Normal — I can still work</option>
+            <option value="Urgent">Urgent — I'm blocked, can't work</option>
+            <option value="Low">Low — whenever you get a chance</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="body">What's going on? *</label>
+          <textarea
+            id="body"
+            name="body"
+            placeholder="Describe the issue — what happened, when it started, any error messages you're seeing..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">
+          Send Request →
+        </button>
+
+        <div class="error-msg" id="error-msg">
+          Something went wrong. Email us directly at <a href="mailto:help@linearit.co" style="color:inherit;text-decoration:underline">help@linearit.co</a>
+        </div>
+      </form>
+
+      <p class="card-footer">⚡ Avg first response: 15 min during business hours</p>
+    </div>
+
+    <div class="success-state" id="success-view">
+      <div class="success-icon">✓</div>
+      <h2>Got it — we're on it!</h2>
+      <p>Your request has been sent to the helpdesk.<br />We'll be in touch shortly.</p>
+      <a href="https://www.linearit.co">← Back to linearit.co</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  © 2026 <a href="https://www.linearit.co">Linear Tech</a> · Monroe, NY ·
+  <a href="mailto:help@linearit.co">help@linearit.co</a> ·
+  <a href="tel:+18456041462">(845) 604-1462</a>
+</footer>
+
+<script>
+  const form = document.getElementById('ticket-form');
+  const btn  = document.getElementById('submit-btn');
+  const err  = document.getElementById('error-msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    err.style.display = 'none';
+
+    const priority = document.getElementById('priority').value;
+    const body     = document.getElementById('body').value;
+
+    try {
+      const res = await fetch('https://formspree.io/f/xqejvvyv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          _subject: '[' + priority + '] New support request',
+          Priority: priority,
+          Message:  body,
+        }),
+      });
+
+      if (res.ok) {
+        document.getElementById('form-view').style.display = 'none';
+        document.getElementById('success-view').style.display = 'block';
+      } else {
+        throw new Error();
+      }
+    } catch {
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Request →';
+    }
+  });
+</script>
+</body>
+</html>
