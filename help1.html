@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Submit a Support Ticket | Linear Tech</title>
+  <meta name="description" content="Submit a support request to the Linear Tech helpdesk. We'll get back to you fast." />
+  <link rel="icon" href="/assets/logo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0f1a;
+      --bg2: #111827;
+      --bg3: #1a2235;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(99,179,237,0.35);
+      --accent: #63b3ed;
+      --accent-dim: rgba(99,179,237,0.12);
+      --text: #f0f4ff;
+      --text-muted: #8899b4;
+      --text-dim: #4a5a78;
+      --green: #48bb78;
+      --red: #fc8181;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+      --radius: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(11,15,26,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .nav-logo img { height: 32px; display: block; }
+    .nav-links { display: flex; gap: 1.5rem; align-items: center; list-style: none; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none;
+      font-size: 0.85rem; letter-spacing: 0.01em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-links .btn-login {
+      background: var(--accent-dim);
+      border: 1px solid rgba(99,179,237,0.25);
+      color: var(--accent);
+      padding: 0.35rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    .nav-links .btn-login:hover { background: rgba(99,179,237,0.2); color: var(--accent); }
+    .nav-hamburger { display: none; cursor: pointer; color: var(--text-muted); font-size: 1.4rem; }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      padding: 5rem 1.5rem 3rem;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: var(--accent-dim);
+      border: 1px solid rgba(99,179,237,0.2);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      border-radius: 20px;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 0.75rem;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+
+    /* FORM CARD */
+    .form-wrap {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 1rem 1.5rem 5rem;
+    }
+    .form-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.25rem 2.25rem 2rem;
+      width: 100%; max-width: 580px;
+      position: relative;
+    }
+    .form-card::before {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 60%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(99,179,237,0.4), transparent);
+    }
+
+    .field { margin-bottom: 1.35rem; }
+    .field label {
+      display: block;
+      font-size: 0.78rem;
+      font-family: var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .field label span { color: var(--accent); margin-left: 2px; }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 0.95rem;
+      padding: 0.75rem 1rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      appearance: none;
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: rgba(99,179,237,0.5);
+      background: #1e2a40;
+    }
+    .field input::placeholder,
+    .field textarea::placeholder { color: var(--text-dim); }
+    .field textarea { resize: vertical; min-height: 140px; line-height: 1.6; }
+
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238899b4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      padding-right: 2.5rem;
+      cursor: pointer;
+    }
+    .field select option { background: var(--bg2); }
+
+    .priority-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0b1220;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+      margin-top: 0.5rem;
+      letter-spacing: 0.01em;
+    }
+    .submit-btn:hover { opacity: 0.88; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 1.1rem;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .form-footer::before, .form-footer::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* SUCCESS */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 2rem 0 1rem;
+    }
+    .success-icon {
+      width: 56px; height: 56px;
+      background: rgba(72,187,120,0.12);
+      border: 1px solid rgba(72,187,120,0.3);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.25rem;
+      font-size: 1.5rem;
+    }
+    .success-state h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .success-state p { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; }
+    .success-state a {
+      display: inline-block; margin-top: 1.5rem;
+      color: var(--accent); font-size: 0.85rem; text-decoration: none;
+    }
+    .success-state a:hover { text-decoration: underline; }
+
+    /* ERROR */
+    .error-msg {
+      display: none;
+      background: rgba(252,129,129,0.08);
+      border: 1px solid rgba(252,129,129,0.25);
+      border-radius: var(--radius);
+      color: var(--red);
+      font-size: 0.85rem;
+      padding: 0.7rem 1rem;
+      margin-top: 0.75rem;
+      text-align: center;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    @media (max-width: 600px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      .nav-hamburger { display: block; }
+      .priority-row { grid-template-columns: 1fr; }
+      .form-card { padding: 1.5rem 1.25rem; }
+      .hero { padding: 3.5rem 1.25rem 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="https://www.linearit.co/#home">
+    <img src="https://www.linearit.co/assets/logo.png" alt="Linear Tech" />
+  </a>
+  <ul class="nav-links">
+    <li><a href="https://www.linearit.co/#home">Home</a></li>
+    <li><a href="https://www.linearit.co/#services">Services</a></li>
+    <li><a href="https://www.linearit.co/#faq">FAQ</a></li>
+    <li><a href="https://www.linearit.co/#contact">Contact</a></li>
+    <li><a class="btn-login" href="https://linearit.rmmservices.net/" target="_blank">🔒 Client Login</a></li>
+    <li><a class="btn-login" href="https://linearit.rmmservices.net/connect/#/3147536854" target="_blank" style="background:rgba(72,187,120,0.1);border-color:rgba(72,187,120,0.25);color:#68d391;">🛠 Remote Support</a></li>
+  </ul>
+  <span class="nav-hamburger" onclick="document.querySelector('.nav-links').style.display = document.querySelector('.nav-links').style.display === 'flex' ? 'none' : 'flex'">☰</span>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">Support Desk</div>
+  <h1>Submit a <em>Support Request</em></h1>
+  <p>Describe what's going on and we'll take it from there. No account needed.</p>
+</div>
+
+<div class="form-wrap">
+  <div class="form-card">
+
+    <div id="form-view">
+      <form id="ticket-form">
+        <div class="field">
+          <label for="subject">Subject <span>*</span></label>
+          <input
+            type="text"
+            id="subject"
+            name="subject"
+            placeholder="e.g. Can't connect to printer, Outlook won't open..."
+            required
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="priority-row">
+          <div class="field">
+            <label for="priority">Priority</label>
+            <select id="priority" name="priority">
+              <option value="Normal">Normal</option>
+              <option value="Urgent">Urgent — can't work</option>
+              <option value="Low">Low — when you get a chance</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+              <option value="General">General</option>
+              <option value="Hardware">Hardware</option>
+              <option value="Software / App">Software / App</option>
+              <option value="Network / Internet">Network / Internet</option>
+              <option value="Email / Microsoft 365">Email / Microsoft 365</option>
+              <option value="Printer / Scanner">Printer / Scanner</option>
+              <option value="Account / Password">Account / Password</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="body">Description <span>*</span></label>
+          <textarea
+            id="body"
+            name="body"
+            placeholder="Describe the issue in as much detail as you can. What happened? When did it start? Any error messages?"
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">
+          Send Ticket →
+        </button>
+
+        <div class="error-msg" id="error-msg">
+          Something went wrong. Please try again or email <a href="mailto:help@linearit.co" style="color:inherit;text-decoration:underline">help@linearit.co</a> directly.
+        </div>
+      </form>
+
+      <div class="form-footer">Tickets go to help@linearit.co · Avg response 15 min</div>
+    </div>
+
+    <div class="success-state" id="success-view">
+      <div class="success-icon">✓</div>
+      <h2>Ticket submitted!</h2>
+      <p>We've received your request and will get back to you shortly.<br />
+        Average first response is <strong style="color:var(--text)">under 15 minutes</strong> during business hours.</p>
+      <a href="https://www.linearit.co">← Back to linearit.co</a>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  © 2026 <a href="https://www.linearit.co">Linear Tech</a> · Monroe, NY ·
+  <a href="mailto:help@linearit.co">help@linearit.co</a> ·
+  <a href="tel:+18456041462">(845) 604-1462</a>
+</footer>
+
+<script>
+  const form = document.getElementById('ticket-form');
+  const btn  = document.getElementById('submit-btn');
+  const err  = document.getElementById('error-msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    err.style.display = 'none';
+
+    const data = {
+      subject:  document.getElementById('subject').value,
+      priority: document.getElementById('priority').value,
+      category: document.getElementById('category').value,
+      body:     document.getElementById('body').value,
+    };
+
+    try {
+      const res = await fetch('https://formspree.io/f/YOUR_FORM_ID', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          _subject: `[${data.priority}] ${data.category}: ${data.subject}`,
+          Priority: data.priority,
+          Category: data.category,
+          Subject:  data.subject,
+          Description: data.body,
+        }),
+      });
+
+      if (res.ok) {
+        document.getElementById('form-view').style.display = 'none';
+        document.getElementById('success-view').style.display = 'block';
+      } else {
+        throw new Error('non-ok');
+      }
+    } catch {
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Ticket →';
+    }
+  });
+</script>
+</body>
+</html>
