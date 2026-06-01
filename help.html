@@ -264,6 +264,10 @@
     <div id="form-view">
       <form id="ticket-form">
 
+        <input type="hidden" id="device" name="device" />
+        <input type="hidden" id="user" name="user" />
+        <input type="hidden" id="org" name="org" />
+
         <div class="field">
           <label for="priority">How urgent is this?</label>
           <select id="priority" name="priority">
@@ -315,6 +319,17 @@
   const btn  = document.getElementById('submit-btn');
   const err  = document.getElementById('error-msg');
 
+  // Capture NinjaOne / device information from the URL:
+  // https://www.linearit.co/help.html?device=PCNAME&user=USERNAME&org=DOMAIN
+  const params = new URLSearchParams(window.location.search);
+  const device = params.get('device') || '';
+  const user   = params.get('user') || '';
+  const org    = params.get('org') || '';
+
+  document.getElementById('device').value = device;
+  document.getElementById('user').value   = user;
+  document.getElementById('org').value    = org;
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     btn.disabled = true;
@@ -329,9 +344,13 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
-          _subject: '[' + priority + '] New support request',
+          _subject: '[' + priority + '] New support request from ' + (device || 'Unknown device'),
           Priority: priority,
-          Message:  body,
+          Message: body,
+          Device: device,
+          User: user,
+          Organization: org,
+          Page: window.location.href
         }),
       });
 
