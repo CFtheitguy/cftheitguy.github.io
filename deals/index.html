@@ -3,155 +3,182 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Linear Tech Deals – Recommended PCs & Monitors</title>
-  <meta name="description" content="Hand-picked PCs and monitors recommended by Linear Tech for reliable business and office use." />
-
+  <title>Affordable Home Office PC Setup | Linear Tech</title>
+  <meta name="description" content="Mini PC home office setup guide for everyday users and students. Recommended by Linear Tech." />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      margin: 0;
-      background: #f5f7fa;
-      color: #333;
+    :root {
+      --bg: #f0f4f9; --card: #fff; --text: #111827; --muted: #526070;
+      --brand: #1a56db; --brand-dark: #1140a6; --brand-light: #e8f0fe;
+      --border: #dce4ef; --green: #059669; --r: 16px;
     }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
 
     header {
-      background: #0b3c5d;
-      color: #fff;
-      padding: 28px 16px;
-      text-align: center;
+      background: linear-gradient(140deg, #0d2d6e 0%, #1a56db 60%, #2f7cf6 100%);
+      color: white; padding: 48px 24px 40px; text-align: center;
+    }
+    header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(26px,5vw,46px); margin-bottom: 10px; }
+    header p { font-size: 16px; opacity: 0.9; max-width: 540px; margin: 0 auto; }
+
+    main { width: min(1060px, calc(100% - 32px)); margin: 28px auto 60px; }
+
+    .disclosure {
+      background: #fffbeb; border: 1px solid #f8d66d; border-radius: 10px;
+      padding: 12px 16px; font-size: 13px; color: #78530a; margin-bottom: 24px;
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 28px;
+    /* intro strip */
+    .intro {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 24px 28px; margin-bottom: 24px;
+      box-shadow: 0 4px 18px rgba(15,40,90,0.06);
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
     }
+    .intro-text h2 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; }
+    .intro-text p { color: var(--muted); font-size: 15px; }
+    .fit-box { border-radius: 10px; padding: 14px 16px; }
+    .fit-box.good { background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .fit-box.not  { background: #fff1f1; border: 1px solid #fecaca; }
+    .fit-label { font-weight: 700; font-size: 14px; margin-bottom: 5px; }
+    .fit-box.good .fit-label { color: #065f46; }
+    .fit-box.not  .fit-label { color: #991b1b; }
+    .fit-box p { color: var(--muted); font-size: 14px; }
 
-    header p {
-      margin-top: 8px;
-      font-size: 16px;
-      opacity: 0.9;
+    /* products */
+    h2.sec { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 16px; }
+
+    .products {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
     }
-
-    .container {
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
+    .product-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 20px; box-shadow: 0 4px 14px rgba(15,40,90,0.05);
+      display: flex; flex-direction: column;
+      transition: box-shadow 0.2s, transform 0.2s;
     }
-
-    .section {
-      margin-bottom: 48px;
+    .product-card:hover { box-shadow: 0 8px 28px rgba(26,86,219,0.12); transform: translateY(-2px); }
+    .ptag {
+      background: var(--brand-light); color: var(--brand-dark);
+      border-radius: 999px; padding: 4px 11px; font-size: 11px;
+      font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      margin-bottom: 10px; width: fit-content;
     }
-
-    .section h2 {
-      border-bottom: 3px solid #0b3c5d;
-      padding-bottom: 8px;
-      margin-bottom: 24px;
-      font-size: 22px;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 22px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
-      margin-bottom: 20px;
-    }
-
-    .card h3 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      font-size: 20px;
-    }
-
-    .card p {
-      margin-bottom: 18px;
-      line-height: 1.5;
-    }
-
+    .product-card h3 { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 6px; }
+    .product-card p { color: var(--muted); font-size: 14px; flex: 1; margin-bottom: 14px; }
     .btn {
-      display: inline-block;
-      background: #ff9900;
-      color: #000;
-      text-decoration: none;
-      padding: 12px 20px;
-      border-radius: 6px;
-      font-weight: 600;
+      display: block; background: var(--brand); color: white;
+      text-align: center; text-decoration: none; font-weight: 700; font-size: 14px;
+      padding: 11px; border-radius: 9px; transition: background 0.15s; margin-top: auto;
     }
+    .btn:hover { background: var(--brand-dark); }
 
-    .btn:hover {
-      background: #e68a00;
+    .it-note {
+      margin-top: 24px; background: var(--card); border: 1px solid var(--border);
+      border-left: 4px solid var(--brand); border-radius: var(--r);
+      padding: 18px 22px; color: var(--muted); font-size: 14px;
     }
+    .it-note strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 15px; }
 
-    footer {
-      background: #ffffff;
-      padding: 20px 16px;
-      text-align: center;
-      font-size: 14px;
-      color: #555;
-      border-top: 1px solid #ddd;
-    }
+    footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+    footer a { color: var(--brand); text-decoration: none; }
 
-    footer p {
-      max-width: 900px;
-      margin: 0 auto;
+    @media (max-width: 820px) { .products { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 560px) {
+      .intro { grid-template-columns: 1fr; }
+      .products { grid-template-columns: 1fr; }
     }
   </style>
 </head>
-
 <body>
 
-  <header>
-    <h1>Linear Tech – Recommended Deals</h1>
-    <p>Business-grade hardware we confidently recommend</p>
-  </header>
+<header>
+  <h1>Affordable Home Office PC Setup</h1>
+  <p>PC prices went up. A mini PC is still a smart buy for everyday home and office use.</p>
+</header>
 
-  <main class="container">
+<main>
 
-    <!-- PC SECTION -->
-    <section class="section">
-      <h2>Recommended PC</h2>
+  <div class="disclosure">
+    <strong>Affiliate Disclosure:</strong> As an Amazon Associate, I earn from qualifying purchases. This does not change the price you pay.
+  </div>
 
-      <div class="card">
-        <h3>Business Desktop PC</h3>
-        <p>
-          A reliable desktop computer chosen for office productivity, multitasking,
-          and long-term stability. Ideal for everyday business workloads.
-        </p>
-        <a class="btn"
-           href="https://www.amazon.com/dp/B0FKBMT1SS/?tag=linearit20-20"
-           target="_blank" rel="noopener noreferrer">
-          View on Amazon
-        </a>
+  <div class="intro">
+    <div class="intro-text">
+      <h2>Why a Mini PC?</h2>
+      <p>For email, browsing, Zoom, Office, and basic work — you don't need a big expensive tower. A mini PC with 16GB RAM and an SSD runs clean and fast for a lot less money.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="fit-box good">
+        <div class="fit-label">✅ Good for</div>
+        <p>Email, web, Office, Zoom, printing, students, home & basic office users.</p>
       </div>
-    </section>
-
-    <!-- MONITOR SECTION -->
-    <section class="section">
-      <h2>Recommended Monitor</h2>
-
-      <div class="card">
-        <h3>Office Productivity Monitor</h3>
-        <p>
-          A modern Curved monitor selected for clarity, comfort, and efficiency during
-          extended work sessions. Great for spreadsheets and daily office use.
-        </p>
-        <a class="btn"
-           href="https://amzn.to/40rdd9I"
-           target="_blank" rel="noopener noreferrer">
-          View on Amazon
-        </a>
+      <div class="fit-box not">
+        <div class="fit-label">✗ Not for</div>
+        <p>Gaming, video editing, AutoCAD, or heavy graphics work.</p>
       </div>
-    </section>
+    </div>
+  </div>
 
-  </main>
+  <h2 class="sec">Everything You Need — 6 Items</h2>
 
-  <footer>
-    <p>
-      As an Amazon Associate, Linear Tech earns from qualifying purchases.
-      Product availability and pricing are subject to change on Amazon.
-    </p>
-  </footer>
+  <section class="products">
+
+    <article class="product-card">
+      <span class="ptag">💻 Computer</span>
+      <h3>Mini PC</h3>
+      <p>Look for 16GB RAM + SSD. Small footprint, quiet, and fast enough for any everyday task.</p>
+      <a class="btn" href="https://www.amazon.com/Beelink-SER5-Computer-Graphics-Support/dp/B0D6G965BC?tag=linearit200a-20&linkCode=ll2&linkId=efba37dfc54769828d04fb4bfefb7c27&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+    </article>
+
+    <article class="product-card">
+      <span class="ptag">🖥️ Display</span>
+      <h3>Monitor</h3>
+      <p>24–27" 1080p IPS. Easy on the eyes, great for docs and video calls.</p>
+      <a class="btn" href="https://www.amazon.com/KOORUI-Business-Computer-Monitor-Display/dp/B09VD9P2Q3?tag=linearit200a-20&linkCode=ll2&linkId=c96c04b0c2828507aff587321f2fa245&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+    </article>
+
+    <article class="product-card">
+      <span class="ptag">⌨️ Input</span>
+      <h3>Keyboard & Mouse</h3>
+      <p>Wireless combo keeps the desk clean. Comfortable for all-day typing.</p>
+      <a class="btn" href="https://www.amazon.com/Logitech-Wireless-Keyboard-SilentTouch-Technology/dp/B089KV4YYX?tag=linearit200a-20&linkCode=ll2&linkId=c96c04b0c2828507aff587321f2fa245&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+    </article>
+
+    <article class="product-card">
+      <span class="ptag">⚡ Protection</span>
+      <h3>Surge Protector</h3>
+      <p>One power spike can kill your whole setup. This is cheap insurance. Don't skip it.</p>
+      <a class="btn" href="https://www.amazon.com/Yintar-Protector-Outlets-Extension-Essentials/dp/B08MTBCXWX?tag=linearit200a-20&linkCode=ll2&linkId=b33c95f264031fa43056d1402f8ffaec&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+    </article>
+
+    <article class="product-card">
+      <span class="ptag">🌐 Internet</span>
+      <h3>Ethernet Cable</h3>
+      <p>Wired beats Wi-Fi for Zoom, updates, and network printing. Simple and reliable.</p>
+      <a class="btn" href="https://www.amazon.com/Amazon-Basics-Ethernet-Internet-Meters/dp/B00N2VIALK?tag=linearit200a-20&linkCode=ll2&linkId=8652187d930fc9dca723ad75304dc808&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+    </article>
+
+    <article class="product-card">
+      <span class="ptag">🎧 Calls</span>
+      <h3>Headset</h3>
+      <p>Better mic pickup and less background noise for Zoom, Teams, and support calls.</p>
+      <a class="btn" href="https://www.amazon.com/Bluetooth-Wireless-Microphone-Computer-Cancelling/dp/B0C48K99FS?tag=linearit200a-20&linkCode=ll2&linkId=7e36523d22cf8dbf8f7dd90e286539d9&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+    </article>
+
+  </section>
+
+  <div class="it-note">
+    <strong>🔧 My IT take</strong>
+    The goal isn't the most powerful PC — it's the right one. 16GB RAM, SSD, good monitor, surge protection. That's all most people actually need.
+  </div>
+
+</main>
+
+<footer>
+  <a href="https://linearit.co">Linear Tech</a> &copy; 2026 &nbsp;|&nbsp; Prices and availability may change on Amazon at any time.
+</footer>
 
 </body>
-
 </html>
