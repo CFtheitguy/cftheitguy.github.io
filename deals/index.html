@@ -81,6 +81,27 @@
     }
     .it-note strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 15px; }
 
+    /* extras toggle */
+    .extras-toggle {
+      margin-top: 28px; width: 100%; background: var(--card);
+      border: 1px solid var(--border); border-radius: var(--r);
+      padding: 18px 22px; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 4px 14px rgba(15,40,90,0.05);
+      transition: box-shadow 0.2s;
+    }
+    .extras-toggle:hover { box-shadow: 0 6px 22px rgba(26,86,219,0.1); }
+    .extras-toggle-left { display: flex; align-items: center; gap: 12px; }
+    .extras-toggle-left span { font-family: 'DM Serif Display', serif; font-size: 19px; color: var(--text); }
+    .extras-toggle-left small { font-size: 13px; color: var(--muted); }
+    .chevron { font-size: 18px; color: var(--brand); transition: transform 0.3s; }
+    .chevron.open { transform: rotate(180deg); }
+
+    .extras-body {
+      display: none; margin-top: 16px;
+    }
+    .extras-body.open { display: block; }
+
     footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
     footer a { color: var(--brand); text-decoration: none; }
 
@@ -174,7 +195,71 @@
     The goal isn't the most powerful PC — it's the right one. 16GB RAM, SSD, good monitor, surge protection. That's all most people actually need.
   </div>
 
+  <!-- EXPANDABLE EXTRAS -->
+  <div class="extras-toggle" onclick="toggleExtras()" id="extrasToggle">
+    <div class="extras-toggle-left">
+      <span>➕ Optional Extras</span>
+      <small>Webcam, USB hub, backup drive &amp; more — click to expand</small>
+    </div>
+    <span class="chevron" id="chevron">▼</span>
+  </div>
+
+  <div class="extras-body" id="extrasBody">
+    <section class="products" style="margin-top:16px;">
+
+      <article class="product-card">
+        <span class="ptag">📷 Video</span>
+        <h3>Webcam</h3>
+        <p>Most mini PCs don't have a built-in camera. A USB webcam is a must for Zoom and Teams calls.</p>
+        <a class="btn" href="https://www.amazon.com/AOC-Microphone-Cancellation-Streaming-Conferencing/dp/B0FQ57MYVH?tag=linearit200a-20&linkCode=ll2&linkId=c1870a691931a1923002ccec0bd3d2b8&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </article>
+
+      <article class="product-card">
+        <span class="ptag">🔌 Ports</span>
+        <h3>USB Hub</h3>
+        <p>Mini PCs have limited ports. A USB hub lets you plug in everything — drives, headsets, chargers.</p>
+        <a class="btn" href="https://www.amazon.com/Amazon-Basics-10Gbps-1xUSB-C-Windows/dp/B0CG53LVZB?tag=linearit200a-20&linkCode=ll2&linkId=fc7d38800827f47cde297812ad2951b9&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </article>
+
+      <article class="product-card">
+        <span class="ptag">💾 Backup</span>
+        <h3>External Hard Drive</h3>
+        <p>Keep a backup of your important files. One drive can save you from losing everything if something goes wrong.</p>
+        <a class="btn" href="https://www.amazon.com/SanDisk-1TB-Extreme-Portable-SDSSDE61-1T00-G25/dp/B08GTYFC37?tag=linearit200a-20&linkCode=ll2&linkId=1aa50156b80049a6f11e11b3312e4cff&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </article>
+
+      <article class="product-card">
+        <span class="ptag">🖨️ Print</span>
+        <h3>Wireless Printer</h3>
+        <p>Print from anywhere on your network. Great for home offices, documents, and forms.</p>
+        <a class="btn" href="https://www.amazon.com/Brother-DCP-L2640DW-Multi-Function-Subscription-Replenishment/dp/B0CPLFTPCV?tag=linearit200a-20&linkCode=ll2&linkId=62da5ab59803ee856686b076ed535bc4&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </article>
+
+      <article class="product-card">
+        <span class="ptag">🔋 Power</span>
+        <h3>UPS Battery Backup</h3>
+        <p>Keeps your PC running during a power outage so you don't lose unsaved work. A smart IT investment.</p>
+        <a class="btn" href="https://www.amazon.com/APC-Battery-Protector-Back-UPS-BE600M1/dp/B01FWAZEIU?tag=linearit200a-20&linkCode=ll2&linkId=7ee9082fb5797fe2c732f52fb8baf3b6&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </article>
+
+      <article class="product-card">
+        <span class="ptag">🖥️ Desk</span>
+        <h3>Monitor Arm</h3>
+        <p>Free up desk space and get the screen at the perfect eye level. Works with most standard monitors.</p>
+        <a class="btn" href="https://www.amazon.com/MOUNTUP-Dual-Monitor-Stand-Adjustable/dp/B07Z7ZM8CJ?tag=linearit200a-20&linkCode=ll2&linkId=ad75a536b7b43a4d27fdbce8a4360b4f&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </article>
+
+    </section>
+  </div>
+
 </main>
+
+<script>
+  function toggleExtras() {
+    document.getElementById('extrasBody').classList.toggle('open');
+    document.getElementById('chevron').classList.toggle('open');
+  }
+</script>
 
 <footer>
   <a href="https://linearit.co">Linear Tech</a> &copy; 2026 &nbsp;|&nbsp; Prices and availability may change on Amazon at any time.
