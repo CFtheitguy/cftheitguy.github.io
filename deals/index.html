@@ -65,6 +65,26 @@
       font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
       margin-bottom: 10px; width: fit-content;
     }
+
+    /* Enterprise card override */
+    .product-card.enterprise {
+      background: linear-gradient(145deg, #0d2d6e 0%, #1a56db 100%);
+      border: 1px solid #1140a6;
+      color: white;
+    }
+    .product-card.enterprise h3 { color: white; }
+    .product-card.enterprise p { color: rgba(255,255,255,0.82); }
+    .product-card.enterprise .ptag {
+      background: rgba(255,255,255,0.15); color: #fff;
+    }
+    .product-card.enterprise:hover { box-shadow: 0 8px 28px rgba(13,45,110,0.35); }
+    .btn-enterprise {
+      display: block; background: white; color: var(--brand-dark);
+      text-align: center; text-decoration: none; font-weight: 700; font-size: 14px;
+      padding: 11px; border-radius: 9px; transition: background 0.15s; margin-top: auto;
+    }
+    .btn-enterprise:hover { background: #e8f0fe; }
+
     .product-card h3 { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 6px; }
     .product-card p { color: var(--muted); font-size: 14px; flex: 1; margin-bottom: 14px; }
     .btn {
@@ -150,7 +170,7 @@
       <span class="ptag">💻 Computer</span>
       <h3>Mini PC</h3>
       <p>Look for 16GB RAM + SSD. Small footprint, quiet, and fast enough for any everyday task.</p>
-      <a class="btn" href="https://www.amazon.com/GMKtec-Upgraded-Computers-M5-Ultra/dp/B0FVX8QDFJ?pd_rd_w=iVlzM&content-id=amzn1.sym.b7645d24-0bdb-4881-82e5-c930d6c0e5ac&pf_rd_p=b7645d24-0bdb-4881-82e5-c930d6c0e5ac&pf_rd_r=5A5QVT76P5EWR41JQNQB&pd_rd_wg=wldaK&pd_rd_r=8980cc33-6bca-497f-92e3-860c22b4fbe8&pd_rd_i=B0FVX8QDFJ&th=1&linkCode=ll2&tag=linearit200a-20&linkId=9b3bf14b94f9953d11ad3522c168e09d&language=en_US&ref_=as_li_ss_tl" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      <a class="btn" href="https://www.amazon.com/Beelink-SER5-Computer-Graphics-Support/dp/B0D6G965BC?tag=linearit200a-20&linkCode=ll2&linkId=efba37dfc54769828d04fb4bfefb7c27&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
     </article>
 
     <article class="product-card">
@@ -189,6 +209,18 @@
     </article>
 
   </section>
+
+  <!-- BUSINESS GRADE CARD — full width below the 6-item grid -->
+  <div style="margin-top:16px;">
+    <article class="product-card enterprise" style="flex-direction:row;align-items:center;gap:24px;padding:22px 28px;">
+      <div style="flex:1;">
+        <span class="ptag">🖥️ Business Grade</span>
+        <h3 style="font-size:20px;margin-bottom:6px;">Professional Workstations</h3>
+        <p style="margin-bottom:0;">In-stock business-grade computers, or we'll configure one specifically for your needs. Contact us and we'll take care of you.</p>
+      </div>
+      <a class="btn-enterprise" href="mailto:support@linearit.co" style="white-space:nowrap;padding:11px 22px;width:auto;">Contact Our Team →</a>
+    </article>
+  </div>
 
   <div class="it-note">
     <strong>🔧 My IT take</strong>
