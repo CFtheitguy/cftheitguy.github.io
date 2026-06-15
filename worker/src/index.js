@@ -77,8 +77,8 @@ export default {
       if (p === "/sms/status") return new Response("", { status: 200 });
 
       // ---------- Softphone API ----------
-      if (p === "/api/login")  return cors(env, await login(request, env));
-      if (p === "/api/token")  return cors(env, await requireAuth(request, env, () => mintRtcToken(env)));
+      if (p === "/api/login")     return cors(env, await login(request, env));
+      if (p === "/api/sip-creds") return cors(env, await requireAuth(request, env, () => getSipCreds(env)));
       if (p === "/api/threads")     return cors(env, await requireAuth(request, env, () => listThreads(env)));
       if (p === "/api/thread")      return cors(env, await requireAuth(request, env, () => getThread(env, url)));
       if (p === "/api/thread/read") return cors(env, await requireAuth(request, env, () => markRead(request, env)));
@@ -155,15 +155,19 @@ function routeDigits(digits, url, env) {
 </Response>`;
 }
 
-// Step 1: ring the browser app (18s). If no answer → /ivr/cell-fallback
+// Step 1: ring the browser SIP endpoint (18s). If no answer → /ivr/cell-fallback
+// SignalWire cXML uses <Sip>, not <Client> (which is Twilio-only).
 function dialBrowserFirst(message, env, url) {
-  const resource = env.RELAY_RESOURCE || "linearphone";
+  const sipUser = env.WEBPHONE_SIP_USER || "ipad1";
+  const sipDomain = env.WEBPHONE_SIP_DOMAIN || "";
   const fallback = xmlEscape(new URL("/ivr/cell-fallback", url.origin).toString());
+  if (!sipDomain) return dialCell(env, url); // skip to cell if SIP not configured
+  const sipUri = xmlEscape(`sip:${sipUser}@${sipDomain}`);
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   ${saySsml(message)}
   <Dial timeout="18" action="${fallback}" method="POST" answerOnBridge="true">
-    <Client>${xmlEscape(resource)}</Client>
+    <Sip>${sipUri}</Sip>
   </Dial>
 </Response>`;
 }
@@ -310,7 +314,15 @@ function swBase(env) {
   return `https://${host}`;
 }
 
-// Mint a RELAY JWT for the browser SDK (short-lived, safe to expose).
+// Return SIP credentials for the browser JsSIP client (protected by bearer auth).
+async function getSipCreds(env) {
+  return json({
+    user:     env.WEBPHONE_SIP_USER || "ipad1",
+    domain:   env.WEBPHONE_SIP_DOMAIN || "",
+    password: env.WEBRTC_PASSWORD || "",
+  });
+}
+
 async function mintRtcToken(env) {
   const body = new URLSearchParams();
   const resource = env.RELAY_RESOURCE || "linearphone";

@@ -31,8 +31,8 @@
     },
     logout: () => setToken(""),
 
-    // Realtime token for the WebRTC browser client
-    rtcToken: () => req("/api/token", { method: "POST" }),
+    // SIP credentials for the browser WebRTC softphone
+    sipCreds: () => req("/api/sip-creds"),
 
     // Messaging
     threads: () => req("/api/threads"),

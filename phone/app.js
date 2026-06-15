@@ -329,7 +329,7 @@
   function initVoice() {
     Voice.init({
       remoteAudio: $("#remoteAudio"),
-      getRtcToken: () => API.rtcToken(),
+      getSipCreds: () => API.sipCreds(),
       myNumber: CFG.MY_NUMBER,
       onStatus: (status) => {
         const el = $("#phoneStatus");
