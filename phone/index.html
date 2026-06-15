@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Linear Phone</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="icon" href="/favicon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: {
+      brand: { DEFAULT: '#2563eb', dark: '#1d4ed8' },
+      ink: { DEFAULT: '#0b1220', soft: '#1e293b' }
+    }}}};
+  </script>
+  <style>
+    html, body { height: 100%; overscroll-behavior: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+      letter-spacing: 0.1px;
+    }
+    /* 16px inputs prevent iOS Safari from zooming when a field is focused */
+    input, textarea, select, button { font-size: 16px; }
+    /* comfortable, low-glare surfaces */
+    .panel { background: #ffffff; }
+    main { background: #f6f7f9; }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    .dialkey { transition: transform .05s ease, background-color .15s ease; }
+    .dialkey:active { transform: scale(0.94); }
+    .bubble-out { border-radius: 18px 18px 4px 18px; }
+    .bubble-in  { border-radius: 18px 18px 18px 4px; }
+    .tab-active { color: #2563eb; }
+    /* hide scrollbars but keep scroll */
+    .noscroll::-webkit-scrollbar { display: none; }
+    .noscroll { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes ringpulse { 0%,100% { transform: scale(1); opacity:1 } 50% { transform: scale(1.06); opacity:.85 } }
+    .ringing { animation: ringpulse 1.2s infinite; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+
+<!-- ========================= LOGIN ========================= -->
+<section id="loginScreen" class="fixed inset-0 z-40 flex items-center justify-center bg-ink p-6">
+  <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl p-6">
+    <div class="flex items-center gap-3 mb-5">
+      <div class="w-11 h-11 rounded-xl bg-brand text-white grid place-items-center text-xl">☎</div>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">Linear Phone</h1>
+        <p class="text-xs text-slate-500">Sign in to your line</p>
+      </div>
+    </div>
+    <label class="block text-sm font-medium mb-1">Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password"
+           class="w-full border rounded-xl px-3 py-2.5 mb-3 focus:outline-none focus:ring-2 focus:ring-brand"
+           placeholder="Your passphrase" />
+    <button id="loginBtn" class="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl px-4 py-2.5">
+      Sign in
+    </button>
+    <p id="loginMsg" class="text-sm mt-3 text-center text-slate-500"></p>
+  </div>
+</section>
+
+<!-- ========================= APP SHELL ========================= -->
+<div id="app" class="hidden max-w-2xl mx-auto min-h-screen flex flex-col bg-white shadow-sm">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-lg bg-brand text-white grid place-items-center">☎</div>
+      <div>
+        <div class="font-bold leading-tight">Linear Phone</div>
+        <div id="myNumberLabel" class="text-[11px] text-slate-500">—</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="phoneStatus" class="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-500">connecting…</span>
+      <button id="logoutBtn" class="text-slate-400 hover:text-slate-700" title="Sign out">⏻</button>
+    </div>
+  </header>
+
+  <!-- Main panels -->
+  <main class="flex-1 overflow-hidden relative">
+
+    <!-- MESSAGES -->
+    <section data-panel="messages" class="panel absolute inset-0 flex flex-col">
+      <!-- conversation list -->
+      <div id="threadList" class="flex-1 overflow-y-auto noscroll"></div>
+      <!-- thread view (slides over) -->
+      <div id="threadView" class="hidden absolute inset-0 bg-white flex flex-col">
+        <div class="border-b px-3 py-2 flex items-center gap-2">
+          <button id="threadBack" class="px-2 py-1 text-brand">‹ Back</button>
+          <div class="flex-1 min-w-0">
+            <div id="threadTitle" class="font-semibold truncate">—</div>
+            <div id="threadSub" class="text-[11px] text-slate-500 truncate"></div>
+          </div>
+          <button id="threadCall" class="px-2 py-1 text-brand" title="Call">📞</button>
+        </div>
+        <div id="threadMessages" class="flex-1 overflow-y-auto noscroll px-3 py-3 space-y-1.5 bg-slate-50"></div>
+        <form id="composer" class="border-t p-2 flex items-end gap-2 safe-bottom">
+          <textarea id="composerInput" rows="1" placeholder="Text message"
+            class="flex-1 resize-none border rounded-2xl px-3 py-2 max-h-32 focus:outline-none focus:ring-2 focus:ring-brand"></textarea>
+          <button type="submit" class="bg-brand text-white rounded-full w-10 h-10 grid place-items-center shrink-0">➤</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- CALLS -->
+    <section data-panel="calls" class="panel hidden absolute inset-0 overflow-y-auto noscroll">
+      <div id="callList" class="divide-y"></div>
+    </section>
+
+    <!-- VOICEMAIL -->
+    <section data-panel="voicemail" class="panel hidden absolute inset-0 overflow-y-auto noscroll">
+      <div id="vmList" class="divide-y"></div>
+    </section>
+
+    <!-- DIALER -->
+    <section data-panel="dialer" class="panel hidden absolute inset-0 flex flex-col items-center justify-between p-5">
+      <div class="w-full max-w-xs mt-4">
+        <input id="dialInput" inputmode="tel" placeholder="Enter a number"
+          class="w-full text-center text-2xl tracking-wide py-2 border-b focus:outline-none" />
+        <div id="dialMatch" class="text-center text-xs text-slate-500 h-4 mt-1"></div>
+      </div>
+      <div class="grid grid-cols-3 gap-4 my-2">
+        <!-- keys injected by JS -->
+      </div>
+      <div class="w-full max-w-xs flex items-center justify-center gap-6 mb-2 safe-bottom">
+        <button id="dialCall" class="bg-green-500 hover:bg-green-600 text-white rounded-full w-16 h-16 grid place-items-center text-2xl shadow-lg">📞</button>
+        <button id="dialBack" class="text-slate-400 text-2xl w-12 h-12">⌫</button>
+      </div>
+    </section>
+
+    <!-- CONTACTS -->
+    <section data-panel="contacts" class="panel hidden absolute inset-0 flex flex-col">
+      <div class="p-3 border-b flex gap-2">
+        <input id="contactSearch" placeholder="Search contacts" class="flex-1 border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+        <button id="contactAdd" class="bg-brand text-white rounded-xl px-3">＋</button>
+      </div>
+      <div id="contactList" class="flex-1 overflow-y-auto noscroll divide-y"></div>
+    </section>
+
+  </main>
+
+  <!-- Bottom navigation -->
+  <nav class="sticky bottom-0 z-20 bg-white border-t grid grid-cols-5 safe-bottom">
+    <button data-nav="messages" class="navbtn py-2.5 flex flex-col items-center gap-0.5 text-[11px] text-slate-500">
+      <span class="text-xl">💬</span>Messages</button>
+    <button data-nav="calls" class="navbtn py-2.5 flex flex-col items-center gap-0.5 text-[11px] text-slate-500">
+      <span class="text-xl">🕘</span>Calls</button>
+    <button data-nav="dialer" class="navbtn py-2.5 flex flex-col items-center gap-0.5 text-[11px] text-slate-500">
+      <span class="text-xl">⌨️</span>Dial</button>
+    <button data-nav="voicemail" class="navbtn py-2.5 flex flex-col items-center gap-0.5 text-[11px] text-slate-500">
+      <span class="text-xl">📩</span>Voicemail</button>
+    <button data-nav="contacts" class="navbtn py-2.5 flex flex-col items-center gap-0.5 text-[11px] text-slate-500">
+      <span class="text-xl">👤</span>Contacts</button>
+  </nav>
+</div>
+
+<!-- ========================= IN-CALL OVERLAY ========================= -->
+<div id="callOverlay" class="hidden fixed inset-0 z-50 bg-ink text-white flex-col items-center justify-between p-8">
+  <div class="mt-16 text-center">
+    <div id="callAvatar" class="w-24 h-24 rounded-full bg-slate-700 grid place-items-center text-4xl mx-auto mb-4">👤</div>
+    <div id="callName" class="text-2xl font-semibold">—</div>
+    <div id="callState" class="text-slate-400 mt-1">Calling…</div>
+    <div id="callTimer" class="text-slate-300 mt-2 text-lg tabular-nums"></div>
+  </div>
+  <div class="w-full max-w-xs">
+    <div id="callControls" class="grid grid-cols-3 gap-5 mb-8">
+      <button data-cc="mute" class="cc flex flex-col items-center gap-1 text-sm text-slate-300"><span class="w-14 h-14 rounded-full bg-slate-700 grid place-items-center text-xl">🔇</span>Mute</button>
+      <button data-cc="keypad" class="cc flex flex-col items-center gap-1 text-sm text-slate-300"><span class="w-14 h-14 rounded-full bg-slate-700 grid place-items-center text-xl">⌨️</span>Keypad</button>
+      <button data-cc="speaker" class="cc flex flex-col items-center gap-1 text-sm text-slate-300"><span class="w-14 h-14 rounded-full bg-slate-700 grid place-items-center text-xl">🔊</span>Speaker</button>
+    </div>
+    <div id="incomingActions" class="hidden grid grid-cols-2 gap-6 mb-6">
+      <button id="declineBtn" class="bg-red-500 rounded-full h-16 grid place-items-center text-2xl">✕</button>
+      <button id="acceptBtn" class="bg-green-500 rounded-full h-16 grid place-items-center text-2xl ringing">📞</button>
+    </div>
+    <div id="activeActions" class="flex justify-center mb-6">
+      <button id="hangupBtn" class="bg-red-500 rounded-full w-16 h-16 grid place-items-center text-2xl">📞</button>
+    </div>
+  </div>
+</div>
+
+<!-- audio sink for remote party -->
+<audio id="remoteAudio" autoplay playsinline></audio>
+
+<!-- ========================= CONTACT EDIT MODAL ========================= -->
+<div id="contactModal" class="hidden fixed inset-0 z-50 bg-black/40 grid place-items-center p-6">
+  <div class="bg-white rounded-2xl p-5 w-full max-w-sm">
+    <h3 class="font-bold mb-3" id="contactModalTitle">New contact</h3>
+    <input id="cName" placeholder="Name" class="w-full border rounded-xl px-3 py-2 mb-2" />
+    <input id="cNumber" inputmode="tel" placeholder="Phone number" class="w-full border rounded-xl px-3 py-2 mb-3" />
+    <input type="hidden" id="cId" />
+    <div class="flex justify-between">
+      <button id="cDelete" class="text-red-500 px-3 py-2">Delete</button>
+      <div class="flex gap-2">
+        <button id="cCancel" class="px-3 py-2">Cancel</button>
+        <button id="cSave" class="bg-brand text-white rounded-xl px-4 py-2">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div id="toast" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-ink text-white text-sm px-4 py-2 rounded-full shadow-lg"></div>
+
+<!-- SignalWire RELAY browser SDK (WebRTC calling). Pinned to the v1 line. -->
+<script src="https://unpkg.com/@signalwire/js@1.5.1-rc.5/dist/index.min.js"></script>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="voice.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
