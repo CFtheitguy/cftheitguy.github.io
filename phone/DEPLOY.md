@@ -61,15 +61,23 @@ You'll do four things:
 
 ## 3) Point SignalWire at the Worker
 
+Your **voice / IVR is already wired** to this worker at `…/ivr` and keeps working
+unchanged — you do **not** need to touch the "When a Call Comes In" setting.
+
+You only need to add the **messaging** webhook so inbound texts reach the app.
 In SignalWire → **Phone Numbers** → **845-604-2025** → **Edit Settings**:
 
-- **Voice — Accept Incoming Calls As:** Voice Calls
-- **Handle Calls Using:** **LaML Webhooks**
-  - **When a Call Comes In:** `https://api.linearit.co/voice` (POST)
 - **Messaging — Handle Messages Using:** **LaML Webhooks**
-  - **When a Message Comes In:** `https://api.linearit.co/sms/inbound` (POST)
+  - **When a Message Comes In:**
+    - `https://api.linearit.co/sms/inbound` (POST) — if you added the custom domain in step 2.5, **or**
+    - `https://linear-ivr.friedmanchaimhersh.workers.dev/sms/inbound` (POST) — to use the worker's existing URL.
 
-**Save.** Texting and the IVR now work, and the app can place outbound calls.
+**Save.** Texting now works, and the app can place outbound calls.
+
+> Tip: if you skip the custom domain (step 2.5), set `API_BASE` in
+> `phone/config.js` to `https://linear-ivr.friedmanchaimhersh.workers.dev`
+> and the SMS webhook to that same host. Everything still works — the app
+> uses bearer tokens, not cookies, so cross-domain is fine.
 
 ## 4) Turn on the app
 

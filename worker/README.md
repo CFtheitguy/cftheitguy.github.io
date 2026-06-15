@@ -2,8 +2,10 @@
 
 The API + IVR for the Linear Phone softphone. One Cloudflare Worker handles:
 
-- **SignalWire webhooks** — inbound voice IVR (`/voice`), inbound SMS
-  (`/sms/inbound`), call status (`/voice/status`), voicemail (`/voice/voicemail`).
+- **The existing IVR** (`/ivr`, `/ivr/menu`, `/ivr/vm`) — preserved verbatim;
+  all options ring the cell. Voicemail (`/ivr/vm`) now also saves to D1 so it
+  appears in the app.
+- **Inbound SMS** (`/sms/inbound`) — saves incoming texts.
 - **Softphone API** (`/api/*`) — login, texting, calls, contacts, voicemail.
 - **WebRTC token** (`/api/token`) — mints a SignalWire RELAY JWT for the browser.
 
@@ -18,9 +20,10 @@ Full step-by-step (dashboard / iPad friendly): **[`../phone/DEPLOY.md`](../phone
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/voice` | SignalWire | Inbound call IVR (LaML) |
-| POST | `/voice/status` | SignalWire | Call status → call log |
-| POST | `/voice/voicemail` | SignalWire | Save voicemail + missed call |
+| GET | `/` | — | Health check (`Linear Tech IVR Online`) |
+| POST | `/ivr` | SignalWire | Inbound call greeting + menu (LaML) |
+| POST | `/ivr/menu` | SignalWire | Route the pressed digit |
+| POST | `/ivr/vm` | SignalWire | Voicemail thanks + save to D1 |
 | POST | `/sms/inbound` | SignalWire | Save inbound text |
 | POST | `/api/login` | — | Returns a 30-day bearer token |
 | POST | `/api/token` | Bearer | Mint RELAY JWT for the browser |
