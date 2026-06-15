@@ -2,10 +2,10 @@
 // Edit these two values to match your deployment.
 window.LINEAR_PHONE_CONFIG = {
   // Base URL of your Cloudflare Worker API.
-  // Recommended: map the linear-ivr worker to a custom domain (api.linearit.co)
-  // so the softphone and API share a registrable domain (best for Safari/iPad).
-  // You can also use the raw workers.dev URL during testing.
-  API_BASE: "https://api.linearit.co",
+  // Using the worker's built-in URL (works immediately, no DNS setup).
+  // If you later map the worker to a custom domain (e.g. api.linearit.co),
+  // change this to that and update ALLOW_ORIGIN on the worker to match.
+  API_BASE: "https://linear-ivr.friedmanchaimhersh.workers.dev",
 
   // Your SignalWire phone number in E.164 format (this is the caller ID for
   // outbound calls and the "From" for texts). 845-604-2025:
