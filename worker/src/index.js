@@ -1,79 +1,229 @@
 /**
- * Linear Phone — Cloudflare Worker API + SignalWire IVR
- * =====================================================
- * One worker that does three jobs:
- *   1. SignalWire webhooks  (inbound voice IVR, inbound SMS, status callbacks)
- *   2. Softphone API        (/api/* — auth, texting, calls, contacts, voicemail)
- *   3. WebRTC token minting  (/api/token — subscriber token for the browser SDK)
+ * Linear Tech — IVR + Linear Phone softphone API
+ * ==============================================
+ * One Cloudflare Worker, three jobs:
+ *   1. The existing professional IVR (paths /ivr, /ivr/menu, /ivr/vm) — preserved
+ *      verbatim; all menu options route to the cell. Voicemail is now also saved
+ *      to D1 so it shows up in the Linear Phone app.
+ *   2. Softphone API (/api/*) — login, texting, calls, contacts, voicemail.
+ *   3. WebRTC token (/api/token) — mints a SignalWire RELAY JWT for the browser.
  *
  * Paste this whole file into Cloudflare → Workers → linear-ivr → Edit code.
- * Configure bindings/secrets in Settings (see worker/README.md).
  *
- * Required bindings:
- *   DB                    D1 database  (run worker/schema.sql first)
- * Required secrets (Settings → Variables and Secrets):
- *   SIGNALWIRE_SPACE      e.g. yourspace.signalwire.com
- *   SIGNALWIRE_PROJECT    SignalWire Project ID (UUID)
- *   SIGNALWIRE_TOKEN      SignalWire API token  (PT...)
- *   SIGNALWIRE_NUMBER     +18456042025
- *   APP_PASSWORD          the password you type on the login screen
- *   AUTH_SECRET           a long random string used to sign session tokens
- *   ALLOW_ORIGIN          https://linearit.co   (or https://www.linearit.co)
- * Optional secrets:
- *   RELAY_CONTEXT         RELAY context name for inbound browser calls (e.g. "linearphone")
- *   FORWARD_NUMBER        fallback cell to ring on inbound (e.g. +1845...)
- *   SIP_ADDRESS           SIP address to ring on inbound, instead of FORWARD_NUMBER
+ * The voice webhook on your number stays the same (…/ivr) — nothing to change
+ * there. To enable texting + the app, add the bindings/secrets in phone/DEPLOY.md.
+ *
+ * Bindings:  DB  (D1 database — optional for IVR, required for app)
+ * Secrets (app only):
+ *   SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT, SIGNALWIRE_TOKEN, SIGNALWIRE_NUMBER,
+ *   APP_PASSWORD, AUTH_SECRET, ALLOW_ORIGIN
+ *   (optional) RELAY_CONTEXT
  */
 
+// ===== CONFIGURATION (existing IVR) =====
+const CELL_NUMBER = "+18456041462";
+const VOICE = "Polly.Kendra";
+const LANGUAGE = "en-US";
+const SPEECH_RATE = "99%";
+const DIAL_TIMEOUT_SECONDS = 60;
+
+// ===== BUSINESS HOURS =====
+const BUSINESS_TIMEZONE = "America/New_York";
+const BUSINESS_DAYS_MON_THU = new Set(["Mon", "Tue", "Wed", "Thu"]);
+const BUSINESS_DAY_FRI = "Fri";
+const MON_THU_START_HOUR = 9;
+const MON_THU_END_HOUR = 17;
+const FRI_START_HOUR = 9;
+const FRI_END_HOUR = 13;
+
+// ===== WORKER ENTRYPOINT =====
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const path = url.pathname;
+    const p = url.pathname;
 
-    // ---- CORS preflight ----
+    // CORS preflight for the app
     if (request.method === "OPTIONS") return cors(env, new Response(null, { status: 204 }));
 
     try {
-      // ===== SignalWire webhooks (no app-auth; verified by SignalWire signature optionally) =====
-      if (path === "/voice" || path === "/") return await voiceWebhook(request, env, path);
-      if (path === "/voice/status") return await voiceStatus(request, env);
-      if (path === "/voice/voicemail") return await voicemailWebhook(request, env);
-      if (path === "/sms/inbound") return await smsInbound(request, env);
-      if (path === "/sms/status") return new Response("", { status: 200 });
+      // ---------- Existing IVR (unchanged behavior) ----------
+      if (p === "/" && request.method === "GET") {
+        return new Response("Linear Tech IVR Online", { status: 200, headers: { "Content-Type": "text/plain" } });
+      }
+      if (p === "/ivr" && request.method === "POST") {
+        return twimlResponse(renderIvr(url));
+      }
+      if (p === "/ivr/menu" && request.method === "POST") {
+        const form = await request.formData();
+        const digits = (form.get("Digits") || "").toString().trim();
+        return twimlResponse(routeDigits(digits, url));
+      }
+      if (p === "/ivr/vm" && request.method === "POST") {
+        const form = await request.formData();
+        ctx.waitUntil(saveVoicemail(env, form)); // store for the app, don't delay the caller
+        return twimlResponse(renderVmThanks());
+      }
 
-      // ===== Softphone API =====
-      if (path === "/api/login")  return cors(env, await login(request, env));
-      if (path === "/api/token")  return cors(env, await requireAuth(request, env, () => mintRtcToken(env)));
+      // ---------- Inbound SMS ----------
+      if (p === "/sms/inbound" && request.method === "POST") return smsInbound(request, env);
+      if (p === "/sms/status") return new Response("", { status: 200 });
 
-      if (path === "/api/threads")     return cors(env, await requireAuth(request, env, () => listThreads(env)));
-      if (path === "/api/thread")      return cors(env, await requireAuth(request, env, () => getThread(env, url)));
-      if (path === "/api/thread/read") return cors(env, await requireAuth(request, env, () => markRead(request, env)));
-      if (path === "/api/sms/send")    return cors(env, await requireAuth(request, env, () => sendSms(request, env)));
-
-      if (path === "/api/calls" && request.method === "GET")  return cors(env, await requireAuth(request, env, () => listCalls(env)));
-      if (path === "/api/calls" && request.method === "POST") return cors(env, await requireAuth(request, env, () => logCall(request, env)));
-
-      if (path === "/api/voicemail") return cors(env, await requireAuth(request, env, () => listVoicemail(env)));
-
-      if (path === "/api/contacts" && request.method === "GET")  return cors(env, await requireAuth(request, env, () => listContacts(env)));
-      if (path === "/api/contacts" && request.method === "POST") return cors(env, await requireAuth(request, env, () => saveContact(request, env)));
-      if (path === "/api/contacts/delete") return cors(env, await requireAuth(request, env, () => deleteContact(request, env)));
+      // ---------- Softphone API ----------
+      if (p === "/api/login")  return cors(env, await login(request, env));
+      if (p === "/api/token")  return cors(env, await requireAuth(request, env, () => mintRtcToken(env)));
+      if (p === "/api/threads")     return cors(env, await requireAuth(request, env, () => listThreads(env)));
+      if (p === "/api/thread")      return cors(env, await requireAuth(request, env, () => getThread(env, url)));
+      if (p === "/api/thread/read") return cors(env, await requireAuth(request, env, () => markRead(request, env)));
+      if (p === "/api/sms/send")    return cors(env, await requireAuth(request, env, () => sendSms(request, env)));
+      if (p === "/api/calls" && request.method === "GET")  return cors(env, await requireAuth(request, env, () => listCalls(env)));
+      if (p === "/api/calls" && request.method === "POST") return cors(env, await requireAuth(request, env, () => logCall(request, env)));
+      if (p === "/api/voicemail")   return cors(env, await requireAuth(request, env, () => listVoicemail(env)));
+      if (p === "/api/contacts" && request.method === "GET")  return cors(env, await requireAuth(request, env, () => listContacts(env)));
+      if (p === "/api/contacts" && request.method === "POST") return cors(env, await requireAuth(request, env, () => saveContact(request, env)));
+      if (p === "/api/contacts/delete") return cors(env, await requireAuth(request, env, () => deleteContact(request, env)));
 
       return cors(env, json({ error: "Not found" }, 404));
     } catch (err) {
       return cors(env, json({ error: String(err && err.message || err) }, 500));
     }
-  },
+  }
 };
 
 /* ============================================================
- * Helpers
+ * EXISTING IVR — preserved
+ * ============================================================ */
+function renderIvr(url) {
+  const action = new URL("/ivr/menu", url.origin).toString();
+  const inHours = isBusinessHoursNow();
+
+  const businessGreeting = `
+    Thank you for calling Linear Tech.
+    For support, press 1.
+    For sales, press 2.
+    For billing, press 3.
+    Or stay on the line to speak with someone.
+  `;
+  const afterHoursGreeting = `
+    Thank you for calling Linear Tech.
+    Our office is currently closed.
+    If your request is important, please send an email to support at linearit dot co.
+    Please leave your name, callback number, and a brief message after the tone.
+  `;
+  const sayText = inHours ? businessGreeting : afterHoursGreeting;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather action="${xmlEscape(action)}" method="POST" numDigits="1" timeout="5">
+    ${saySsml(sayText)}
+  </Gather>
+  <Redirect method="POST">${xmlEscape(action)}</Redirect>
+</Response>`;
+}
+
+function routeDigits(digits, url) {
+  const back = xmlEscape(new URL("/ivr", url.origin).toString());
+  const inHours = isBusinessHoursNow();
+
+  if (!digits) {
+    if (inHours) {
+      return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Please hold while we connect your call.", back);
+    }
+    return renderVmPrompt(url, "Please leave a message after the tone.");
+  }
+
+  if (digits === "9") {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Redirect method="POST">${back}</Redirect>
+</Response>`;
+  }
+
+  if (inHours) {
+    if (digits === "1") return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Connecting support.", back);
+    if (digits === "2") return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Connecting sales.", back);
+    if (digits === "3") return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Connecting billing.", back);
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${saySsml("Sorry, that is not a valid option.")}
+  <Redirect method="POST">${back}</Redirect>
+</Response>`;
+}
+
+function dial(target, message, back) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${saySsml(message)}
+  <Dial timeout="${DIAL_TIMEOUT_SECONDS}" answerOnBridge="true">
+    ${target}
+  </Dial>
+  ${saySsml("We were unable to connect your call.")}
+  <Redirect method="POST">${back}</Redirect>
+</Response>`;
+}
+
+function renderVmPrompt(url, promptText) {
+  const vmCallback = new URL("/ivr/vm", url.origin).toString();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${saySsml(promptText)}
+  <Record method="POST" action="${xmlEscape(vmCallback)}" maxLength="120" transcribe="true" transcribeCallback="${xmlEscape(vmCallback)}" />
+</Response>`;
+}
+
+function renderVmThanks() {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${saySsml("Your message has been recorded. Thank you for calling Linear Tech. Goodbye.")}
+  <Hangup/>
+</Response>`;
+}
+
+function isBusinessHoursNow() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BUSINESS_TIMEZONE, weekday: "short", hour: "2-digit", hour12: false
+  }).formatToParts(new Date());
+  const weekday = parts.find(p => p.type === "weekday")?.value;
+  const hour = Number(parts.find(p => p.type === "hour")?.value);
+  if (!weekday || Number.isNaN(hour)) return true;
+  if (BUSINESS_DAYS_MON_THU.has(weekday)) return hour >= MON_THU_START_HOUR && hour < MON_THU_END_HOUR;
+  if (weekday === BUSINESS_DAY_FRI) return hour >= FRI_START_HOUR && hour < FRI_END_HOUR;
+  return false;
+}
+
+function saySsml(text) {
+  return `<Say voice="${VOICE}" language="${LANGUAGE}">
+    <speak><prosody rate="${SPEECH_RATE}">${xmlEscape(normalizeSpeech(text))}</prosody></speak>
+  </Say>`;
+}
+function normalizeSpeech(text) { return String(text).replace(/\s+/g, " ").trim(); }
+function twimlResponse(xml) { return new Response(xml, { status: 200, headers: { "Content-Type": "text/xml" } }); }
+function xmlEscape(str) {
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+// Save a voicemail (and missed call) so it appears in the app. Best-effort.
+async function saveVoicemail(env, form) {
+  if (!env.DB) return;
+  const number = e164(form.get("From") || form.get("Caller") || "");
+  let url = (form.get("RecordingUrl") || "").toString();
+  if (url && !/\.(mp3|wav)$/i.test(url)) url += ".mp3";
+  const transcript = (form.get("TranscriptionText") || "").toString() || null;
+  const sid = (form.get("CallSid") || "").toString() || null;
+  try {
+    await env.DB.prepare("INSERT INTO voicemail (number, recording_url, transcript, sid) VALUES (?,?,?,?)")
+      .bind(number, url || null, transcript, sid).run();
+    await env.DB.prepare("INSERT INTO calls (number, direction, status, sid) VALUES (?, 'in', 'missed', ?)")
+      .bind(number, sid).run();
+  } catch (_) {}
+}
+
+/* ============================================================
+ * Shared helpers
  * ============================================================ */
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json" } });
-
-const xml = (body) =>
-  new Response(`<?xml version="1.0" encoding="UTF-8"?>${body}`, { headers: { "Content-Type": "text/xml" } });
 
 function cors(env, res) {
   const h = new Headers(res.headers);
@@ -112,7 +262,7 @@ async function hmac(env, data) {
   return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 async function makeToken(env) {
-  const payload = btoa(JSON.stringify({ exp: Date.now() + 1000 * 60 * 60 * 24 * 30 })); // 30 days
+  const payload = btoa(JSON.stringify({ exp: Date.now() + 1000 * 60 * 60 * 24 * 30 }));
   return payload + "." + (await hmac(env, payload));
 }
 async function verifyToken(env, token) {
@@ -129,8 +279,7 @@ async function login(request, env) {
   return json({ token: await makeToken(env) });
 }
 async function requireAuth(request, env, handler) {
-  const auth = request.headers.get("Authorization") || "";
-  const token = auth.replace(/^Bearer\s+/i, "");
+  const token = (request.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
   if (!(await verifyToken(env, token))) return json({ error: "Unauthorized" }, 401);
   return await handler();
 }
@@ -138,28 +287,17 @@ async function requireAuth(request, env, handler) {
 /* ============================================================
  * SignalWire REST helpers
  * ============================================================ */
-function swAuth(env) {
-  return "Basic " + btoa(`${env.SIGNALWIRE_PROJECT}:${env.SIGNALWIRE_TOKEN}`);
-}
+function swAuth(env) { return "Basic " + btoa(`${env.SIGNALWIRE_PROJECT}:${env.SIGNALWIRE_TOKEN}`); }
 function swBase(env) {
-  // SIGNALWIRE_SPACE may be "space.signalwire.com" or a full host
   const host = String(env.SIGNALWIRE_SPACE).replace(/^https?:\/\//, "").replace(/\/$/, "");
   return `https://${host}`;
 }
 
-/* ============================================================
- * WebRTC token  (/api/token)
- * ------------------------------------------------------------
- * Mints a RELAY JWT the browser SDK uses to connect and place/
- * receive WebRTC calls. JWTs are short-lived (default 15 min) and
- * safe to expose to the browser. The frontend re-requests as needed.
- *   POST /api/relay/rest/jwt  (Basic auth: ProjectID:APIToken)
- *   -> { jwt_token, refresh_token }
- * ============================================================ */
+// Mint a RELAY JWT for the browser SDK (short-lived, safe to expose).
 async function mintRtcToken(env) {
   const body = new URLSearchParams();
-  if (env.RELAY_CONTEXT) body.set("resource", env.RELAY_CONTEXT); // inbound context (optional)
-  body.set("expires_in", "3600"); // seconds (1h)
+  if (env.RELAY_CONTEXT) body.set("resource", env.RELAY_CONTEXT);
+  body.set("expires_in", "3600");
   const res = await fetch(`${swBase(env)}/api/relay/rest/jwt`, {
     method: "POST",
     headers: { Authorization: swAuth(env), "Content-Type": "application/x-www-form-urlencoded" },
@@ -167,7 +305,6 @@ async function mintRtcToken(env) {
   });
   if (!res.ok) return json({ error: `Token mint failed (${res.status}): ${await res.text()}` }, 502);
   const data = await res.json();
-  // The browser only needs the JWT; keep refresh_token server-side.
   return json({ token: data.jwt_token, project: env.SIGNALWIRE_PROJECT });
 }
 
@@ -193,19 +330,17 @@ async function sendSms(request, env) {
 async function smsInbound(request, env) {
   const f = await readForm(request);
   const from = e164(f.From);
-  await env.DB.prepare("INSERT INTO messages (number, direction, body, sid, is_read) VALUES (?, 'in', ?, ?, 0)")
-    .bind(from, f.Body || "", f.MessageSid || null).run();
-  return xml("<Response></Response>");
+  if (env.DB) {
+    await env.DB.prepare("INSERT INTO messages (number, direction, body, sid, is_read) VALUES (?, 'in', ?, ?, 0)")
+      .bind(from, f.Body || "", f.MessageSid || null).run();
+  }
+  return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', { headers: { "Content-Type": "text/xml" } });
 }
 
 async function listThreads(env) {
-  // latest message per number + unread count
   const rows = await env.DB.prepare(`
-    SELECT m.number,
-           m.body  AS last_body,
-           m.direction AS last_dir,
-           m.created_at AS last_at,
-           (SELECT COUNT(*) FROM messages u WHERE u.number = m.number AND u.direction='in' AND u.is_read=0) AS unread
+    SELECT m.number, m.body AS last_body, m.direction AS last_dir, m.created_at AS last_at,
+           (SELECT COUNT(*) FROM messages u WHERE u.number=m.number AND u.direction='in' AND u.is_read=0) AS unread
     FROM messages m
     JOIN (SELECT number, MAX(id) AS mid FROM messages GROUP BY number) t ON t.mid = m.id
     ORDER BY m.created_at DESC
@@ -213,7 +348,6 @@ async function listThreads(env) {
   const threads = (rows.results || []).map(r => ({ ...r, unread: r.unread > 0 }));
   return json({ threads });
 }
-
 async function getThread(env, url) {
   const number = e164(url.searchParams.get("number"));
   const rows = await env.DB.prepare(
@@ -221,7 +355,6 @@ async function getThread(env, url) {
   ).bind(number).all();
   return json({ messages: rows.results || [] });
 }
-
 async function markRead(request, env) {
   const { number } = await readForm(request);
   await env.DB.prepare("UPDATE messages SET is_read=1 WHERE number=? AND direction='in'").bind(e164(number)).run();
@@ -239,9 +372,8 @@ async function listCalls(env) {
 }
 async function logCall(request, env) {
   const c = await readForm(request);
-  await env.DB.prepare(
-    "INSERT INTO calls (number, direction, status, duration, sid) VALUES (?,?,?,?,?)"
-  ).bind(e164(c.number), c.direction || "out", c.status || "completed", c.duration || 0, c.sid || null).run();
+  await env.DB.prepare("INSERT INTO calls (number, direction, status, duration, sid) VALUES (?,?,?,?,?)")
+    .bind(e164(c.number), c.direction || "out", c.status || "completed", c.duration || 0, c.sid || null).run();
   return json({ ok: true });
 }
 
@@ -253,19 +385,6 @@ async function listVoicemail(env) {
     "SELECT id, number, recording_url, transcript, created_at FROM voicemail ORDER BY id DESC LIMIT 100"
   ).all();
   return json({ voicemail: rows.results || [] });
-}
-async function voicemailWebhook(request, env) {
-  const f = await readForm(request);
-  const from = e164(f.From || f.Caller);
-  let url = f.RecordingUrl || "";
-  if (url && !/\.(mp3|wav)$/i.test(url)) url += ".mp3";
-  await env.DB.prepare(
-    "INSERT INTO voicemail (number, recording_url, transcript, sid) VALUES (?,?,?,?)"
-  ).bind(from, url, f.TranscriptionText || null, f.CallSid || null).run();
-  // also log the missed call
-  await env.DB.prepare("INSERT INTO calls (number, direction, status, sid) VALUES (?, 'in', 'missed', ?)")
-    .bind(from, f.CallSid || null).run();
-  return xml("<Response><Say voice=\"polly.Joanna\">Thank you. Your message has been received. Goodbye.</Say><Hangup/></Response>");
 }
 
 /* ============================================================
@@ -291,97 +410,4 @@ async function deleteContact(request, env) {
   const { id } = await readForm(request);
   await env.DB.prepare("DELETE FROM contacts WHERE id=?").bind(id).run();
   return json({ ok: true });
-}
-
-/* ============================================================
- * Voice IVR webhook  (recreated from docs/ivr-script.md)
- * ------------------------------------------------------------
- * Behavior:
- *   - Rings the browser softphone first (Dial to the subscriber).
- *   - If unanswered, plays the IVR menu / takes a voicemail.
- *
- * NOTE: the exact verb used to ring a Call Fabric subscriber from
- * cXML is wired up after confirming the routing model — see
- * worker/README.md "Inbound routing". For now this serves the IVR.
- * ============================================================ */
-async function voiceWebhook(request, env, path) {
-  if (path === "/") {
-    // health check / SignalWire sometimes hits root
-    if (request.method === "GET") return new Response("Linear Tech IVR Online", { status: 200 });
-  }
-  const f = await readForm(request).catch(() => ({}));
-  const digits = f.Digits;
-  const host = new URL(request.url).host;
-  const action = `https://${host}/voice`;
-
-  // Business hours: Mon–Fri 9am–6pm America/New_York
-  const open = isBusinessHours();
-
-  if (digits) {
-    const ext = { "1": "Technical Support", "2": "Sales and New Services", "3": "Billing and Accounts" }[digits];
-    if (digits === "9") return xml(menu(action, open));
-    if (ext) {
-      return xml(`<Response>
-        <Say voice="polly.Joanna">Connecting you to ${ext}. Please hold.</Say>
-        <Dial timeout="20" callerId="${env.SIGNALWIRE_NUMBER}"
-              action="https://${host}/voice/voicemail" method="POST">
-          ${dialTarget(env)}
-        </Dial>
-      </Response>`);
-    }
-  }
-
-  if (!open) {
-    return xml(`<Response>
-      <Say voice="polly.Joanna">Thank you for calling Linear Tech. Our office is currently closed.</Say>
-      <Say voice="polly.Joanna">Please leave a message with your name, company, and callback number after the tone, and we will return your call on the next business day. You can also email us anytime at support@linearit.co.</Say>
-      <Record maxLength="120" playBeep="true" transcribe="true"
-              action="https://${host}/voice/voicemail"
-              transcribeCallback="https://${host}/voice/voicemail" />
-      <Say voice="polly.Joanna">We did not receive a recording. Goodbye.</Say>
-    </Response>`);
-  }
-
-  // Open: ring the softphone, then fall through to the menu.
-  return xml(`<Response>
-    <Dial timeout="18" callerId="${env.SIGNALWIRE_NUMBER}">
-      ${dialTarget(env)}
-    </Dial>
-    ${menu(action, open)}
-  </Response>`);
-}
-
-function menu(action, open) {
-  return `<Response>
-    <Gather numDigits="1" timeout="6" action="${action}" method="POST">
-      <Say voice="polly.Joanna">Thank you for calling Linear Tech. We're glad you reached us.</Say>
-      <Say voice="polly.Joanna">For Technical Support, press 1. For Sales and New Services, press 2. For Billing and Accounts, press 3. To repeat these options, press 9.</Say>
-    </Gather>
-    <Say voice="polly.Joanna">We did not receive a selection. Goodbye.</Say>
-  </Response>`;
-}
-
-// What to ring for inbound calls. Until the Call Fabric subscriber
-// routing is confirmed, this can be a SIP address or a forwarding number.
-function dialTarget(env) {
-  if (env.FORWARD_NUMBER) return `<Number>${env.FORWARD_NUMBER}</Number>`;
-  if (env.SIP_ADDRESS)    return `<Sip>${env.SIP_ADDRESS}</Sip>`;
-  return ""; // softphone routing wired in README step
-}
-
-async function voiceStatus(request, env) {
-  const f = await readForm(request).catch(() => ({}));
-  if (f.CallSid && f.From) {
-    const dir = (f.Direction || "").includes("outbound") ? "out" : "in";
-    const other = dir === "out" ? f.To : f.From;
-    await env.DB.prepare("INSERT INTO calls (number, direction, status, duration, sid) VALUES (?,?,?,?,?)")
-      .bind(e164(other), dir, f.CallStatus || "completed", parseInt(f.CallDuration || "0", 10), f.CallSid).run();
-  }
-  return new Response("", { status: 200 });
-}
-
-function isBusinessHours() {
-  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
-  const day = now.getDay(), hr = now.getHours();
-  return day >= 1 && day <= 5 && hr >= 9 && hr < 18;
 }
