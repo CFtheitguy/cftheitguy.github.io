@@ -16,8 +16,9 @@
  * Bindings:  DB  (D1 database — optional for IVR, required for app)
  * Secrets (app only):
  *   SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT, SIGNALWIRE_TOKEN, SIGNALWIRE_NUMBER,
- *   APP_PASSWORD, AUTH_SECRET, ALLOW_ORIGIN
- *   (optional) RELAY_CONTEXT
+ *   APP_PASSWORD, AUTH_SECRET, ALLOW_ORIGIN, GOOGLE_VOICE_NUMBER
+ *   RELAY_RESOURCE  — name the browser registers as (e.g. "linearphone")
+ *                     Must match the <Client> name AND the JWT resource param.
  */
 
 // ===== CONFIGURATION (existing IVR) =====
@@ -56,7 +57,14 @@ export default {
       if (p === "/ivr/menu" && request.method === "POST") {
         const form = await request.formData();
         const digits = (form.get("Digits") || "").toString().trim();
-        return twimlResponse(routeDigits(digits, url));
+        return twimlResponse(routeDigits(digits, url, env));
+      }
+      // Browser didn't answer → try Google Voice
+      if (p === "/ivr/cell-fallback" && request.method === "POST") {
+        const form = await request.formData();
+        const dialStatus = (form.get("DialCallStatus") || "").toString();
+        if (dialStatus === "completed") return twimlResponse(`<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`);
+        return twimlResponse(dialCell(env, url));
       }
       if (p === "/ivr/vm" && request.method === "POST") {
         const form = await request.formData();
@@ -120,16 +128,9 @@ function renderIvr(url) {
 </Response>`;
 }
 
-function routeDigits(digits, url) {
+function routeDigits(digits, url, env) {
   const back = xmlEscape(new URL("/ivr", url.origin).toString());
   const inHours = isBusinessHoursNow();
-
-  if (!digits) {
-    if (inHours) {
-      return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Please hold while we connect your call.", back);
-    }
-    return renderVmPrompt(url, "Please leave a message after the tone.");
-  }
 
   if (digits === "9") {
     return `<?xml version="1.0" encoding="UTF-8"?>
@@ -138,10 +139,13 @@ function routeDigits(digits, url) {
 </Response>`;
   }
 
-  if (inHours) {
-    if (digits === "1") return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Connecting support.", back);
-    if (digits === "2") return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Connecting sales.", back);
-    if (digits === "3") return dial(`<Number>${xmlEscape(CELL_NUMBER)}</Number>`, "Connecting billing.", back);
+  if (!digits || digits === "1" || digits === "2" || digits === "3") {
+    if (inHours) {
+      const msg = { "1": "Connecting support.", "2": "Connecting sales.", "3": "Connecting billing." }[digits] || "Please hold while we connect your call.";
+      return dialBrowserFirst(msg, env, url);
+    }
+    // After hours: try browser silently, then Google Voice, then voicemail
+    return dialBrowserFirst("Thank you for holding. We will be right with you.", env, url);
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -151,15 +155,28 @@ function routeDigits(digits, url) {
 </Response>`;
 }
 
-function dial(target, message, back) {
+// Step 1: ring the browser app (18s). If no answer → /ivr/cell-fallback
+function dialBrowserFirst(message, env, url) {
+  const resource = env.RELAY_RESOURCE || "linearphone";
+  const fallback = xmlEscape(new URL("/ivr/cell-fallback", url.origin).toString());
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   ${saySsml(message)}
-  <Dial timeout="${DIAL_TIMEOUT_SECONDS}" answerOnBridge="true">
-    ${target}
+  <Dial timeout="18" action="${fallback}" method="POST" answerOnBridge="true">
+    <Client>${xmlEscape(resource)}</Client>
   </Dial>
-  ${saySsml("We were unable to connect your call.")}
-  <Redirect method="POST">${back}</Redirect>
+</Response>`;
+}
+
+// Step 2: ring Google Voice (25s). If no answer → /ivr/vm (voicemail)
+function dialCell(env, url) {
+  const cell = env.GOOGLE_VOICE_NUMBER || CELL_NUMBER;
+  const vm = xmlEscape(new URL("/ivr/vm", url.origin).toString());
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial timeout="25" action="${vm}" method="POST" answerOnBridge="true">
+    <Number>${xmlEscape(cell)}</Number>
+  </Dial>
 </Response>`;
 }
 
@@ -296,7 +313,8 @@ function swBase(env) {
 // Mint a RELAY JWT for the browser SDK (short-lived, safe to expose).
 async function mintRtcToken(env) {
   const body = new URLSearchParams();
-  if (env.RELAY_CONTEXT) body.set("resource", env.RELAY_CONTEXT);
+  const resource = env.RELAY_RESOURCE || "linearphone";
+  body.set("resource", resource);
   body.set("expires_in", "3600");
   const res = await fetch(`${swBase(env)}/api/relay/rest/jwt`, {
     method: "POST",
