@@ -209,8 +209,12 @@
 <!-- toast -->
 <div id="toast" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-ink text-white text-sm px-4 py-2 rounded-full shadow-lg"></div>
 
-<!-- SignalWire RELAY browser SDK (WebRTC calling). Pinned to the v1 line. -->
-<script src="https://cdn.signalwire.com/@signalwire/js"></script>
+<!-- SignalWire browser SDK (Call Fabric). Pin to v3.x: the unversioned URL now
+     serves v4.0.0, whose `SignalWire` is a class with a new constructor, which
+     breaks the documented `SignalWire.SignalWire({token})` factory this app uses
+     (caused "Cannot call a class constructor without new"). v3.30 has the
+     Call Fabric online()/dial() API. -->
+<script src="https://cdn.signalwire.com/@signalwire/js@3"></script>
 <script src="config.js"></script>
 <script src="api.js"></script>
 <script src="voice.js"></script>
