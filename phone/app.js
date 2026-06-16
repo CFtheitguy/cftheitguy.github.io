@@ -329,7 +329,8 @@
   function initVoice() {
     Voice.init({
       remoteAudio: $("#remoteAudio"),
-      getSipCreds: () => API.sipCreds(),
+      rootElement: $("#callMedia"),
+      getRtcToken: () => API.rtcToken(),
       myNumber: CFG.MY_NUMBER,
       onStatus: (status) => {
         const el = $("#phoneStatus");
@@ -337,6 +338,7 @@
         const [txt, cls] = map[status] || map.offline;
         el.textContent = txt; el.className = "text-[11px] px-2 py-1 rounded-full " + cls;
       },
+      onError: (msg) => { toast(msg); console.warn("[Voice]", msg); },
       onIncoming: (number) => {
         showCallOverlay({ name: displayName(number), state: "Incoming call…", incoming: true });
       },

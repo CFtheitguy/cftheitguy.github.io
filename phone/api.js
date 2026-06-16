@@ -31,8 +31,8 @@
     },
     logout: () => setToken(""),
 
-    // SIP credentials for the browser WebRTC softphone
-    sipCreds: () => req("/api/sip-creds"),
+    // Call Fabric Subscriber token for the browser WebRTC client
+    rtcToken: () => req("/api/token", { method: "POST" }),
 
     // Messaging
     threads: () => req("/api/threads"),

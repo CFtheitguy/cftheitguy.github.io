@@ -1,139 +1,149 @@
-// Linear Phone — WebRTC voice module (SIP-over-WebSocket via JsSIP)
-// Registers the browser as the "ipad1" SIP endpoint on SignalWire.
-// Inbound PSTN calls reach the browser via <Dial><Sip>sip:ipad1@domain</Sip></Dial> in the IVR.
+// Linear Phone — WebRTC voice module (SignalWire Call Fabric, @signalwire/js v4)
+// The browser logs in as a Call Fabric "Subscriber" with a short-lived token
+// (no SIP registration), so it can both place and receive PSTN calls over
+// WebSocket. Inbound calls reach it via SWML `connect` to /private/<subscriber>.
 window.Voice = (function () {
-  let ua = null;
-  let sipDomain = "";
-  let currentSession = null;
+  let client = null;
+  let rootEl = null;
+  let currentCall = null;   // active Call object
+  let pendingInvite = null; // incoming invite awaiting answer
   let cbs = {};
   let muted = false;
   let callStartedAt = 0;
   let callNumber = "";
   let callDirection = "out";
 
+  function getSDK() {
+    // CDN build exposes window.SignalWire.SignalWire(...)
+    if (window.SignalWire && window.SignalWire.SignalWire) return window.SignalWire.SignalWire;
+    if (typeof window.SignalWire === "function") return window.SignalWire;
+    return null;
+  }
+
+  // Call objects across SDK builds expose slightly different method names;
+  // call the first one that exists so we don't break on minor version drift.
+  function invoke(obj, names, args) {
+    for (const n of names) {
+      if (obj && typeof obj[n] === "function") { try { return obj[n].apply(obj, args || []); } catch (_) {} }
+    }
+  }
+
   async function init(options) {
     cbs = options || {};
+    rootEl = cbs.rootElement || cbs.remoteAudio || null;
     const onStatus = (s) => cbs.onStatus && cbs.onStatus(s);
-    if (!window.JsSIP) {
-      console.warn("[Voice] JsSIP not loaded — calling disabled.");
-      onStatus("offline");
-      return;
-    }
+    const onError = (m) => { console.warn("[Voice]", m); cbs.onError && cbs.onError(m); };
+
+    const SignalWire = getSDK();
+    if (!SignalWire) { onError("Calling SDK not loaded."); onStatus("offline"); return; }
     onStatus("connecting");
     try {
-      const creds = await cbs.getSipCreds();
-      if (!creds || !creds.domain || !creds.user || !creds.password) {
-        throw new Error("SIP credentials not configured (WEBPHONE_SIP_USER/DOMAIN/WEBRTC_PASSWORD)");
-      }
-      sipDomain = creds.domain;
-      JsSIP.debug.disable("JsSIP:*");
+      const { token } = await cbs.getRtcToken();
+      if (!token) throw new Error("No token returned (check SignalWire project/token + Subscriber).");
 
-      const socket = new JsSIP.WebSocketInterface("wss://" + sipDomain);
-      ua = new JsSIP.UA({
-        sockets: [socket],
-        uri: "sip:" + creds.user + "@" + sipDomain,
-        password: creds.password,
-        register: true,
-        register_expires: 300,
-        connection_recovery_min_interval: 4,
-        connection_recovery_max_interval: 30,
-        session_timers: false,
+      client = await SignalWire({ token });
+
+      // Go online to receive inbound call invites.
+      await client.online({
+        incomingCallHandlers: {
+          all: (notification) => handleInvite(notification),
+        },
       });
-
-      ua.on("registered",          () => onStatus("ready"));
-      ua.on("unregistered",        () => onStatus("offline"));
-      ua.on("registrationFailed",  (e) => { console.error("[Voice] reg failed:", e.cause); onStatus("offline"); });
-      ua.on("disconnected",        () => onStatus("offline"));
-      ua.on("newRTCSession",       handleSession);
-      ua.start();
+      onStatus("ready");
     } catch (e) {
-      console.error("[Voice] init failed:", e);
-      cbs.onStatus && cbs.onStatus("offline");
+      onError("Voice connect failed: " + (e && e.message || e));
+      onStatus("offline");
     }
   }
 
-  function wireAudio(pc) {
-    pc.addEventListener("track", (ev) => {
-      const audio = cbs.remoteAudio;
-      if (audio && ev.streams && ev.streams[0]) {
-        audio.srcObject = ev.streams[0];
-        audio.play().catch(() => {});
-      }
-    });
+  function handleInvite(notification) {
+    const invite = (notification && notification.invite) || notification;
+    pendingInvite = invite;
+    const d = (invite && invite.details) || invite || {};
+    callDirection = "in";
+    callNumber = d.callerIdNumber || d.caller_id_number || d.from || "";
+    if (callNumber && !String(callNumber).startsWith("+") && /^\d+$/.test(callNumber)) callNumber = "+" + callNumber;
+    cbs.onIncoming && cbs.onIncoming(callNumber);
   }
 
-  function handleSession(e) {
-    const session = e.session;
-    if (currentSession) {
-      session.terminate({ status_code: 486, reason_phrase: "Busy Here" });
-      return;
+  function attachCall(call) {
+    currentCall = call;
+    const onActive = () => { if (!callStartedAt) { callStartedAt = Date.now(); cbs.onConnected && cbs.onConnected(); } };
+    // Cover the various state event shapes emitted by the SDK.
+    if (call && typeof call.on === "function") {
+      call.on("call.state", (p) => {
+        const st = (p && (p.call_state || p.state)) || "";
+        if (st === "answered" || st === "active") onActive();
+        if (st === "ended" || st === "hangup" || st === "destroy") finishCall();
+      });
+      call.on("active", onActive);
+      call.on("destroy", () => finishCall());
+      call.on("ended", () => finishCall());
     }
-    currentSession = session;
-
-    if (session.direction === "incoming") {
-      callDirection = "in";
-      const uri = session.remote_identity && session.remote_identity.uri;
-      callNumber = uri ? (uri.user || "") : "";
-      if (callNumber && !callNumber.startsWith("+")) callNumber = "+" + callNumber;
-      cbs.onIncoming && cbs.onIncoming(callNumber);
-    }
-
-    session.on("peerconnection", (data) => wireAudio(data.peerconnection));
-    session.on("accepted",  () => { if (!callStartedAt) { callStartedAt = Date.now(); cbs.onConnected && cbs.onConnected(); } });
-    session.on("confirmed", () => { if (!callStartedAt) { callStartedAt = Date.now(); cbs.onConnected && cbs.onConnected(); } });
-    session.on("failed",    () => finishCall());
-    session.on("ended",     () => finishCall());
   }
 
   function finishCall() {
+    if (!currentCall && !callDirection) return;
     const duration = callStartedAt ? Math.round((Date.now() - callStartedAt) / 1000) : 0;
     const number = callNumber || "";
     if (number && window.API) {
       const st = duration > 0 ? "completed" : (callDirection === "in" ? "missed" : "no-answer");
       window.API.logCall({ number, direction: callDirection, status: st, duration }).catch(() => {});
     }
-    callStartedAt = 0; callNumber = ""; muted = false; currentSession = null;
+    callStartedAt = 0; callNumber = ""; muted = false; currentCall = null; pendingInvite = null;
     cbs.onEnded && cbs.onEnded();
   }
 
   // ---- public API ----
-  function call(number) {
-    if (!ua || !ua.isRegistered()) throw new Error("Phone not connected");
-    if (currentSession) throw new Error("Already in a call");
+  async function call(number) {
+    if (!client) throw new Error("Phone not connected");
+    if (currentCall) throw new Error("Already in a call");
     callDirection = "out";
     callNumber = number;
-    const target = "sip:" + number.replace(/[^+\d]/g, "") + "@" + sipDomain;
-    ua.call(target, {
-      mediaConstraints: { audio: true, video: false },
-      rtcOfferConstraints: { offerToReceiveAudio: 1, offerToReceiveVideo: 0 },
-    });
+    try {
+      const c = await client.dial({ to: number, audio: true, video: false, rootElement: rootEl });
+      attachCall(c);
+      await invoke(c, ["start"]);
+    } catch (e) {
+      cbs.onError && cbs.onError("Call failed: " + (e && e.message || e));
+      finishCall();
+    }
   }
 
-  function answer() {
-    if (currentSession && currentSession.direction === "incoming") {
-      currentSession.answer({ mediaConstraints: { audio: true, video: false } });
+  async function answer() {
+    if (!pendingInvite) return;
+    try {
+      const accept = pendingInvite.accept || (pendingInvite.invite && pendingInvite.invite.accept);
+      const target = pendingInvite.accept ? pendingInvite : pendingInvite.invite;
+      const c = await accept.call(target, { rootElement: rootEl, audio: true, video: false });
+      attachCall(c || target);
+    } catch (e) {
+      cbs.onError && cbs.onError("Answer failed: " + (e && e.message || e));
+      finishCall();
     }
   }
 
   function hangup() {
-    if (currentSession) {
-      try { currentSession.terminate(); } catch (_) {}
-    } else {
-      cbs.onEnded && cbs.onEnded();
-    }
+    if (currentCall) { invoke(currentCall, ["hangup", "leave"]); }
+    else if (pendingInvite) {
+      const reject = pendingInvite.reject || (pendingInvite.invite && pendingInvite.invite.reject);
+      const target = pendingInvite.reject ? pendingInvite : pendingInvite.invite;
+      if (reject) try { reject.call(target); } catch (_) {}
+      finishCall();
+    } else { cbs.onEnded && cbs.onEnded(); }
   }
 
   function toggleMute() {
-    if (!currentSession) return muted;
+    if (!currentCall) return muted;
     muted = !muted;
-    if (muted) currentSession.mute({ audio: true });
-    else currentSession.unmute({ audio: true });
+    if (muted) invoke(currentCall, ["audioMute", "muteAudio"]);
+    else invoke(currentCall, ["audioUnmute", "unmuteAudio"]);
     return muted;
   }
 
   function toggleSpeaker() { return true; }
-  function sendDigit(d) { if (currentSession) currentSession.sendDTMF(d); }
-  function inCall() { return !!currentSession; }
+  function sendDigit(d) { if (currentCall) invoke(currentCall, ["sendDigits", "dtmf"], [d]); }
+  function inCall() { return !!(currentCall || pendingInvite); }
 
   return { init, call, answer, hangup, toggleMute, toggleSpeaker, sendDigit, inCall };
 })();
