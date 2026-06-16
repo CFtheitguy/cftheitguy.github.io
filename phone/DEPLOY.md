@@ -93,15 +93,13 @@ In SignalWire → **Phone Numbers** → **845-604-2025** → **Edit Settings**:
 
 Inbound browser ringing uses SignalWire's **Call Fabric Subscriber** system: the
 app logs in as a Subscriber with a token (no SIP), so it can receive calls in any
-browser on any device. Three one-time steps:
+browser on any device. The Worker **creates the Subscriber automatically** the
+first time you log in, so there's no Subscribers screen to hunt for.
 
-**5a. Create the Subscriber** (this is the identity the browser logs in as)
-- SignalWire dashboard → left nav **Subscribers** (under *Call Fabric* / *Resources*)
-  → **Create / Add Subscriber**.
-- Give it a name/username and password. Note the **name** — it becomes the
-  address `/private/<name>`.
-- In the Worker, set secret **`SUBSCRIBER_REFERENCE`** to that exact name
-  (e.g. `linearphone`). Also confirm **`GOOGLE_VOICE_NUMBER`** = `+19177270405`.
+**5a. Set the Subscriber name** (Worker secret)
+- In the Worker, set **`SUBSCRIBER_REFERENCE`** = `linearphone` and confirm
+  **`GOOGLE_VOICE_NUMBER`** = `+19177270405`. That's it — logging into the app
+  once provisions the Subscriber `/private/linearphone`.
 
 **5b. Point your number at the SWML handler**
 - SignalWire → **Phone Numbers** → **845-604-2025** → **Edit Settings**.

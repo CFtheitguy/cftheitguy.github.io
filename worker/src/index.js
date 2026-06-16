@@ -358,14 +358,36 @@ function swBase(env) {
 
 // Mint a Call Fabric Subscriber Access Token (SAT) for the browser SDK.
 // The browser registers as this Subscriber and can both place and RECEIVE calls.
-// The same `reference` is what the SWML `connect` targets at /private/<reference>.
-async function mintRtcToken(env) {
-  const reference = env.SUBSCRIBER_REFERENCE || "linearphone";
-  const res = await fetch(`${swBase(env)}/api/fabric/subscribers/tokens`, {
+// If the Subscriber doesn't exist yet we create it automatically (so there's no
+// manual dashboard step). The same identity is what SWML `connect` rings at
+// /private/<reference>.
+function subscriberEmail(env) {
+  const ref = env.SUBSCRIBER_REFERENCE || "linearphone";
+  if (env.SUBSCRIBER_EMAIL) return env.SUBSCRIBER_EMAIL;
+  return ref.includes("@") ? ref : `${ref}@linearit.co`;
+}
+
+async function mintSubscriberToken(env, reference) {
+  return fetch(`${swBase(env)}/api/fabric/subscribers/tokens`, {
     method: "POST",
     headers: { Authorization: swAuth(env), "Content-Type": "application/json" },
     body: JSON.stringify({ reference }),
   });
+}
+
+async function mintRtcToken(env) {
+  const reference = subscriberEmail(env);
+
+  // Try to mint a token. If the Subscriber doesn't exist yet, create it and retry.
+  let res = await mintSubscriberToken(env, reference);
+  if (!res.ok) {
+    await fetch(`${swBase(env)}/api/fabric/resources/subscribers`, {
+      method: "POST",
+      headers: { Authorization: swAuth(env), "Content-Type": "application/json" },
+      body: JSON.stringify({ email: reference, display_name: "Linear Phone" }),
+    }).catch(() => {});
+    res = await mintSubscriberToken(env, reference);
+  }
   if (!res.ok) return json({ error: `Token mint failed (${res.status}): ${await res.text()}` }, 502);
   const data = await res.json();
   return json({ token: data.token });
