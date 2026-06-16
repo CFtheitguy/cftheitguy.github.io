@@ -17,8 +17,10 @@
  * Secrets (app only):
  *   SIGNALWIRE_SPACE, SIGNALWIRE_PROJECT, SIGNALWIRE_TOKEN, SIGNALWIRE_NUMBER,
  *   APP_PASSWORD, AUTH_SECRET, ALLOW_ORIGIN, GOOGLE_VOICE_NUMBER
- *   RELAY_RESOURCE  — name the browser registers as (e.g. "linearphone")
- *                     Must match the <Client> name AND the JWT resource param.
+ *   SUBSCRIBER_REFERENCE — Call Fabric Subscriber name the browser logs in as
+ *                          (e.g. "linearphone"). The SWML handler rings it at
+ *                          /private/<SUBSCRIBER_REFERENCE>. Optional:
+ *                          SUBSCRIBER_ADDRESS to override the full address.
  */
 
 // ===== CONFIGURATION (existing IVR) =====
@@ -75,6 +77,9 @@ export default {
       // ---------- Inbound SMS ----------
       if (p === "/sms/inbound" && request.method === "POST") return smsInbound(request, env);
       if (p === "/sms/status") return new Response("", { status: 200 });
+
+      // ---------- Inbound voice via SWML (Call Fabric: ring browser → cell) ----------
+      if (p === "/swml/voice" && request.method === "POST") return swmlResponse(swmlVoice(env));
 
       // ---------- Softphone API ----------
       if (p === "/api/login")  return cors(env, await login(request, env));
@@ -142,10 +147,9 @@ function routeDigits(digits, url, env) {
   if (!digits || digits === "1" || digits === "2" || digits === "3") {
     if (inHours) {
       const msg = { "1": "Connecting support.", "2": "Connecting sales.", "3": "Connecting billing." }[digits] || "Please hold while we connect your call.";
-      return dialBrowserFirst(msg, env, url);
+      return dialCellWithGreeting(msg, env, url);
     }
-    // After hours: try browser silently, then Google Voice, then voicemail
-    return dialBrowserFirst("Thank you for holding. We will be right with you.", env, url);
+    return dialCellWithGreeting("Thank you for holding. We will be right with you.", env, url);
   }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -155,15 +159,16 @@ function routeDigits(digits, url, env) {
 </Response>`;
 }
 
-// Step 1: ring the browser app (18s). If no answer → /ivr/cell-fallback
-function dialBrowserFirst(message, env, url) {
-  const resource = env.RELAY_RESOURCE || "linearphone";
-  const fallback = xmlEscape(new URL("/ivr/cell-fallback", url.origin).toString());
+// cXML fallback path (used only if the number still points at /ivr instead of
+// the SWML handler): greet, then ring Google Voice (which has its own voicemail).
+function dialCellWithGreeting(message, env, url) {
+  const cell = env.GOOGLE_VOICE_NUMBER || CELL_NUMBER;
+  const vm = xmlEscape(new URL("/ivr/vm", url.origin).toString());
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   ${saySsml(message)}
-  <Dial timeout="18" action="${fallback}" method="POST" answerOnBridge="true">
-    <Client>${xmlEscape(resource)}</Client>
+  <Dial timeout="25" action="${vm}" method="POST" answerOnBridge="true" callerId="${xmlEscape(env.SIGNALWIRE_NUMBER || "")}">
+    <Number>${xmlEscape(cell)}</Number>
   </Dial>
 </Response>`;
 }
@@ -178,6 +183,46 @@ function dialCell(env, url) {
     <Number>${xmlEscape(cell)}</Number>
   </Dial>
 </Response>`;
+}
+
+/* ============================================================
+ * SWML inbound handler (Call Fabric) — the browser-ringing path
+ * ------------------------------------------------------------
+ * Point the SignalWire number at this URL:
+ *   Phone Number → Handle calls using → "a SWML Script"
+ *     → check "Use External URL for SWML Script handler?"
+ *     → URL: https://<worker>/swml/voice  (POST)
+ *
+ * Flow: greeting → connect serially to the browser Subscriber (18s),
+ * then to Google Voice (25s, which has its own voicemail). No fragile
+ * recording step — Google Voice handles the voicemail.
+ * ============================================================ */
+function swmlVoice(env) {
+  const inHours = isBusinessHoursNow();
+  const greeting = inHours
+    ? "Thank you for calling Linear Tech. Please hold while we connect you."
+    : "Thank you for calling Linear Tech. Our office is currently closed. Please hold while we try to reach someone, or leave a message after the tone.";
+  const reference = env.SUBSCRIBER_REFERENCE || "linearphone";
+  const subscriber = env.SUBSCRIBER_ADDRESS || ("/private/" + reference);
+  const cell = env.GOOGLE_VOICE_NUMBER || CELL_NUMBER;
+  const did = env.SIGNALWIRE_NUMBER || "+18456042025";
+
+  return {
+    version: "1.0.0",
+    sections: {
+      main: [
+        { play: { urls: ["say:" + greeting] } },
+        {
+          connect: {
+            serial: [
+              { to: subscriber, timeout: 18 },
+              { to: cell, from: did, timeout: 25 },
+            ],
+          },
+        },
+      ],
+    },
+  };
 }
 
 function renderVmPrompt(url, promptText) {
@@ -216,6 +261,7 @@ function saySsml(text) {
 }
 function normalizeSpeech(text) { return String(text).replace(/\s+/g, " ").trim(); }
 function twimlResponse(xml) { return new Response(xml, { status: 200, headers: { "Content-Type": "text/xml" } }); }
+function swmlResponse(obj) { return new Response(JSON.stringify(obj), { status: 200, headers: { "Content-Type": "application/json" } }); }
 function xmlEscape(str) {
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
@@ -310,20 +356,41 @@ function swBase(env) {
   return `https://${host}`;
 }
 
-// Mint a RELAY JWT for the browser SDK (short-lived, safe to expose).
-async function mintRtcToken(env) {
-  const body = new URLSearchParams();
-  const resource = env.RELAY_RESOURCE || "linearphone";
-  body.set("resource", resource);
-  body.set("expires_in", "3600");
-  const res = await fetch(`${swBase(env)}/api/relay/rest/jwt`, {
+// Mint a Call Fabric Subscriber Access Token (SAT) for the browser SDK.
+// The browser registers as this Subscriber and can both place and RECEIVE calls.
+// If the Subscriber doesn't exist yet we create it automatically (so there's no
+// manual dashboard step). The same identity is what SWML `connect` rings at
+// /private/<reference>.
+function subscriberEmail(env) {
+  const ref = env.SUBSCRIBER_REFERENCE || "linearphone";
+  if (env.SUBSCRIBER_EMAIL) return env.SUBSCRIBER_EMAIL;
+  return ref.includes("@") ? ref : `${ref}@linearit.co`;
+}
+
+async function mintSubscriberToken(env, reference) {
+  return fetch(`${swBase(env)}/api/fabric/subscribers/tokens`, {
     method: "POST",
-    headers: { Authorization: swAuth(env), "Content-Type": "application/x-www-form-urlencoded" },
-    body,
+    headers: { Authorization: swAuth(env), "Content-Type": "application/json" },
+    body: JSON.stringify({ reference }),
   });
+}
+
+async function mintRtcToken(env) {
+  const reference = subscriberEmail(env);
+
+  // Try to mint a token. If the Subscriber doesn't exist yet, create it and retry.
+  let res = await mintSubscriberToken(env, reference);
+  if (!res.ok) {
+    await fetch(`${swBase(env)}/api/fabric/resources/subscribers`, {
+      method: "POST",
+      headers: { Authorization: swAuth(env), "Content-Type": "application/json" },
+      body: JSON.stringify({ email: reference, display_name: "Linear Phone" }),
+    }).catch(() => {});
+    res = await mintSubscriberToken(env, reference);
+  }
   if (!res.ok) return json({ error: `Token mint failed (${res.status}): ${await res.text()}` }, 502);
   const data = await res.json();
-  return json({ token: data.jwt_token, project: env.SIGNALWIRE_PROJECT });
+  return json({ token: data.token });
 }
 
 /* ============================================================

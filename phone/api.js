@@ -31,7 +31,7 @@
     },
     logout: () => setToken(""),
 
-    // Realtime token for the WebRTC browser client
+    // Call Fabric Subscriber token for the browser WebRTC client
     rtcToken: () => req("/api/token", { method: "POST" }),
 
     // Messaging

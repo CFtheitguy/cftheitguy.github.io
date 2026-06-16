@@ -89,21 +89,35 @@ In SignalWire → **Phone Numbers** → **845-604-2025** → **Edit Settings**:
 
 ---
 
-## 5) (Optional) Ring the browser on inbound calls
+## 5) Ring the browser on inbound calls (Call Fabric)
 
-Texting + outbound calling work after steps 1–4. To make inbound calls **ring
-in the browser** (not just your cell/voicemail), SignalWire needs to route the
-call to your RELAY client:
+Inbound browser ringing uses SignalWire's **Call Fabric Subscriber** system: the
+app logs in as a Subscriber with a token (no SIP), so it can receive calls in any
+browser on any device. The Worker **creates the Subscriber automatically** the
+first time you log in, so there's no Subscribers screen to hunt for.
 
-- Easiest reliable version: in the SignalWire number's voice settings, the
-  Worker's `/voice` handler already does `<Dial>` to `FORWARD_NUMBER` if set —
-  so set `FORWARD_NUMBER` to your cell and inbound calls ring your phone while
-  unanswered calls drop to voicemail (which shows up in the app).
-- Full in-browser ringing uses a RELAY Application/context. Set `RELAY_CONTEXT`
-  (e.g. `linearphone`) as a Worker secret; the minted JWT is scoped to it. Then
-  in SignalWire, route the number to that RELAY context. This part depends on
-  your SignalWire account's RELAY setup — ping me and I'll wire the exact
-  routing once your number is live on the Worker.
+**5a. Set the Subscriber name** (Worker secret)
+- In the Worker, set **`SUBSCRIBER_REFERENCE`** = `linearphone` and confirm
+  **`GOOGLE_VOICE_NUMBER`** = `+19177270405`. That's it — logging into the app
+  once provisions the Subscriber `/private/linearphone`.
+
+**5b. Point your number at the SWML handler**
+- SignalWire → **Phone Numbers** → **845-604-2025** → **Edit Settings**.
+- Under **Voice and Fax** → **Handle Calls Using:** choose **a SWML Script**.
+- Check **"Use External URL for SWML Script handler?"**
+- **External URL:** `https://linear-ivr.friedmanchaimhersh.workers.dev/swml/voice`
+  (POST). **Save.**
+
+**5c. Open the app and stay signed in**
+- Go to **https://linearit.co/phone**, log in, allow the mic. The status pill
+  should read **Online**.
+- Call your number from another phone: your browser rings for ~18s. If you don't
+  pick up, it rings your Google Voice (+19177270405) for ~25s, which has its own
+  voicemail.
+
+> The old `/ivr` cXML webhook still works as a safe fallback (greeting → Google
+> Voice). Switching the number to `/swml/voice` in 5b is what turns on browser
+> ringing.
 
 ---
 
@@ -115,9 +129,12 @@ the foundation for a future React-Native/Capacitor mobile build.
 
 ## Troubleshooting
 
-- **"Phone not connected" / status stays Offline:** the RELAY JWT couldn't be
-  minted — check `SIGNALWIRE_SPACE`, `SIGNALWIRE_PROJECT`, `SIGNALWIRE_TOKEN`.
-  Open the browser console for the exact error.
+- **Status stays Offline / a red error toast appears:** the Subscriber token
+  couldn't be minted — check `SIGNALWIRE_SPACE`, `SIGNALWIRE_PROJECT`,
+  `SIGNALWIRE_TOKEN`, and that the **Subscriber** (step 5a) exists and matches
+  `SUBSCRIBER_REFERENCE`. The on-screen toast shows the exact reason.
+- **Browser doesn't ring, calls go straight to Google Voice:** the number isn't
+  pointed at `/swml/voice` yet (step 5b), or the app isn't open/Online.
 - **Texts send but don't appear inbound:** confirm the **Message Comes In**
   webhook points to `/sms/inbound` and the D1 `DB` binding is attached.
 - **Login fails:** `APP_PASSWORD` mismatch, or `AUTH_SECRET` not set.

@@ -1,110 +1,149 @@
-// Linear Phone — WebRTC voice module (SignalWire RELAY browser SDK)
-// Uses the RELAY v2 browser client which dials PSTN numbers directly with
-// caller ID. Texting still works even if this module can't connect.
+// Linear Phone — WebRTC voice module (SignalWire Call Fabric, @signalwire/js v4)
+// The browser logs in as a Call Fabric "Subscriber" with a short-lived token
+// (no SIP registration), so it can both place and receive PSTN calls over
+// WebSocket. Inbound calls reach it via SWML `connect` to /private/<subscriber>.
 window.Voice = (function () {
   let client = null;
-  let currentCall = null;
+  let rootEl = null;
+  let currentCall = null;   // active Call object
+  let pendingInvite = null; // incoming invite awaiting answer
   let cbs = {};
   let muted = false;
-  let speaker = true;
   let callStartedAt = 0;
   let callNumber = "";
   let callDirection = "out";
 
-  // The RELAY SDK exposes itself differently depending on the build.
-  function getRelay() {
-    if (window.Relay) return window.Relay;
-    if (window.SignalWire && window.SignalWire.Relay) return window.SignalWire.Relay;
+  function getSDK() {
+    // CDN build exposes window.SignalWire.SignalWire(...)
+    if (window.SignalWire && window.SignalWire.SignalWire) return window.SignalWire.SignalWire;
+    if (typeof window.SignalWire === "function") return window.SignalWire;
     return null;
+  }
+
+  // Call objects across SDK builds expose slightly different method names;
+  // call the first one that exists so we don't break on minor version drift.
+  function invoke(obj, names, args) {
+    for (const n of names) {
+      if (obj && typeof obj[n] === "function") { try { return obj[n].apply(obj, args || []); } catch (_) {} }
+    }
   }
 
   async function init(options) {
     cbs = options || {};
-    const Relay = getRelay();
-    if (!Relay) {
-      console.warn("[Voice] RELAY SDK not loaded — calling disabled, texting still works.");
-      status("offline");
-      return;
-    }
-    status("connecting");
+    rootEl = cbs.rootElement || cbs.remoteAudio || null;
+    const onStatus = (s) => cbs.onStatus && cbs.onStatus(s);
+    const onError = (m) => { console.warn("[Voice]", m); cbs.onError && cbs.onError(m); };
+
+    const SignalWire = getSDK();
+    if (!SignalWire) { onError("Calling SDK not loaded."); onStatus("offline"); return; }
+    onStatus("connecting");
     try {
-      const { token, project } = await cbs.getRtcToken();
-      client = new Relay({ project, token });
-      // Where the remote party's audio plays:
-      if (cbs.remoteAudio) client.remoteElement = cbs.remoteAudio.id || "remoteAudio";
-      client.iceServers = client.iceServers; // keep defaults
+      const { token } = await cbs.getRtcToken();
+      if (!token) throw new Error("No token returned (check SignalWire project/token + Subscriber).");
 
-      client.on("signalwire.ready", () => status("ready"));
-      client.on("signalwire.error", (e) => { console.error("[Voice] error", e); status("offline"); });
-      client.on("signalwire.socket.close", () => status("offline"));
-      client.on("signalwire.notification", handleNotification);
+      client = await SignalWire({ token });
 
-      await client.connect();
+      // Go online to receive inbound call invites.
+      await client.online({
+        incomingCallHandlers: {
+          all: (notification) => handleInvite(notification),
+        },
+      });
+      onStatus("ready");
     } catch (e) {
-      console.error("[Voice] init failed", e);
-      status("offline");
+      onError("Voice connect failed: " + (e && e.message || e));
+      onStatus("offline");
     }
   }
 
-  function handleNotification(n) {
-    if (n.type !== "callUpdate" || !n.call) return;
-    const call = n.call;
+  function handleInvite(notification) {
+    const invite = (notification && notification.invite) || notification;
+    pendingInvite = invite;
+    const d = (invite && invite.details) || invite || {};
+    callDirection = "in";
+    callNumber = d.callerIdNumber || d.caller_id_number || d.from || "";
+    if (callNumber && !String(callNumber).startsWith("+") && /^\d+$/.test(callNumber)) callNumber = "+" + callNumber;
+    cbs.onIncoming && cbs.onIncoming(callNumber);
+  }
+
+  function attachCall(call) {
     currentCall = call;
-    switch (call.state) {
-      case "ringing":
-        if (call.direction === "inbound") {
-          callDirection = "in";
-          callNumber = call.options.remoteCallerNumber || call.from || "";
-          cbs.onIncoming && cbs.onIncoming(callNumber);
-        }
-        break;
-      case "active":
-        callStartedAt = Date.now();
-        cbs.onConnected && cbs.onConnected();
-        break;
-      case "hangup":
-      case "destroy":
-        finishCall(call);
-        break;
+    const onActive = () => { if (!callStartedAt) { callStartedAt = Date.now(); cbs.onConnected && cbs.onConnected(); } };
+    // Cover the various state event shapes emitted by the SDK.
+    if (call && typeof call.on === "function") {
+      call.on("call.state", (p) => {
+        const st = (p && (p.call_state || p.state)) || "";
+        if (st === "answered" || st === "active") onActive();
+        if (st === "ended" || st === "hangup" || st === "destroy") finishCall();
+      });
+      call.on("active", onActive);
+      call.on("destroy", () => finishCall());
+      call.on("ended", () => finishCall());
     }
   }
 
-  function finishCall(call) {
+  function finishCall() {
+    if (!currentCall && !callDirection) return;
     const duration = callStartedAt ? Math.round((Date.now() - callStartedAt) / 1000) : 0;
-    const number = callNumber || (call && call.options && (call.options.destinationNumber || call.options.remoteCallerNumber)) || "";
+    const number = callNumber || "";
     if (number && window.API) {
-      const status = duration > 0 ? "completed" : (callDirection === "in" ? "missed" : "no-answer");
-      window.API.logCall({ number, direction: callDirection, status, duration }).catch(() => {});
+      const st = duration > 0 ? "completed" : (callDirection === "in" ? "missed" : "no-answer");
+      window.API.logCall({ number, direction: callDirection, status: st, duration }).catch(() => {});
     }
-    callStartedAt = 0; callNumber = ""; muted = false; currentCall = null;
+    callStartedAt = 0; callNumber = ""; muted = false; currentCall = null; pendingInvite = null;
     cbs.onEnded && cbs.onEnded();
   }
 
-  function status(s) { cbs.onStatus && cbs.onStatus(s); }
-
   // ---- public API ----
-  function call(number) {
+  async function call(number) {
     if (!client) throw new Error("Phone not connected");
+    if (currentCall) throw new Error("Already in a call");
     callDirection = "out";
     callNumber = number;
-    currentCall = client.newCall({
-      destinationNumber: number,
-      callerNumber: cbs.myNumber,
-      audio: true,
-      video: false,
-    });
+    try {
+      const c = await client.dial({ to: number, audio: true, video: false, rootElement: rootEl });
+      attachCall(c);
+      await invoke(c, ["start"]);
+    } catch (e) {
+      cbs.onError && cbs.onError("Call failed: " + (e && e.message || e));
+      finishCall();
+    }
   }
-  function answer() { if (currentCall) currentCall.answer(); }
-  function hangup() { if (currentCall) currentCall.hangup(); else cbs.onEnded && cbs.onEnded(); }
+
+  async function answer() {
+    if (!pendingInvite) return;
+    try {
+      const accept = pendingInvite.accept || (pendingInvite.invite && pendingInvite.invite.accept);
+      const target = pendingInvite.accept ? pendingInvite : pendingInvite.invite;
+      const c = await accept.call(target, { rootElement: rootEl, audio: true, video: false });
+      attachCall(c || target);
+    } catch (e) {
+      cbs.onError && cbs.onError("Answer failed: " + (e && e.message || e));
+      finishCall();
+    }
+  }
+
+  function hangup() {
+    if (currentCall) { invoke(currentCall, ["hangup", "leave"]); }
+    else if (pendingInvite) {
+      const reject = pendingInvite.reject || (pendingInvite.invite && pendingInvite.invite.reject);
+      const target = pendingInvite.reject ? pendingInvite : pendingInvite.invite;
+      if (reject) try { reject.call(target); } catch (_) {}
+      finishCall();
+    } else { cbs.onEnded && cbs.onEnded(); }
+  }
+
   function toggleMute() {
     if (!currentCall) return muted;
     muted = !muted;
-    muted ? currentCall.muteAudio() : currentCall.unmuteAudio();
+    if (muted) invoke(currentCall, ["audioMute", "muteAudio"]);
+    else invoke(currentCall, ["audioUnmute", "unmuteAudio"]);
     return muted;
   }
-  function toggleSpeaker() { speaker = !speaker; return speaker; }
-  function sendDigit(d) { if (currentCall && currentCall.dtmf) currentCall.dtmf(d); }
-  function inCall() { return !!currentCall; }
+
+  function toggleSpeaker() { return true; }
+  function sendDigit(d) { if (currentCall) invoke(currentCall, ["sendDigits", "dtmf"], [d]); }
+  function inCall() { return !!(currentCall || pendingInvite); }
 
   return { init, call, answer, hangup, toggleMute, toggleSpeaker, sendDigit, inCall };
 })();
