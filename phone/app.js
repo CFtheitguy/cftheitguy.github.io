@@ -10,12 +10,12 @@
     return d.length === 10 ? `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}` : (n || "");
   };
   const e164 = (n) => {
-    let d = (n || "").replace(/[^\d+]/g, "");
-    if (d.startsWith("+")) return d;
-    d = d.replace(/\D/g, "");
-    if (d.length === 10) return "+1" + d;
-    if (d.length === 11 && d.startsWith("1")) return "+" + d;
-    return "+" + d;
+    // Work purely on digits so a stray "+", spaces, dashes, or a country code the
+    // user typed themselves (e.g. "+1" or "1") all normalize to the same number.
+    let d = String(n || "").replace(/\D/g, "");
+    if (d.length === 11 && d.startsWith("1")) return "+" + d; // 1 + 10-digit US/Canada
+    if (d.length === 10) return "+1" + d;                     // bare 10-digit US number
+    return "+" + d;                                           // already has a country code
   };
   const timeAgo = (iso) => {
     const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -349,7 +349,11 @@
         $("#callControls").classList.remove("hidden");
         startCallTimer();
       },
-      onEnded: () => { hideCallOverlay(); loadCalls(); },
+      onEnded: () => {
+        hideCallOverlay(); loadCalls();
+        // Clear the dialed number so the pad is fresh for the next call.
+        if (dialInput) { dialInput.value = ""; updateDialMatch(); }
+      },
     });
   }
 
