@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Install Remote Support | Linear Tech</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: url('https://theevergreenspace.net/assets/images/image04.jpg?v=5eb90ade') center center / cover no-repeat fixed;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-radius: 16px;
+      box-shadow: 0 8px 48px rgba(0,0,0,0.25);
+      max-width: 480px;
+      width: 100%;
+      padding: 3rem 2.5rem;
+      text-align: center;
+    }
+
+    .logo-wrap {
+      margin-bottom: 2rem;
+    }
+
+    .logo-wrap svg {
+      width: 56px;
+      height: 56px;
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.75rem;
+      color: #0f1f4b;
+      margin-bottom: 0.75rem;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      font-size: 0.975rem;
+      color: #5a6580;
+      line-height: 1.6;
+      margin-bottom: 2.25rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #0f1f4b;
+      color: #ffffff;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.85rem 2rem;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background 0.18s, transform 0.15s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: #1a3575;
+      transform: translateY(-1px);
+    }
+
+    .btn svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .note {
+      margin-top: 1.75rem;
+      font-size: 0.82rem;
+      color: #8a93a8;
+      line-height: 1.5;
+    }
+
+    .steps {
+      text-align: left;
+      background: #f5f7fa;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin: 1.75rem 0 0.5rem;
+    }
+
+    .steps p {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #0f1f4b;
+      margin-bottom: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.75rem;
+    }
+
+    .steps ol {
+      list-style: none;
+      counter-reset: steps;
+    }
+
+    .steps ol li {
+      counter-increment: steps;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      font-size: 0.875rem;
+      color: #3d4a66;
+      line-height: 1.5;
+      padding: 0.3rem 0;
+    }
+
+    .steps ol li::before {
+      content: counter(steps);
+      background: #0f1f4b;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      font-size: 0.8rem;
+      color: #aab1c5;
+    }
+
+    footer a {
+      color: #aab1c5;
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-wrap">
+      <!-- Shield / support icon -->
+      <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="56" height="56" rx="14" fill="#0f1f4b"/>
+        <path d="M28 10L14 16v12c0 8.4 5.9 16.3 14 18 8.1-1.7 14-9.6 14-18V16L28 10z" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="1.5"/>
+        <path d="M22 28l4 4 8-8" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <h1>Install the Remote Support Streamer</h1>
+    <p class="subtitle">
+      This installs the Linear Tech support agent on your computer so we can assist you remotely whenever you need us.
+    </p>
+
+    <a class="btn" href="https://us2.ninjarmm.com/agent/installer/c56aba5f-71e9-41fd-9dda-c06c569337a5/13.0.7941/NinjaOne-Agent-EvergreenSpace-MainOffice-Auto-x86-64.msi" download>
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 3v10m0 0l-3.5-3.5M10 13l3.5-3.5M4 17h12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Download the Streamer
+    </a>
+
+    <div class="steps">
+      <p>After downloading</p>
+      <ol>
+        <li>Open the downloaded file (NinjaOne-Agent…msi)</li>
+        <li>Click <strong>Yes</strong> if Windows asks for permission</li>
+        <li>Wait for the install to finish — it only takes a minute</li>
+        <li>You're done. Let us know and we'll connect right away.</li>
+      </ol>
+    </div>
+
+    <p class="note">Windows only · No account needed · Takes about 60 seconds</p>
+
+    <footer>
+      <a href="https://linearit.co">linearit.co</a> &nbsp;·&nbsp; Linear Tech Support
+    </footer>
+  </div>
+</body>
+</html>
