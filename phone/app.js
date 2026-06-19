@@ -25,7 +25,7 @@
     if (s < 604800) return Math.floor(s/86400) + "d";
     return new Date(iso).toLocaleDateString();
   };
-  const esc = (s) => (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const toast = (msg) => {
     const t = $("#toast"); t.textContent = msg; t.classList.remove("hidden");
     clearTimeout(t._h); t._h = setTimeout(() => t.classList.add("hidden"), 2600);
