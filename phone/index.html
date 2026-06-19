@@ -91,6 +91,11 @@
 
     <!-- MESSAGES -->
     <section data-panel="messages" class="panel absolute inset-0 flex flex-col">
+      <!-- list header with New Message button -->
+      <div class="border-b px-4 py-3 flex items-center justify-between shrink-0">
+        <div class="font-semibold text-lg">Messages</div>
+        <button id="newMsgBtn" class="bg-brand text-white rounded-full w-9 h-9 grid place-items-center text-2xl leading-none shadow" title="New message">+</button>
+      </div>
       <!-- conversation list -->
       <div id="threadList" class="flex-1 overflow-y-auto noscroll"></div>
       <!-- thread view (slides over) -->
@@ -100,6 +105,8 @@
           <div class="flex-1 min-w-0">
             <div id="threadTitle" class="font-semibold truncate">—</div>
             <div id="threadSub" class="text-[11px] text-slate-500 truncate"></div>
+            <input id="threadTo" inputmode="tel" placeholder="Enter phone number"
+              class="hidden w-full text-[15px] border rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand" />
           </div>
           <button id="threadCall" class="px-2 py-1 text-brand" title="Call">📞</button>
         </div>

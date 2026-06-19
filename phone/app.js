@@ -104,8 +104,27 @@
     } catch (e) { /* offline / not ready */ }
   }
 
+  // Start a brand-new conversation: show the thread view with an editable
+  // "To" field instead of a fixed title.
+  function openCompose() {
+    currentThread = null;
+    $("#threadTitle").classList.add("hidden");
+    $("#threadSub").classList.add("hidden");
+    const to = $("#threadTo");
+    to.classList.remove("hidden");
+    to.value = "";
+    $("#threadMessages").innerHTML = "";
+    $("#threadView").classList.remove("hidden");
+    setTimeout(() => to.focus(), 50);
+  }
+  $("#newMsgBtn").onclick = openCompose;
+
   async function openThread(number) {
     currentThread = number;
+    // leave compose mode: show the fixed title, hide the recipient input
+    $("#threadTo").classList.add("hidden");
+    $("#threadTitle").classList.remove("hidden");
+    $("#threadSub").classList.remove("hidden");
     $("#threadTitle").textContent = displayName(number);
     $("#threadSub").textContent = contactFor(number) ? fmtNumber(number) : "";
     $("#threadView").classList.remove("hidden");
@@ -143,13 +162,20 @@
   $("#composer").addEventListener("submit", async (e) => {
     e.preventDefault();
     const body = composerInput.value.trim();
-    if (!body || !currentThread) return;
+    if (!body) return;
+    // In compose mode there's no current thread yet — use the typed number.
+    let target = currentThread;
+    if (!target) {
+      const raw = $("#threadTo").value.trim();
+      if (!raw) { toast("Enter a phone number first"); $("#threadTo").focus(); return; }
+      target = e164(raw);
+    }
     composerInput.value = ""; composerInput.style.height = "auto";
     // optimistic
     const box = $("#threadMessages");
     box.insertAdjacentHTML("beforeend", `<div class="flex justify-end"><div class="max-w-[78%] px-3 py-2 bg-brand/70 text-white bubble-out"><div class="text-[15px]">${esc(body)}</div></div></div>`);
     box.scrollTop = box.scrollHeight;
-    try { await API.sendSms(currentThread, body); openThread(currentThread); loadThreads(); }
+    try { await API.sendSms(target, body); openThread(target); loadThreads(); }
     catch (err) { toast("Send failed: " + err.message); }
   });
 
