@@ -279,10 +279,27 @@
   };
 
   // ---- vCard (.vcf) import ----
+  // Decode quoted-printable (e.g. =D7=97 → UTF-8 bytes → Hebrew/accented text).
+  function decodeQP(str) {
+    const bytes = [];
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(str.substr(i + 1, 2))) {
+        bytes.push(parseInt(str.substr(i + 1, 2), 16)); i += 2;
+      } else {
+        bytes.push(str.charCodeAt(i) & 0xff);
+      }
+    }
+    try { return new TextDecoder("utf-8").decode(new Uint8Array(bytes)); }
+    catch (_) { return str; }
+  }
   // Parse a .vcf into [{name, number}]. Handles multiple cards, multiple TEL
-  // lines per card, grouped iOS properties (item1.TEL), and folded lines.
+  // lines per card, grouped iOS properties (item1.TEL), folded lines, and
+  // quoted-printable encoded names (common for Hebrew/non-ASCII contacts).
   function parseVCards(text) {
-    const unfolded = text.replace(/\r\n/g, "\n").replace(/\n[ \t]/g, ""); // unfold continuations
+    const unfolded = text
+      .replace(/\r\n/g, "\n")
+      .replace(/=\n/g, "")       // quoted-printable soft line break
+      .replace(/\n[ \t]/g, "");  // RFC 6350 line folding
     const out = [];
     const cards = unfolded.split(/BEGIN:VCARD/i).slice(1);
     for (const card of cards) {
@@ -292,12 +309,14 @@
         const colon = line.indexOf(":");
         if (colon < 0) continue;
         const key = line.slice(0, colon).toUpperCase();
-        const val = line.slice(colon + 1).trim();
+        let val = line.slice(colon + 1).trim();
+        if (key.includes("QUOTED-PRINTABLE")) val = decodeQP(val);
         if (/(^|\.)FN(;|$)/.test(key)) fn = val;
         else if (/(^|\.)N(;|$)/.test(key) && !n) n = val.split(";").filter(Boolean).reverse().join(" ").trim();
         else if (/(^|\.)TEL(;|$)/.test(key) && val) tels.push(val);
       }
-      const name = (fn || n || "").replace(/\\,/g, ",").trim();
+      let name = (fn || n || "").replace(/\\,/g, ",").replace(/\\;/g, ";").trim();
+      name = name.replace(/^"+|"+$/g, "").trim(); // strip wrapping quotes
       for (const t of tels) out.push({ name: name || t, number: t });
     }
     return out;
