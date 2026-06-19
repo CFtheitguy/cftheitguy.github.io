@@ -50,6 +50,7 @@
     // Contacts
     contacts: () => req("/api/contacts"),
     saveContact: (c) => req("/api/contacts", { method: "POST", body: c }),
+    importContacts: (contacts) => req("/api/contacts/import", { method: "POST", body: { contacts } }),
     deleteContact: (id) => req("/api/contacts/delete", { method: "POST", body: { id } }),
   };
 })();

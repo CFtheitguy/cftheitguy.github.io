@@ -93,6 +93,7 @@ export default {
       if (p === "/api/voicemail")   return cors(env, await requireAuth(request, env, () => listVoicemail(env)));
       if (p === "/api/contacts" && request.method === "GET")  return cors(env, await requireAuth(request, env, () => listContacts(env)));
       if (p === "/api/contacts" && request.method === "POST") return cors(env, await requireAuth(request, env, () => saveContact(request, env)));
+      if (p === "/api/contacts/import" && request.method === "POST") return cors(env, await requireAuth(request, env, () => importContacts(request, env)));
       if (p === "/api/contacts/delete") return cors(env, await requireAuth(request, env, () => deleteContact(request, env)));
 
       return cors(env, json({ error: "Not found" }, 404));
@@ -475,11 +476,24 @@ async function listVoicemail(env) {
 /* ============================================================
  * Contacts
  * ============================================================ */
+// Make sure the contacts table exists (self-heal if the DB was set up before
+// this table was added, which otherwise makes saves/loads fail silently).
+async function ensureContactsTable(env) {
+  await env.DB.prepare(
+    "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, number TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))"
+  ).run();
+  await env.DB.prepare(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_number ON contacts(number)"
+  ).run();
+}
+
 async function listContacts(env) {
+  await ensureContactsTable(env);
   const rows = await env.DB.prepare("SELECT id, name, number FROM contacts ORDER BY name ASC").all();
   return json({ contacts: rows.results || [] });
 }
 async function saveContact(request, env) {
+  await ensureContactsTable(env);
   const c = await readForm(request);
   const number = e164(c.number);
   if (!c.name || !number) return json({ error: "name and number required" }, 400);
@@ -492,7 +506,35 @@ async function saveContact(request, env) {
   return json({ ok: true });
 }
 async function deleteContact(request, env) {
+  await ensureContactsTable(env);
   const { id } = await readForm(request);
   await env.DB.prepare("DELETE FROM contacts WHERE id=?").bind(id).run();
   return json({ ok: true });
+}
+// Bulk import (e.g. from a parsed .vcf). Body: { contacts: [{name, number}, ...] }
+async function importContacts(request, env) {
+  await ensureContactsTable(env);
+  const body = await readForm(request);
+  let list = body.contacts;
+  if (typeof list === "string") { try { list = JSON.parse(list); } catch (_) { list = []; } }
+  if (!Array.isArray(list)) return json({ error: "contacts array required" }, 400);
+
+  const stmt = env.DB.prepare(
+    "INSERT INTO contacts (name, number) VALUES (?,?) ON CONFLICT(number) DO UPDATE SET name=excluded.name"
+  );
+  const batch = [];
+  for (const c of list) {
+    const name = ((c && c.name) || "").toString().trim();
+    const number = e164(c && c.number);
+    if (!name || !number || number.length < 8) continue; // skip junk
+    batch.push(stmt.bind(name, number));
+  }
+  if (!batch.length) return json({ imported: 0 });
+  // Chunk to stay within D1 batch limits.
+  let imported = 0;
+  for (let i = 0; i < batch.length; i += 50) {
+    await env.DB.batch(batch.slice(i, i + 50));
+    imported += Math.min(50, batch.length - i);
+  }
+  return json({ imported });
 }
