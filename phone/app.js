@@ -278,6 +278,47 @@
     catch (e) { toast(e.message); }
   };
 
+  // ---- vCard (.vcf) import ----
+  // Parse a .vcf into [{name, number}]. Handles multiple cards, multiple TEL
+  // lines per card, grouped iOS properties (item1.TEL), and folded lines.
+  function parseVCards(text) {
+    const unfolded = text.replace(/\r\n/g, "\n").replace(/\n[ \t]/g, ""); // unfold continuations
+    const out = [];
+    const cards = unfolded.split(/BEGIN:VCARD/i).slice(1);
+    for (const card of cards) {
+      let fn = "", n = "";
+      const tels = [];
+      for (const line of card.split("\n")) {
+        const colon = line.indexOf(":");
+        if (colon < 0) continue;
+        const key = line.slice(0, colon).toUpperCase();
+        const val = line.slice(colon + 1).trim();
+        if (/(^|\.)FN(;|$)/.test(key)) fn = val;
+        else if (/(^|\.)N(;|$)/.test(key) && !n) n = val.split(";").filter(Boolean).reverse().join(" ").trim();
+        else if (/(^|\.)TEL(;|$)/.test(key) && val) tels.push(val);
+      }
+      const name = (fn || n || "").replace(/\\,/g, ",").trim();
+      for (const t of tels) out.push({ name: name || t, number: t });
+    }
+    return out;
+  }
+
+  $("#contactImport").onclick = () => $("#vcfInput").click();
+  $("#vcfInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ""; // allow re-importing the same file later
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = parseVCards(text);
+      if (!parsed.length) return toast("No contacts found in that file");
+      toast(`Importing ${parsed.length}…`);
+      const { imported } = await API.importContacts(parsed);
+      await loadContacts();
+      toast(`Imported ${imported} contact${imported === 1 ? "" : "s"}`);
+    } catch (err) { toast("Import failed: " + err.message); }
+  });
+
   // ====================================================================
   // DIALER
   // ====================================================================

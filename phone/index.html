@@ -149,7 +149,9 @@
     <section data-panel="contacts" class="panel hidden absolute inset-0 flex flex-col">
       <div class="p-3 border-b flex gap-2">
         <input id="contactSearch" placeholder="Search contacts" class="flex-1 border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand" />
+        <button id="contactImport" class="border border-brand text-brand rounded-xl px-3" title="Import .vcf file">Import</button>
         <button id="contactAdd" class="bg-brand text-white rounded-xl px-3">＋</button>
+        <input id="vcfInput" type="file" accept=".vcf,text/vcard" class="hidden" />
       </div>
       <div id="contactList" class="flex-1 overflow-y-auto noscroll divide-y"></div>
     </section>
