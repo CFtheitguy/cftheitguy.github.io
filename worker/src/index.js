@@ -75,7 +75,7 @@ export default {
       }
 
       // ---------- Inbound SMS ----------
-      if (p === "/sms/inbound" && request.method === "POST") return smsInbound(request, env);
+      if (p === "/sms/inbound" && request.method === "POST") return smsInbound(request, env, ctx);
       if (p === "/sms/status") return new Response("", { status: 200 });
 
       // ---------- Inbound voice via SWML (Call Fabric: ring browser → cell) ----------
@@ -413,13 +413,31 @@ async function sendSms(request, env) {
   return json({ ok: true, sid: data.sid });
 }
 
-async function smsInbound(request, env) {
+async function smsInbound(request, env, ctx) {
   const f = await readForm(request);
   const from = e164(f.From);
+  const body = (f.Body || "").toString();
   if (env.DB) {
     await env.DB.prepare("INSERT INTO messages (number, direction, body, sid, is_read) VALUES (?, 'in', ?, ?, 0)")
-      .bind(from, f.Body || "", f.MessageSid || null).run();
+      .bind(from, body, f.MessageSid || null).run();
   }
+
+  // Owner command routing: a text FROM the owner's phone that starts with
+  // "task" or "help" is forwarded to a Power Automate HTTP trigger, which
+  // creates a Microsoft To-Do task or emails help@linearit.co (NinjaOne ticket).
+  const owner = e164(env.OWNER_NUMBER || CELL_NUMBER);
+  const m = body.match(/^\s*(task|help)\b[\s:,\-]*([\s\S]*)$/i);
+  if (env.AUTOMATE_URL && from === owner && m) {
+    const command = m[1].toLowerCase();
+    const text = (m[2] || "").trim();
+    const fwd = fetch(env.AUTOMATE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ command, text, body, from }),
+    }).catch(() => {});
+    if (ctx && ctx.waitUntil) ctx.waitUntil(fwd); else await fwd;
+  }
+
   return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', { headers: { "Content-Type": "text/xml" } });
 }
 
