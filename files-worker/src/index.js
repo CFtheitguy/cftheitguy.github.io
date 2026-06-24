@@ -274,33 +274,41 @@ input:focus{border-color:#2563eb}
 </div>
 </main>
 <script>
-const TOKEN = ${JSON.stringify(safeToken)};
+var TOKEN = ${JSON.stringify(safeToken)};
 async function unlock() {
-  const pw = document.getElementById('pw').value;
+  var pw = document.getElementById('pw').value;
   if (!pw) return;
-  const msg = document.getElementById('msg');
+  var msg = document.getElementById('msg');
   msg.style.display = 'none';
-  const r = await fetch('/api/share/view', {
+  var r = await fetch('/api/share/view', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token: TOKEN, password: pw })
   });
-  const data = await r.json().catch(() => ({}));
   if (!r.ok) {
-    msg.className = 'err'; msg.textContent = data.error || 'Incorrect password or link already used.';
+    var data = await r.json().catch(function() { return {}; });
+    msg.className = 'err';
+    msg.textContent = data.error || 'Incorrect password or link already used.';
     msg.style.display = 'block';
     return;
   }
-  msg.className = 'ok'; msg.textContent = 'Downloading… this link is now burned.';
+  msg.className = 'ok';
+  msg.textContent = 'Downloading… this link is now burned.';
   msg.style.display = 'block';
-  const a = document.createElement('a');
-  a.href = data.url;
-  a.download = data.filename || 'file';
+  var blob = await r.blob();
+  var blobUrl = URL.createObjectURL(blob);
+  var cd = r.headers.get('content-disposition') || '';
+  var m = cd.match(/filename="([^"]+)"/);
+  var filename = m ? m[1] : 'file';
+  var a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 10000);
 }
-document.getElementById('pw').addEventListener('keydown', e => e.key === 'Enter' && unlock());
+document.getElementById('pw').addEventListener('keydown', function(e) { if (e.key === 'Enter') unlock(); });
 </script>
 </body>
 </html>`;
@@ -438,11 +446,19 @@ function clientScript() {
     '}',
     '',
     'async function downloadFile(id) {',
-    '  var r = await api("/api/files/download?id=" + id);',
-    '  if (!r.ok) return showAlert(r.data.error || "Download failed");',
+    '  var headers = {};',
+    '  if (SESSION) headers["Authorization"] = "Bearer " + SESSION;',
+    '  var r = await fetch("/api/files/download?id=" + id, { headers: headers });',
+    '  if (!r.ok) { var d = await r.json().catch(function() { return {}; }); return showAlert(d.error || "Download failed"); }',
+    '  var blob = await r.blob();',
+    '  var blobUrl = URL.createObjectURL(blob);',
+    '  var cd = r.headers.get("content-disposition") || "";',
+    '  var m = cd.match(/filename="([^"]+)"/);',
+    '  var filename = m ? m[1] : "file";',
     '  var a = document.createElement("a");',
-    '  a.href = r.data.url; a.download = r.data.filename || "file";',
+    '  a.href = blobUrl; a.download = filename;',
     '  document.body.appendChild(a); a.click(); document.body.removeChild(a);',
+    '  setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 10000);',
     '}',
     '',
     'async function deleteFile(id) {',
@@ -610,19 +626,27 @@ async function uploadFile(request, env) {
   return json({ ok: true });
 }
 
-// ── Download file (presigned R2 URL, 15-min expiry) ───────────────
+// ── Download file (stream directly from R2) ───────────────────────
 async function downloadFile(request, env, url) {
   const user = await requireAuth(request, env);
   if (!user) return json({ error: 'Unauthorized' }, 401);
 
   const id = Number(url.searchParams.get('id'));
   const row = await env.DB.prepare(
-    'SELECT r2_key, name FROM files WHERE id=? AND user_id=?'
+    'SELECT r2_key, name, mime FROM files WHERE id=? AND user_id=?'
   ).bind(id, user.id).first();
   if (!row) return json({ error: 'File not found' }, 404);
 
-  const signed = await env.FILES.createSignedUrl(row.r2_key, { expiresIn: 900 });
-  return corsHeaders(json({ url: signed, filename: row.name }));
+  const obj = await env.FILES.get(row.r2_key);
+  if (!obj) return json({ error: 'File not found in storage' }, 404);
+
+  const safeName = row.name.replace(/"/g, '');
+  return corsHeaders(new Response(obj.body, {
+    headers: {
+      'Content-Type': row.mime || obj.httpMetadata?.contentType || 'application/octet-stream',
+      'Content-Disposition': 'attachment; filename="' + safeName + '"',
+    }
+  }));
 }
 
 // ── Delete file ───────────────────────────────────────────────────
@@ -695,9 +719,10 @@ async function viewShare(request, env, ctx) {
   const ok = await verifyPassword(password, share.pw_hash, share.pw_salt);
   if (!ok) return json({ error: 'Incorrect password' }, 401);
 
-  // Generate the signed URL BEFORE burning the link so a failed URL generation
+  // Fetch the R2 object BEFORE burning the link so a storage failure
   // doesn't permanently destroy access.
-  const signed = await env.FILES.createSignedUrl(share.r2_key, { expiresIn: 60 });
+  const obj = await env.FILES.get(share.r2_key);
+  if (!obj) return json({ error: 'File not found in storage' }, 404);
 
   // Atomically mark as viewed — if another request beat us, bail
   const result = await env.DB.prepare(
@@ -711,7 +736,13 @@ async function viewShare(request, env, ctx) {
   // Schedule R2 cleanup in background (best-effort)
   if (ctx && ctx.waitUntil) ctx.waitUntil(env.FILES.delete(share.r2_key).catch(() => {}));
 
-  return json({ url: signed, filename: share.name });
+  const safeName = share.name.replace(/"/g, '');
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+      'Content-Disposition': 'attachment; filename="' + safeName + '"',
+    }
+  });
 }
 
 // ── Cron: purge expired shares + burned shares older than 7 days ───
