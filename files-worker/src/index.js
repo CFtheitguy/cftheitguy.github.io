@@ -222,7 +222,10 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
 
 <script>
 const API = '';   // same origin
-let SESSION = localStorage.getItem('lt_session') || '';
+function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k,v) { try { localStorage.setItem(k,v); } catch {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch {} }
+let SESSION = lsGet('lt_session') || '';
 let CURRENT_USER = null;
 
 // ── Init ─────────────────────────────────────────────────────────
@@ -235,7 +238,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     SESSION = '';
-    localStorage.removeItem('lt_session');
+    lsDel('lt_session');
   }
   showAuth();
 });
@@ -313,7 +316,7 @@ async function doSignup() {
   if (!r.ok) return showAlert(r.data.error || 'Signup failed');
   SESSION = r.data.token;
   CURRENT_USER = r.data.user;
-  localStorage.setItem('lt_session', SESSION);
+  lsSet('lt_session', SESSION);
   showPortal();
 }
 
@@ -325,7 +328,7 @@ async function doLogin() {
   if (!r.ok) return showAlert(r.data.error || 'Login failed');
   SESSION = r.data.token;
   CURRENT_USER = r.data.user;
-  localStorage.setItem('lt_session', SESSION);
+  lsSet('lt_session', SESSION);
   showPortal();
 }
 
@@ -333,7 +336,7 @@ async function doLogout() {
   await api('POST', '/api/logout');
   SESSION = '';
   CURRENT_USER = null;
-  localStorage.removeItem('lt_session');
+  lsDel('lt_session');
   document.getElementById('nav-user').innerHTML = '';
   showAuth();
 }
