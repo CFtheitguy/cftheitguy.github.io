@@ -286,7 +286,7 @@ function showAuth()   { showSection('section-auth'); }
 function showPortal() {
   showSection('section-portal');
   document.getElementById('nav-user').innerHTML =
-    '<span>' + (CURRENT_USER?.username || '') + '</span><button onclick="doLogout()">Sign out</button>';
+    '<span>' + (CURRENT_USER && CURRENT_USER.username ? CURRENT_USER.username : '') + '</span><button onclick="doLogout()">Sign out</button>';
   loadFiles();
 }
 
