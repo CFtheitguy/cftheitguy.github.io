@@ -268,7 +268,8 @@ async function api(method, path, body, onProgress) {
   return { ok: res.ok, data };
 }
 
-function showAlert(msg, type='err') {
+function showAlert(msg, type) {
+  if (!type) type = 'err';
   const el = document.getElementById('alert');
   el.className = 'alert-' + (type === 'ok' ? 'ok' : 'err');
   el.textContent = msg;
