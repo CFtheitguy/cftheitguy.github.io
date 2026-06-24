@@ -695,18 +695,21 @@ async function viewShare(request, env, ctx) {
   const ok = await verifyPassword(password, share.pw_hash, share.pw_salt);
   if (!ok) return json({ error: 'Incorrect password' }, 401);
 
+  // Generate the signed URL BEFORE burning the link so a failed URL generation
+  // doesn't permanently destroy access.
+  const signed = await env.FILES.createSignedUrl(share.r2_key, { expiresIn: 60 });
+
   // Atomically mark as viewed — if another request beat us, bail
   const result = await env.DB.prepare(
     'UPDATE shares SET viewed=1 WHERE id=? AND viewed=0'
   ).bind(share.id).run();
 
-  if (!result.meta?.changes && result.changes === 0) {
+  if (result.meta && result.meta.changes === 0) {
     return json({ error: 'This link has already been used' }, 410);
   }
 
-  const signed = await env.FILES.createSignedUrl(share.r2_key, { expiresIn: 60 });
   // Schedule R2 cleanup in background (best-effort)
-  if (ctx?.waitUntil) ctx.waitUntil(env.FILES.delete(share.r2_key).catch(() => {}));
+  if (ctx && ctx.waitUntil) ctx.waitUntil(env.FILES.delete(share.r2_key).catch(() => {}));
 
   return json({ url: signed, filename: share.name });
 }
