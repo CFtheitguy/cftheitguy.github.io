@@ -346,15 +346,15 @@ async function loadFiles() {
   const files = r.data.files || [];
   if (!files.length) { el.innerHTML = '<p style="color:var(--muted);margin-top:12px">No files yet. Upload one above.</p>'; return; }
   el.innerHTML = '<table><thead><tr><th>Name</th><th>Size</th><th>Uploaded</th><th></th></tr></thead><tbody>' +
-    files.map(f => `<tr>
-      <td><span class="file-name">${esc(f.name)}</span></td>
-      <td><span class="file-size">${fmtSize(f.size)}</span></td>
-      <td style="color:var(--muted);font-size:.8rem">${f.created_at?.slice(0,10) || ''}</td>
-      <td class="actions">
-        <button class="btn btn-sm btn-ghost" onclick="downloadFile(${f.id},'${esc(f.name)}')">Download</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteFile(${f.id})">Delete</button>
-      </td>
-    </tr>`).join('') + '</tbody></table>';
+    files.map(f => '<tr>' +
+      '<td><span class="file-name">' + esc(f.name) + '</span></td>' +
+      '<td><span class="file-size">' + fmtSize(f.size) + '</span></td>' +
+      '<td style="color:var(--muted);font-size:.8rem">' + (f.created_at ? f.created_at.slice(0,10) : '') + '</td>' +
+      '<td class="actions">' +
+        '<button class="btn btn-sm btn-ghost" onclick="downloadFile(' + f.id + ',\'' + esc(f.name) + '\')">Download</button>' +
+        '<button class="btn btn-sm btn-danger" onclick="deleteFile(' + f.id + ')">Delete</button>' +
+      '</td></tr>'
+    ).join('') + '</tbody></table>';
 }
 
 async function uploadFiles(files) {
