@@ -222,9 +222,9 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
 
 <script>
 const API = '';   // same origin
-function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
-function lsSet(k,v) { try { localStorage.setItem(k,v); } catch {} }
-function lsDel(k) { try { localStorage.removeItem(k); } catch {} }
+function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function lsSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch(e) {} }
 let SESSION = lsGet('lt_session') || '';
 let CURRENT_USER = null;
 
@@ -256,7 +256,7 @@ async function api(method, path, body, onProgress) {
       xhr.upload.onprogress = e => e.lengthComputable && onProgress && onProgress(e.loaded / e.total * 100);
       xhr.onload = () => {
         try { resolve({ ok: xhr.status < 300, data: JSON.parse(xhr.responseText) }); }
-        catch { resolve({ ok: false, data: {} }); }
+        catch(e) { resolve({ ok: false, data: {} }); }
       };
       xhr.onerror = () => resolve({ ok: false, data: { error: 'Network error' } });
       xhr.send(body);
