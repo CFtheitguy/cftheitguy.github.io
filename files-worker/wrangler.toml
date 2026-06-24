@@ -1,0 +1,18 @@
+name = "linearit-files"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "linearit-files"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "linearit-files-db"
+database_id = "REPLACE_WITH_YOUR_D1_ID"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[vars]
+SITE_ORIGIN = "https://files.linearit.co"

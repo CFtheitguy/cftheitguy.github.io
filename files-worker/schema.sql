@@ -1,0 +1,43 @@
+-- Run once in Cloudflare D1 console: paste and click "Execute"
+
+CREATE TABLE IF NOT EXISTS users (
+  id        INTEGER PRIMARY KEY AUTOINCREMENT,
+  username  TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+  email     TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+  pw_hash   TEXT    NOT NULL,
+  pw_salt   TEXT    NOT NULL,
+  created_at TEXT   NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token      TEXT PRIMARY KEY,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_exp  ON sessions(expires_at);
+
+CREATE TABLE IF NOT EXISTS files (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  r2_key      TEXT    NOT NULL UNIQUE,
+  name        TEXT    NOT NULL,
+  size        INTEGER NOT NULL DEFAULT 0,
+  mime        TEXT,
+  created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_files_user ON files(user_id);
+
+CREATE TABLE IF NOT EXISTS shares (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  token        TEXT    NOT NULL UNIQUE,
+  file_id      INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+  pw_hash      TEXT    NOT NULL,
+  pw_salt      TEXT    NOT NULL,
+  recipient_email TEXT,
+  expires_at   TEXT,
+  viewed       INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);
