@@ -24,6 +24,9 @@ export default {
       if (method === "GET" && (path === "/" || path === "/files" || path === "/files/")) {
         return htmlResponse(renderApp());
       }
+      if (method === "GET" && path === "/app.js") {
+        return new Response(clientScript(), { status: 200, headers: { "Content-Type": "application/javascript" } });
+      }
       if (method === "GET" && path.startsWith("/view/")) {
         return htmlResponse(renderViewPage(path.slice(6)));
       }
@@ -220,241 +223,7 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
   </div>
 </main>
 
-<script>
-const API = '';   // same origin
-function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
-function lsSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
-function lsDel(k) { try { localStorage.removeItem(k); } catch(e) {} }
-let SESSION = lsGet('lt_session') || '';
-let CURRENT_USER = null;
-
-// ── Init ─────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  if (SESSION) {
-    const r = await api('GET', '/api/me');
-    if (r.ok) {
-      CURRENT_USER = r.data;
-      showPortal();
-      return;
-    }
-    SESSION = '';
-    lsDel('lt_session');
-  }
-  showAuth();
-});
-
-// ── Helpers ──────────────────────────────────────────────────────
-async function api(method, path, body, onProgress) {
-  const opts = { method, headers: {} };
-  if (SESSION) opts.headers['Authorization'] = 'Bearer ' + SESSION;
-  if (body instanceof FormData) {
-    // XHR for progress
-    return new Promise(resolve => {
-      const xhr = new XMLHttpRequest();
-      xhr.open(method, path);
-      if (SESSION) xhr.setRequestHeader('Authorization', 'Bearer ' + SESSION);
-      xhr.upload.onprogress = e => e.lengthComputable && onProgress && onProgress(e.loaded / e.total * 100);
-      xhr.onload = () => {
-        try { resolve({ ok: xhr.status < 300, data: JSON.parse(xhr.responseText) }); }
-        catch(e) { resolve({ ok: false, data: {} }); }
-      };
-      xhr.onerror = () => resolve({ ok: false, data: { error: 'Network error' } });
-      xhr.send(body);
-    });
-  }
-  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-  const res = await fetch(path, opts);
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, data };
-}
-
-function showAlert(msg, type) {
-  if (!type) type = 'err';
-  const el = document.getElementById('alert');
-  el.className = 'alert-' + (type === 'ok' ? 'ok' : 'err');
-  el.textContent = msg;
-  el.style.display = 'block';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.style.display = 'none', 6000);
-}
-
-function showSection(id) {
-  ['section-auth','section-portal'].forEach(s => document.getElementById(s).style.display = 'none');
-  document.getElementById(id).style.display = 'block';
-}
-
-function showAuth()   { showSection('section-auth'); }
-function showPortal() {
-  showSection('section-portal');
-  document.getElementById('nav-user').innerHTML =
-    '<span>' + (CURRENT_USER && CURRENT_USER.username ? CURRENT_USER.username : '') + '</span><button onclick="doLogout()">Sign out</button>';
-  loadFiles();
-}
-
-function switchTab(tab) {
-  document.getElementById('form-login').style.display  = tab === 'login'  ? 'block' : 'none';
-  document.getElementById('form-signup').style.display = tab === 'signup' ? 'block' : 'none';
-  document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
-  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
-}
-
-function showPane(name) {
-  document.getElementById('pane-files').style.display = name === 'files' ? 'block' : 'none';
-  document.getElementById('pane-send').style.display  = name === 'send'  ? 'block' : 'none';
-  document.getElementById('ptab-files').classList.toggle('active', name === 'files');
-  document.getElementById('ptab-send').classList.toggle('active',  name === 'send');
-}
-
-// ── Auth ─────────────────────────────────────────────────────────
-async function doSignup() {
-  const u = document.getElementById('su-user').value.trim();
-  const e = document.getElementById('su-email').value.trim();
-  const p = document.getElementById('su-pass').value;
-  const p2 = document.getElementById('su-pass2').value;
-  if (!u||!e||!p) return showAlert('All fields required');
-  if (p !== p2) return showAlert('Passwords do not match');
-  const r = await api('POST', '/api/signup', { username: u, email: e, password: p });
-  if (!r.ok) return showAlert(r.data.error || 'Signup failed');
-  SESSION = r.data.token;
-  CURRENT_USER = r.data.user;
-  lsSet('lt_session', SESSION);
-  showPortal();
-}
-
-async function doLogin() {
-  const u = document.getElementById('li-user').value.trim();
-  const p = document.getElementById('li-pass').value;
-  if (!u||!p) return showAlert('Username and password required');
-  const r = await api('POST', '/api/login', { username: u, password: p });
-  if (!r.ok) return showAlert(r.data.error || 'Login failed');
-  SESSION = r.data.token;
-  CURRENT_USER = r.data.user;
-  lsSet('lt_session', SESSION);
-  showPortal();
-}
-
-async function doLogout() {
-  await api('POST', '/api/logout');
-  SESSION = '';
-  CURRENT_USER = null;
-  lsDel('lt_session');
-  document.getElementById('nav-user').innerHTML = '';
-  showAuth();
-}
-
-// ── Files ─────────────────────────────────────────────────────────
-async function loadFiles() {
-  const r = await api('GET', '/api/files');
-  const el = document.getElementById('file-list');
-  if (!r.ok) { el.innerHTML = '<p style="color:var(--danger)">Could not load files</p>'; return; }
-  const files = r.data.files || [];
-  if (!files.length) { el.innerHTML = '<p style="color:var(--muted);margin-top:12px">No files yet. Upload one above.</p>'; return; }
-  el.innerHTML = '<table><thead><tr><th>Name</th><th>Size</th><th>Uploaded</th><th></th></tr></thead><tbody>' +
-    files.map(f => '<tr>' +
-      '<td><span class="file-name">' + esc(f.name) + '</span></td>' +
-      '<td><span class="file-size">' + fmtSize(f.size) + '</span></td>' +
-      '<td style="color:var(--muted);font-size:.8rem">' + (f.created_at ? f.created_at.slice(0,10) : '') + '</td>' +
-      '<td class="actions">' +
-        '<button class="btn btn-sm btn-ghost" onclick="downloadFile(' + f.id + ',\'' + esc(f.name) + '\')">Download</button>' +
-        '<button class="btn btn-sm btn-danger" onclick="deleteFile(' + f.id + ')">Delete</button>' +
-      '</td></tr>'
-    ).join('') + '</tbody></table>';
-}
-
-async function uploadFiles(files) {
-  if (!files.length) return;
-  const prog = document.getElementById('upload-progress');
-  prog.style.display = 'block';
-  for (const file of Array.from(files)) {
-    const fd = new FormData();
-    fd.append('file', file);
-    prog.value = 0;
-    const r = await api('POST', '/api/files/upload', fd, pct => prog.value = pct);
-    if (!r.ok) showAlert('Upload failed: ' + (r.data.error || 'unknown error'));
-  }
-  prog.style.display = 'none';
-  document.getElementById('file-input').value = '';
-  loadFiles();
-}
-
-async function downloadFile(id, name) {
-  const r = await api('GET', '/api/files/download?id=' + id);
-  if (!r.ok) return showAlert(r.data.error || 'Download failed');
-  const a = document.createElement('a');
-  a.href = r.data.url;
-  a.download = name;
-  a.click();
-}
-
-async function deleteFile(id) {
-  if (!confirm('Delete this file? This cannot be undone.')) return;
-  const r = await api('POST', '/api/files/delete', { id });
-  if (!r.ok) return showAlert(r.data.error || 'Delete failed');
-  loadFiles();
-}
-
-// ── Drag & drop ───────────────────────────────────────────────────
-const dz = document.getElementById ? document.getElementById('drop-zone') : null;
-if (dz) {
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
-  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); uploadFiles(e.dataTransfer.files); });
-}
-
-// ── Secure Send ───────────────────────────────────────────────────
-let shareFileObj = null;
-
-function shareFileSelected(input) {
-  shareFileObj = input.files[0] || null;
-  document.getElementById('share-file-name').textContent = shareFileObj ? shareFileObj.name : 'Click to choose a file';
-}
-
-async function createShare() {
-  if (!shareFileObj) return showAlert('Choose a file first');
-  const pw = document.getElementById('share-pw').value;
-  if (!pw) return showAlert('Password required');
-  const email = document.getElementById('share-email').value.trim();
-  const exp   = document.getElementById('share-exp').value;
-
-  const prog = document.getElementById('share-progress');
-  prog.style.display = 'block';
-  prog.value = 0;
-
-  const fd = new FormData();
-  fd.append('file', shareFileObj);
-  fd.append('password', pw);
-  if (email) fd.append('recipient_email', email);
-  if (exp)   fd.append('expires_at', exp);
-
-  const r = await api('POST', '/api/share/create', fd, pct => prog.value = pct);
-  prog.style.display = 'none';
-
-  if (!r.ok) return showAlert(r.data.error || 'Share failed');
-
-  const link = location.origin + '/view/' + r.data.token;
-  document.getElementById('share-url').textContent = link;
-  document.getElementById('share-result').style.display = 'block';
-  document.getElementById('share-pw').value = '';
-  document.getElementById('share-email').value = '';
-  document.getElementById('share-exp').value = '';
-  shareFileObj = null;
-  document.getElementById('share-file-name').textContent = 'Click to choose a file';
-  document.getElementById('share-file-input').value = '';
-}
-
-function copyShare() {
-  navigator.clipboard.writeText(document.getElementById('share-url').textContent)
-    .then(() => showAlert('Link copied!', 'ok'));
-}
-
-// ── Utilities ─────────────────────────────────────────────────────
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtSize(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
-  return (b/1024/1024).toFixed(1) + ' MB';
-}
-</script>
+<script src="/app.js"></script>
 </body>
 </html>`;
 }
@@ -535,6 +304,224 @@ document.getElementById('pw').addEventListener('keydown', e => e.key === 'Enter'
 </script>
 </body>
 </html>`;
+}
+
+/* ================================================================
+ * Client-side JavaScript — served as /app.js
+ * ================================================================ */
+function clientScript() {
+  return [
+    'var SESSION = null;',
+    'var CURRENT_USER = null;',
+    '',
+    'function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }',
+    'function lsSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }',
+    'function lsDel(k) { try { localStorage.removeItem(k); } catch(e) {} }',
+    '',
+    'async function api(path, opts) {',
+    '  if (!opts) opts = {};',
+    '  if (!opts.headers) opts.headers = {};',
+    '  if (SESSION) opts.headers["Authorization"] = "Bearer " + SESSION;',
+    '  var r = await fetch(path, opts);',
+    '  var ct = r.headers.get("content-type") || "";',
+    '  var data = ct.indexOf("application/json") >= 0 ? await r.json() : {};',
+    '  return { ok: r.ok, status: r.status, data: data };',
+    '}',
+    '',
+    'function showAlert(msg, type) {',
+    '  if (!type) type = "err";',
+    '  var el = document.getElementById("alert");',
+    '  el.textContent = msg;',
+    '  el.className = type === "ok" ? "alert-ok" : "alert-err";',
+    '  el.style.display = "block";',
+    '  setTimeout(function() { el.style.display = "none"; }, 5000);',
+    '}',
+    '',
+    'function showSection(id) {',
+    '  document.getElementById("section-auth").style.display = "none";',
+    '  document.getElementById("section-portal").style.display = "none";',
+    '  document.getElementById(id).style.display = "block";',
+    '}',
+    '',
+    'function showAuth() {',
+    '  SESSION = null; CURRENT_USER = null; lsDel("sess");',
+    '  document.getElementById("nav-user").innerHTML = "";',
+    '  showSection("section-auth");',
+    '}',
+    '',
+    'function showPortal(user) {',
+    '  CURRENT_USER = user;',
+    '  var name = user && user.username ? user.username : "";',
+    '  document.getElementById("nav-user").innerHTML =',
+    '    "<span>" + name + "</span>" +',
+    '    "<button onclick=\\"doLogout()\\">Sign out</button>";',
+    '  showSection("section-portal");',
+    '  loadFiles();',
+    '}',
+    '',
+    'function switchTab(tab) {',
+    '  document.getElementById("form-login").style.display = tab === "login" ? "block" : "none";',
+    '  document.getElementById("form-signup").style.display = tab === "signup" ? "block" : "none";',
+    '  document.getElementById("tab-login").className = "tab" + (tab === "login" ? " active" : "");',
+    '  document.getElementById("tab-signup").className = "tab" + (tab === "signup" ? " active" : "");',
+    '}',
+    '',
+    'function showPane(pane) {',
+    '  document.getElementById("pane-files").style.display = pane === "files" ? "block" : "none";',
+    '  document.getElementById("pane-send").style.display = pane === "send" ? "block" : "none";',
+    '  document.getElementById("ptab-files").className = "tab" + (pane === "files" ? " active" : "");',
+    '  document.getElementById("ptab-send").className = "tab" + (pane === "send" ? " active" : "");',
+    '}',
+    '',
+    'async function doSignup() {',
+    '  var u = document.getElementById("su-user").value.trim();',
+    '  var e = document.getElementById("su-email").value.trim();',
+    '  var p = document.getElementById("su-pass").value;',
+    '  var p2 = document.getElementById("su-pass2").value;',
+    '  if (!u || !e || !p) return showAlert("All fields required");',
+    '  if (p !== p2) return showAlert("Passwords do not match");',
+    '  var r = await api("/api/signup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, email: e, password: p }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Signup failed");',
+    '  SESSION = r.data.token; lsSet("sess", SESSION);',
+    '  showPortal(r.data.user);',
+    '}',
+    '',
+    'async function doLogin() {',
+    '  var u = document.getElementById("li-user").value.trim();',
+    '  var p = document.getElementById("li-pass").value;',
+    '  if (!u || !p) return showAlert("Username and password required");',
+    '  var r = await api("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, password: p }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Login failed");',
+    '  SESSION = r.data.token; lsSet("sess", SESSION);',
+    '  showPortal(r.data.user);',
+    '}',
+    '',
+    'async function doLogout() {',
+    '  await api("/api/logout", { method: "POST" });',
+    '  lsDel("sess"); showAuth();',
+    '}',
+    '',
+    'async function loadFiles() {',
+    '  var r = await api("/api/files");',
+    '  var el = document.getElementById("file-list");',
+    '  if (!r.ok) { el.innerHTML = "<p style=\'color:var(--muted)\'>Failed to load files.</p>"; return; }',
+    '  var files = r.data.files || [];',
+    '  if (!files.length) { el.innerHTML = "<p style=\'color:var(--muted);margin-top:12px\'>No files yet — upload something above.</p>"; return; }',
+    '  var rows = "";',
+    '  for (var i = 0; i < files.length; i++) {',
+    '    var f = files[i];',
+    '    rows += "<tr>" +',
+    '      "<td><div class=\'file-name\'>" + esc(f.name) + "</div><div class=\'file-size\'>" + fmtSize(f.size) + "</div></td>" +',
+    '      "<td style=\'color:var(--muted);font-size:.8rem\'>" + (f.created_at ? f.created_at.slice(0,10) : "") + "</td>" +',
+    '      "<td><div class=\'actions\'>" +',
+    '        "<button class=\'btn btn-sm btn-ghost\' onclick=\'downloadFile(" + f.id + ")\'>Download</button>" +',
+    '        "<button class=\'btn btn-sm btn-danger\' onclick=\'deleteFile(" + f.id + ")\'>Delete</button>" +',
+    '      "</div></td></tr>";',
+    '  }',
+    '  el.innerHTML = "<table><thead><tr><th>Name</th><th>Uploaded</th><th></th></tr></thead><tbody>" + rows + "</tbody></table>";',
+    '}',
+    '',
+    'async function uploadFiles(files) {',
+    '  if (!files || !files.length) return;',
+    '  var prog = document.getElementById("upload-progress");',
+    '  prog.style.display = "block"; prog.value = 0;',
+    '  for (var i = 0; i < files.length; i++) {',
+    '    var fd = new FormData();',
+    '    fd.append("file", files[i]);',
+    '    var r = await api("/api/files/upload", { method: "POST", body: fd });',
+    '    if (!r.ok) { showAlert("Upload failed: " + (r.data.error || "unknown error")); }',
+    '    prog.value = Math.round((i + 1) / files.length * 100);',
+    '  }',
+    '  prog.style.display = "none";',
+    '  showAlert("Upload complete!", "ok");',
+    '  loadFiles();',
+    '}',
+    '',
+    'async function downloadFile(id) {',
+    '  var r = await api("/api/files/download?id=" + id);',
+    '  if (!r.ok) return showAlert(r.data.error || "Download failed");',
+    '  var a = document.createElement("a");',
+    '  a.href = r.data.url; a.download = r.data.filename || "file";',
+    '  document.body.appendChild(a); a.click(); document.body.removeChild(a);',
+    '}',
+    '',
+    'async function deleteFile(id) {',
+    '  if (!confirm("Delete this file? This cannot be undone.")) return;',
+    '  var r = await api("/api/files/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Delete failed");',
+    '  showAlert("File deleted.", "ok"); loadFiles();',
+    '}',
+    '',
+    '(function setupDrop() {',
+    '  var zone = document.getElementById("drop-zone");',
+    '  if (!zone) return;',
+    '  zone.addEventListener("dragover", function(e) { e.preventDefault(); zone.classList.add("over"); });',
+    '  zone.addEventListener("dragleave", function() { zone.classList.remove("over"); });',
+    '  zone.addEventListener("drop", function(e) {',
+    '    e.preventDefault(); zone.classList.remove("over");',
+    '    uploadFiles(e.dataTransfer.files);',
+    '  });',
+    '})();',
+    '',
+    'var SHARE_FILE = null;',
+    'function shareFileSelected(input) {',
+    '  SHARE_FILE = input.files[0] || null;',
+    '  document.getElementById("share-file-name").textContent = SHARE_FILE ? SHARE_FILE.name : "Click to choose a file";',
+    '}',
+    '',
+    'async function createShare() {',
+    '  if (!SHARE_FILE) return showAlert("Please choose a file");',
+    '  var pw = document.getElementById("share-pw").value;',
+    '  if (!pw) return showAlert("Password is required");',
+    '  var email = document.getElementById("share-email").value;',
+    '  var exp = document.getElementById("share-exp").value;',
+    '  var prog = document.getElementById("share-progress");',
+    '  prog.style.display = "block"; prog.value = 50;',
+    '  var fd = new FormData();',
+    '  fd.append("file", SHARE_FILE);',
+    '  fd.append("password", pw);',
+    '  if (email) fd.append("recipient_email", email);',
+    '  if (exp) fd.append("expires_at", exp);',
+    '  var r = await api("/api/share/create", { method: "POST", body: fd });',
+    '  prog.style.display = "none";',
+    '  if (!r.ok) return showAlert(r.data.error || "Failed to create share link");',
+    '  var link = window.location.origin + "/view/" + r.data.token;',
+    '  document.getElementById("share-url").textContent = link;',
+    '  document.getElementById("share-result").style.display = "block";',
+    '}',
+    '',
+    'function copyShare() {',
+    '  var url = document.getElementById("share-url").textContent;',
+    '  navigator.clipboard.writeText(url).then(function() {',
+    '    showAlert("Link copied!", "ok");',
+    '  }).catch(function() {',
+    '    showAlert("Copy failed — select the link manually");',
+    '  });',
+    '}',
+    '',
+    'function esc(s) {',
+    '  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");',
+    '}',
+    '',
+    'function fmtSize(b) {',
+    '  if (!b) return "0 B";',
+    '  var units = ["B","KB","MB","GB"];',
+    '  var i = 0;',
+    '  while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }',
+    '  return b.toFixed(i ? 1 : 0) + " " + units[i];',
+    '}',
+    '',
+    '(async function init() {',
+    '  var saved = lsGet("sess");',
+    '  if (saved) {',
+    '    SESSION = saved;',
+    '    var r = await api("/api/me");',
+    '    if (r.ok) { showPortal(r.data); return; }',
+    '    lsDel("sess"); SESSION = null;',
+    '  }',
+    '  showAuth();',
+    '})();'
+  ].join('\n');
 }
 
 /* ================================================================
