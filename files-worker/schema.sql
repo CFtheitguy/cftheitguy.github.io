@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS shares (
   recipient_email TEXT,
   expires_at   TEXT,
   viewed       INTEGER NOT NULL DEFAULT 0,
+  max_views    INTEGER NOT NULL DEFAULT 1,
   created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);

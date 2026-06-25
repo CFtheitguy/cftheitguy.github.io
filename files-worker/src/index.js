@@ -321,6 +321,17 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
         <div class="field"><label>Password &nbsp;<span style="font-weight:400;color:var(--muted2)">(the recipient will need to enter this)</span></label><input id="share-pw" type="password" placeholder="Choose a strong password"/></div>
         <div class="field"><label>Recipient email &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="share-email" type="email" placeholder="recipient@example.com"/></div>
         <div class="field"><label>Link expires on &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="share-exp" type="date"/></div>
+        <div class="field">
+          <label>How many times can this link be downloaded?</label>
+          <select id="share-max-views" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;font-family:inherit;outline:none;cursor:pointer">
+            <option value="1">1 time (one-time link)</option>
+            <option value="2">2 times</option>
+            <option value="3">3 times</option>
+            <option value="5">5 times</option>
+            <option value="10">10 times</option>
+            <option value="999">Unlimited</option>
+          </select>
+        </div>
 
         <button class="btn" onclick="createShare()">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -334,7 +345,7 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
             <span id="share-url" class="share-url"></span>
             <button class="btn btn-sm" onclick="copyShare()">Copy link</button>
           </div>
-          <p style="font-size:.78rem;color:var(--muted);margin-top:10px">This link will stop working after the first download.</p>
+          <p id="share-uses-label" style="font-size:.78rem;color:var(--muted);margin-top:10px">This link allows 1 download.</p>
         </div>
       </div>
     </div>
@@ -674,11 +685,13 @@ function clientScript() {
     '  if (!pw) return showAlert("Password is required");',
     '  var email = document.getElementById("share-email").value;',
     '  var exp = document.getElementById("share-exp").value;',
+    '  var maxViews = document.getElementById("share-max-views").value;',
     '  var prog = document.getElementById("share-progress");',
     '  prog.style.display = "block"; prog.value = 50;',
     '  var fd = new FormData();',
     '  fd.append("file", SHARE_FILE);',
     '  fd.append("password", pw);',
+    '  fd.append("max_views", maxViews);',
     '  if (email) fd.append("recipient_email", email);',
     '  if (exp) fd.append("expires_at", exp);',
     '  var r = await api("/api/share/create", { method: "POST", body: fd });',
@@ -686,6 +699,8 @@ function clientScript() {
     '  if (!r.ok) return showAlert(r.data.error || "Failed to create share link");',
     '  var link = window.location.origin + "/view/" + r.data.token;',
     '  document.getElementById("share-url").textContent = link;',
+    '  var usesLabel = maxViews === "999" ? "unlimited downloads" : (maxViews === "1" ? "1 download" : maxViews + " downloads");',
+    '  document.getElementById("share-uses-label").textContent = "This link allows " + usesLabel + ".";',
     '  document.getElementById("share-result").style.display = "block";',
     '}',
     '',
@@ -858,6 +873,8 @@ async function createShare(request, env) {
   const password = form.get('password');
   const recipientEmail = form.get('recipient_email') || null;
   const expiresAt = form.get('expires_at') || null;
+  const maxViewsRaw = parseInt(form.get('max_views') || '1', 10);
+  const maxViews = (!maxViewsRaw || maxViewsRaw < 1) ? 1 : Math.min(maxViewsRaw, 999);
 
   if (!file || typeof file === 'string') return json({ error: 'No file provided' }, 400);
   if (!password) return json({ error: 'Password required' }, 400);
@@ -877,8 +894,8 @@ async function createShare(request, env) {
   const token = crypto.randomUUID().replace(/-/g, '');
 
   await env.DB.prepare(
-    'INSERT INTO shares (token, file_id, pw_hash, pw_salt, recipient_email, expires_at) VALUES (?,?,?,?,?,?)'
-  ).bind(token, fileRow.id, hash, salt, recipientEmail, expiresAt || null).run();
+    'INSERT INTO shares (token, file_id, pw_hash, pw_salt, recipient_email, expires_at, max_views) VALUES (?,?,?,?,?,?,?)'
+  ).bind(token, fileRow.id, hash, salt, recipientEmail, expiresAt || null, maxViews).run();
 
   return json({ token });
 }
@@ -889,14 +906,14 @@ async function viewShare(request, env, ctx) {
   if (!token || !password) return json({ error: 'Token and password required' }, 400);
 
   const share = await env.DB.prepare(
-    `SELECT s.id, s.token, s.pw_hash, s.pw_salt, s.viewed, s.expires_at,
+    `SELECT s.id, s.token, s.pw_hash, s.pw_salt, s.viewed, s.max_views, s.expires_at,
             f.r2_key, f.name
      FROM shares s JOIN files f ON f.id = s.file_id
      WHERE s.token=?`
   ).bind(token).first();
 
   if (!share) return json({ error: 'Link not found or already used' }, 404);
-  if (share.viewed) return json({ error: 'This link has already been used' }, 410);
+  if (share.viewed >= share.max_views) return json({ error: 'This link has reached its download limit' }, 410);
   if (share.expires_at && new Date(share.expires_at) < new Date()) return json({ error: 'This link has expired' }, 410);
 
   const ok = await verifyPassword(password, share.pw_hash, share.pw_salt);
@@ -907,17 +924,20 @@ async function viewShare(request, env, ctx) {
   const obj = await env.FILES.get(share.r2_key);
   if (!obj) return json({ error: 'File not found in storage' }, 404);
 
-  // Atomically mark as viewed — if another request beat us, bail
+  // Atomically increment the view counter — if another request beat us to the limit, bail
   const result = await env.DB.prepare(
-    'UPDATE shares SET viewed=1 WHERE id=? AND viewed=0'
+    'UPDATE shares SET viewed=viewed+1 WHERE id=? AND viewed<max_views'
   ).bind(share.id).run();
 
   if (result.meta && result.meta.changes === 0) {
-    return json({ error: 'This link has already been used' }, 410);
+    return json({ error: 'This link has reached its download limit' }, 410);
   }
 
-  // Schedule R2 cleanup in background (best-effort)
-  if (ctx && ctx.waitUntil) ctx.waitUntil(env.FILES.delete(share.r2_key).catch(() => {}));
+  const newViewed = share.viewed + 1;
+  // Clean up R2 only when the last allowed download is used
+  if (newViewed >= share.max_views) {
+    if (ctx && ctx.waitUntil) ctx.waitUntil(env.FILES.delete(share.r2_key).catch(() => {}));
+  }
 
   const safeName = share.name.replace(/"/g, '');
   return new Response(obj.body, {
