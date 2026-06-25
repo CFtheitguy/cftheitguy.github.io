@@ -71,153 +71,271 @@ export default {
  * ================================================================ */
 function renderApp() {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Linear Tech · File Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --navy:#0a1628;--navy2:#12223f;--accent:#2563eb;--accent2:#1d4ed8;
-  --text:#e8edf5;--muted:#8fa3bf;--border:#1e3358;--card:#0f1e38;
-  --danger:#ef4444;--success:#22c55e;
+
+/* ── Dark theme (default) ── */
+:root,[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
+  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
+  --shadow:0 2px 16px rgba(0,0,0,.4);
+  --input-bg:#0f1117;
 }
-body{font-family:'Inter',sans-serif;background:var(--navy);color:var(--text);min-height:100vh}
-header{background:var(--navy2);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between}
-header h1{font-family:'DM Serif Display',serif;font-size:1.4rem;color:#fff;letter-spacing:.02em}
-header h1 span{color:var(--accent);font-family:'Inter',sans-serif;font-weight:600;font-size:.75rem;vertical-align:super;margin-left:4px}
-#nav-user{display:flex;align-items:center;gap:12px;font-size:.85rem;color:var(--muted)}
-#nav-user button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:.8rem}
-#nav-user button:hover{border-color:var(--accent);color:var(--text)}
-main{max-width:860px;margin:0 auto;padding:32px 20px}
-h2{font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:20px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px}
-.field{margin-bottom:16px}
-label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:6px;font-weight:500}
+
+/* ── Light theme ── */
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
+  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
+  --shadow:0 2px 16px rgba(0,0,0,.08);
+  --input-bg:#f4f6fb;
+}
+
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
+
+/* ── Header ── */
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.logo-text span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:10px}
+#theme-toggle{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+#nav-user{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.nav-name{font-weight:600;color:var(--text);font-size:.88rem}
+.btn-signout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .15s}
+.btn-signout:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ── Layout ── */
+main{max-width:880px;margin:0 auto;padding:36px 20px}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:var(--shadow);transition:background .2s,border-color .2s}
+.card-title{font-size:1.15rem;font-weight:700;margin-bottom:6px;color:var(--text)}
+.card-desc{font-size:.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6}
+
+/* ── Alerts ── */
+#alert{padding:13px 18px;border-radius:10px;margin-bottom:24px;display:none;font-size:.88rem;font-weight:500}
+.alert-err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
+.alert-ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--bg3);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;text-align:center;padding:9px 16px;border-radius:9px;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .15s;user-select:none}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,.15)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── Form fields ── */
+.field{margin-bottom:18px}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;font-weight:600;letter-spacing:.01em}
 input[type=text],input[type=email],input[type=password],input[type=date]{
-  width:100%;background:#0a1628;border:1px solid var(--border);color:var(--text);
-  padding:10px 14px;border-radius:8px;font-size:.9rem;outline:none
+  width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
+  padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s
 }
-input:focus{border-color:var(--accent)}
-.btn{display:inline-block;background:var(--accent);color:#fff;border:none;padding:10px 22px;
-  border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:500;transition:background .15s}
-.btn:hover{background:var(--accent2)}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
-.btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+input::placeholder{color:var(--muted2)}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:11px 24px;
+  border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:600;font-family:inherit;transition:all .15s;letter-spacing:-.01em}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,126,248,.3)}
+.btn:active{transform:none}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);box-shadow:none;transform:none}
 .btn-danger{background:var(--danger)}
-.btn-danger:hover{background:#dc2626}
-.btn-sm{padding:6px 14px;font-size:.8rem}
-.tabs{display:flex;gap:4px;margin-bottom:24px}
-.tab{padding:8px 18px;border-radius:8px;cursor:pointer;font-size:.88rem;color:var(--muted);border:1px solid transparent}
-.tab.active{background:var(--accent);color:#fff}
-.tab:hover:not(.active){border-color:var(--border);color:var(--text)}
-#alert{padding:12px 16px;border-radius:8px;margin-bottom:20px;display:none;font-size:.88rem}
-.alert-err{background:#1e0a0a;border:1px solid #7f1d1d;color:#fca5a5}
-.alert-ok{background:#052e16;border:1px solid #14532d;color:#86efac}
+.btn-danger:hover{background:#d95555;box-shadow:0 4px 12px rgba(240,100,100,.3)}
+.btn-sm{padding:6px 14px;font-size:.8rem;border-radius:8px}
+.btn-full{width:100%}
+
+/* ── Drop zones ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:44px 20px;text-align:center;
+  color:var(--muted);cursor:pointer;transition:all .2s;margin-bottom:20px}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.drop-zone:hover svg,.drop-zone.over svg{stroke:var(--accent)}
+.drop-zone p{margin-top:10px;font-size:.88rem;font-weight:500}
+.drop-zone .hint{font-size:.78rem;color:var(--muted2);margin-top:4px;font-weight:400}
+
+/* ── File table ── */
+.file-table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.87rem}
-th{text-align:left;padding:10px 12px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
-td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+th{text-align:left;padding:10px 14px;color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
-.file-name{font-weight:500;word-break:break-all}
-.file-size{color:var(--muted);font-size:.8rem}
-.actions{display:flex;gap:8px;justify-content:flex-end}
-.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:40px;text-align:center;
-  color:var(--muted);cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:20px}
-.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:#0d1f3c}
-.drop-zone p{margin-top:8px;font-size:.85rem}
-.share-box{background:#0a1628;border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:14px}
-.share-url{font-size:.8rem;color:var(--accent);word-break:break-all}
-.copy-btn{margin-left:8px;padding:3px 10px;font-size:.75rem}
-progress{width:100%;height:6px;border-radius:3px;appearance:none;margin-top:12px;display:none}
+tr:hover td{background:var(--bg3)}
+.file-name{font-weight:600;word-break:break-all;color:var(--text)}
+.file-meta{color:var(--muted);font-size:.78rem;margin-top:2px}
+.actions{display:flex;gap:6px;justify-content:flex-end}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state svg{margin:0 auto 16px;display:block;opacity:.4}
+.empty-state p{font-size:.92rem}
+
+/* ── Share result box ── */
+.share-box{background:var(--success-bg);border:1px solid var(--success);border-radius:12px;padding:18px;margin-top:20px}
+.share-box-label{font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.share-url-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.share-url{font-size:.82rem;color:var(--text);word-break:break-all;flex:1;background:var(--card2);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-family:monospace}
+
+/* ── Progress ── */
+progress{width:100%;height:5px;border-radius:3px;appearance:none;margin-top:14px;display:none}
 progress::-webkit-progress-bar{background:var(--border);border-radius:3px}
-progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
+progress::-webkit-progress-value{background:var(--accent);border-radius:3px;transition:width .3s}
+
+/* ── Misc ── */
 #section-auth,#section-portal{display:none}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
-  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
+.auth-wrap{max-width:420px;margin:0 auto}
+.section-label{font-size:.75rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
 </style>
 </head>
 <body>
 <header>
-  <h1>Linear Tech <span>FILES</span></h1>
-  <div id="nav-user"></div>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v7h7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Linear<span>Tech</span> Files</span>
+  </div>
+  <div class="header-right">
+    <button id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">
+      <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+    </button>
+    <div id="nav-user"></div>
+  </div>
 </header>
 <main>
   <div id="alert"></div>
 
   <!-- AUTH SECTION -->
   <div id="section-auth">
-    <div class="tabs">
-      <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign in</div>
-      <div class="tab" id="tab-signup" onclick="switchTab('signup')">Create account</div>
-    </div>
-    <div class="card" id="form-login">
-      <h2>Sign in</h2>
-      <div class="field"><label>Username or Email</label><input id="li-user" type="text" autocomplete="username"/></div>
-      <div class="field"><label>Password</label><input id="li-pass" type="password" autocomplete="current-password"/></div>
-      <button class="btn" onclick="doLogin()">Sign in</button>
-    </div>
-    <div class="card" id="form-signup" style="display:none">
-      <h2>Create account</h2>
-      <div class="field"><label>Username</label><input id="su-user" type="text" autocomplete="username"/></div>
-      <div class="field"><label>Email</label><input id="su-email" type="email" autocomplete="email"/></div>
-      <div class="field"><label>Password</label><input id="su-pass" type="password" autocomplete="new-password"/></div>
-      <div class="field"><label>Confirm password</label><input id="su-pass2" type="password" autocomplete="new-password"/></div>
-      <button class="btn" onclick="doSignup()">Create account</button>
+    <div class="auth-wrap">
+      <div class="tabs">
+        <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign in</div>
+        <div class="tab" id="tab-signup" onclick="switchTab('signup')">Create account</div>
+      </div>
+
+      <div class="card" id="form-login">
+        <div class="card-title">Welcome back</div>
+        <div class="card-desc">Sign in to access your files.</div>
+        <div class="field"><label>Username or Email</label><input id="li-user" type="text" placeholder="you@example.com" autocomplete="username"/></div>
+        <div class="field"><label>Password</label><input id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
+        <button class="btn btn-full" onclick="doLogin()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Sign in
+        </button>
+      </div>
+
+      <div class="card" id="form-signup" style="display:none">
+        <div class="card-title">Create your account</div>
+        <div class="card-desc">It only takes a moment to get started.</div>
+        <div class="field"><label>Username</label><input id="su-user" type="text" placeholder="yourname" autocomplete="username"/></div>
+        <div class="field"><label>Email address</label><input id="su-email" type="email" placeholder="you@example.com" autocomplete="email"/></div>
+        <div class="field"><label>Password</label><input id="su-pass" type="password" placeholder="At least 8 characters" autocomplete="new-password"/></div>
+        <div class="field"><label>Confirm password</label><input id="su-pass2" type="password" placeholder="Repeat password" autocomplete="new-password"/></div>
+        <button class="btn btn-full" onclick="doSignup()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8zM19 8v6M22 11h-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Create account
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- PORTAL SECTION -->
   <div id="section-portal">
     <div class="tabs">
-      <div class="tab active" id="ptab-files" onclick="showPane('files')">My Files</div>
-      <div class="tab" id="ptab-send" onclick="showPane('send')">Secure Send</div>
+      <div class="tab active" id="ptab-files" onclick="showPane('files')">
+        My Files
+      </div>
+      <div class="tab" id="ptab-send" onclick="showPane('send')">
+        Secure Send
+      </div>
     </div>
 
     <!-- My Files pane -->
     <div id="pane-files">
       <div class="card" style="margin-bottom:20px">
         <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-          <svg width="36" height="36" fill="none" stroke="#8fa3bf" stroke-width="1.5" viewBox="0 0 24 24">
-            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0L8 8m4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12M8 8l4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <p>Click or drag files here to upload</p>
+          <p>Drop files here, or click to browse</p>
+          <div class="hint">Any file type &nbsp;·&nbsp; Multiple files supported</div>
         </div>
         <input id="file-input" type="file" multiple style="display:none" onchange="uploadFiles(this.files)"/>
         <progress id="upload-progress" value="0" max="100"></progress>
       </div>
+
       <div class="card">
-        <h2>Your Files</h2>
-        <div id="file-list"><p style="color:var(--muted);margin-top:12px">Loading…</p></div>
+        <div class="card-title" style="margin-bottom:20px">Your Files</div>
+        <div class="file-table-wrap">
+          <div id="file-list">
+            <div class="empty-state">
+              <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>
+              <p>No files yet — upload something above</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Secure Send pane -->
     <div id="pane-send" style="display:none">
       <div class="card">
-        <h2>Secure Send</h2>
-        <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">
-          Upload a file, set a password, and get a one-time link. The recipient enters the password and can view it once — the link is then permanently burned.
-        </p>
-        <div class="field"><label>File</label>
-          <div class="drop-zone" id="share-drop" style="padding:24px" onclick="document.getElementById('share-file-input').click()">
+        <div class="card-title">Secure Send</div>
+        <div class="card-desc">
+          Send a file to anyone with a one-time password-protected link. Once they download it, the link is gone for good.
+        </div>
+
+        <div class="field">
+          <label>Choose a file to send</label>
+          <div class="drop-zone" id="share-drop" style="padding:28px;margin-bottom:0" onclick="document.getElementById('share-file-input').click()">
+            <svg width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41a2 2 0 01-2.83-2.83l8.49-8.48" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <p id="share-file-name">Click to choose a file</p>
           </div>
           <input id="share-file-input" type="file" style="display:none" onchange="shareFileSelected(this)"/>
         </div>
-        <div class="field"><label>Password (recipient must enter this)</label><input id="share-pw" type="password"/></div>
-        <div class="field"><label>Recipient Email (optional — shown on download page)</label><input id="share-email" type="email"/></div>
-        <div class="field"><label>Expires (optional)</label><input id="share-exp" type="date"/></div>
-        <button class="btn" onclick="createShare()">Generate one-time link</button>
-        <div id="share-result" style="display:none" class="share-box">
-          <p style="font-size:.8rem;color:var(--muted);margin-bottom:6px">One-time link (share this):</p>
-          <span id="share-url" class="share-url"></span>
-          <button class="btn btn-sm copy-btn" onclick="copyShare()">Copy</button>
-        </div>
+
+        <hr/>
+
+        <div class="field"><label>Password &nbsp;<span style="font-weight:400;color:var(--muted2)">(the recipient will need to enter this)</span></label><input id="share-pw" type="password" placeholder="Choose a strong password"/></div>
+        <div class="field"><label>Recipient email &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="share-email" type="email" placeholder="recipient@example.com"/></div>
+        <div class="field"><label>Link expires on &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="share-exp" type="date"/></div>
+
+        <button class="btn" onclick="createShare()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Generate secure link
+        </button>
         <progress id="share-progress" value="0" max="100"></progress>
+
+        <div id="share-result" style="display:none" class="share-box">
+          <div class="share-box-label">Your one-time link is ready</div>
+          <div class="share-url-row">
+            <span id="share-url" class="share-url"></span>
+            <button class="btn btn-sm" onclick="copyShare()">Copy link</button>
+          </div>
+          <p style="font-size:.78rem;color:var(--muted);margin-top:10px">This link will stop working after the first download.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -231,50 +349,99 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
 function renderViewPage(token) {
   const safeToken = token.replace(/[^a-zA-Z0-9_-]/g, '');
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Linear Tech · Secure File</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:#0a1628;color:#e8edf5;min-height:100vh;display:flex;flex-direction:column}
-header{background:#12223f;border-bottom:1px solid #1e3358;padding:0 24px;height:60px;display:flex;align-items:center}
-header h1{font-family:'DM Serif Display',serif;font-size:1.4rem;color:#fff}
-header h1 span{color:#2563eb;font-family:'Inter',sans-serif;font-weight:600;font-size:.75rem;vertical-align:super;margin-left:4px}
+:root,[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--text:#eef0f6;--muted:#7c85a2;
+  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
+  --border:#2a2f45;--border2:#353b56;--card:#181c2a;
+  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
+  --input-bg:#0f1117;--shadow:0 2px 16px rgba(0,0,0,.4);
+}
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--text:#1a1d2e;--muted:#5a6080;
+  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
+  --border:#dde1ee;--border2:#c8cee0;--card:#ffffff;
+  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
+  --input-bg:#f4f6fb;--shadow:0 2px 16px rgba(0,0,0,.08);
+}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text)}
+.logo-text span{color:var(--accent)}
+#theme-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
-.card{background:#0f1e38;border:1px solid #1e3358;border-radius:12px;padding:36px;max-width:420px;width:100%;text-align:center}
-.card svg{margin:0 auto 16px;display:block}
-h2{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:8px}
-p{color:#8fa3bf;font-size:.88rem;margin-bottom:20px}
-input[type=password]{width:100%;background:#0a1628;border:1px solid #1e3358;color:#e8edf5;
-  padding:10px 14px;border-radius:8px;font-size:.9rem;outline:none;margin-bottom:16px;display:block;text-align:left}
-input:focus{border-color:#2563eb}
-.btn{width:100%;background:#2563eb;color:#fff;border:none;padding:11px;border-radius:8px;cursor:pointer;font-size:.92rem;font-weight:500}
-.btn:hover{background:#1d4ed8}
-#msg{margin-top:14px;font-size:.85rem;display:none}
-.err{color:#fca5a5}.ok{color:#86efac}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px 36px;max-width:440px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.lock-ring{width:72px;height:72px;background:var(--accent-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px}
+h2{font-size:1.4rem;font-weight:700;margin-bottom:8px}
+.desc{color:var(--muted);font-size:.88rem;margin-bottom:28px;line-height:1.6}
+input[type=password]{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
+  padding:12px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;
+  margin-bottom:14px;display:block;text-align:left;transition:border-color .15s,box-shadow .15s}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;font-family:inherit;transition:all .15s}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,126,248,.35)}
+#msg{margin-top:18px;font-size:.88rem;display:none;padding:12px 16px;border-radius:10px;text-align:left}
+.err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
+.ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
 </style>
 </head>
 <body>
-<header><h1>Linear Tech <span>FILES</span></h1></header>
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v7h7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Linear<span>Tech</span> Files</span>
+  </div>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark">
+    <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+  </button>
+</header>
 <main>
 <div class="card">
-  <svg width="48" height="48" fill="none" stroke="#2563eb" stroke-width="1.5" viewBox="0 0 24 24">
-    <rect x="5" y="11" width="14" height="10" rx="2"/>
-    <path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/>
-  </svg>
+  <div class="lock-ring">
+    <svg width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24">
+      <rect x="5" y="11" width="14" height="10" rx="2"/>
+      <path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/>
+    </svg>
+  </div>
   <h2>Secure File</h2>
-  <p>This file can be viewed once. Enter the password to download it.</p>
-  <input type="password" id="pw" placeholder="Enter password" autofocus/>
-  <button class="btn" onclick="unlock()">View file</button>
+  <p class="desc">Someone shared a file with you. Enter the password to download it. This link works <strong>one time only</strong>.</p>
+  <input type="password" id="pw" placeholder="Enter the password" autofocus/>
+  <button class="btn" onclick="unlock()">Download file</button>
   <div id="msg"></div>
 </div>
 </main>
 <script>
 var TOKEN = ${JSON.stringify(safeToken)};
+function toggleTheme() {
+  var t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('icon-moon').style.display = t === 'dark' ? 'block' : 'none';
+  document.getElementById('icon-sun').style.display = t === 'light' ? 'block' : 'none';
+  try { localStorage.setItem('theme', t); } catch(e) {}
+}
+(function() {
+  var saved = null; try { saved = localStorage.getItem('theme'); } catch(e) {}
+  var t = saved || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  if (t === 'light') { document.getElementById('icon-moon').style.display = 'none'; document.getElementById('icon-sun').style.display = 'block'; }
+})();
 async function unlock() {
   var pw = document.getElementById('pw').value;
   if (!pw) return;
@@ -323,6 +490,22 @@ function clientScript() {
     'var CURRENT_USER = null;',
     '',
     'function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }',
+    '',
+    'function toggleTheme() {',
+    '  var t = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";',
+    '  document.documentElement.setAttribute("data-theme", t);',
+    '  document.getElementById("icon-moon").style.display = t === "dark" ? "block" : "none";',
+    '  document.getElementById("icon-sun").style.display = t === "light" ? "block" : "none";',
+    '  lsSet("theme", t);',
+    '}',
+    '(function() {',
+    '  var t = lsGet("theme") || "dark";',
+    '  document.documentElement.setAttribute("data-theme", t);',
+    '  if (t === "light") {',
+    '    var m = document.getElementById("icon-moon"); if (m) m.style.display = "none";',
+    '    var s = document.getElementById("icon-sun"); if (s) s.style.display = "block";',
+    '  }',
+    '})();',
     'function lsSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }',
     'function lsDel(k) { try { localStorage.removeItem(k); } catch(e) {} }',
     '',
