@@ -1,12 +1,17 @@
 -- Run once in Cloudflare D1 console: paste and click "Execute"
 
 CREATE TABLE IF NOT EXISTS users (
-  id        INTEGER PRIMARY KEY AUTOINCREMENT,
-  username  TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-  email     TEXT    NOT NULL UNIQUE COLLATE NOCASE,
-  pw_hash   TEXT    NOT NULL,
-  pw_salt   TEXT    NOT NULL,
-  created_at TEXT   NOT NULL DEFAULT (datetime('now'))
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  username           TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+  email              TEXT    NOT NULL UNIQUE COLLATE NOCASE,
+  pw_hash            TEXT    NOT NULL,
+  pw_salt            TEXT    NOT NULL,
+  stripe_customer_id TEXT,
+  stripe_sub_id      TEXT,
+  plan               TEXT    NOT NULL DEFAULT 'starter',
+  storage_limit      INTEGER NOT NULL DEFAULT 10737418240,
+  status             TEXT    NOT NULL DEFAULT 'active',
+  created_at         TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
