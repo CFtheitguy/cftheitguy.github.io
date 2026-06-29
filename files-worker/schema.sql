@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   plan               TEXT    NOT NULL DEFAULT 'starter',
   storage_limit      INTEGER NOT NULL DEFAULT 10737418240,
   status             TEXT    NOT NULL DEFAULT 'active',
+  trial_until        TEXT,
   created_at         TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 

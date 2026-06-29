@@ -41,6 +41,7 @@ export default {
       // ── Auth API ───────────────────────────────────────────────────
       if (path === "/api/signup/checkout" && method === "POST") return corsHeaders(await signupCheckout(request, env));
       if (path === "/api/signup/complete"  && method === "POST") return corsHeaders(await signupComplete(request, env));
+      if (path === "/api/signup/invite"    && method === "POST") return corsHeaders(await signupInvite(request, env));
       if (path === "/api/login"   && method === "POST") return corsHeaders(await loginUser(request, env));
       if (path === "/api/logout"  && method === "POST") return corsHeaders(await logout(request, env));
       if (path === "/api/me"      && method === "GET")  return corsHeaders(await me(request, env));
@@ -315,6 +316,14 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
           Continue to secure payment
         </button>
         <p style="text-align:center;font-size:.75rem;color:var(--muted2);margin-top:12px">Payments processed securely by Stripe. Cancel any time.</p>
+
+        <hr/>
+        <div class="field" style="margin-bottom:8px">
+          <label>Have an invite code? &nbsp;<span style="font-weight:400;color:var(--muted2)">(start a 14-day free trial — no payment)</span></label>
+          <input id="su-invite" type="text" placeholder="Enter invite code (optional)" autocomplete="off"/>
+        </div>
+        <button class="btn btn-outline btn-full" onclick="doInvite()">Start 14-day free trial</button>
+        <p style="text-align:center;font-size:.72rem;color:var(--muted2);margin-top:10px">Free trial includes 10&nbsp;GB storage and stops working after 14 days unless you subscribe.</p>
       </div>
     </div>
   </div>
@@ -754,6 +763,22 @@ function clientScript() {
     '  window.location.href = r.data.url;',
     '}',
     '',
+    'async function doInvite() {',
+    '  var u = document.getElementById("su-user").value.trim();',
+    '  var e = document.getElementById("su-email").value.trim();',
+    '  var p = document.getElementById("su-pass").value;',
+    '  var p2 = document.getElementById("su-pass2").value;',
+    '  var code = document.getElementById("su-invite").value.trim();',
+    '  if (!u || !e || !p) return showAlert("Fill in username, email and password first");',
+    '  if (p !== p2) return showAlert("Passwords do not match");',
+    '  if (!code) return showAlert("Enter your invite code to start a free trial");',
+    '  var r = await api("/api/signup/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, email: e, password: p, code: code }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Could not start trial");',
+    '  SESSION = r.data.token; lsSet("sess", SESSION);',
+    '  showAlert("Free trial started! You have 14 days.", "ok");',
+    '  showPortal(r.data.user);',
+    '}',
+    '',
     'async function doLogin() {',
     '  var u = document.getElementById("li-user").value.trim();',
     '  var p = document.getElementById("li-pass").value;',
@@ -977,6 +1002,33 @@ async function signupComplete(request, env) {
   return json({ token, user: { id: row.id, username: row.username, email: row.email, plan } });
 }
 
+// ── Signup via invite code: free 14-day trial, no payment ─────────
+async function signupInvite(request, env) {
+  const { username, email, password, code } = await request.json();
+  if (!username || !email || !password) return json({ error: 'All fields required' }, 400);
+  if (password.length < 8) return json({ error: 'Password must be at least 8 characters' }, 400);
+
+  // The invite code is configured as a Worker var/secret named INVITE_CODE.
+  if (!env.INVITE_CODE) return json({ error: 'Invite codes are not enabled' }, 403);
+  if (!code || code.trim() !== env.INVITE_CODE) return json({ error: 'Invalid invite code' }, 403);
+
+  const existing = await env.DB.prepare(
+    'SELECT id FROM users WHERE username=? OR email=?'
+  ).bind(username.trim(), email.trim().toLowerCase()).first();
+  if (existing) return json({ error: 'Username or email already taken' }, 409);
+
+  const { hash, salt } = await hashPassword(password);
+  // Trial lasts 14 days from now.
+  const trialUntil = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+  const row = await env.DB.prepare(
+    "INSERT INTO users (username, email, pw_hash, pw_salt, plan, storage_limit, status, trial_until) VALUES (?,?,?,?,?,?,?,?) RETURNING id, username, email"
+  ).bind(username.trim(), email.trim().toLowerCase(), hash, salt, 'starter', PLANS.starter.bytes, 'active', trialUntil).first();
+
+  const token = await makeSessionToken(env, row.id);
+  return json({ token, user: { id: row.id, username: row.username, email: row.email, plan: 'starter' } });
+}
+
 // ── Billing: Stripe Customer Portal link ──────────────────────────
 async function billingPortal(request, env) {
   const user = await requireAuth(request, env);
@@ -1098,12 +1150,15 @@ async function loginUser(request, env) {
   if (!username || !password) return json({ error: 'Username and password required' }, 400);
 
   const row = await env.DB.prepare(
-    'SELECT id, username, email, pw_hash, pw_salt FROM users WHERE username=? OR email=?'
+    'SELECT id, username, email, pw_hash, pw_salt, trial_until FROM users WHERE username=? OR email=?'
   ).bind(username.trim(), username.trim().toLowerCase()).first();
 
   if (!row) return json({ error: 'Invalid username or password' }, 401);
   const ok = await verifyPassword(password, row.pw_hash, row.pw_salt);
   if (!ok) return json({ error: 'Invalid username or password' }, 401);
+  if (row.trial_until && new Date(row.trial_until) < new Date()) {
+    return json({ error: 'Your 14-day free trial has ended. Please subscribe to keep using your account.' }, 403);
+  }
 
   const token = await makeSessionToken(env, row.id);
   return json({ token, user: { id: row.id, username: row.username, email: row.email } });
@@ -1342,9 +1397,12 @@ async function requireAuth(request, env) {
   const token = getBearerToken(request);
   if (!token) return null;
   const row = await env.DB.prepare(
-    'SELECT u.id, u.username, u.email, u.plan, u.status, u.storage_limit, u.stripe_customer_id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires_at > datetime("now")'
+    'SELECT u.id, u.username, u.email, u.plan, u.status, u.storage_limit, u.stripe_customer_id, u.trial_until FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires_at > datetime("now")'
   ).bind(token).first();
-  return row || null;
+  if (!row) return null;
+  // If this is a trial account and the trial has ended, deny access.
+  if (row.trial_until && new Date(row.trial_until) < new Date()) return null;
+  return row;
 }
 
 function getBearerToken(request) {
