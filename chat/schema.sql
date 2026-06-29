@@ -1,6 +1,6 @@
 -- Linear Chat — D1 schema (chat.linearit.co)
 -- Run once in the D1 console, OR just let the Worker self-heal: it runs these
--- same CREATE IF NOT EXISTS statements on first request.
+-- same statements (and the migrations below) on first request.
 
 -- People who can sign in. A user is created the first time an email logs in,
 -- or when a group admin adds them by email.
@@ -44,13 +44,45 @@ CREATE TABLE IF NOT EXISTS group_members (
 CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_members_email ON group_members(email);
 
--- Group messages.
+-- Group messages. parent_id is NULL for top-level messages, or the id of the
+-- message a reply belongs to (single-level threads, Slack-style).
 CREATE TABLE IF NOT EXISTS messages (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   group_id      INTEGER NOT NULL,
+  parent_id     INTEGER,
   sender_email  TEXT NOT NULL,
   sender_name   TEXT,
-  body          TEXT NOT NULL,
+  body          TEXT,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id, id);
+CREATE INDEX IF NOT EXISTS idx_messages_group  ON messages(group_id, id);
+CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id);
+
+-- Emoji reactions. One row per (message, person, emoji).
+CREATE TABLE IF NOT EXISTS reactions (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id  INTEGER NOT NULL,
+  email       TEXT NOT NULL,
+  emoji       TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(message_id, email, emoji)
+);
+CREATE INDEX IF NOT EXISTS idx_reactions_msg ON reactions(message_id);
+
+-- File attachments. Bytes live in R2 (binding FILES); this row is the metadata.
+-- message_id is NULL only momentarily during upload, then linked to the message.
+CREATE TABLE IF NOT EXISTS attachments (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id    INTEGER,
+  group_id      INTEGER NOT NULL,
+  r2_key        TEXT NOT NULL,
+  filename      TEXT NOT NULL,
+  content_type  TEXT,
+  size          INTEGER,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_id);
+
+-- Migrations for databases created before threads/attachments existed (the
+-- Worker runs these too, ignoring "duplicate column" errors):
+--   ALTER TABLE messages ADD COLUMN parent_id INTEGER;

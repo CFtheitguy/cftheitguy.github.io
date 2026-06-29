@@ -7,10 +7,13 @@ serves the web app *and* the API, backed by a D1 database.
   passwords).
 - **Admins** create groups and add/remove members by email.
 - **Members** sign in and chat with their teammates in real time (polling).
+- **Threaded replies** (Slack-style, single level), **emoji reactions**, and
+  **file attachments** (images preview inline; everything else downloads).
 
 ```
-chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages)
-   the web app          UI + API + MFA          +  email provider (codes)
+chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages, reactions)
+   the web app          UI + API + MFA          R2 (file attachments, optional)
+                                                 email provider (login codes)
 ```
 
 ## Files
@@ -29,7 +32,9 @@ See **[`DEPLOY.md`](./DEPLOY.md)**. Short version:
 | Name | Required | Purpose |
 |---|---|---|
 | `DB` (binding) | ✅ | D1 database. |
-| `AUTH_SECRET` | ✅ | Long random string. Signs session tokens and hashes login codes. |
+| `FILES` (binding) | for attachments | R2 bucket. Bind it to enable file uploads. Without it, chat still works; the attach button is hidden. |
+| `AUTH_SECRET` | ✅ | Long random string. Signs session tokens, hashes login codes, and signs attachment links. |
+| `MAX_UPLOAD_MB` | optional | Max attachment size in MB (default 20). |
 | `ADMIN_EMAILS` | recommended | Comma/space-separated emails allowed to **create groups**. If empty, the first person to sign in becomes the admin (bootstrap). |
 | `EMAIL_FROM` | recommended | `From:` address, e.g. `Linear Chat <chat@linearit.co>`. |
 | `RESEND_API_KEY` | one email option | Send codes via [Resend](https://resend.com). |
@@ -59,11 +64,17 @@ See **[`DEPLOY.md`](./DEPLOY.md)**. Short version:
 | GET | `/api/groups/{id}/members` | Bearer (member) | List members |
 | POST | `/api/groups/{id}/members` | Bearer (group admin) | `{email}` → add a member |
 | POST | `/api/groups/{id}/members/remove` | Bearer (group admin) | `{email}` → remove a member |
-| GET | `/api/groups/{id}/messages?after={id}` | Bearer (member) | Messages (poll with `after`) |
-| POST | `/api/groups/{id}/messages` | Bearer (member) | `{body}` → post a message |
+| GET | `/api/groups/{id}/messages?after={id}` | Bearer (member) | Top-level messages (poll with `after`) |
+| POST | `/api/groups/{id}/messages` | Bearer (member) | Post a message. JSON `{body, parent_id?}` or `multipart/form-data` with `body`, optional `parent_id`, and `files` |
+| GET | `/api/groups/{id}/messages/{mid}/thread?after={id}` | Bearer (member) | A message's thread (parent + replies) |
+| POST | `/api/groups/{id}/badges` | Bearer (member) | `{ids:[…]}` → live reaction + reply counts for visible messages |
+| POST | `/api/messages/{mid}/react` | Bearer (member) | `{emoji}` → toggle a reaction |
+| GET | `/api/files/{id}?e=&t=` | signed link | Stream an attachment from R2 (time-limited HMAC link) |
+| GET | `/api/config` | — | Client config (attachments enabled, max upload, emoji set) |
 
 Sessions are stateless HMAC-signed bearer tokens (30-day expiry) — no cookies,
-so it works cleanly on Safari/iPad.
+so it works cleanly on Safari/iPad. Each message returned by the API is enriched
+with its `reactions`, `attachments`, and `reply_count`.
 
 ## Security notes
 - Login codes are 6 digits, **hashed** before storage, expire in 10 minutes,
@@ -71,10 +82,14 @@ so it works cleanly on Safari/iPad.
   is sent. There's a 45-second resend cooldown.
 - Group create/add/remove permissions are re-checked against the database on
   every request (not just trusted from the token).
-- Message bodies are rendered with `textContent` in the browser (no HTML
-  injection).
+- Message bodies and filenames are rendered with `textContent` in the browser
+  (no HTML injection).
+- Attachments are served only via **short-lived HMAC-signed links** (24h) and
+  the upload/serve paths re-check group membership. Uploads are size-capped
+  (`MAX_UPLOAD_MB`, default 20) and limited to 10 files per message.
 
 ## Possible upgrades
+- **Voice & video calls** (next: Jitsi, then a self-hosted Cloudflare Realtime SFU).
 - Swap polling for WebSockets via a Cloudflare **Durable Object** per group for
   instant delivery and presence.
-- Read receipts / unread counts, file attachments (R2), push notifications.
+- Read receipts / unread counts, push notifications.

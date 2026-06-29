@@ -1,8 +1,8 @@
 # Linear Chat — Setup Guide
 
 A team group-chat at **https://chat.linearit.co**. Sign in with your email,
-get a one-time code, and chat with your group. Admins create groups and add
-members.
+get a one-time code, and chat with your group — with threaded replies, emoji
+reactions, and file attachments. Admins create groups and add members.
 
 Everything below can be done from an iPad in the **Cloudflare dashboard** — no
 command line.
@@ -12,15 +12,15 @@ command line.
 ## What you're setting up
 
 ```
-chat.linearit.co   →   linear-chat Worker   →   D1 database
-   the web app            UI + API + MFA          users, groups, messages
+chat.linearit.co   →   linear-chat Worker   →   D1 database (chat data)
+   the web app            UI + API + MFA          R2 bucket (attachments, optional)
                                 │
                                 └──→  email provider (sends the login codes)
 ```
 
 Four steps:
-1. Create a **D1 database** (stores users, groups, members, messages).
-2. Create the **Worker**, paste the code, and add your **secrets**.
+1. Create a **D1 database** (stores users, groups, members, messages, reactions).
+2. Create the **Worker**, paste the code, add bindings (D1 + optional R2) and **secrets**.
 3. Pick how login-code **emails** are sent.
 4. Add the **custom domain** `chat.linearit.co` and you're live.
 
@@ -43,13 +43,19 @@ Four steps:
 3. **Settings → Bindings** → **Add → D1 database**:
    - **Variable name:** `DB`
    - **D1 database:** `linear_chat` → **Save**.
-4. **Settings → Variables and Secrets** → add these (use **Encrypt** for secrets):
+4. **(For attachments) Add an R2 bucket** — skip if you don't need file uploads:
+   - Cloudflare → **R2** → **Create bucket** → name it `linear-chat-files` → **Create**.
+   - Back in the worker → **Settings → Bindings** → **Add → R2 bucket**:
+     **Variable name:** `FILES` · **Bucket:** `linear-chat-files` → **Save**.
+   - Without this binding, chat still works — the 📎 attach button is just hidden.
+5. **Settings → Variables and Secrets** → add these (use **Encrypt** for secrets):
 
    | Name | Value |
    |---|---|
    | `AUTH_SECRET` | a long random string (mash the keyboard) |
    | `ADMIN_EMAILS` | emails that may create groups, e.g. `you@linearit.co, ops@linearit.co` |
    | `EMAIL_FROM` | `Linear Chat <chat@linearit.co>` |
+   | `MAX_UPLOAD_MB` | *(optional)* max attachment size, default `20` |
 
    > If you leave `ADMIN_EMAILS` blank, the **first person to sign in becomes the
    > admin** — handy for a quick start, but setting it is safer.
