@@ -932,6 +932,7 @@ async function signupCheckout(request, env) {
     'line_items[0][quantity]': '1',
     'success_url': origin + '/signup-complete?session_id={CHECKOUT_SESSION_ID}',
     'cancel_url': origin + '/',
+    'allow_promotion_codes': 'true',
     'customer_email': email.trim().toLowerCase(),
     'subscription_data[metadata][plan]': plan,
     'metadata[username]': username.trim(),
@@ -952,7 +953,7 @@ async function signupComplete(request, env) {
 
   const session = await stripeApi(env, 'GET', '/checkout/sessions/' + session_id + '?expand[]=subscription', null);
   if (!session || session.error) return json({ error: 'Could not verify payment' }, 400);
-  if (session.payment_status !== 'paid') return json({ error: 'Payment not completed' }, 402);
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') return json({ error: 'Payment not completed' }, 402);
 
   const meta = session.metadata || {};
   const { username, email, pw_hash, pw_salt, plan } = meta;
