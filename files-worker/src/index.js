@@ -276,9 +276,16 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
         <div class="tab" id="tab-signup" onclick="switchTab('signup')">Create account</div>
       </div>
 
-      <div style="text-align:center;margin-bottom:18px;font-size:.83rem;color:var(--muted)">
-        Just need to send a password? <a href="/password" style="color:var(--accent);font-weight:600;text-decoration:none">Share it securely for free →</a>
-      </div>
+      <a href="/password" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:var(--accent-bg);border:1px solid var(--accent);border-radius:14px;padding:16px 18px;margin-bottom:20px;transition:all .15s">
+        <div style="width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--text);font-size:.92rem">Send a password — free, no account</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">One-time secure link that self-destructs after viewing</div>
+        </div>
+        <span style="color:var(--accent);font-weight:700;font-size:1.1rem">→</span>
+      </a>
 
       <div class="card" id="form-login">
         <div class="card-title">Welcome back</div>
