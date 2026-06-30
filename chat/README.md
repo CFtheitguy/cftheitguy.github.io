@@ -12,6 +12,9 @@ serves the web app *and* the API, backed by a D1 database.
 - **Voice & video calls** — a Start-call button posts a "Join" card to the
   group and opens a room. Uses Jitsi today; the provider is swappable (a future
   Cloudflare Realtime SFU is a config change, not a rewrite).
+- **Link previews** — URLs become clickable, and YouTube (click-to-play),
+  Vimeo, image, video, and audio links render inline. Done client-side (no
+  server fetch), so there's no SSRF surface.
 
 ```
 chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages, reactions)

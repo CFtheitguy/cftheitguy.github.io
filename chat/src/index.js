@@ -1105,10 +1105,11 @@ const APP_HTML = `<!doctype html>
 
       var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-black text-white' : 'bg-white text-gray-900 border'));
       if(!mine){ var who = ce('div','text-xs font-medium text-gray-500 mb-0.5'); who.textContent = m.sender_name || m.sender_email; bubble.appendChild(who); }
-      if(m.body){ var b = ce('div','text-sm whitespace-pre-wrap break-words'); b.textContent = m.body; bubble.appendChild(b); }
+      if(m.body){ var b = ce('div','text-sm whitespace-pre-wrap break-words'); appendBodyWithLinks(b, m.body, mine); bubble.appendChild(b); }
       if(m.attachments && m.attachments.length){ bubble.appendChild(renderAttachments(m.attachments, mine)); }
       var time = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300 text-right' : 'text-gray-400')); time.textContent = fmtTime(m.created_at); bubble.appendChild(time);
       col.appendChild(bubble);
+      if(m.body){ var emb = buildEmbeds(m.body); if(emb) col.appendChild(emb); }
 
       var rx = ce('div','flex flex-wrap gap-1 mt-1'); rx.setAttribute('data-rx', m.id); col.appendChild(rx); renderReactions(rx, m);
 
@@ -1150,6 +1151,71 @@ const APP_HTML = `<!doctype html>
         chip.onclick = function(){ toggleReact(m.id, rx.emoji); };
         container.appendChild(chip);
       });
+    }
+
+    /* ---------- link detection + media embeds (YouTube etc.) ----------
+       NOTE: regexes use new RegExp('...') with doubled backslashes so they
+       survive this file being embedded in the Worker's template literal. */
+    function isHttpUrl(u){ u=String(u).toLowerCase(); return u.slice(0,7)==='http://' || u.slice(0,8)==='https://'; }
+    function findUrls(text){ return String(text).match(/https?:\\/\\/[^\\s<]+/g) || []; }
+    function ytId(u){ var m=String(u).match(/(?:youtube\\.com\\/watch\\?[^#]*?\\bv=|youtu\\.be\\/|youtube\\.com\\/(?:embed|shorts|v|live)\\/)([A-Za-z0-9_-]{11})/i); return m?m[1]:null; }
+    function vimeoId(u){ var m=String(u).match(/vimeo\\.com\\/(?:video\\/)?([0-9]+)/i); return m?m[1]:null; }
+    function isImgUrl(u){ return /\\.(png|jpe?g|gif|webp|bmp|svg)([?#]|$)/i.test(u); }
+    function isVidUrl(u){ return /\\.(mp4|webm|ogv|mov)([?#]|$)/i.test(u); }
+    function isAudUrl(u){ return /\\.(mp3|ogg|wav|m4a)([?#]|$)/i.test(u); }
+
+    function appendBodyWithLinks(container, text, mine){
+      var parts = String(text).split(/(https?:\\/\\/[^\\s<]+)/);
+      parts.forEach(function(part){
+        if(!part) return;
+        if(isHttpUrl(part)){
+          var a = ce('a','underline break-all ' + (mine ? 'text-blue-200' : 'text-blue-600'));
+          a.href = part; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = part;
+          container.appendChild(a);
+        } else { container.appendChild(document.createTextNode(part)); }
+      });
+    }
+
+    function buildEmbeds(text){
+      var urls = findUrls(text).slice(0,5), wrap=null, count=0, seen={};
+      urls.forEach(function(u){
+        if(count>=3 || seen[u]) return; seen[u]=1;
+        var node = buildOneEmbed(u);
+        if(node){ if(!wrap) wrap = ce('div','mt-1 space-y-2'); wrap.appendChild(node); count++; }
+      });
+      return wrap;
+    }
+
+    function buildOneEmbed(u){
+      var yid = ytId(u);
+      if(yid){
+        // Click-to-play: show the thumbnail, swap to the player on click (light + Slack-like)
+        var box = ce('div','relative w-72 sm:w-96 aspect-video rounded-lg overflow-hidden border bg-black cursor-pointer');
+        var thumb = ce('img','w-full h-full object-cover'); thumb.src='https://img.youtube.com/vi/'+yid+'/hqdefault.jpg'; thumb.loading='lazy'; thumb.alt='YouTube video';
+        var play = ce('div','absolute inset-0 flex items-center justify-center');
+        var pin = ce('div','rounded-full w-14 h-14 flex items-center justify-center text-white text-2xl'); pin.style.background='rgba(0,0,0,0.6)'; pin.textContent='▶';
+        play.appendChild(pin); box.appendChild(thumb); box.appendChild(play);
+        box.onclick = function(){
+          var f = ce('iframe','w-full h-full');
+          f.src='https://www.youtube.com/embed/'+yid+'?autoplay=1';
+          f.setAttribute('frameborder','0');
+          f.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+          f.setAttribute('allowfullscreen','');
+          box.innerHTML=''; box.classList.remove('cursor-pointer'); box.onclick=null; box.appendChild(f);
+        };
+        return box;
+      }
+      var vid = vimeoId(u);
+      if(vid){
+        var vb = ce('div','w-72 sm:w-96 aspect-video');
+        var vf = ce('iframe','w-full h-full rounded-lg border'); vf.src='https://player.vimeo.com/video/'+vid;
+        vf.setAttribute('allow','autoplay; fullscreen; picture-in-picture'); vf.setAttribute('allowfullscreen',''); vf.loading='lazy';
+        vb.appendChild(vf); return vb;
+      }
+      if(isImgUrl(u)){ var img=ce('img','max-w-xs max-h-72 rounded-lg border cursor-pointer'); img.src=u; img.loading='lazy'; img.onclick=function(){ window.open(u,'_blank'); }; return img; }
+      if(isVidUrl(u)){ var v=ce('video','w-72 sm:w-96 rounded-lg border'); v.src=u; v.controls=true; return v; }
+      if(isAudUrl(u)){ var a=ce('audio','w-64'); a.src=u; a.controls=true; return a; }
+      return null;
     }
 
     /* ---------- call card ---------- */
