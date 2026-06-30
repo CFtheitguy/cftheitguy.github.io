@@ -394,9 +394,11 @@ async function postMessage(request, env, email, gid) {
 
   const u = await env.DB.prepare("SELECT name FROM users WHERE email=?").bind(email).first();
   const name = u && u.name ? u.name : null;
+  // Store "" rather than NULL: databases first created by the original schema
+  // have body TEXT NOT NULL, and attachment-only messages have no text.
   const res = await env.DB
     .prepare("INSERT INTO messages (group_id, parent_id, sender_email, sender_name, body) VALUES (?,?,?,?,?)")
-    .bind(gid, parentId, email, name, body || null).run();
+    .bind(gid, parentId, email, name, body || "").run();
   const id = res.meta.last_row_id;
 
   for (const f of files) {
