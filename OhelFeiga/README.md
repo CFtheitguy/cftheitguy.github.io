@@ -1,4 +1,4 @@
-# 📣 Shul Alerts — mass text messages to the whole congregation
+# 📣 Ohel Feiga Alerts — mass text messages to the whole congregation
 
 A tiny, self-hosted system to text all ~800 members about zmanim changes, events,
 and announcements. Built for **basic (non-smartphone) phones** — it sends real SMS,
@@ -10,7 +10,7 @@ once**. The software and hosting are **free** (Cloudflare's free tier). No month
 software fee.
 
 ```
-  Admin page (shul/index.html, on your site)
+  Admin page (OhelFeiga/index.html, on your site)
         │  password login
         ▼
   Cloudflare Worker  ──►  SignalWire  ──►  members' phones (SMS)
@@ -48,16 +48,16 @@ software fee.
 
 ### 1. Create the database
 Cloudflare dashboard → **Workers & Pages → D1 → Create database** → name it
-`shul-alerts`. Open it → **Console** tab → paste the contents of
+`ohelfeiga`. Open it → **Console** tab → paste the contents of
 [`worker/schema.sql`](worker/schema.sql) → **Execute**.
 
 ### 2. Create the worker
-**Workers & Pages → Create → Worker** → name it `shul-alerts` → Deploy → **Edit code**.
+**Workers & Pages → Create → Worker** → name it `ohelfeiga-alerts` → Deploy → **Edit code**.
 Delete the sample, paste all of [`worker/src/index.js`](worker/src/index.js) → **Deploy**.
 
 ### 3. Bind the database
 Worker → **Settings → Bindings → Add → D1 database**.
-Variable name: `DB` → database: `shul-alerts` → Save.
+Variable name: `DB` → database: `ohelfeiga` → Save.
 
 ### 4. Add your settings (Settings → Variables and Secrets)
 Add each of these (use **Encrypt** for the token/password/secret):
@@ -70,20 +70,20 @@ Add each of these (use **Encrypt** for the token/password/secret):
 | `SIGNALWIRE_NUMBER` | your registered FROM number, e.g. `+18005551234` |
 | `APP_PASSWORD` | a password you'll type to log in (encrypt) |
 | `AUTH_SECRET` | a long random string (encrypt) |
-| `ALLOW_ORIGIN` | your site, e.g. `https://cftheitguy.com` |
+| `ALLOW_ORIGIN` | your site, e.g. `https://www.linearit.co` |
 | `SMS_FOOTER` *(optional)* | e.g. ` Reply STOP to opt out.` |
 | `BATCH_SIZE` *(optional)* | recipients per batch, default `25` (keep ≤ 45) |
 
-Re-deploy after saving. Visit `https://shul-alerts.YOURNAME.workers.dev/` — it
-should say **"Shul Alerts online"**.
+Re-deploy after saving. Visit `https://ohelfeiga-alerts.YOURNAME.workers.dev/` — it
+should say **"Ohel Feiga Alerts online"**.
 
 ### 5. Point inbound texts at the worker (for STOP handling)
 SignalWire → your number → **Inbound SMS** → set the webhook to
-`https://shul-alerts.YOURNAME.workers.dev/sms/inbound` (POST).
+`https://ohelfeiga-alerts.YOURNAME.workers.dev/sms/inbound` (POST).
 
 ### 6. Use it
-Open **`/shul/`** on your site (`shul/index.html`). Enter the worker URL + your
-`APP_PASSWORD`. Then:
+Open **`https://www.linearit.co/OhelFeiga/`** (`OhelFeiga/index.html`). Enter the
+worker URL + your `APP_PASSWORD`. Then:
 - **Subscribers → Import** — paste numbers (one per line; `Name, number` also works)
   or load a `.csv`/`.txt`. Re-importing is safe; duplicates merge.
 - **Send a message to everyone** — type it, check the recipient count, send. A

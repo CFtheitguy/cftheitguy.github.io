@@ -1,6 +1,6 @@
 /**
- * Shul Alerts — mass-SMS broadcast worker
- * =======================================
+ * Ohel Feiga Alerts — mass-SMS broadcast worker
+ * =============================================
  * A small, self-contained Cloudflare Worker that texts your whole congregation
  * (zmanim changes, events, announcements). It is INTENTIONALLY separate from the
  * Linear Phone project: its own worker, its own D1 database, its own phone number.
@@ -22,7 +22,7 @@
  *   SIGNALWIRE_NUMBER    the FROM number you registered, E.164 e.g. +18005551234
  *   APP_PASSWORD         password for the admin page
  *   AUTH_SECRET          a long random string (signs login tokens)
- *   ALLOW_ORIGIN         your site origin, e.g. https://cftheitguy.com
+ *   ALLOW_ORIGIN         your site origin, e.g. https://www.linearit.co
  * Optional:
  *   SMS_FOOTER           appended to each broadcast, e.g. " Reply STOP to opt out."
  *   BATCH_SIZE           recipients per /run call (default 25; keep <= 45)
@@ -43,7 +43,7 @@ export default {
 
     try {
       if (p === "/" && request.method === "GET") {
-        return new Response("Shul Alerts online", { status: 200, headers: { "Content-Type": "text/plain" } });
+        return new Response("Ohel Feiga Alerts online", { status: 200, headers: { "Content-Type": "text/plain" } });
       }
 
       // Inbound webhook from SignalWire (handles STOP / START). No auth: it's the carrier.

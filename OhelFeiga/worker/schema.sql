@@ -1,5 +1,5 @@
--- Shul Alerts — D1 schema
--- Run once in the Cloudflare D1 console (or `wrangler d1 execute shul-alerts --file=schema.sql`).
+-- Ohel Feiga Alerts — D1 schema
+-- Run once in the Cloudflare D1 console (or `wrangler d1 execute ohelfeiga --file=schema.sql`).
 -- This database is completely separate from the Linear Phone database.
 
 -- Everyone who can receive a broadcast.
