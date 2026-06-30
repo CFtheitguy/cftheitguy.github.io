@@ -9,11 +9,15 @@ serves the web app *and* the API, backed by a D1 database.
 - **Members** sign in and chat with their teammates in real time (polling).
 - **Threaded replies** (Slack-style, single level), **emoji reactions**, and
   **file attachments** (images preview inline; everything else downloads).
+- **Voice & video calls** — a Start-call button posts a "Join" card to the
+  group and opens a room. Uses Jitsi today; the provider is swappable (a future
+  Cloudflare Realtime SFU is a config change, not a rewrite).
 
 ```
 chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages, reactions)
    the web app          UI + API + MFA          R2 (file attachments, optional)
                                                  email provider (login codes)
+                                                 Jitsi (call rooms)
 ```
 
 ## Files
@@ -35,6 +39,7 @@ See **[`DEPLOY.md`](./DEPLOY.md)**. Short version:
 | `FILES` (binding) | for attachments | R2 bucket. Bind it to enable file uploads. Without it, chat still works; the attach button is hidden. |
 | `AUTH_SECRET` | ✅ | Long random string. Signs session tokens, hashes login codes, and signs attachment links. |
 | `MAX_UPLOAD_MB` | optional | Max attachment size in MB (default 20). |
+| `JITSI_DOMAIN` | optional | Domain that hosts the call rooms (default `meet.jit.si`). Point it at a self-hosted Jitsi / 8x8 JaaS for private media. |
 | `ADMIN_EMAILS` | recommended | Comma/space-separated emails allowed to **create groups**. If empty, the first person to sign in becomes the admin (bootstrap). |
 | `EMAIL_FROM` | recommended | `From:` address, e.g. `Linear Chat <chat@linearit.co>`. |
 | `RESEND_API_KEY` | one email option | Send codes via [Resend](https://resend.com). |
@@ -69,6 +74,7 @@ See **[`DEPLOY.md`](./DEPLOY.md)**. Short version:
 | GET | `/api/groups/{id}/messages/{mid}/thread?after={id}` | Bearer (member) | A message's thread (parent + replies) |
 | POST | `/api/groups/{id}/badges` | Bearer (member) | `{ids:[…]}` → live reaction + reply counts for visible messages |
 | POST | `/api/messages/{mid}/react` | Bearer (member) | `{emoji}` → toggle a reaction |
+| POST | `/api/groups/{id}/call` | Bearer (member) | `{mode:'audio'|'video'}` → start a call; posts a Join card |
 | GET | `/api/files/{id}?e=&t=` | signed link | Stream an attachment from R2 (time-limited HMAC link) |
 | GET | `/api/config` | — | Client config (attachments enabled, max upload, emoji set) |
 
@@ -88,8 +94,23 @@ with its `reactions`, `attachments`, and `reply_count`.
   the upload/serve paths re-check group membership. Uploads are size-capped
   (`MAX_UPLOAD_MB`, default 20) and limited to 10 files per message.
 
+## Calls
+- A 📞/🎥 button in the group header starts a voice or video call. The Worker
+  creates a message of `kind:'call'` with an unguessable room name and posts it
+  as a **Join** card so other members can hop in.
+- The room is opened with the Jitsi embed (`JitsiMeetExternalAPI`) in a
+  full-screen overlay; "Leave call" closes it. Audio mode just starts with
+  video muted.
+- **Swapping providers later:** the room/provider lives in the message `meta`
+  and the domain comes from `JITSI_DOMAIN`. To move to your own Cloudflare
+  Realtime SFU, change `startCall` (server) and the call overlay (client) to
+  that provider — the schema, call card, and group plumbing stay the same.
+- **Privacy:** with the default `meet.jit.si`, call media flows through 8x8's
+  public servers. For private media, set `JITSI_DOMAIN` to a self-hosted Jitsi
+  (or move to Cloudflare Realtime).
+
 ## Possible upgrades
-- **Voice & video calls** (next: Jitsi, then a self-hosted Cloudflare Realtime SFU).
+- Self-hosted Jitsi / Cloudflare Realtime SFU for in-house call media.
 - Swap polling for WebSockets via a Cloudflare **Durable Object** per group for
   instant delivery and presence.
 - Read receipts / unread counts, push notifications.

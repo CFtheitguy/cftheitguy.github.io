@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS messages (
   sender_email  TEXT NOT NULL,
   sender_name   TEXT,
   body          TEXT,
+  kind          TEXT NOT NULL DEFAULT 'text',   -- 'text' | 'call'
+  meta          TEXT,                            -- JSON (e.g. call room info)
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_messages_group  ON messages(group_id, id);
@@ -83,6 +85,8 @@ CREATE TABLE IF NOT EXISTS attachments (
 );
 CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_id);
 
--- Migrations for databases created before threads/attachments existed (the
--- Worker runs these too, ignoring "duplicate column" errors):
+-- Migrations for databases created before threads/calls existed (the Worker
+-- runs these too, ignoring "duplicate column" errors):
 --   ALTER TABLE messages ADD COLUMN parent_id INTEGER;
+--   ALTER TABLE messages ADD COLUMN kind TEXT NOT NULL DEFAULT 'text';
+--   ALTER TABLE messages ADD COLUMN meta TEXT;

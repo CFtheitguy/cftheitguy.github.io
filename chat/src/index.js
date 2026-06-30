@@ -90,7 +90,7 @@ async function handleApi(request, env, url, p, method) {
   if ((m = p.match(/^\/api\/messages\/(\d+)\/react$/))) {
     if (method === "POST") return react(request, env, email, Number(m[1]));
   }
-  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges)$/))) {
+  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call)$/))) {
     const gid = Number(m[1]);
     const sub = m[2];
     if (sub === "members" && method === "GET") return listMembers(env, email, gid);
@@ -99,6 +99,7 @@ async function handleApi(request, env, url, p, method) {
     if (sub === "messages" && method === "GET") return listMessages(env, email, gid, url);
     if (sub === "messages" && method === "POST") return postMessage(request, env, email, gid);
     if (sub === "badges" && method === "POST") return badges(request, env, email, gid);
+    if (sub === "call" && method === "POST") return startCall(request, env, email, gid);
   }
 
   return json({ error: "Not found" }, 404);
@@ -109,6 +110,8 @@ function getConfig(env) {
     attachments_enabled: !!env.FILES,
     max_upload_mb: Number(env.MAX_UPLOAD_MB || 20),
     emoji: MAX_EMOJI,
+    calls_enabled: true,
+    jitsi_domain: env.JITSI_DOMAIN || "meet.jit.si",
   });
 }
 
@@ -322,11 +325,11 @@ async function listMessages(env, email, gid, url) {
   let rows;
   if (after > 0) {
     rows = (await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? ORDER BY id ASC LIMIT 200"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? ORDER BY id ASC LIMIT 200"
     ).bind(gid, after).all()).results || [];
   } else {
     rows = ((await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, created_at FROM messages WHERE group_id=? AND parent_id IS NULL ORDER BY id DESC LIMIT 100"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE group_id=? AND parent_id IS NULL ORDER BY id DESC LIMIT 100"
     ).bind(gid).all()).results || []).reverse();
   }
   await enrich(env, email, rows);
@@ -336,13 +339,13 @@ async function listMessages(env, email, gid, url) {
 async function getThread(env, email, gid, mid, url) {
   await requireMember(env, gid, email);
   const parent = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, created_at, group_id FROM messages WHERE id=? AND group_id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at, group_id FROM messages WHERE id=? AND group_id=?"
   ).bind(mid, gid).first();
   if (!parent) return json({ error: "Thread not found." }, 404);
 
   const after = Number(url.searchParams.get("after") || 0) || 0;
   const replies = (await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, created_at FROM messages WHERE parent_id=? AND id>? ORDER BY id ASC LIMIT 500"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE parent_id=? AND id>? ORDER BY id ASC LIMIT 500"
   ).bind(mid, after).all()).results || [];
   await enrich(env, email, replies);
 
@@ -406,7 +409,7 @@ async function postMessage(request, env, email, gid) {
   }
 
   const row = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, created_at FROM messages WHERE id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE id=?"
   ).bind(id).first();
   const [enriched] = await enrich(env, email, [row]);
   return json({ message: enriched, parent_id: parentId });
@@ -510,8 +513,38 @@ async function enrich(env, email, rows) {
     r.reactions = rmap[r.id] ? Object.values(rmap[r.id]) : [];
     r.attachments = amap[r.id] || [];
     r.reply_count = cmap[r.id] || 0;
+    if (r.meta && typeof r.meta === "string") { try { r.meta = JSON.parse(r.meta); } catch (_) { r.meta = null; } }
   }
   return rows;
+}
+
+/* ============================================================
+ * Calls (Jitsi today; swap the provider later for Cloudflare Realtime)
+ * ============================================================ */
+async function startCall(request, env, email, gid) {
+  await requireMember(env, gid, email);
+  const b = await readBody(request);
+  const mode = b.mode === "audio" ? "audio" : "video";
+  const room = "linear-" + gid + "-" + randToken(10);
+  const meta = JSON.stringify({ provider: "jitsi", room, domain: env.JITSI_DOMAIN || "meet.jit.si", mode, by: email });
+  const u = await env.DB.prepare("SELECT name FROM users WHERE email=?").bind(email).first();
+  const name = u && u.name ? u.name : null;
+  const label = mode === "audio" ? "Voice call started" : "Video call started";
+  const res = await env.DB
+    .prepare("INSERT INTO messages (group_id, sender_email, sender_name, body, kind, meta) VALUES (?,?,?,?, 'call', ?)")
+    .bind(gid, email, name, label, meta).run();
+  const row = await env.DB.prepare(
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE id=?"
+  ).bind(res.meta.last_row_id).first();
+  const [enriched] = await enrich(env, email, [row]);
+  return json({ message: enriched });
+}
+function randToken(n) {
+  const a = "abcdefghijkmnpqrstuvwxyz23456789";
+  const r = crypto.getRandomValues(new Uint8Array(n));
+  let s = "";
+  for (let i = 0; i < n; i++) s += a[r[i] % a.length];
+  return s;
 }
 
 /* ============================================================
@@ -722,13 +755,18 @@ async function ensureSchema(env) {
     "CREATE TABLE IF NOT EXISTS group_members (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(group_id, email))",
     "CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)",
     "CREATE INDEX IF NOT EXISTS idx_group_members_email ON group_members(email)",
-    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, parent_id INTEGER, sender_email TEXT NOT NULL, sender_name TEXT, body TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, parent_id INTEGER, sender_email TEXT NOT NULL, sender_name TEXT, body TEXT, kind TEXT NOT NULL DEFAULT 'text', meta TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id, id)",
   ];
   for (const s of base) await env.DB.prepare(s).run();
 
   // Migrations for older databases (ignore "duplicate column" errors).
-  for (const a of ["ALTER TABLE messages ADD COLUMN parent_id INTEGER"]) {
+  const migrations = [
+    "ALTER TABLE messages ADD COLUMN parent_id INTEGER",
+    "ALTER TABLE messages ADD COLUMN kind TEXT NOT NULL DEFAULT 'text'",
+    "ALTER TABLE messages ADD COLUMN meta TEXT",
+  ];
+  for (const a of migrations) {
     try { await env.DB.prepare(a).run(); } catch (_) { /* already exists */ }
   }
 
@@ -828,6 +866,8 @@ const APP_HTML = `<!doctype html>
               <h2 id="chatTitle" class="font-semibold truncate"></h2>
               <p id="chatSub" class="text-xs text-gray-400 truncate"></p>
             </div>
+            <button id="callAudioBtn" onclick="startCall('audio')" class="hidden text-xl leading-none hover:opacity-70" title="Start voice call">📞</button>
+            <button id="callVideoBtn" onclick="startCall('video')" class="hidden text-xl leading-none hover:opacity-70" title="Start video call">🎥</button>
             <button id="membersBtn" onclick="openMembers()" class="hidden text-sm text-gray-500 hover:text-black underline">Members</button>
           </header>
           <div id="messages" class="msgs flex-1 overflow-y-auto p-4 space-y-1"></div>
@@ -900,10 +940,20 @@ const APP_HTML = `<!doctype html>
     </div>
   </div>
 
+  <!-- call overlay (Jitsi) -->
+  <div id="callOverlay" class="hidden fixed inset-0 z-50 bg-black flex flex-col">
+    <div class="flex items-center justify-between px-4 py-2 bg-gray-900 text-white shrink-0">
+      <span id="callTitle" class="text-sm font-medium">Call</span>
+      <button onclick="endCall()" class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 text-sm font-medium">Leave call</button>
+    </div>
+    <div id="callFrame" class="flex-1 min-h-0"></div>
+  </div>
+
   <script>
     var API = '';
     var token = localStorage.getItem('chat_token') || '';
-    var me = null, config = { emoji: ['👍','❤️','😂','🎉','✅'], attachments_enabled: false, max_upload_mb: 20 };
+    var me = null, config = { emoji: ['👍','❤️','😂','🎉','✅'], attachments_enabled: false, max_upload_mb: 20, calls_enabled: true, jitsi_domain: 'meet.jit.si' };
+    var jitsiApi = null;
     var groups = [], active = null;
     var lastMsgId = 0, poll = null, pollTick = 0;
     var pendingEmail = '';
@@ -1006,6 +1056,7 @@ const APP_HTML = `<!doctype html>
       $('chatTitle').textContent = g.name;
       $('chatSub').textContent = (g.role==='admin' ? 'Admin · ' : '') + g.member_count + ' member' + (g.member_count===1 ? '' : 's');
       if(g.role==='admin'){ show('membersBtn'); } else { hide('membersBtn'); }
+      if(config.calls_enabled){ show('callAudioBtn'); show('callVideoBtn'); }
       $('messages').innerHTML = '<p class="text-center text-sm text-gray-400 py-6">Loading…</p>';
       if(isMobile()){ hide('sidebar'); $('chatPane').classList.remove('hidden'); $('chatPane').classList.add('flex'); }
       await loadMessages(true);
@@ -1045,6 +1096,7 @@ const APP_HTML = `<!doctype html>
     function renderMessage(m, opts){
       opts = opts || {};
       msgModel[m.id] = m;
+      if(m.kind==='call' && m.meta){ return renderCallCard(m); }
       var mine = me && m.sender_email === me.email;
       var row = ce('div', 'flex ' + (mine ? 'justify-end' : 'justify-start'));
       var col = ce('div', 'max-w-[80%] flex flex-col ' + (mine ? 'items-end' : 'items-start'));
@@ -1097,6 +1149,61 @@ const APP_HTML = `<!doctype html>
         container.appendChild(chip);
       });
     }
+
+    /* ---------- call card ---------- */
+    function renderCallCard(m){
+      var row = ce('div','flex justify-center my-2');
+      var card = ce('div','rounded-2xl border bg-white px-4 py-3 shadow-sm text-center max-w-xs');
+      var audio = m.meta.mode === 'audio';
+      var t = ce('div','text-sm font-medium'); t.textContent = (audio ? '📞 ' : '🎥 ') + (audio ? 'Voice call' : 'Video call'); card.appendChild(t);
+      var who = ce('div','text-xs text-gray-400 mb-2'); who.textContent = 'Started by ' + (m.sender_name || m.sender_email) + ' · ' + fmtTime(m.created_at); card.appendChild(who);
+      var join = ce('button','text-sm bg-black text-white rounded-lg px-4 py-1.5 hover:bg-gray-800'); join.textContent = 'Join'; join.onclick = function(){ joinCall(m.meta); };
+      card.appendChild(join);
+      row.appendChild(card);
+      return row;
+    }
+
+    /* ---------- calls (Jitsi) ---------- */
+    async function startCall(mode){
+      if(!active) return;
+      try {
+        var r = await api('/api/groups/' + active.id + '/call', { method:'POST', body: JSON.stringify({ mode: mode }) });
+        if(r.message){ appendTop(r.message); scrollBottom(); lastMsgId = Math.max(lastMsgId, r.message.id); startJitsi(r.message.meta.room, r.message.meta.mode); }
+      } catch(e){ alert(e.message); }
+    }
+    function joinCall(meta){ if(meta && meta.room){ startJitsi(meta.room, meta.mode || 'video'); } }
+    function loadJitsiScript(){
+      return new Promise(function(resolve, reject){
+        if(window.JitsiMeetExternalAPI) return resolve();
+        var s = document.createElement('script');
+        s.src = 'https://' + (config.jitsi_domain || 'meet.jit.si') + '/external_api.js';
+        s.onload = function(){ resolve(); }; s.onerror = function(){ reject(new Error('Could not load the call library.')); };
+        document.head.appendChild(s);
+      });
+    }
+    function startJitsi(room, mode){
+      var domain = config.jitsi_domain || 'meet.jit.si';
+      show('callOverlay');
+      $('callTitle').textContent = (mode==='audio' ? '📞 Voice call' : '🎥 Video call');
+      loadJitsiScript().then(function(){
+        if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; }
+        $('callFrame').innerHTML = '';
+        jitsiApi = new JitsiMeetExternalAPI(domain, {
+          roomName: room,
+          parentNode: $('callFrame'),
+          width: '100%', height: '100%',
+          userInfo: { displayName: (me && (me.name || me.email)) || 'Guest' },
+          configOverwrite: { startWithVideoMuted: (mode==='audio'), prejoinPageEnabled: false, disableDeepLinking: true },
+          interfaceConfigOverwrite: { MOBILE_APP_PROMO: false }
+        });
+        jitsiApi.addEventListener('readyToClose', endCall);
+      }).catch(function(){
+        // fallback: open the room in a new tab
+        window.open('https://' + domain + '/' + room, '_blank');
+        hide('callOverlay');
+      });
+    }
+    function endCall(){ if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; } $('callFrame').innerHTML = ''; hide('callOverlay'); }
 
     /* ---------- reactions ---------- */
     function openEmojiPicker(ev, mid){

@@ -2,7 +2,8 @@
 
 A team group-chat at **https://chat.linearit.co**. Sign in with your email,
 get a one-time code, and chat with your group — with threaded replies, emoji
-reactions, and file attachments. Admins create groups and add members.
+reactions, file attachments, and voice/video calls. Admins create groups and
+add members.
 
 Everything below can be done from an iPad in the **Cloudflare dashboard** — no
 command line.
@@ -56,9 +57,15 @@ Four steps:
    | `ADMIN_EMAILS` | emails that may create groups, e.g. `you@linearit.co, ops@linearit.co` |
    | `EMAIL_FROM` | `Linear Chat <chat@linearit.co>` |
    | `MAX_UPLOAD_MB` | *(optional)* max attachment size, default `20` |
+   | `JITSI_DOMAIN` | *(optional)* call-room host, default `meet.jit.si` |
 
    > If you leave `ADMIN_EMAILS` blank, the **first person to sign in becomes the
    > admin** — handy for a quick start, but setting it is safer.
+
+   > **Voice & video calls work out of the box** — no account or key needed.
+   > They use `meet.jit.si` by default, which means call media flows through
+   > Jitsi's public servers. For private media later, set `JITSI_DOMAIN` to a
+   > self-hosted Jitsi (or we move to a Cloudflare Realtime SFU).
 
 ## 3) Choose how codes are emailed
 
@@ -111,6 +118,14 @@ That's it — open **https://chat.linearit.co**.
 1. Your admin adds your email (you may get an invite email).
 2. Go to chat.linearit.co, enter the same email, get a code, sign in.
 3. Pick your group and start chatting.
+
+**In a group you can**
+- **Reply in a thread:** tap **↩ Reply** under a message.
+- **React:** tap **🙂** under a message and pick an emoji.
+- **Attach:** tap **📎** in the composer (needs the R2 bucket from step 4).
+- **Call:** tap **📞** (voice) or **🎥** (video) in the group header. Everyone
+  else sees a **Join** card. The first time, your browser will ask for
+  camera/microphone permission — allow it.
 
 ---
 
