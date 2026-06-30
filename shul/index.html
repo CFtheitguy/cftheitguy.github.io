@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Shul Alerts</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --ink: #e2e8f0; --muted: #94a3b8;
+    --line: #334155; --accent: #2563eb; --accent2: #1d4ed8; --good: #16a34a;
+    --bad: #dc2626; --warn: #d97706;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--ink); -webkit-text-size-adjust: 100%;
+  }
+  header {
+    padding: 16px 20px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  header h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .right { display: flex; align-items: center; gap: 12px; }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; font-weight: 600; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px; }
+  input, textarea {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: #0b1220; color: var(--ink); font-size: 16px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 90px; }
+  button {
+    appearance: none; border: 0; border-radius: 10px; padding: 12px 16px; font-size: 15px;
+    font-weight: 600; background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button:hover { background: var(--accent2); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
+  button.danger { background: transparent; border: 1px solid var(--bad); color: #fca5a5; padding: 6px 10px; font-size: 13px; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .stats { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 90px; background: #0b1220; border: 1px solid var(--line); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat b { display: block; font-size: 24px; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .list { margin-top: 12px; max-height: 320px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--line); gap: 8px; }
+  .item:last-child { border-bottom: 0; }
+  .item .who { min-width: 0; }
+  .item .who b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .who span { font-size: 12px; color: var(--muted); }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--warn); color: #fbbf24; }
+  .progress { height: 12px; border-radius: 999px; background: #0b1220; border: 1px solid var(--line); overflow: hidden; margin: 12px 0 6px; }
+  .progress > div { height: 100%; width: 0%; background: var(--good); transition: width .25s; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #0b1220; border: 1px solid var(--line); padding: 12px 18px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90%; }
+  .toast.show { opacity: 1; }
+  .toast.bad { border-color: var(--bad); }
+  .hidden { display: none !important; }
+  .settings-link { font-size: 12px; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  a { color: #93c5fd; }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<main id="loginView">
+  <div class="card" style="margin-top: 40px;">
+    <h2>Shul Alerts — sign in</h2>
+    <label>Worker URL</label>
+    <input id="apiBase" type="url" placeholder="https://shul-alerts.YOURNAME.workers.dev" autocomplete="off" />
+    <div class="hint">The address of your deployed Cloudflare Worker. Saved on this device.</div>
+    <div style="height:12px"></div>
+    <label>Password</label>
+    <input id="password" type="password" placeholder="admin password" autocomplete="current-password" />
+    <div style="height:14px"></div>
+    <button id="loginBtn" style="width:100%">Sign in</button>
+    <div id="loginErr" class="hint" style="color:#fca5a5"></div>
+  </div>
+</main>
+
+<!-- ================= APP ================= -->
+<div id="appView" class="hidden">
+  <header>
+    <h1>📣 Shul Alerts</h1>
+    <div class="right">
+      <span class="settings-link" id="changeUrl">settings</span>
+      <button class="ghost" id="logoutBtn" style="padding:8px 12px;font-size:13px">Sign out</button>
+    </div>
+  </header>
+  <main>
+
+    <!-- Compose -->
+    <div class="card">
+      <h2>Send a message to everyone</h2>
+      <textarea id="msg" placeholder="e.g. Reminder: Mincha tonight is at 8:15pm, not 8:00pm."></textarea>
+      <div class="meta">
+        <span id="segInfo">0 characters · 1 text each</span>
+        <span id="recipInfo">— recipients</span>
+      </div>
+      <div style="height:12px"></div>
+      <button id="sendBtn" style="width:100%">Review &amp; send</button>
+
+      <div id="sendProgress" class="hidden">
+        <div class="progress"><div id="bar"></div></div>
+        <div class="meta"><span id="progText">Sending…</span><span id="progPct">0%</span></div>
+      </div>
+    </div>
+
+    <!-- Subscribers -->
+    <div class="card">
+      <h2>Subscribers</h2>
+      <div class="stats">
+        <div class="stat"><b id="sTotal">0</b><span>total</span></div>
+        <div class="stat"><b id="sActive" style="color:var(--good)">0</b><span>active</span></div>
+        <div class="stat"><b id="sOut" style="color:var(--warn)">0</b><span>opted out</span></div>
+      </div>
+      <label>Import numbers (paste, or choose a file)</label>
+      <textarea id="importBox" placeholder="One per line. Either just numbers, or 'Name, number':&#10;Yossi Cohen, 845-555-1234&#10;Dovid Klein, (845) 555-9876&#10;8455550000"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button id="importBtn">Import</button>
+        <button class="ghost" id="fileBtn">Choose .csv / .txt</button>
+        <input id="fileInput" type="file" accept=".csv,.txt,text/plain,text/csv" class="hidden" />
+        <button class="ghost" id="refreshBtn" style="margin-left:auto">Refresh</button>
+      </div>
+      <div class="hint">People are only added when you import them. Numbers that texted STOP stay opted out automatically.</div>
+      <div class="list" id="subList"></div>
+    </div>
+
+    <!-- History -->
+    <div class="card">
+      <h2>Recent broadcasts</h2>
+      <div class="list" id="histList"><div class="item"><span class="muted">None yet.</span></div></div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const LS = { base: "shul_api_base", token: "shul_token" };
+  let API = localStorage.getItem(LS.base) || "";
+  let TOKEN = localStorage.getItem(LS.token) || "";
+
+  function toast(msg, bad) {
+    const t = $("toast"); t.textContent = msg; t.className = "toast show" + (bad ? " bad" : "");
+    setTimeout(() => (t.className = "toast"), 3200);
+  }
+
+  async function api(path, opts) {
+    opts = opts || {};
+    const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+    if (TOKEN) headers["Authorization"] = "Bearer " + TOKEN;
+    const res = await fetch(API.replace(/\/$/, "") + path, {
+      method: opts.method || "GET", headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) { signOut(); throw new Error("Session expired — sign in again."); }
+    if (!res.ok) throw new Error(data.error || ("Error " + res.status));
+    return data;
+  }
+
+  /* ---------- auth ---------- */
+  function showApp(on) {
+    $("appView").classList.toggle("hidden", !on);
+    $("loginView").classList.toggle("hidden", on);
+  }
+  function signOut() {
+    TOKEN = ""; localStorage.removeItem(LS.token); showApp(false);
+  }
+  $("logoutBtn").onclick = signOut;
+  $("changeUrl").onclick = () => { signOut(); $("apiBase").value = API; };
+
+  $("loginBtn").onclick = async () => {
+    API = $("apiBase").value.trim();
+    const password = $("password").value;
+    if (!API) return ($("loginErr").textContent = "Enter your Worker URL.");
+    if (!password) return ($("loginErr").textContent = "Enter the password.");
+    localStorage.setItem(LS.base, API);
+    $("loginBtn").disabled = true; $("loginErr").textContent = "";
+    try {
+      const r = await api("/api/login", { method: "POST", body: { password } });
+      TOKEN = r.token; localStorage.setItem(LS.token, TOKEN);
+      $("password").value = "";
+      showApp(true); await refresh();
+    } catch (e) { $("loginErr").textContent = e.message; }
+    finally { $("loginBtn").disabled = false; }
+  };
+
+  /* ---------- subscribers ---------- */
+  let activeCount = 0;
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+  async function refresh() {
+    try {
+      const d = await api("/api/subscribers?limit=500");
+      activeCount = d.active || 0;
+      $("sTotal").textContent = d.total || 0;
+      $("sActive").textContent = d.active || 0;
+      $("sOut").textContent = d.opted_out || 0;
+      $("recipInfo").textContent = activeCount + " recipient" + (activeCount === 1 ? "" : "s");
+      const list = $("subList");
+      list.innerHTML = (d.subscribers || []).map((s) => `
+        <div class="item">
+          <div class="who">
+            <b>${esc(s.name || s.number)}</b>
+            <span>${esc(s.number)}${s.opted_out ? ' · <span class="tag">opted out</span>' : ""}</span>
+          </div>
+          <button class="danger" data-del="${s.id}">Remove</button>
+        </div>`).join("") || '<div class="item"><span class="muted">No subscribers yet — import some above.</span></div>';
+      list.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => removeSub(b.dataset.del)));
+      loadHistory();
+    } catch (e) { toast(e.message, true); }
+  }
+  $("refreshBtn").onclick = refresh;
+
+  async function removeSub(id) {
+    if (!confirm("Remove this subscriber?")) return;
+    try { await api("/api/subscribers/delete", { method: "POST", body: { id } }); refresh(); }
+    catch (e) { toast(e.message, true); }
+  }
+
+  $("importBtn").onclick = async () => {
+    const text = $("importBox").value.trim();
+    if (!text) return toast("Paste some numbers first.", true);
+    $("importBtn").disabled = true;
+    try {
+      const r = await api("/api/subscribers/import", { method: "POST", body: { text } });
+      toast("Imported " + r.imported + " number" + (r.imported === 1 ? "" : "s") + ".");
+      $("importBox").value = ""; refresh();
+    } catch (e) { toast(e.message, true); }
+    finally { $("importBtn").disabled = false; }
+  };
+  $("fileBtn").onclick = () => $("fileInput").click();
+  $("fileInput").onchange = (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { $("importBox").value = r.result; toast("Loaded " + f.name + " — press Import."); };
+    r.readAsText(f);
+  };
+
+  /* ---------- compose / segment counter ---------- */
+  function segInfo(text) {
+    const len = text.length;
+    const unicode = /[^\x00-\x7F]/.test(text); // Hebrew / non-ASCII => UCS-2 (shorter segments)
+    const per = unicode ? 70 : 160, multi = unicode ? 67 : 153;
+    const segments = len === 0 ? 1 : len <= per ? 1 : Math.ceil(len / multi);
+    return len + " character" + (len === 1 ? "" : "s") + " · " + segments + " text" + (segments === 1 ? "" : "s") + " each" + (unicode ? " (Hebrew/Unicode)" : "");
+  }
+  $("msg").addEventListener("input", () => ($("segInfo").textContent = segInfo($("msg").value)));
+
+  /* ---------- send ---------- */
+  $("sendBtn").onclick = async () => {
+    const body = $("msg").value.trim();
+    if (!body) return toast("Write a message first.", true);
+    if (!activeCount) return toast("No active recipients to send to.", true);
+    if (!confirm("Send this to " + activeCount + " people?\n\n\"" + body + "\"")) return;
+
+    $("sendBtn").disabled = true;
+    $("sendProgress").classList.remove("hidden");
+    setBar(0, "Preparing…");
+    try {
+      const created = await api("/api/broadcast/create", { method: "POST", body: { body } });
+      if (created.done || created.total === 0) { finishSend(created.total || 0, 0); return; }
+      const id = created.id, total = created.total;
+      let done = false, first = true;
+      while (!done) {
+        const r = await api("/api/broadcast/run", { method: "POST", body: { id } });
+        // If the very first batch wholly fails, it's almost always a setup problem
+        // (wrong SignalWire credentials/number) — stop instead of failing all 800.
+        if (first && r.sent === 0 && r.failed > 0) {
+          throw new Error("Every text in the first batch failed — check your SignalWire settings/number." + (r.lastError ? " (" + r.lastError + ")" : ""));
+        }
+        first = false;
+        const completed = r.sent + r.failed;
+        setBar(Math.round((completed / total) * 100), "Sent " + r.sent + " / " + total + (r.failed ? " · " + r.failed + " failed" : ""));
+        done = r.done;
+        if (done) finishSend(r.sent, r.failed);
+      }
+    } catch (e) {
+      toast(e.message, true); setBar(0, "Stopped: " + e.message);
+    } finally { $("sendBtn").disabled = false; }
+  };
+  function setBar(pct, text) {
+    $("bar").style.width = pct + "%"; $("progPct").textContent = pct + "%"; $("progText").textContent = text;
+  }
+  function finishSend(sent, failed) {
+    setBar(100, "Done — " + sent + " sent" + (failed ? ", " + failed + " failed" : ""));
+    toast("Sent to " + sent + " people" + (failed ? " (" + failed + " failed)" : "") + ".");
+    $("msg").value = ""; $("segInfo").textContent = segInfo("");
+    setTimeout(() => $("sendProgress").classList.add("hidden"), 4000);
+    loadHistory();
+  }
+
+  /* ---------- history ---------- */
+  async function loadHistory() {
+    try {
+      const d = await api("/api/broadcast/list");
+      const el = $("histList");
+      el.innerHTML = (d.broadcasts || []).map((b) => `
+        <div class="item">
+          <div class="who">
+            <b>${esc(b.body.slice(0, 60))}${b.body.length > 60 ? "…" : ""}</b>
+            <span>${esc((b.created_at || "").replace("T", " ").slice(0, 16))} · ${b.sent}/${b.total} sent${b.failed ? " · " + b.failed + " failed" : ""}</span>
+          </div>
+        </div>`).join("") || '<div class="item"><span class="muted">None yet.</span></div>';
+    } catch (e) { /* silent */ }
+  }
+
+  /* ---------- boot ---------- */
+  $("apiBase").value = API;
+  if (API && TOKEN) { showApp(true); refresh(); } else { showApp(false); }
+})();
+</script>
+</body>
+</html>
