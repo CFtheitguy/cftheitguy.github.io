@@ -48,3 +48,18 @@ CREATE TABLE IF NOT EXISTS shares (
   created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_shares_token ON shares(token);
+
+-- Public password / secret sharing (free, no account) — pwpush-style
+CREATE TABLE IF NOT EXISTS secrets (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  token       TEXT    NOT NULL UNIQUE,
+  payload     TEXT    NOT NULL,   -- AES-GCM encrypted, base64
+  iv          TEXT    NOT NULL,   -- AES-GCM nonce, base64
+  pw_hash     TEXT,               -- optional extra password
+  pw_salt     TEXT,
+  expires_at  TEXT,
+  viewed      INTEGER NOT NULL DEFAULT 0,
+  max_views   INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_secrets_token ON secrets(token);

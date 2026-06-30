@@ -37,6 +37,15 @@ export default {
       if (method === "GET" && path === "/signup-complete") {
         return htmlResponse(renderSignupComplete());
       }
+      // ── Public password sharing (free, no account) ─────────────────
+      if (method === "GET" && (path === "/password" || path === "/p" || path === "/p/")) {
+        return htmlResponse(renderPasswordPage());
+      }
+      if (method === "GET" && path.startsWith("/s/")) {
+        return htmlResponse(renderSecretView(path.slice(3)));
+      }
+      if (path === "/api/secret/create" && method === "POST") return corsHeaders(await createSecret(request, env));
+      if (path === "/api/secret/view"   && method === "POST") return corsHeaders(await viewSecret(request, env, ctx));
 
       // ── Auth API ───────────────────────────────────────────────────
       if (path === "/api/signup/checkout" && method === "POST") return corsHeaders(await signupCheckout(request, env));
@@ -265,6 +274,10 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
       <div class="tabs">
         <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign in</div>
         <div class="tab" id="tab-signup" onclick="switchTab('signup')">Create account</div>
+      </div>
+
+      <div style="text-align:center;margin-bottom:18px;font-size:.83rem;color:var(--muted)">
+        Just need to send a password? <a href="/password" style="color:var(--accent);font-weight:600;text-decoration:none">Share it securely for free →</a>
       </div>
 
       <div class="card" id="form-login">
@@ -624,6 +637,183 @@ async function unlock() {
   setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 10000);
 }
 document.getElementById('pw').addEventListener('keydown', function(e) { if (e.key === 'Enter') unlock(); });
+</script>
+</body>
+</html>`;
+}
+
+/* ================================================================
+ * Public password-sharing pages (free, no account required)
+ * ================================================================ */
+function passwordPageStyles() {
+  return `*{box-sizing:border-box;margin:0;padding:0}
+:root,[data-theme="dark"]{--bg:#0f1117;--bg2:#1a1d27;--text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;--accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);--border:#2a2f45;--border2:#353b56;--card:#181c2a;--input-bg:#0f1117;--danger:#f06464;--danger-bg:rgba(240,100,100,.12);--success:#4ade80;--success-bg:rgba(74,222,128,.12);--shadow:0 2px 16px rgba(0,0,0,.4)}
+[data-theme="light"]{--bg:#f4f6fb;--bg2:#fff;--text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;--accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);--border:#dde1ee;--border2:#c8cee0;--card:#fff;--input-bg:#f4f6fb;--danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);--success:#16a34a;--success-bg:rgba(22,163,74,.08);--shadow:0 2px 16px rgba(0,0,0,.08)}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text)}
+.logo-text span{color:var(--accent)}
+#theme-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 32px;max-width:520px;width:100%;box-shadow:var(--shadow)}
+.lock-ring{width:64px;height:64px;background:var(--accent-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+h2{font-size:1.4rem;font-weight:700;margin-bottom:8px;text-align:center}
+.desc{color:var(--muted);font-size:.88rem;margin-bottom:24px;line-height:1.6;text-align:center}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;font-weight:600}
+textarea,input[type=password],input[type=text],select{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+textarea{min-height:96px;resize:vertical}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.field{margin-bottom:16px}
+.row{display:flex;gap:12px}
+.row .field{flex:1}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;font-family:inherit;transition:all .15s;margin-top:4px}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,126,248,.35)}
+.btn-sm{width:auto;padding:7px 14px;font-size:.82rem;margin:0}
+#msg{margin-top:16px;font-size:.88rem;display:none;padding:12px 16px;border-radius:10px}
+.err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
+.ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
+.result-box{background:var(--success-bg);border:1px solid var(--success);border-radius:12px;padding:18px;margin-top:18px;display:none}
+.result-label{font-size:.75rem;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.url-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.url{flex:1;font-size:.82rem;word-break:break-all;background:var(--card);border:1px solid var(--border);padding:9px 12px;border-radius:8px;font-family:monospace}
+.secret-reveal{background:var(--input-bg);border:1px solid var(--border2);border-radius:10px;padding:16px;font-family:monospace;font-size:.95rem;word-break:break-all;white-space:pre-wrap;margin-bottom:14px;text-align:left}
+.foot{text-align:center;font-size:.75rem;color:var(--muted2);padding:18px;margin-top:auto}
+.foot a{color:var(--accent);text-decoration:none}
+.theme-svgs svg{display:block}`;
+}
+
+function passwordThemeScript() {
+  return `function toggleTheme(){var t=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',t);document.getElementById('icon-moon').style.display=t==='dark'?'block':'none';document.getElementById('icon-sun').style.display=t==='light'?'block':'none';try{localStorage.setItem('theme',t);}catch(e){}}
+(function(){var s=null;try{s=localStorage.getItem('theme');}catch(e){}var t=s||'dark';document.documentElement.setAttribute('data-theme',t);if(t==='light'){var m=document.getElementById('icon-moon');if(m)m.style.display='none';var u=document.getElementById('icon-sun');if(u)u.style.display='block';}})();`;
+}
+
+function passwordHeader() {
+  return `<header>
+  <a class="logo" href="/">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg></div>
+    <span class="logo-text">Linear<span>Tech</span> Secure</span>
+  </a>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark" class="theme-svgs">
+    <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+  </button>
+</header>`;
+}
+
+function renderPasswordPage() {
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Linear Tech · Send a Password Securely</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>${passwordPageStyles()}</style>
+</head>
+<body>
+${passwordHeader()}
+<main>
+<div class="card">
+  <div class="lock-ring"><svg width="30" height="30" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg></div>
+  <h2>Send a Password Securely</h2>
+  <p class="desc">Paste a password or secret note below. You'll get a one-time link that self-destructs after it's viewed — so it never lingers in email or chat. <strong>Free, no account needed.</strong></p>
+
+  <div class="field"><label>Password or secret message</label><textarea id="secret" placeholder="Type or paste the secret here…"></textarea></div>
+  <div class="row">
+    <div class="field"><label>Expires after</label>
+      <select id="days"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select>
+    </div>
+    <div class="field"><label>Views allowed</label>
+      <select id="views"><option value="1" selected>1 view (burn after)</option><option value="2">2 views</option><option value="3">3 views</option><option value="5">5 views</option></select>
+    </div>
+  </div>
+  <div class="field"><label>Extra password &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional — recipient must enter it)</span></label><input id="pw" type="password" placeholder="Leave blank for no extra password"/></div>
+
+  <button class="btn" onclick="makeLink()">Generate secure link</button>
+
+  <div class="result-box" id="result">
+    <div class="result-label">Your one-time link is ready</div>
+    <div class="url-row"><span class="url" id="url"></span><button class="btn btn-sm" onclick="copyUrl()">Copy</button></div>
+  </div>
+  <div id="msg"></div>
+</div>
+</main>
+<div class="foot">Need to send <strong>files</strong> securely too? <a href="/">Create a Linear Tech Files account →</a></div>
+<script>
+${passwordThemeScript()}
+async function makeLink(){
+  var text=document.getElementById('secret').value;
+  if(!text){return showMsg('Please enter something to share','err');}
+  var days=document.getElementById('days').value;
+  var views=document.getElementById('views').value;
+  var pw=document.getElementById('pw').value;
+  var r=await fetch('/api/secret/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,days:days,max_views:views,password:pw})});
+  var d=await r.json();
+  if(!r.ok){return showMsg(d.error||'Something went wrong','err');}
+  var link=window.location.origin+'/s/'+d.token;
+  document.getElementById('url').textContent=link;
+  document.getElementById('result').style.display='block';
+  document.getElementById('secret').value='';
+  document.getElementById('pw').value='';
+}
+function copyUrl(){var u=document.getElementById('url').textContent;navigator.clipboard.writeText(u).then(function(){showMsg('Link copied!','ok');}).catch(function(){showMsg('Copy failed — select the link manually','err');});}
+function showMsg(m,t){var el=document.getElementById('msg');el.textContent=m;el.className=t;el.style.display='block';setTimeout(function(){el.style.display='none';},4000);}
+</script>
+</body>
+</html>`;
+}
+
+function renderSecretView(token) {
+  const safeToken = token.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Linear Tech · Secure Message</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>${passwordPageStyles()}</style>
+</head>
+<body>
+${passwordHeader()}
+<main>
+<div class="card">
+  <div class="lock-ring"><svg width="30" height="30" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg></div>
+  <h2>Secure Message</h2>
+  <p class="desc" id="intro">Someone shared a secret with you. Click below to reveal it. Once viewed, it may be gone for good.</p>
+  <div id="pw-field" class="field" style="display:none"><label>This message is password-protected</label><input id="pw" type="password" placeholder="Enter the password" autofocus/></div>
+  <div id="secret-out" class="secret-reveal" style="display:none"></div>
+  <button class="btn" id="reveal-btn" onclick="reveal()">Reveal message</button>
+  <button class="btn btn-sm" id="copy-btn" style="display:none;width:100%;margin-top:10px" onclick="copySecret()">Copy to clipboard</button>
+  <div id="msg"></div>
+</div>
+</main>
+<div class="foot">Powered by <a href="/password">Linear Tech Secure</a> · <a href="/">Send files securely →</a></div>
+<script>
+var TOKEN=${JSON.stringify(safeToken)};
+var NEEDS_PW=false;
+${passwordThemeScript()}
+async function reveal(){
+  var pw=NEEDS_PW?document.getElementById('pw').value:'';
+  var r=await fetch('/api/secret/view',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,password:pw})});
+  var d=await r.json();
+  if(r.status===401&&d.needPassword){NEEDS_PW=true;document.getElementById('pw-field').style.display='block';return showMsg('Please enter the password','err');}
+  if(!r.ok){return showMsg(d.error||'Could not open message','err');}
+  document.getElementById('intro').style.display='none';
+  document.getElementById('pw-field').style.display='none';
+  document.getElementById('reveal-btn').style.display='none';
+  var out=document.getElementById('secret-out');
+  out.textContent=d.secret;out.style.display='block';
+  document.getElementById('copy-btn').style.display='block';
+  showMsg('This message has now been viewed.','ok');
+}
+function copySecret(){var s=document.getElementById('secret-out').textContent;navigator.clipboard.writeText(s).then(function(){showMsg('Copied!','ok');}).catch(function(){showMsg('Copy failed — select the text manually','err');});}
+function showMsg(m,t){var el=document.getElementById('msg');el.textContent=m;el.className=t;el.style.display='block';}
+document.addEventListener('keydown',function(e){if(e.key==='Enter')reveal();});
 </script>
 </body>
 </html>`;
@@ -1350,6 +1540,75 @@ async function viewShare(request, env, ctx) {
   });
 }
 
+// ── Create a secret (public, no auth) ─────────────────────────────
+async function createSecret(request, env) {
+  const { text, password, days, max_views } = await request.json();
+  if (!text || !String(text).length) return json({ error: 'Nothing to share' }, 400);
+  if (String(text).length > 100000) return json({ error: 'Message is too long (100 KB max)' }, 413);
+
+  const dayN = Math.min(Math.max(parseInt(days || '7', 10) || 7, 1), 30);
+  const mvN = Math.min(Math.max(parseInt(max_views || '1', 10) || 1, 1), 10);
+  const expiresAt = new Date(Date.now() + dayN * 24 * 60 * 60 * 1000).toISOString();
+
+  const { payload, iv } = await encryptText(env, String(text));
+
+  let pwHash = null, pwSalt = null;
+  if (password && String(password).length) {
+    const h = await hashPassword(String(password));
+    pwHash = h.hash; pwSalt = h.salt;
+  }
+
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  await env.DB.prepare(
+    'INSERT INTO secrets (token, payload, iv, pw_hash, pw_salt, expires_at, max_views) VALUES (?,?,?,?,?,?,?)'
+  ).bind(token, payload, iv, pwHash, pwSalt, expiresAt, mvN).run();
+
+  return json({ token });
+}
+
+// ── View a secret (burn after the allowed number of views) ────────
+async function viewSecret(request, env, ctx) {
+  const { token, password } = await request.json();
+  if (!token) return json({ error: 'Invalid link' }, 400);
+
+  const row = await env.DB.prepare(
+    'SELECT id, payload, iv, pw_hash, pw_salt, viewed, max_views, expires_at FROM secrets WHERE token=?'
+  ).bind(token).first();
+
+  if (!row) return json({ error: 'This message was not found or has already been deleted' }, 404);
+  if (row.expires_at && new Date(row.expires_at) < new Date()) {
+    await env.DB.prepare('DELETE FROM secrets WHERE id=?').bind(row.id).run();
+    return json({ error: 'This message has expired' }, 410);
+  }
+  if (row.viewed >= row.max_views) return json({ error: 'This message has already been viewed' }, 410);
+
+  if (row.pw_hash) {
+    if (!password) return json({ error: 'Password required', needPassword: true }, 401);
+    const ok = await verifyPassword(String(password), row.pw_hash, row.pw_salt);
+    if (!ok) return json({ error: 'Incorrect password', needPassword: true }, 401);
+  }
+
+  let secret;
+  try { secret = await decryptText(env, row.payload, row.iv); }
+  catch (e) { return json({ error: 'Could not decrypt message' }, 500); }
+
+  // Atomically claim a view; bail if someone else hit the limit first.
+  const result = await env.DB.prepare(
+    'UPDATE secrets SET viewed=viewed+1 WHERE id=? AND viewed<max_views'
+  ).bind(row.id).run();
+  if (result.meta && result.meta.changes === 0) {
+    return json({ error: 'This message has already been viewed' }, 410);
+  }
+
+  // Delete once the last allowed view is used.
+  if (row.viewed + 1 >= row.max_views) {
+    const del = env.DB.prepare('DELETE FROM secrets WHERE id=?').bind(row.id).run();
+    if (ctx && ctx.waitUntil) ctx.waitUntil(del.catch(() => {})); else await del.catch(() => {});
+  }
+
+  return json({ secret });
+}
+
 // ── Cron: purge expired shares + burned shares older than 7 days ───
 async function purgeExpired(env) {
   const now = new Date().toISOString().slice(0, 10);
@@ -1366,6 +1625,41 @@ async function purgeExpired(env) {
   await env.DB.prepare(
     `DELETE FROM shares WHERE viewed=1 OR (expires_at IS NOT NULL AND expires_at < ?)`
   ).bind(now).run();
+
+  // Purge expired secrets (uses full ISO timestamp)
+  await env.DB.prepare(
+    `DELETE FROM secrets WHERE expires_at IS NOT NULL AND expires_at < ?`
+  ).bind(new Date().toISOString()).run().catch(() => {});
+}
+
+/* ================================================================
+ * Encryption helpers for secrets (AES-GCM, key from SESSION_SECRET)
+ * ================================================================ */
+async function secretKey(env) {
+  const material = await crypto.subtle.digest('SHA-256', enc(env.SESSION_SECRET || 'linearit-default-key'));
+  return crypto.subtle.importKey('raw', material, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+function bufToB64(buf) {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+}
+function b64ToBuf(b64) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+async function encryptText(env, text) {
+  const key = await secretKey(env);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc(text));
+  return { payload: bufToB64(ct), iv: bufToB64(iv) };
+}
+async function decryptText(env, payloadB64, ivB64) {
+  const key = await secretKey(env);
+  const iv = b64ToBuf(ivB64);
+  const ct = b64ToBuf(payloadB64);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new TextDecoder().decode(pt);
 }
 
 /* ================================================================
