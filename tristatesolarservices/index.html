@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tri State Solar Services – IT Setup | Linear Tech</title>
+  <link rel="icon" href="https://www.linearit.co/assets/favicon.ico" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    /* Sky / solar gradient background */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 20%, rgba(255,200,50,0.35) 0%, transparent 60%),
+        linear-gradient(175deg, #0b1d3a 0%, #143a6b 30%, #1a6fb5 55%, #47afe0 75%, #f5c842 100%);
+    }
+
+    /* Sun glow */
+    .sun {
+      position: fixed;
+      top: 8%;
+      right: 18%;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffe87c 0%, #f5c842 40%, rgba(245,200,66,0) 70%);
+      box-shadow: 0 0 80px 40px rgba(245,200,66,0.25), 0 0 160px 80px rgba(245,200,66,0.1);
+      z-index: 1;
+    }
+
+    /* Solar panel silhouettes along the bottom */
+    .panels {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 180px;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .panels svg {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .card {
+      position: relative;
+      z-index: 10;
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 480px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+
+    .logos {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .logos img {
+      height: 38px;
+      object-fit: contain;
+      filter: brightness(0) invert(1);
+    }
+
+    .logos .divider {
+      width: 1px;
+      height: 32px;
+      background: rgba(255,255,255,0.35);
+    }
+
+    .client-name {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 15px;
+      line-height: 1.6;
+      opacity: 0.8;
+      margin-bottom: 32px;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 36px;
+      background: linear-gradient(135deg, #f5c842 0%, #e8a800 100%);
+      color: #0b1d3a;
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 700;
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(245,200,66,0.4);
+    }
+
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(245,200,66,0.55);
+    }
+
+    .download-btn svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .instructions {
+      margin-top: 28px;
+      font-size: 13px;
+      line-height: 1.7;
+      opacity: 0.65;
+    }
+
+    .footer {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      font-size: 12px;
+      opacity: 0.5;
+    }
+
+    .footer a {
+      color: #f5c842;
+      text-decoration: none;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 36px 24px; }
+      h1 { font-size: 22px; }
+      .sun { width: 100px; height: 100px; right: 10%; top: 5%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg"></div>
+  <div class="sun"></div>
+
+  <!-- Solar panel silhouettes -->
+  <div class="panels">
+    <svg viewBox="0 0 1200 180" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="panelGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="rgba(10,20,50,0.7)"/>
+          <stop offset="100%" stop-color="rgba(10,20,50,0.95)"/>
+        </linearGradient>
+      </defs>
+      <!-- Row of angled solar panels -->
+      <g fill="url(#panelGrad)">
+        <polygon points="0,180 0,110 160,80 160,180"/>
+        <polygon points="170,180 170,90 330,60 330,180"/>
+        <polygon points="340,180 340,95 500,65 500,180"/>
+        <polygon points="510,180 510,100 670,70 670,180"/>
+        <polygon points="680,180 680,85 840,55 840,180"/>
+        <polygon points="850,180 850,90 1010,60 1010,180"/>
+        <polygon points="1020,180 1020,95 1200,65 1200,180"/>
+      </g>
+      <!-- Grid lines on panels -->
+      <g stroke="rgba(100,160,220,0.25)" stroke-width="1" fill="none">
+        <line x1="80" y1="80" x2="80" y2="180"/>
+        <line x1="250" y1="60" x2="250" y2="180"/>
+        <line x1="420" y1="65" x2="420" y2="180"/>
+        <line x1="590" y1="70" x2="590" y2="180"/>
+        <line x1="760" y1="55" x2="760" y2="180"/>
+        <line x1="930" y1="60" x2="930" y2="180"/>
+        <line x1="1110" y1="65" x2="1110" y2="180"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="card">
+    <div class="logos">
+      <img src="https://www.linearit.co/assets/logo.png" alt="Linear Tech" />
+      <div class="divider"></div>
+      <span class="client-name">Tri State Solar Services</span>
+    </div>
+
+    <h1>Welcome to Managed IT</h1>
+    <p class="subtitle">
+      Download and run the installer below to connect your computer to Linear Tech's monitoring and support platform.
+    </p>
+
+    <a class="download-btn" href="https://us2.ninjarmm.com/agent/installer/b78de612-07d6-4641-8214-8fc6e2fee407/13.0.7941/NinjaOne-Agent-Tristatesolarservices-MainOffice-Auto-x86-64.msi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download Installer
+    </a>
+
+    <p class="instructions">
+      Once downloaded, double-click the .msi file and follow the prompts.<br>
+      The agent will install silently in the background.
+    </p>
+
+    <div class="footer">
+      Managed by <a href="https://www.linearit.co">Linear Tech</a> · Monroe, NY · (845) 604-1462
+    </div>
+  </div>
+
+</body>
+</html>
