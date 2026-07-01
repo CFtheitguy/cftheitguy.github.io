@@ -804,6 +804,10 @@ const APP_HTML = `<!doctype html>
     html, body { height: 100%; }
     .msgs::-webkit-scrollbar, .thr::-webkit-scrollbar { width: 8px; }
     .msgs::-webkit-scrollbar-thumb, .thr::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 8px; }
+    /* React/Reply buttons: hidden until you hover (desktop) or tap (touch) the message */
+    .msg-actions { opacity: 0; pointer-events: none; transition: opacity .12s; }
+    @media (hover: hover) { .group:hover .msg-actions { opacity: 1; pointer-events: auto; } }
+    .msg-actions.show { opacity: 1; pointer-events: auto; }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-900 antialiased">
@@ -1102,7 +1106,7 @@ const APP_HTML = `<!doctype html>
       msgModel[m.id] = m;
       if(m.kind==='call' && m.meta){ return renderCallCard(m); }
       var mine = me && m.sender_email === me.email;
-      var row = ce('div', 'flex ' + (mine ? 'justify-end' : 'justify-start'));
+      var row = ce('div', 'group flex ' + (mine ? 'justify-end' : 'justify-start'));
       var col = ce('div', 'max-w-[80%] flex flex-col ' + (mine ? 'items-end' : 'items-start'));
 
       var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-black text-white' : 'bg-white text-gray-900 border'));
@@ -1116,14 +1120,25 @@ const APP_HTML = `<!doctype html>
       var rx = ce('div','flex flex-wrap gap-1 mt-1'); rx.setAttribute('data-rx', m.id); col.appendChild(rx); renderReactions(rx, m);
 
       var meta = ce('div','flex items-center gap-3 mt-0.5 text-xs text-gray-400');
-      var reactBtn = ce('button','hover:text-black'); reactBtn.textContent='🙂'; reactBtn.title='React'; reactBtn.onclick=function(ev){ openEmojiPicker(ev, m.id); }; meta.appendChild(reactBtn);
+      // React + Reply live in .msg-actions (revealed on hover/tap); reply-count stays visible.
+      var actions = ce('div','msg-actions flex items-center gap-3');
+      var reactBtn = ce('button','hover:text-black'); reactBtn.textContent='🙂'; reactBtn.title='React'; reactBtn.onclick=function(ev){ openEmojiPicker(ev, m.id); }; actions.appendChild(reactBtn);
       if(!opts.inThread){
-        var replyBtn = ce('button','hover:text-black'); replyBtn.textContent='↩ Reply'; replyBtn.onclick=function(){ openThread(m.id); }; meta.appendChild(replyBtn);
+        var replyBtn = ce('button','hover:text-black'); replyBtn.textContent='↩ Reply'; replyBtn.onclick=function(){ openThread(m.id); }; actions.appendChild(replyBtn);
+      }
+      meta.appendChild(actions);
+      if(!opts.inThread){
         var rc = ce('button','hover:text-black font-medium'); rc.setAttribute('data-rc', m.id);
         if(m.reply_count>0){ rc.textContent = '💬 ' + m.reply_count + ' repl' + (m.reply_count===1?'y':'ies'); } else { rc.classList.add('hidden'); }
         rc.onclick=function(){ openThread(m.id); }; meta.appendChild(rc);
       }
       col.appendChild(meta);
+      // Touch devices have no hover — tap the message bubble to reveal its actions.
+      row.addEventListener('click', function(e){
+        if(!window.matchMedia('(hover: none)').matches) return;
+        if(e.target.closest('a,button,iframe,video,audio,img,input,textarea')) return;
+        actions.classList.toggle('show');
+      });
       row.appendChild(col);
       return row;
     }
