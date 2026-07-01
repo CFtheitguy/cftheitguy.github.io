@@ -793,6 +793,7 @@ async function ensureSchema(env) {
  * this outer template literal.
  * ============================================================ */
 const APP_HTML = `<!doctype html>
+<!-- linear-chat: auto-deployed from GitHub via Cloudflare Workers Builds -->
 <html lang="en">
 <head>
   <meta charset="utf-8">

@@ -46,7 +46,8 @@ public repo. Secrets are cleaner.)*
 1. Cloudflare → `linear-chat` → **Settings → Build** → **Connect** (Workers Builds).
 2. Pick the GitHub repo **`CFtheitguy/cftheitguy.github.io`** and the **branch**
    you want to deploy from.
-3. Set **Root directory** to **`chat`**.
+3. Leave **Root directory** as **`/`** (repo root) — `wrangler.toml` is at the
+   repo root and points `main` at `chat/src/index.js`.
 4. Build command: **leave empty**. Deploy command: **`npx wrangler deploy`**
    (usually the default).
 5. Save.

@@ -1,0 +1,31 @@
+# Cloudflare Worker config for Linear Chat (chat.linearit.co)
+# ----------------------------------------------------------
+# Lives at the REPO ROOT so Cloudflare Workers Builds (Root directory: /)
+# finds it. After the one-time setup, every push to `main` auto-deploys the
+# `linear-chat` Worker — no more copy/paste. See chat/DEPLOY-GIT.md.
+#
+# Secrets are intentionally NOT here (public repo). AUTH_SECRET, RESEND_API_KEY,
+# ADMIN_EMAILS and EMAIL_FROM must stay as *encrypted Secrets* on the Worker —
+# those survive deploys; plaintext vars not listed here would be wiped.
+
+name = "linear-chat"
+main = "chat/src/index.js"
+compatibility_date = "2025-06-01"
+
+# --- D1 database (chat data: users, groups, messages, reactions) ---
+[[d1_databases]]
+binding = "DB"
+database_name = "linear_chat"
+database_id = "201d9672-d0c5-48e8-b275-67cbeb6b93cc"
+
+# --- R2 bucket (file attachments) ---
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "linear-chat-files"
+
+# Non-secret vars are optional — the code defaults JITSI_DOMAIN to meet.jit.si
+# and MAX_UPLOAD_MB to 20. Keep AUTH_SECRET / RESEND_API_KEY / ADMIN_EMAILS /
+# EMAIL_FROM as encrypted Secrets in the dashboard, not here.
+# [vars]
+# JITSI_DOMAIN = "meet.jit.si"
+# MAX_UPLOAD_MB = "20"
