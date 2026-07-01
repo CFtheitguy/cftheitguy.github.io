@@ -25,7 +25,7 @@ compatibility_date = "2025-06-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "linear_chat"
-database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+database_id = "201d9672-d0c5-48e8-b275-67cbeb6b93cc"
 
 # --- R2 bucket (file attachments). Match the bucket name you created. ---
 [[r2_buckets]]
