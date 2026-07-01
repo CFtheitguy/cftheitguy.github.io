@@ -738,7 +738,9 @@ function cors(env, res) {
 function htmlResponse(html) {
   return new Response(html, {
     status: 200,
-    headers: { "Content-Type": "text/html; charset=utf-8", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" },
+    // strict-origin-when-cross-origin (not no-referrer): lets embedded players
+    // like YouTube see the embedding origin, which they require to play.
+    headers: { "Content-Type": "text/html; charset=utf-8", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" },
   });
 }
 
@@ -1197,7 +1199,7 @@ const APP_HTML = `<!doctype html>
         play.appendChild(pin); box.appendChild(thumb); box.appendChild(play);
         box.onclick = function(){
           var f = ce('iframe','w-full h-full');
-          f.src='https://www.youtube.com/embed/'+yid+'?autoplay=1';
+          f.src='https://www.youtube.com/embed/'+yid+'?autoplay=1&origin='+encodeURIComponent(location.origin);
           f.setAttribute('frameborder','0');
           f.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
           f.setAttribute('allowfullscreen','');
