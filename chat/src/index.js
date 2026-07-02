@@ -47,6 +47,8 @@ export default {
 
     try {
       if (p === "/health") return new Response("ok", { status: 200 });
+      if (p === "/manifest.webmanifest") return manifestResponse();
+      if (p === "/sw.js") return swResponse();
       if (p.startsWith("/api/")) {
         return cors(env, await handleApi(request, env, url, p, method));
       }
@@ -90,7 +92,11 @@ async function handleApi(request, env, url, p, method) {
   if ((m = p.match(/^\/api\/messages\/(\d+)\/react$/))) {
     if (method === "POST") return react(request, env, email, Number(m[1]));
   }
-  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call)$/))) {
+  if ((m = p.match(/^\/api\/messages\/(\d+)\/(edit|delete)$/))) {
+    if (m[2] === "edit" && method === "POST") return editMessage(request, env, email, Number(m[1]));
+    if (m[2] === "delete" && method === "POST") return deleteMessage(env, email, Number(m[1]));
+  }
+  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call|read)$/))) {
     const gid = Number(m[1]);
     const sub = m[2];
     if (sub === "members" && method === "GET") return listMembers(env, email, gid);
@@ -100,6 +106,7 @@ async function handleApi(request, env, url, p, method) {
     if (sub === "messages" && method === "POST") return postMessage(request, env, email, gid);
     if (sub === "badges" && method === "POST") return badges(request, env, email, gid);
     if (sub === "call" && method === "POST") return startCall(request, env, email, gid);
+    if (sub === "read" && method === "POST") return markRead(request, env, email, gid);
   }
 
   return json({ error: "Not found" }, 404);
@@ -218,8 +225,13 @@ async function getMe(env, email) {
 }
 async function updateMe(request, env, email) {
   const body = await readBody(request);
-  const name = String(body.name || "").trim().slice(0, 80) || null;
-  await env.DB.prepare("UPDATE users SET name=? WHERE email=?").bind(name, email).run();
+  if (typeof body.name === "string") {
+    const name = body.name.trim().slice(0, 80) || null;
+    await env.DB.prepare("UPDATE users SET name=? WHERE email=?").bind(name, email).run();
+  }
+  if (typeof body.accent === "string" && /^#[0-9a-fA-F]{6}$/.test(body.accent)) {
+    await env.DB.prepare("UPDATE users SET accent=? WHERE email=?").bind(body.accent, email).run();
+  }
   const u = await env.DB.prepare("SELECT * FROM users WHERE email=?").bind(email).first();
   return json({ user: publicUser(u) });
 }
@@ -231,14 +243,16 @@ async function listGroups(env, email) {
   const rows = await env.DB.prepare(
     `SELECT g.id, g.name, gm.role,
             (SELECT COUNT(*) FROM group_members x WHERE x.group_id = g.id) AS member_count,
-            (SELECT body FROM messages msg WHERE msg.group_id = g.id ORDER BY msg.id DESC LIMIT 1) AS last_body,
-            (SELECT COALESCE(sender_name, sender_email) FROM messages msg WHERE msg.group_id = g.id ORDER BY msg.id DESC LIMIT 1) AS last_sender,
-            (SELECT created_at FROM messages msg WHERE msg.group_id = g.id ORDER BY msg.id DESC LIMIT 1) AS last_at
+            (SELECT body FROM messages msg WHERE msg.group_id = g.id AND msg.deleted=0 ORDER BY msg.id DESC LIMIT 1) AS last_body,
+            (SELECT COALESCE(sender_name, sender_email) FROM messages msg WHERE msg.group_id = g.id AND msg.deleted=0 ORDER BY msg.id DESC LIMIT 1) AS last_sender,
+            (SELECT created_at FROM messages msg WHERE msg.group_id = g.id AND msg.deleted=0 ORDER BY msg.id DESC LIMIT 1) AS last_at,
+            (SELECT COUNT(*) FROM messages msg WHERE msg.group_id = g.id AND msg.parent_id IS NULL AND msg.deleted=0 AND msg.sender_email <> ?
+                     AND msg.id > COALESCE((SELECT last_read_id FROM reads r WHERE r.email = ? AND r.group_id = g.id), 0)) AS unread
        FROM group_members gm
        JOIN chat_groups g ON g.id = gm.group_id
       WHERE gm.email = ?
       ORDER BY (last_at IS NULL), last_at DESC, g.id DESC`
-  ).bind(email).all();
+  ).bind(email, email, email).all();
   return json({ groups: rows.results || [] });
 }
 
@@ -325,11 +339,11 @@ async function listMessages(env, email, gid, url) {
   let rows;
   if (after > 0) {
     rows = (await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? ORDER BY id ASC LIMIT 200"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? ORDER BY id ASC LIMIT 200"
     ).bind(gid, after).all()).results || [];
   } else {
     rows = ((await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE group_id=? AND parent_id IS NULL ORDER BY id DESC LIMIT 100"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE group_id=? AND parent_id IS NULL ORDER BY id DESC LIMIT 100"
     ).bind(gid).all()).results || []).reverse();
   }
   await enrich(env, email, rows);
@@ -339,13 +353,13 @@ async function listMessages(env, email, gid, url) {
 async function getThread(env, email, gid, mid, url) {
   await requireMember(env, gid, email);
   const parent = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at, group_id FROM messages WHERE id=? AND group_id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at, group_id FROM messages WHERE id=? AND group_id=?"
   ).bind(mid, gid).first();
   if (!parent) return json({ error: "Thread not found." }, 404);
 
   const after = Number(url.searchParams.get("after") || 0) || 0;
   const replies = (await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE parent_id=? AND id>? ORDER BY id ASC LIMIT 500"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE parent_id=? AND id>? ORDER BY id ASC LIMIT 500"
   ).bind(mid, after).all()).results || [];
   await enrich(env, email, replies);
 
@@ -411,7 +425,7 @@ async function postMessage(request, env, email, gid) {
   }
 
   const row = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE id=?"
   ).bind(id).first();
   const [enriched] = await enrich(env, email, [row]);
   return json({ message: enriched, parent_id: parentId });
@@ -427,7 +441,7 @@ async function react(request, env, email, mid) {
 
   const body = await readBody(request);
   const emoji = String(body.emoji || "");
-  if (!MAX_EMOJI.includes(emoji)) return json({ error: "Invalid reaction." }, 400);
+  if (!isEmoji(emoji)) return json({ error: "Invalid reaction." }, 400);
 
   const existing = await env.DB.prepare("SELECT id FROM reactions WHERE message_id=? AND email=? AND emoji=?")
     .bind(mid, email, emoji).first();
@@ -512,12 +526,61 @@ async function enrich(env, email, rows) {
   for (const r of rc.results || []) cmap[r.parent_id] = r.c;
 
   for (const r of rows) {
+    r.reply_count = cmap[r.id] || 0;
+    r.edited = !!r.edited_at;
+    if (r.deleted) {
+      r.deleted = true; r.body = null; r.reactions = []; r.attachments = []; r.meta = null;
+      continue;
+    }
+    r.deleted = false;
     r.reactions = rmap[r.id] ? Object.values(rmap[r.id]) : [];
     r.attachments = amap[r.id] || [];
-    r.reply_count = cmap[r.id] || 0;
     if (r.meta && typeof r.meta === "string") { try { r.meta = JSON.parse(r.meta); } catch (_) { r.meta = null; } }
   }
   return rows;
+}
+
+/* ============================================================
+ * Edit / delete (author-only) + read markers
+ * ============================================================ */
+async function editMessage(request, env, email, mid) {
+  const msg = await env.DB.prepare("SELECT id, group_id, sender_email, deleted FROM messages WHERE id=?").bind(mid).first();
+  if (!msg) return json({ error: "Message not found." }, 404);
+  await requireMember(env, msg.group_id, email);
+  if (msg.sender_email !== email) return json({ error: "You can only edit your own messages." }, 403);
+  if (msg.deleted) return json({ error: "That message was deleted." }, 400);
+  const body = await readBody(request);
+  const text = String(body.body || "").trim();
+  if (!text) return json({ error: "Message can't be empty." }, 400);
+  if (text.length > 4000) return json({ error: "Message is too long." }, 400);
+  await env.DB.prepare("UPDATE messages SET body=?, edited_at=datetime('now') WHERE id=?").bind(text, mid).run();
+  const row = await env.DB.prepare("SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE id=?").bind(mid).first();
+  const [enriched] = await enrich(env, email, [row]);
+  return json({ message: enriched });
+}
+
+async function deleteMessage(env, email, mid) {
+  const msg = await env.DB.prepare("SELECT id, group_id, sender_email FROM messages WHERE id=?").bind(mid).first();
+  if (!msg) return json({ error: "Message not found." }, 404);
+  await requireMember(env, msg.group_id, email);
+  // Authorization: you can only delete a message you wrote.
+  if (msg.sender_email !== email) return json({ error: "You can only delete your own messages." }, 403);
+  const atts = await env.DB.prepare("SELECT r2_key FROM attachments WHERE message_id=?").bind(mid).all();
+  if (env.FILES) { for (const a of atts.results || []) { try { await env.FILES.delete(a.r2_key); } catch (_) {} } }
+  await env.DB.prepare("DELETE FROM attachments WHERE message_id=?").bind(mid).run();
+  await env.DB.prepare("DELETE FROM reactions WHERE message_id=?").bind(mid).run();
+  await env.DB.prepare("UPDATE messages SET deleted=1, body='' WHERE id=?").bind(mid).run();
+  return json({ ok: true, id: mid });
+}
+
+async function markRead(request, env, email, gid) {
+  await requireMember(env, gid, email);
+  const body = await readBody(request);
+  const lastId = Number(body.last_id || 0) || 0;
+  await env.DB.prepare(
+    "INSERT INTO reads (email, group_id, last_read_id) VALUES (?,?,?) ON CONFLICT(email, group_id) DO UPDATE SET last_read_id=MAX(last_read_id, excluded.last_read_id)"
+  ).bind(email, gid, lastId).run();
+  return json({ ok: true });
 }
 
 /* ============================================================
@@ -536,7 +599,7 @@ async function startCall(request, env, email, gid) {
     .prepare("INSERT INTO messages (group_id, sender_email, sender_name, body, kind, meta) VALUES (?,?,?,?, 'call', ?)")
     .bind(gid, email, name, label, meta).run();
   const row = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, created_at FROM messages WHERE id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE id=?"
   ).bind(res.meta.last_row_id).first();
   const [enriched] = await enrich(env, email, [row]);
   return json({ message: enriched });
@@ -599,7 +662,8 @@ function adminEmailSet(env) {
 }
 function hasAdminEmails(env) { return adminEmailSet(env).length > 0; }
 function isAdminEmail(env, email) { return adminEmailSet(env).includes(normEmail(email)); }
-function publicUser(u) { return { email: u.email, name: u.name || null, is_admin: !!u.is_admin }; }
+function publicUser(u) { return { email: u.email, name: u.name || null, is_admin: !!u.is_admin, accent: u.accent || null }; }
+function isEmoji(s) { return typeof s === "string" && s.length > 0 && s.length <= 24 && !/\s/.test(s) && /\p{Extended_Pictographic}/u.test(s); }
 
 /* ============================================================
  * Email delivery (provider-agnostic)
@@ -743,6 +807,27 @@ function htmlResponse(html) {
     headers: { "Content-Type": "text/html; charset=utf-8", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin" },
   });
 }
+// PWA: web app manifest so Linear Chat can be installed to a home screen.
+function manifestResponse() {
+  const icon = "https://cftheitguy.github.io/assets/logo.png";
+  const m = {
+    name: "Linear Chat", short_name: "Linear Chat", start_url: "/", scope: "/",
+    display: "standalone", background_color: "#f3f4f6", theme_color: "#111827",
+    icons: [
+      { src: icon, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: icon, sizes: "512x512", type: "image/png", purpose: "any" },
+    ],
+  };
+  return new Response(JSON.stringify(m), { status: 200, headers: { "Content-Type": "application/manifest+json" } });
+}
+// Minimal service worker: network passthrough (makes the app installable without
+// caching stale versions — every load still comes from the Worker).
+function swResponse() {
+  const sw = "self.addEventListener('install',function(e){self.skipWaiting();});" +
+    "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});" +
+    "self.addEventListener('fetch',function(e){});";
+  return new Response(sw, { status: 200, headers: { "Content-Type": "application/javascript; charset=utf-8" } });
+}
 
 /* ============================================================
  * Schema self-heal + migrations
@@ -752,14 +837,14 @@ async function ensureSchema(env) {
   if (SCHEMA_READY) return;
   if (!env.DB) { const e = new Error("Database not configured — bind a D1 database as DB."); e.status = 500; throw e; }
   const base = [
-    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, name TEXT, is_admin INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, name TEXT, is_admin INTEGER NOT NULL DEFAULT 0, accent TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE TABLE IF NOT EXISTS login_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, consumed INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)",
     "CREATE INDEX IF NOT EXISTS idx_login_codes_email ON login_codes(email)",
     "CREATE TABLE IF NOT EXISTS chat_groups (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE TABLE IF NOT EXISTS group_members (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(group_id, email))",
     "CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)",
     "CREATE INDEX IF NOT EXISTS idx_group_members_email ON group_members(email)",
-    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, parent_id INTEGER, sender_email TEXT NOT NULL, sender_name TEXT, body TEXT, kind TEXT NOT NULL DEFAULT 'text', meta TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, parent_id INTEGER, sender_email TEXT NOT NULL, sender_name TEXT, body TEXT, kind TEXT NOT NULL DEFAULT 'text', meta TEXT, deleted INTEGER NOT NULL DEFAULT 0, edited_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id, id)",
   ];
   for (const s of base) await env.DB.prepare(s).run();
@@ -769,6 +854,9 @@ async function ensureSchema(env) {
     "ALTER TABLE messages ADD COLUMN parent_id INTEGER",
     "ALTER TABLE messages ADD COLUMN kind TEXT NOT NULL DEFAULT 'text'",
     "ALTER TABLE messages ADD COLUMN meta TEXT",
+    "ALTER TABLE messages ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE messages ADD COLUMN edited_at TEXT",
+    "ALTER TABLE users ADD COLUMN accent TEXT",
   ];
   for (const a of migrations) {
     try { await env.DB.prepare(a).run(); } catch (_) { /* already exists */ }
@@ -780,6 +868,7 @@ async function ensureSchema(env) {
     "CREATE INDEX IF NOT EXISTS idx_reactions_msg ON reactions(message_id)",
     "CREATE TABLE IF NOT EXISTS attachments (id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER, group_id INTEGER NOT NULL, r2_key TEXT NOT NULL, filename TEXT NOT NULL, content_type TEXT, size INTEGER, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_id)",
+    "CREATE TABLE IF NOT EXISTS reads (email TEXT NOT NULL, group_id INTEGER NOT NULL, last_read_id INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (email, group_id))",
   ];
   for (const s of more) await env.DB.prepare(s).run();
 
@@ -800,8 +889,16 @@ const APP_HTML = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>Linear Chat</title>
   <link rel="icon" href="https://cftheitguy.github.io/favicon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#111827">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Linear Chat">
+  <link rel="apple-touch-icon" href="https://cftheitguy.github.io/assets/logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { brand: 'var(--accent)' } } } };</script>
   <style>
+    :root { --accent: #111827; }   /* per-user accent color (overridden at boot) */
     html, body { height: 100%; }
     .msgs::-webkit-scrollbar, .thr::-webkit-scrollbar { width: 8px; }
     .msgs::-webkit-scrollbar-thumb, .thr::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 8px; }
@@ -821,18 +918,18 @@ const APP_HTML = `<!doctype html>
       <div id="emailStep" class="mt-5 space-y-3">
         <p class="text-sm text-gray-500">Sign in with your email. We'll send you a one-time code.</p>
         <input id="email" type="email" autocomplete="email" inputmode="email" placeholder="you@company.com"
-          class="w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black">
+          class="w-full rounded-lg border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand">
         <button id="sendBtn" onclick="sendCode()"
-          class="w-full bg-black text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition">Send code</button>
+          class="w-full bg-brand text-white rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition">Send code</button>
       </div>
       <div id="codeStep" class="mt-5 space-y-3 hidden">
         <p class="text-sm text-gray-500">Enter the 6-digit code we sent to
           <span id="codeEmailLabel" class="font-medium text-gray-700"></span>.</p>
         <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"
-          class="w-full rounded-lg border px-3 py-2.5 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-black">
+          class="w-full rounded-lg border px-3 py-2.5 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-brand">
         <p id="devNote" class="hidden text-xs text-amber-600 bg-amber-50 rounded px-2 py-1"></p>
         <button id="verifyBtn" onclick="verifyCode()"
-          class="w-full bg-black text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition">Verify &amp; sign in</button>
+          class="w-full bg-brand text-white rounded-lg py-2.5 text-sm font-medium hover:opacity-90 transition">Verify &amp; sign in</button>
         <div class="flex justify-between text-xs">
           <button onclick="backToEmail()" class="text-gray-500 hover:text-black underline">Use a different email</button>
           <button onclick="sendCode()" class="text-gray-500 hover:text-black underline">Resend code</button>
@@ -854,7 +951,7 @@ const APP_HTML = `<!doctype html>
         </div>
         <div class="px-4 py-3 border-b flex items-center justify-between">
           <h2 class="font-semibold text-sm">Groups</h2>
-          <button id="newGroupBtn" onclick="createGroup()" class="hidden text-sm bg-black text-white rounded-lg px-3 py-1.5 hover:bg-gray-800">+ New</button>
+          <button id="newGroupBtn" onclick="createGroup()" class="hidden text-sm bg-brand text-white rounded-lg px-3 py-1.5 hover:opacity-90">+ New</button>
         </div>
         <div id="groupList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
         <div class="px-4 py-3 border-t text-xs text-gray-400 flex items-center justify-between">
@@ -887,9 +984,11 @@ const APP_HTML = `<!doctype html>
               class="text-gray-500 hover:text-black text-xl leading-none px-1">📎</button>
             <button type="button" id="recBtn" onclick="startRec()" title="Record voice note"
               class="text-gray-500 hover:text-black text-xl leading-none px-1">🎤</button>
+            <button type="button" onclick="openEmojiInsert(event)" title="Emoji"
+              class="text-gray-500 hover:text-black text-xl leading-none px-1">😀</button>
             <textarea id="composerInput" rows="1" placeholder="Type a message…" onkeydown="composerKey(event)"
-              class="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black max-h-32"></textarea>
-            <button type="submit" class="bg-black text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-gray-800">Send</button>
+              class="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand max-h-32"></textarea>
+            <button type="submit" class="bg-brand text-white rounded-xl px-4 py-2 text-sm font-medium hover:opacity-90">Send</button>
           </form>
           <!-- voice-note recording bar (shown while recording) -->
           <div id="recBar" class="hidden bg-white border-t p-3 flex items-center gap-3">
@@ -899,7 +998,7 @@ const APP_HTML = `<!doctype html>
             </span>
             <span class="text-sm text-gray-400 flex-1">Recording voice note…</span>
             <button type="button" onclick="cancelRec()" class="text-sm text-gray-500 hover:text-black">Cancel</button>
-            <button type="button" onclick="stopRecAndSend()" class="bg-black text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-gray-800">Send</button>
+            <button type="button" onclick="stopRecAndSend()" class="bg-brand text-white rounded-xl px-4 py-2 text-sm font-medium hover:opacity-90">Send</button>
           </div>
         </div>
       </section>
@@ -917,8 +1016,8 @@ const APP_HTML = `<!doctype html>
           <button type="button" onclick="document.getElementById('threadFileInput').click()" title="Attach files"
             class="text-gray-500 hover:text-black text-xl leading-none px-1">📎</button>
           <textarea id="threadInput" rows="1" placeholder="Reply…" onkeydown="threadKey(event)"
-            class="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black max-h-32"></textarea>
-          <button type="submit" class="bg-black text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-gray-800">Reply</button>
+            class="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand max-h-32"></textarea>
+          <button type="submit" class="bg-brand text-white rounded-xl px-4 py-2 text-sm font-medium hover:opacity-90">Reply</button>
         </form>
       </aside>
     </div>
@@ -936,8 +1035,8 @@ const APP_HTML = `<!doctype html>
       </div>
       <div id="addMemberRow" class="hidden flex gap-2 mb-3">
         <input id="newMemberEmail" type="email" placeholder="teammate@company.com"
-          class="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black">
-        <button onclick="addMember()" class="bg-black text-white rounded-lg px-3 py-2 text-sm hover:bg-gray-800">Add</button>
+          class="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand">
+        <button onclick="addMember()" class="bg-brand text-white rounded-lg px-3 py-2 text-sm hover:opacity-90">Add</button>
       </div>
       <div id="memberList" class="max-h-72 overflow-y-auto"></div>
     </div>
@@ -955,9 +1054,11 @@ const APP_HTML = `<!doctype html>
       <label class="text-xs text-gray-500">Display name</label>
       <div class="flex gap-2 mt-1">
         <input id="meName" type="text" placeholder="Your name"
-          class="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black">
-        <button onclick="saveName()" class="bg-black text-white rounded-lg px-3 py-2 text-sm hover:bg-gray-800">Save</button>
+          class="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand">
+        <button onclick="saveName()" class="bg-brand text-white rounded-lg px-3 py-2 text-sm hover:opacity-90">Save</button>
       </div>
+      <label class="text-xs text-gray-500 block mt-4">App color</label>
+      <div id="accentSwatches" class="flex flex-wrap gap-2 mt-1"></div>
     </div>
   </div>
 
@@ -1037,6 +1138,7 @@ const APP_HTML = `<!doctype html>
     async function enterApp(){
       hide('authScreen'); show('appScreen');
       $('whoami').textContent = me.name || me.email;
+      if(me && me.accent){ applyAccent(me.accent); }   // theme follows the user across devices
       if(me.is_admin){ show('newGroupBtn'); } else { hide('newGroupBtn'); }
       if(!isMobile()){ $('chatPane').classList.remove('hidden'); }
       try { config = await api('/api/config'); } catch(e){}
@@ -1061,10 +1163,13 @@ const APP_HTML = `<!doctype html>
         var b = ce('button', 'w-full text-left px-3 py-2.5 rounded-lg hover:bg-gray-100 transition ' + (active && active.id===g.id ? 'bg-gray-100' : ''));
         var sub = g.last_body ? esc((g.last_sender ? g.last_sender + ': ' : '') + g.last_body)
                               : (g.member_count + ' member' + (g.member_count===1 ? '' : 's'));
+        var unread = (!active || active.id!==g.id) ? (g.unread||0) : 0;
+        var right = unread>0
+          ? '<span class="text-[10px] font-semibold bg-brand text-white rounded-full text-center px-1.5 py-0.5 shrink-0">' + (unread>99?'99+':unread) + '</span>'
+          : (g.role==='admin' ? '<span class="text-[10px] uppercase tracking-wide bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 shrink-0">admin</span>' : '');
         b.innerHTML = '<div class="flex items-center justify-between gap-2">' +
-            '<span class="font-medium truncate">' + esc(g.name) + '</span>' +
-            (g.role==='admin' ? '<span class="text-[10px] uppercase tracking-wide bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 shrink-0">admin</span>' : '') +
-          '</div><div class="text-xs text-gray-400 truncate mt-0.5">' + sub + '</div>';
+            '<span class="' + (unread>0?'font-bold':'font-medium') + ' truncate">' + esc(g.name) + '</span>' + right +
+          '</div><div class="text-xs ' + (unread>0?'text-gray-600 font-medium':'text-gray-400') + ' truncate mt-0.5">' + sub + '</div>';
         b.onclick = function(){ openGroup(g); };
         el.appendChild(b);
       });
@@ -1100,10 +1205,11 @@ const APP_HTML = `<!doctype html>
         var nearBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 100;
         if(lastMsgId===0){ box.innerHTML=''; }
         msgs.forEach(function(m){ appendTop(m); });
-        if(msgs.length){ lastMsgId = msgs[msgs.length-1].id; }
+        if(msgs.length){ lastMsgId = msgs[msgs.length-1].id; markRead(active.id, lastMsgId); }
         if(forceScroll || nearBottom){ scrollBottom(); }
       } catch(e){ if(e.status===403 || e.status===401){ stopPoll(); } }
     }
+    function markRead(gid, lastId){ if(!lastId) return; api('/api/groups/' + gid + '/read', { method:'POST', body: JSON.stringify({ last_id: lastId }) }).catch(function(){}); }
     function appendTop(m){ msgModel[m.id]=m; topIds[m.id]=true; $('messages').appendChild(renderMessage(m, {})); }
     function scrollBottom(){ var b=$('messages'); b.scrollTop = b.scrollHeight; }
 
@@ -1119,27 +1225,38 @@ const APP_HTML = `<!doctype html>
     function renderMessage(m, opts){
       opts = opts || {};
       msgModel[m.id] = m;
-      if(m.kind==='call' && m.meta){ return renderCallCard(m); }
+      if(m.kind==='call' && m.meta){ var cc = renderCallCard(m); cc.setAttribute('data-mid', m.id); return cc; }
       var mine = me && m.sender_email === me.email;
       var row = ce('div', 'group flex ' + (mine ? 'justify-end' : 'justify-start'));
-      var col = ce('div', 'max-w-[80%] flex flex-col ' + (mine ? 'items-end' : 'items-start'));
+      row.setAttribute('data-mid', m.id);
 
-      var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-black text-white' : 'bg-white text-gray-900 border'));
+      if(m.deleted){
+        var dc = ce('div','max-w-[80%]');
+        var db = ce('div','rounded-2xl px-3 py-2 text-xs italic text-gray-400 border border-dashed'); db.textContent = '🚫 This message was deleted';
+        dc.appendChild(db); row.appendChild(dc); return row;
+      }
+
+      var col = ce('div', 'max-w-[80%] flex flex-col ' + (mine ? 'items-end' : 'items-start'));
+      var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-brand text-white' : 'bg-white text-gray-900 border'));
       if(!mine){ var who = ce('div','text-xs font-medium text-gray-500 mb-0.5'); who.textContent = m.sender_name || m.sender_email; bubble.appendChild(who); }
       if(m.body){ var b = ce('div','text-sm whitespace-pre-wrap break-words'); appendBodyWithLinks(b, m.body, mine); bubble.appendChild(b); }
       if(m.attachments && m.attachments.length){ bubble.appendChild(renderAttachments(m.attachments, mine)); }
-      var time = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300 text-right' : 'text-gray-400')); time.textContent = fmtTime(m.created_at); bubble.appendChild(time);
+      var time = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300 text-right' : 'text-gray-400')); time.textContent = fmtTime(m.created_at) + (m.edited ? ' · edited' : ''); bubble.appendChild(time);
       col.appendChild(bubble);
       if(m.body){ var emb = buildEmbeds(m.body); if(emb) col.appendChild(emb); }
 
       var rx = ce('div','flex flex-wrap gap-1 mt-1'); rx.setAttribute('data-rx', m.id); col.appendChild(rx); renderReactions(rx, m);
 
       var meta = ce('div','flex items-center gap-3 mt-0.5 text-xs text-gray-400');
-      // React + Reply live in .msg-actions (revealed on hover/tap); reply-count stays visible.
+      // React + Reply + (own) Edit/Delete live in .msg-actions (revealed on hover/tap).
       var actions = ce('div','msg-actions flex items-center gap-3');
       var reactBtn = ce('button','hover:text-black'); reactBtn.textContent='🙂'; reactBtn.title='React'; reactBtn.onclick=function(ev){ openEmojiPicker(ev, m.id); }; actions.appendChild(reactBtn);
       if(!opts.inThread){
         var replyBtn = ce('button','hover:text-black'); replyBtn.textContent='↩ Reply'; replyBtn.onclick=function(){ openThread(m.id); }; actions.appendChild(replyBtn);
+      }
+      if(mine){
+        var editBtn = ce('button','hover:text-black'); editBtn.textContent='Edit'; editBtn.onclick=function(){ editMsg(m.id, row, opts); }; actions.appendChild(editBtn);
+        var delBtn = ce('button','text-red-500 hover:text-red-600'); delBtn.textContent='Delete'; delBtn.onclick=function(){ deleteMsg(m.id, row, opts); }; actions.appendChild(delBtn);
       }
       meta.appendChild(actions);
       if(!opts.inThread){
@@ -1156,6 +1273,25 @@ const APP_HTML = `<!doctype html>
       });
       row.appendChild(col);
       return row;
+    }
+
+    async function editMsg(id, row, opts){
+      var cur = (msgModel[id] && msgModel[id].body) || '';
+      var nv = prompt('Edit message:', cur);
+      if(nv===null) return; nv = nv.trim(); if(!nv) return;
+      try {
+        var r = await api('/api/messages/' + id + '/edit', { method:'POST', body: JSON.stringify({ body: nv }) });
+        if(r.message){ msgModel[id] = r.message; row.replaceWith(renderMessage(r.message, opts)); }
+      } catch(e){ alert(e.message); }
+    }
+    async function deleteMsg(id, row, opts){
+      if(!confirm('Delete this message? (You can only delete messages you sent.)')) return;
+      try {
+        await api('/api/messages/' + id + '/delete', { method:'POST' });
+        var m = msgModel[id] || { id: id, sender_email: (me && me.email) };
+        m.deleted = true; m.body = null; m.attachments = []; m.reactions = []; msgModel[id] = m;
+        row.replaceWith(renderMessage(m, opts));
+      } catch(e){ alert(e.message); }
     }
 
     function renderAttachments(atts, mine){
@@ -1263,7 +1399,7 @@ const APP_HTML = `<!doctype html>
       var audio = m.meta.mode === 'audio';
       var t = ce('div','text-sm font-medium'); t.textContent = (audio ? '📞 ' : '🎥 ') + (audio ? 'Voice call' : 'Video call'); card.appendChild(t);
       var who = ce('div','text-xs text-gray-400 mb-2'); who.textContent = 'Started by ' + (m.sender_name || m.sender_email) + ' · ' + fmtTime(m.created_at); card.appendChild(who);
-      var join = ce('button','text-sm bg-black text-white rounded-lg px-4 py-1.5 hover:bg-gray-800'); join.textContent = 'Join'; join.onclick = function(){ joinCall(m.meta); };
+      var join = ce('button','text-sm bg-brand text-white rounded-lg px-4 py-1.5 hover:opacity-90'); join.textContent = 'Join'; join.onclick = function(){ joinCall(m.meta); };
       card.appendChild(join);
       row.appendChild(card);
       return row;
@@ -1356,20 +1492,25 @@ const APP_HTML = `<!doctype html>
     }
 
     /* ---------- reactions ---------- */
-    function openEmojiPicker(ev, mid){
-      var pick = $('emojiPicker'); pick.innerHTML='';
-      (config.emoji || []).forEach(function(em){
-        var btn = ce('button','text-xl hover:scale-125 transition px-1'); btn.textContent=em;
-        btn.onclick=function(){ toggleReact(mid, em); hide('emojiPicker'); };
+    var EMOJI_SET = ['👍','👎','❤️','🔥','🎉','✅','👀','🙏','😂','😅','😊','😍','😎','🤔','🙌','👏','💪','🤝','👋','🫡','😉','😇','🥳','🤩','😮','😳','🥲','😢','😭','😡','🤯','🥵','🥶','😴','🤒','🤕','🤢','😷','🤖','👻','💀','🙈','🙉','🙊','💯','✨','⭐','🌟','💫','⚡','💥','☀️','🌙','🌈','☔','❄️','💧','🍀','🌹','🌸','🎂','🍕','🍔','🍟','🌮','🍎','🍺','☕','🍷','🥂','🎁','🏆','🥇','🎯','📌','📎','✏️','📝','📅','⏰','💡','🔒','🔑','📞','📱','💻','📷','🎥','🎧','🔊','📣','💬','✔️','❌','⚠️','❓','❗','➕','➖','💰','💵','💳','📈','📉','🚀','🛠️','⚙️','🔧','🔨','🚗','✈️','🏠','🏢','🏦','🧡','💛','💚','💙','💜','🖤','🤍','💔','💕'];
+    function openEmoji(ev, onPick){
+      var pick = $('emojiPicker');
+      pick.className = 'fixed z-40 bg-white border rounded-xl shadow-lg p-2 grid grid-cols-8 gap-1 overflow-y-auto';
+      pick.style.width = '18rem'; pick.style.maxHeight = '16rem'; pick.innerHTML = '';
+      EMOJI_SET.forEach(function(em){
+        var btn = ce('button','text-xl leading-none hover:scale-125 transition'); btn.type='button'; btn.textContent = em;
+        btn.onclick = function(){ onPick(em); hide('emojiPicker'); };
         pick.appendChild(btn);
       });
-      pick.style.left = Math.min(ev.clientX, window.innerWidth-220) + 'px';
-      pick.style.top = Math.max(ev.clientY - 50, 10) + 'px';
+      var x = Math.min(ev.clientX, window.innerWidth - 300), y = Math.min(ev.clientY, window.innerHeight - 260);
+      pick.style.left = Math.max(x, 8) + 'px'; pick.style.top = Math.max(y, 8) + 'px';
       show('emojiPicker');
     }
+    function openEmojiPicker(ev, mid){ openEmoji(ev, function(em){ toggleReact(mid, em); }); }
+    function openEmojiInsert(ev){ openEmoji(ev, function(em){ var t=$('composerInput'); var s=(t.selectionStart!=null?t.selectionStart:t.value.length), e=(t.selectionEnd!=null?t.selectionEnd:t.value.length); t.value = t.value.slice(0,s) + em + t.value.slice(e); t.focus(); try { t.selectionStart = t.selectionEnd = s + em.length; } catch(_){} }); }
     document.addEventListener('click', function(ev){
       var pick = $('emojiPicker');
-      if(pick && !pick.classList.contains('hidden') && !pick.contains(ev.target) && !(ev.target.title==='React')){ hide('emojiPicker'); }
+      if(pick && !pick.classList.contains('hidden') && !pick.contains(ev.target) && !(ev.target.title==='React' || ev.target.title==='Emoji')){ hide('emojiPicker'); }
     });
     async function toggleReact(mid, emoji){
       try {
@@ -1398,7 +1539,7 @@ const APP_HTML = `<!doctype html>
       } catch(e){}
     }
 
-    function startPoll(){ stopPoll(); pollTick=0; poll = setInterval(function(){ pollTick++; loadMessages(false); if(pollTick % 2 === 0) refreshBadges(); }, 3000); }
+    function startPoll(){ stopPoll(); pollTick=0; poll = setInterval(function(){ pollTick++; loadMessages(false); if(pollTick % 2 === 0) refreshBadges(); if(pollTick % 4 === 0) loadGroups(); }, 3000); }
     function stopPoll(){ if(poll){ clearInterval(poll); poll=null; } }
 
     /* ---------- threads ---------- */
@@ -1537,8 +1678,26 @@ const APP_HTML = `<!doctype html>
       catch(e){ alert(e.message); }
     }
 
-    /* ---------- account ---------- */
-    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; show('meModal'); }
+    /* ---------- account + theme color ---------- */
+    var ACCENTS = ['#111827','#2563eb','#4f46e5','#7c3aed','#db2777','#e11d48','#ea580c','#059669','#0d9488','#0891b2'];
+    function applyAccent(hex){ if(/^#[0-9a-fA-F]{6}$/.test(hex||'')){ document.documentElement.style.setProperty('--accent', hex); localStorage.setItem('chat_accent', hex); } }
+    function renderSwatches(){
+      var box = $('accentSwatches'); if(!box) return; box.innerHTML='';
+      var cur = (me && me.accent) || localStorage.getItem('chat_accent') || '#111827';
+      ACCENTS.forEach(function(hex){
+        var s = ce('button','w-7 h-7 rounded-full border-2 ' + (hex.toLowerCase()===cur.toLowerCase() ? 'border-gray-900' : 'border-transparent'));
+        s.type='button'; s.style.background = hex; s.title = hex;
+        s.onclick = function(){ setAccent(hex); };
+        box.appendChild(s);
+      });
+    }
+    async function setAccent(hex){
+      applyAccent(hex);
+      if(me) me.accent = hex;
+      renderSwatches();
+      try { await api('/api/me', { method:'POST', body: JSON.stringify({ accent: hex }) }); } catch(e){}
+    }
+    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; renderSwatches(); show('meModal'); }
     async function saveName(){
       var name = $('meName').value.trim();
       try { var r = await api('/api/me', { method:'POST', body: JSON.stringify({ name: name }) }); me = r.user; $('whoami').textContent = me.name || me.email; closeModal('meModal'); }
@@ -1554,6 +1713,8 @@ const APP_HTML = `<!doctype html>
     });
 
     /* ---------- boot ---------- */
+    applyAccent(localStorage.getItem('chat_accent') || '#111827');   // instant theme before login
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
     (async function init(){
       if(token){
         try { var r = await api('/api/me'); me = r.user; return enterApp(); }

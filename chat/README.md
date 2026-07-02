@@ -17,6 +17,15 @@ serves the web app *and* the API, backed by a D1 database.
 - **Link previews** — URLs become clickable, and YouTube (click-to-play),
   Vimeo, image, video, and audio links render inline. Done client-side (no
   server fetch), so there's no SSRF surface.
+- **Edit & delete your own messages** — delete is enforced server-side to the
+  author only (you can't delete anyone else's); deleted messages show a
+  tombstone, edited ones show an "edited" tag.
+- **Unread badges** — per-group unread counts in the sidebar (tracked per user).
+- **Full emoji picker** — react with (or type) any emoji, not a fixed few.
+- **Per-user theme color** — each person picks an accent color (Account →
+  App color); it follows them across devices.
+- **Installable (PWA)** — "Add to Home Screen" for a full-screen app icon
+  (served `/manifest.webmanifest` + `/sw.js`).
 
 ```
 chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages, reactions)
