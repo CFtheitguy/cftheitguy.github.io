@@ -571,7 +571,7 @@ async function serveFile(env, url, id) {
   if (!obj) return new Response("Not found", { status: 404 });
 
   const type = row.content_type || "application/octet-stream";
-  const inline = /^image\//.test(type) || type === "application/pdf";
+  const inline = /^(image|audio|video)\//.test(type) || type === "application/pdf";
   const h = new Headers();
   h.set("Content-Type", type);
   h.set("Content-Disposition", (inline ? "inline" : "attachment") + '; filename="' + String(row.filename || "file").replace(/"/g, "") + '"');
@@ -881,14 +881,26 @@ const APP_HTML = `<!doctype html>
           </header>
           <div id="messages" class="msgs flex-1 overflow-y-auto p-4 space-y-1"></div>
           <div id="fileChips" class="hidden flex flex-wrap gap-2 px-3 pt-2 bg-white border-t"></div>
-          <form onsubmit="return sendMain(event)" class="bg-white border-t p-3 flex items-end gap-2">
+          <form id="composerForm" onsubmit="return sendMain(event)" class="bg-white border-t p-3 flex items-end gap-2">
             <input id="fileInput" type="file" multiple class="hidden" onchange="onPickFiles(this, mainFiles)">
             <button type="button" id="attachBtn" onclick="document.getElementById('fileInput').click()" title="Attach files"
               class="text-gray-500 hover:text-black text-xl leading-none px-1">📎</button>
+            <button type="button" id="recBtn" onclick="startRec()" title="Record voice note"
+              class="text-gray-500 hover:text-black text-xl leading-none px-1">🎤</button>
             <textarea id="composerInput" rows="1" placeholder="Type a message…" onkeydown="composerKey(event)"
               class="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black max-h-32"></textarea>
             <button type="submit" class="bg-black text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-gray-800">Send</button>
           </form>
+          <!-- voice-note recording bar (shown while recording) -->
+          <div id="recBar" class="hidden bg-white border-t p-3 flex items-center gap-3">
+            <span class="flex items-center gap-2 text-red-600 font-medium">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+              <span id="recTime">0:00</span>
+            </span>
+            <span class="text-sm text-gray-400 flex-1">Recording voice note…</span>
+            <button type="button" onclick="cancelRec()" class="text-sm text-gray-500 hover:text-black">Cancel</button>
+            <button type="button" onclick="stopRecAndSend()" class="bg-black text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-gray-800">Send</button>
+          </div>
         </div>
       </section>
 
@@ -1029,6 +1041,8 @@ const APP_HTML = `<!doctype html>
       if(!isMobile()){ $('chatPane').classList.remove('hidden'); }
       try { config = await api('/api/config'); } catch(e){}
       if(!config.attachments_enabled){ $('attachBtn').classList.add('hidden'); }
+      // Voice notes need R2 (attachments) + a browser that can record.
+      if(!config.attachments_enabled || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || !window.MediaRecorder){ $('recBtn').classList.add('hidden'); }
       await loadGroups();
     }
 
@@ -1151,6 +1165,12 @@ const APP_HTML = `<!doctype html>
           var img = ce('img','rounded-lg max-h-60 cursor-pointer border'); img.src=a.url; img.alt=a.filename; img.loading='lazy';
           img.onclick=function(){ window.open(a.url,'_blank'); };
           wrap.appendChild(img);
+        } else if(/^audio\\//.test(a.content_type || '')){
+          var au = ce('audio','w-56 sm:w-64'); au.src=a.url; au.controls=true; au.preload='metadata';
+          wrap.appendChild(au);
+        } else if(/^video\\//.test(a.content_type || '')){
+          var vid = ce('video','w-64 sm:w-80 rounded-lg border'); vid.src=a.url; vid.controls=true; vid.preload='metadata';
+          wrap.appendChild(vid);
         } else {
           var link = ce('a','flex items-center gap-2 rounded-lg border px-3 py-2 ' + (mine ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-50 hover:bg-gray-100'));
           link.href=a.url; link.setAttribute('download', a.filename); link.target='_blank';
@@ -1290,6 +1310,50 @@ const APP_HTML = `<!doctype html>
       });
     }
     function endCall(){ if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; } $('callFrame').innerHTML = ''; hide('callOverlay'); }
+
+    /* ---------- voice notes (record → upload as an audio attachment) ---------- */
+    var recRecorder = null, recStream = null, recChunks = [], recTimer = null, recStart = 0, recDiscard = false, recMime = '';
+    function pickRecMime(){
+      var c = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'];
+      for(var i=0;i<c.length;i++){ try { if(window.MediaRecorder && MediaRecorder.isTypeSupported(c[i])) return c[i]; } catch(e){} }
+      return '';
+    }
+    function recExt(type){ type = type || ''; if(type.indexOf('webm')>=0) return 'webm'; if(type.indexOf('mp4')>=0) return 'm4a'; if(type.indexOf('ogg')>=0) return 'ogg'; if(type.indexOf('wav')>=0) return 'wav'; return 'webm'; }
+    function showRecBar(on){ if(on){ hide('composerForm'); show('recBar'); } else { show('composerForm'); hide('recBar'); } }
+    function updateRecTime(){ var s=Math.floor((Date.now()-recStart)/1000); var m=Math.floor(s/60); var ss=s%60; $('recTime').textContent = m + ':' + (ss<10?'0':'') + ss; }
+    function stopRecStream(){ if(recStream){ recStream.getTracks().forEach(function(t){ t.stop(); }); recStream=null; } if(recTimer){ clearInterval(recTimer); recTimer=null; } showRecBar(false); }
+    async function startRec(){
+      if(!active) return;
+      if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || !window.MediaRecorder){ alert('Voice recording is not supported on this browser.'); return; }
+      try { recStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+      catch(e){ alert('Microphone access was blocked. Allow mic access to record a voice note.'); return; }
+      recChunks = []; recDiscard = false; recMime = pickRecMime();
+      try { recRecorder = recMime ? new MediaRecorder(recStream, { mimeType: recMime }) : new MediaRecorder(recStream); }
+      catch(e){ try { recRecorder = new MediaRecorder(recStream); } catch(e2){ alert('Could not start recording.'); stopRecStream(); return; } }
+      recRecorder.ondataavailable = function(ev){ if(ev.data && ev.data.size>0) recChunks.push(ev.data); };
+      recRecorder.onstop = function(){
+        var type = (recRecorder && recRecorder.mimeType) || recMime || 'audio/webm';
+        stopRecStream();
+        if(recDiscard) return;
+        var blob = new Blob(recChunks, { type: type });
+        if(blob.size>0) sendVoiceNote(blob, type);
+      };
+      recRecorder.start();
+      recStart = Date.now(); showRecBar(true); updateRecTime(); recTimer = setInterval(updateRecTime, 250);
+    }
+    function stopRecAndSend(){ if(recRecorder && recRecorder.state!=='inactive'){ recDiscard=false; recRecorder.stop(); } }
+    function cancelRec(){ recDiscard=true; if(recRecorder && recRecorder.state!=='inactive'){ recRecorder.stop(); } else { stopRecStream(); } }
+    async function sendVoiceNote(blob, type){
+      if(!active) return;
+      var file = new File([blob], 'voice-note-' + Date.now() + '.' + recExt(type), { type: type });
+      try {
+        var fd = new FormData(); fd.append('body',''); fd.append('files', file);
+        var res = await fetch(API + '/api/groups/' + active.id + '/messages', { method:'POST', headers:{ Authorization:'Bearer ' + token }, body: fd });
+        var data = {}; try { data = await res.json(); } catch(e){}
+        if(!res.ok) throw new Error(data.error || 'Upload failed');
+        if(data.message){ appendTop(data.message); scrollBottom(); lastMsgId = Math.max(lastMsgId, data.message.id); }
+      } catch(err){ alert(err.message); }
+    }
 
     /* ---------- reactions ---------- */
     function openEmojiPicker(ev, mid){

@@ -9,6 +9,8 @@ serves the web app *and* the API, backed by a D1 database.
 - **Members** sign in and chat with their teammates in real time (polling).
 - **Threaded replies** (Slack-style, single level), **emoji reactions**, and
   **file attachments** (images preview inline; everything else downloads).
+- **Voice notes** — record from the mic (🎤) and send as an audio message that
+  plays inline. Stored as an R2 attachment; no extra services.
 - **Voice & video calls** — a Start-call button posts a "Join" card to the
   group and opens a room. Uses Jitsi today; the provider is swappable (a future
   Cloudflare Realtime SFU is a config change, not a rewrite).
