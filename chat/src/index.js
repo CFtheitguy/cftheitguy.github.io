@@ -92,11 +92,12 @@ async function handleApi(request, env, url, p, method) {
   if ((m = p.match(/^\/api\/messages\/(\d+)\/react$/))) {
     if (method === "POST") return react(request, env, email, Number(m[1]));
   }
-  if ((m = p.match(/^\/api\/messages\/(\d+)\/(edit|delete)$/))) {
+  if ((m = p.match(/^\/api\/messages\/(\d+)\/(edit|delete|pin)$/))) {
     if (m[2] === "edit" && method === "POST") return editMessage(request, env, email, Number(m[1]));
     if (m[2] === "delete" && method === "POST") return deleteMessage(env, email, Number(m[1]));
+    if (m[2] === "pin" && method === "POST") return pinMessage(request, env, email, Number(m[1]));
   }
-  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call|read)$/))) {
+  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call|read|pins)$/))) {
     const gid = Number(m[1]);
     const sub = m[2];
     if (sub === "members" && method === "GET") return listMembers(env, email, gid);
@@ -107,6 +108,7 @@ async function handleApi(request, env, url, p, method) {
     if (sub === "badges" && method === "POST") return badges(request, env, email, gid);
     if (sub === "call" && method === "POST") return startCall(request, env, email, gid);
     if (sub === "read" && method === "POST") return markRead(request, env, email, gid);
+    if (sub === "pins" && method === "GET") return listPins(env, email, gid);
   }
 
   return json({ error: "Not found" }, 404);
@@ -339,11 +341,11 @@ async function listMessages(env, email, gid, url) {
   let rows;
   if (after > 0) {
     rows = (await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? ORDER BY id ASC LIMIT 200"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? ORDER BY id ASC LIMIT 200"
     ).bind(gid, after).all()).results || [];
   } else {
     rows = ((await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE group_id=? AND parent_id IS NULL ORDER BY id DESC LIMIT 100"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND parent_id IS NULL ORDER BY id DESC LIMIT 100"
     ).bind(gid).all()).results || []).reverse();
   }
   await enrich(env, email, rows);
@@ -353,13 +355,13 @@ async function listMessages(env, email, gid, url) {
 async function getThread(env, email, gid, mid, url) {
   await requireMember(env, gid, email);
   const parent = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at, group_id FROM messages WHERE id=? AND group_id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at, group_id FROM messages WHERE id=? AND group_id=?"
   ).bind(mid, gid).first();
   if (!parent) return json({ error: "Thread not found." }, 404);
 
   const after = Number(url.searchParams.get("after") || 0) || 0;
   const replies = (await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE parent_id=? AND id>? ORDER BY id ASC LIMIT 500"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE parent_id=? AND id>? ORDER BY id ASC LIMIT 500"
   ).bind(mid, after).all()).results || [];
   await enrich(env, email, replies);
 
@@ -375,10 +377,12 @@ async function postMessage(request, env, email, gid) {
   let body = "";
   let parentId = null;
   let files = [];
+  let mentions = [];
   if (ct.includes("multipart/form-data")) {
     const fd = await request.formData();
     body = String(fd.get("body") || "").trim();
     parentId = fd.get("parent_id") ? Number(fd.get("parent_id")) : null;
+    mentions = parseMentions(fd.get("mentions"));
     for (const f of fd.getAll("files")) {
       if (f && typeof f === "object" && typeof f.arrayBuffer === "function") files.push(f);
     }
@@ -386,6 +390,7 @@ async function postMessage(request, env, email, gid) {
     const j = await readBody(request);
     body = String(j.body || "").trim();
     parentId = j.parent_id ? Number(j.parent_id) : null;
+    mentions = parseMentions(j.mentions);
   }
 
   if (parentId) {
@@ -424,8 +429,13 @@ async function postMessage(request, env, email, gid) {
     ).bind(id, gid, key, safe, f.type || "application/octet-stream", f.size || 0).run();
   }
 
+  for (const mEmail of mentions) {
+    const mem = await env.DB.prepare("SELECT 1 FROM group_members WHERE group_id=? AND email=?").bind(gid, mEmail).first();
+    if (mem) await env.DB.prepare("INSERT INTO mentions (message_id, group_id, email) VALUES (?,?,?)").bind(id, gid, mEmail).run();
+  }
+
   const row = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE id=?"
   ).bind(id).first();
   const [enriched] = await enrich(env, email, [row]);
   return json({ message: enriched, parent_id: parentId });
@@ -525,11 +535,17 @@ async function enrich(env, email, rows) {
   const cmap = {};
   for (const r of rc.results || []) cmap[r.parent_id] = r.c;
 
+  const mn = await env.DB.prepare("SELECT m.message_id, m.email, u.name FROM mentions m LEFT JOIN users u ON u.email=m.email WHERE m.message_id IN (" + ph + ")").bind(...ids).all();
+  const mmap = {};
+  for (const r of mn.results || []) { (mmap[r.message_id] = mmap[r.message_id] || []).push({ email: r.email, name: r.name || null }); }
+
   for (const r of rows) {
     r.reply_count = cmap[r.id] || 0;
     r.edited = !!r.edited_at;
+    r.pinned = !!r.pinned;
+    r.mentions = mmap[r.id] || [];
     if (r.deleted) {
-      r.deleted = true; r.body = null; r.reactions = []; r.attachments = []; r.meta = null;
+      r.deleted = true; r.body = null; r.reactions = []; r.attachments = []; r.meta = null; r.pinned = false;
       continue;
     }
     r.deleted = false;
@@ -554,7 +570,7 @@ async function editMessage(request, env, email, mid) {
   if (!text) return json({ error: "Message can't be empty." }, 400);
   if (text.length > 4000) return json({ error: "Message is too long." }, 400);
   await env.DB.prepare("UPDATE messages SET body=?, edited_at=datetime('now') WHERE id=?").bind(text, mid).run();
-  const row = await env.DB.prepare("SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE id=?").bind(mid).first();
+  const row = await env.DB.prepare("SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE id=?").bind(mid).first();
   const [enriched] = await enrich(env, email, [row]);
   return json({ message: enriched });
 }
@@ -583,6 +599,35 @@ async function markRead(request, env, email, gid) {
   return json({ ok: true });
 }
 
+// A message a group member may pin/unpin (any member; Slack-style).
+async function pinMessage(request, env, email, mid) {
+  const msg = await env.DB.prepare("SELECT id, group_id, deleted FROM messages WHERE id=?").bind(mid).first();
+  if (!msg) return json({ error: "Message not found." }, 404);
+  await requireMember(env, msg.group_id, email);
+  if (msg.deleted) return json({ error: "That message was deleted." }, 400);
+  const body = await readBody(request);
+  const pin = body.pin === true || body.pin === "true" || body.pin === 1 || body.pin === "1";
+  await env.DB.prepare("UPDATE messages SET pinned=? WHERE id=?").bind(pin ? 1 : 0, mid).run();
+  return json({ ok: true, id: mid, pinned: pin });
+}
+
+async function listPins(env, email, gid) {
+  await requireMember(env, gid, email);
+  const rows = (await env.DB.prepare(
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND pinned=1 AND deleted=0 ORDER BY id DESC LIMIT 50"
+  ).bind(gid).all()).results || [];
+  await enrich(env, email, rows);
+  return json({ pins: rows });
+}
+
+function parseMentions(v) {
+  if (typeof v === "string") { try { v = JSON.parse(v); } catch (_) { v = []; } }
+  if (!Array.isArray(v)) return [];
+  const out = [];
+  for (const x of v) { const e = normEmail(x); if (validEmail(e) && out.indexOf(e) < 0) out.push(e); }
+  return out.slice(0, 20);
+}
+
 /* ============================================================
  * Calls (Jitsi today; swap the provider later for Cloudflare Realtime)
  * ============================================================ */
@@ -599,7 +644,7 @@ async function startCall(request, env, email, gid) {
     .prepare("INSERT INTO messages (group_id, sender_email, sender_name, body, kind, meta) VALUES (?,?,?,?, 'call', ?)")
     .bind(gid, email, name, label, meta).run();
   const row = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, created_at FROM messages WHERE id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE id=?"
   ).bind(res.meta.last_row_id).first();
   const [enriched] = await enrich(env, email, [row]);
   return json({ message: enriched });
@@ -844,7 +889,7 @@ async function ensureSchema(env) {
     "CREATE TABLE IF NOT EXISTS group_members (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(group_id, email))",
     "CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)",
     "CREATE INDEX IF NOT EXISTS idx_group_members_email ON group_members(email)",
-    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, parent_id INTEGER, sender_email TEXT NOT NULL, sender_name TEXT, body TEXT, kind TEXT NOT NULL DEFAULT 'text', meta TEXT, deleted INTEGER NOT NULL DEFAULT 0, edited_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+    "CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, parent_id INTEGER, sender_email TEXT NOT NULL, sender_name TEXT, body TEXT, kind TEXT NOT NULL DEFAULT 'text', meta TEXT, deleted INTEGER NOT NULL DEFAULT 0, edited_at TEXT, pinned INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id, id)",
   ];
   for (const s of base) await env.DB.prepare(s).run();
@@ -856,6 +901,7 @@ async function ensureSchema(env) {
     "ALTER TABLE messages ADD COLUMN meta TEXT",
     "ALTER TABLE messages ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE messages ADD COLUMN edited_at TEXT",
+    "ALTER TABLE messages ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE users ADD COLUMN accent TEXT",
   ];
   for (const a of migrations) {
@@ -869,6 +915,9 @@ async function ensureSchema(env) {
     "CREATE TABLE IF NOT EXISTS attachments (id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER, group_id INTEGER NOT NULL, r2_key TEXT NOT NULL, filename TEXT NOT NULL, content_type TEXT, size INTEGER, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_id)",
     "CREATE TABLE IF NOT EXISTS reads (email TEXT NOT NULL, group_id INTEGER NOT NULL, last_read_id INTEGER NOT NULL DEFAULT 0, updated_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (email, group_id))",
+    "CREATE TABLE IF NOT EXISTS mentions (id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, group_id INTEGER NOT NULL, email TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+    "CREATE INDEX IF NOT EXISTS idx_mentions_msg ON mentions(message_id)",
+    "CREATE INDEX IF NOT EXISTS idx_mentions_email ON mentions(email)",
   ];
   for (const s of more) await env.DB.prepare(s).run();
 
@@ -974,6 +1023,7 @@ const APP_HTML = `<!doctype html>
             </div>
             <button id="callAudioBtn" onclick="startCall('audio')" class="hidden text-xl leading-none hover:opacity-70" title="Start voice call">📞</button>
             <button id="callVideoBtn" onclick="startCall('video')" class="hidden text-xl leading-none hover:opacity-70" title="Start video call">🎥</button>
+            <button id="pinsBtn" onclick="openPins()" class="hidden text-sm text-gray-500 hover:text-black" title="Pinned messages">📌 <span id="pinsCount"></span></button>
             <button id="membersBtn" onclick="openMembers()" class="hidden text-sm text-gray-500 hover:text-black underline">Members</button>
           </header>
           <div id="messages" class="msgs flex-1 overflow-y-auto p-4 space-y-1"></div>
@@ -1025,6 +1075,20 @@ const APP_HTML = `<!doctype html>
 
   <!-- emoji picker popover -->
   <div id="emojiPicker" class="hidden fixed z-40 bg-white border rounded-xl shadow-lg p-1 flex gap-1"></div>
+
+  <!-- @mention autocomplete -->
+  <div id="mentionBox" class="hidden fixed z-40 bg-white border rounded-xl shadow-lg py-1 w-64 max-h-56 overflow-y-auto"></div>
+
+  <!-- pinned messages modal -->
+  <div id="pinsModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-30">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-5 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">📌 Pinned messages</h3>
+        <button onclick="closeModal('pinsModal')" class="text-gray-400 hover:text-black text-xl leading-none">&times;</button>
+      </div>
+      <div id="pinsList" class="overflow-y-auto space-y-2"></div>
+    </div>
+  </div>
 
   <!-- members modal -->
   <div id="membersModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-30">
@@ -1084,6 +1148,8 @@ const APP_HTML = `<!doctype html>
     var activeThread = null, threadLastId = 0, threadPoll = null;
     var mainFiles = { files: [], input: null, chips: 'fileChips' };
     var threadFiles = { files: [], input: null, chips: 'threadChips' };
+    var groupMembers = [];          // members of the active group (for @mention autocomplete)
+    var pendingMentions = {};       // token -> email, for the message being composed
 
     function $(id){ return document.getElementById(id); }
     function show(id){ $(id).classList.remove('hidden'); }
@@ -1177,17 +1243,20 @@ const APP_HTML = `<!doctype html>
 
     /* ---------- one group ---------- */
     async function openGroup(g){
-      active = g; lastMsgId = 0; msgModel = {}; topIds = {};
-      closeThread();
+      active = g; lastMsgId = 0; msgModel = {}; topIds = {}; pendingMentions = {}; groupMembers = [];
+      closeThread(); hideMentionBox();
       renderGroups();
       hide('chatEmpty'); show('chatActive');
       $('chatTitle').textContent = g.name;
       $('chatSub').textContent = (g.role==='admin' ? 'Admin · ' : '') + g.member_count + ' member' + (g.member_count===1 ? '' : 's');
       if(g.role==='admin'){ show('membersBtn'); } else { hide('membersBtn'); }
       if(config.calls_enabled){ show('callAudioBtn'); show('callVideoBtn'); }
+      show('pinsBtn');
       $('messages').innerHTML = '<p class="text-center text-sm text-gray-400 py-6">Loading…</p>';
       if(isMobile()){ hide('sidebar'); $('chatPane').classList.remove('hidden'); $('chatPane').classList.add('flex'); }
+      try { groupMembers = (await api('/api/groups/' + g.id + '/members')).members || []; } catch(e){}
       await loadMessages(true);
+      refreshPinsCount();
       startPoll();
       $('composerInput').focus();
     }
@@ -1237,10 +1306,12 @@ const APP_HTML = `<!doctype html>
       }
 
       var col = ce('div', 'max-w-[80%] flex flex-col ' + (mine ? 'items-end' : 'items-start'));
-      var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-brand text-white' : 'bg-white text-gray-900 border'));
+      var mentionsMe = me && (m.mentions || []).some(function(x){ return x.email === me.email; });
+      var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-brand text-white' : 'bg-white text-gray-900 border') + (mentionsMe ? ' ring-2 ring-blue-400' : ''));
       if(!mine){ var who = ce('div','text-xs font-medium text-gray-500 mb-0.5'); who.textContent = m.sender_name || m.sender_email; bubble.appendChild(who); }
-      if(m.body){ var b = ce('div','text-sm whitespace-pre-wrap break-words'); appendBodyWithLinks(b, m.body, mine); bubble.appendChild(b); }
+      if(m.body){ var b = ce('div','text-sm whitespace-pre-wrap break-words'); renderRich(b, m.body, mine, m.mentions); bubble.appendChild(b); }
       if(m.attachments && m.attachments.length){ bubble.appendChild(renderAttachments(m.attachments, mine)); }
+      if(m.pinned){ var pin = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300' : 'text-gray-400')); pin.textContent = '📌 pinned'; bubble.appendChild(pin); }
       var time = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300 text-right' : 'text-gray-400')); time.textContent = fmtTime(m.created_at) + (m.edited ? ' · edited' : ''); bubble.appendChild(time);
       col.appendChild(bubble);
       if(m.body){ var emb = buildEmbeds(m.body); if(emb) col.appendChild(emb); }
@@ -1254,6 +1325,7 @@ const APP_HTML = `<!doctype html>
       if(!opts.inThread){
         var replyBtn = ce('button','hover:text-black'); replyBtn.textContent='↩ Reply'; replyBtn.onclick=function(){ openThread(m.id); }; actions.appendChild(replyBtn);
       }
+      var pinBtn = ce('button','hover:text-black'); pinBtn.textContent = m.pinned ? '📌 Unpin' : '📌 Pin'; pinBtn.onclick=function(){ togglePin(m.id, !m.pinned, row, opts); }; actions.appendChild(pinBtn);
       if(mine){
         var editBtn = ce('button','hover:text-black'); editBtn.textContent='Edit'; editBtn.onclick=function(){ editMsg(m.id, row, opts); }; actions.appendChild(editBtn);
         var delBtn = ce('button','text-red-500 hover:text-red-600'); delBtn.textContent='Delete'; delBtn.onclick=function(){ deleteMsg(m.id, row, opts); }; actions.appendChild(delBtn);
@@ -1291,6 +1363,13 @@ const APP_HTML = `<!doctype html>
         var m = msgModel[id] || { id: id, sender_email: (me && me.email) };
         m.deleted = true; m.body = null; m.attachments = []; m.reactions = []; msgModel[id] = m;
         row.replaceWith(renderMessage(m, opts));
+      } catch(e){ alert(e.message); }
+    }
+    async function togglePin(id, pin, row, opts){
+      try {
+        await api('/api/messages/' + id + '/pin', { method:'POST', body: JSON.stringify({ pin: pin }) });
+        if(msgModel[id]){ msgModel[id].pinned = pin; row.replaceWith(renderMessage(msgModel[id], opts)); }
+        refreshPinsCount();
       } catch(e){ alert(e.message); }
     }
 
@@ -1348,6 +1427,55 @@ const APP_HTML = `<!doctype html>
           container.appendChild(a);
         } else { container.appendChild(document.createTextNode(part)); }
       });
+    }
+
+    /* ---------- markdown + @mentions (manual scan; no regex, to stay template-safe) ---------- */
+    var BT = String.fromCharCode(96);   // backtick, without a literal one in this file
+    function renderRich(container, text, mine, mentions){
+      var tokens = (mentions || []).map(function(x){ return '@' + (x.name || String(x.email||'').split('@')[0]); }).filter(function(t){ return t.length > 1; });
+      // fenced code blocks first (triple-backtick delimited)
+      var fence = BT + BT + BT, s = String(text), idx = 0;
+      while(true){
+        var a = s.indexOf(fence, idx);
+        if(a < 0){ renderInline(container, s.slice(idx), mine, tokens); break; }
+        var b = s.indexOf(fence, a + 3);
+        if(b < 0){ renderInline(container, s.slice(idx), mine, tokens); break; }
+        if(a > idx) renderInline(container, s.slice(idx, a), mine, tokens);
+        var code = s.slice(a + 3, b).replace(/^\\n/, '').replace(/\\n$/, '');
+        var pre = ce('pre', (mine ? 'bg-black/30 text-white ' : 'bg-gray-900 text-gray-100 ') + 'rounded-lg p-2 overflow-x-auto text-xs my-1 whitespace-pre');
+        var cd = ce('code',''); cd.textContent = code; pre.appendChild(cd); container.appendChild(pre);
+        idx = b + 3;
+      }
+    }
+    function renderInline(container, text, mine, tokens){
+      // split out @mention tokens (literal, longest first), markdown-render the rest
+      var toks = (tokens || []).slice().sort(function(x,y){ return y.length - x.length; });
+      var s = String(text), i = 0, buf = '';
+      function flushBuf(){ if(buf){ renderMd(container, buf, mine); buf = ''; } }
+      outer: while(i < s.length){
+        for(var t = 0; t < toks.length; t++){
+          if(toks[t] && s.substr(i, toks[t].length) === toks[t]){
+            flushBuf();
+            var chip = ce('span','font-semibold ' + (mine ? 'text-blue-200' : 'text-blue-600')); chip.textContent = toks[t];
+            container.appendChild(chip); i += toks[t].length; continue outer;
+          }
+        }
+        buf += s[i]; i++;
+      }
+      flushBuf();
+    }
+    function renderMd(container, text, mine){
+      var s = String(text), i = 0, buf = '';
+      function flushBuf(){ if(buf){ appendBodyWithLinks(container, buf, mine); buf = ''; } }
+      while(i < s.length){
+        var two = s.substr(i, 2), c = s[i], e;
+        if(two === '**'){ e = s.indexOf('**', i+2); if(e > i+1){ flushBuf(); var st=ce('strong',''); st.textContent = s.slice(i+2, e); container.appendChild(st); i = e+2; continue; } }
+        if(two === '~~'){ e = s.indexOf('~~', i+2); if(e > i+1){ flushBuf(); var sk=ce('span','line-through'); sk.textContent = s.slice(i+2, e); container.appendChild(sk); i = e+2; continue; } }
+        if(c === BT){ e = s.indexOf(BT, i+1); if(e > i){ flushBuf(); var cd=ce('code', (mine ? 'bg-black/30' : 'bg-gray-100 text-gray-800') + ' rounded px-1 py-0.5'); cd.textContent = s.slice(i+1, e); container.appendChild(cd); i = e+1; continue; } }
+        if(c === '*' || c === '_'){ e = s.indexOf(c, i+1); if(e > i+1){ flushBuf(); var em=ce('em',''); em.textContent = s.slice(i+1, e); container.appendChild(em); i = e+1; continue; } }
+        buf += c; i++;
+      }
+      flushBuf();
     }
 
     function buildEmbeds(text){
@@ -1447,6 +1575,84 @@ const APP_HTML = `<!doctype html>
     }
     function endCall(){ if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; } $('callFrame').innerHTML = ''; hide('callOverlay'); }
 
+    /* ---------- @mention autocomplete ---------- */
+    function onComposerInput(){
+      var t = $('composerInput'); if(!t) return;
+      var pos = t.selectionStart;
+      var upto = t.value.slice(0, pos);
+      var m = upto.match(/(^|\\s)@([^\\s@]*)$/);
+      if(!m || !groupMembers.length){ hideMentionBox(); return; }
+      var q = m[2].toLowerCase();
+      var matches = groupMembers.filter(function(mem){
+        if(me && mem.email === me.email) return false;
+        return (mem.name||'').toLowerCase().indexOf(q) >= 0 || (mem.email||'').toLowerCase().indexOf(q) >= 0;
+      }).slice(0, 8);
+      if(!matches.length){ hideMentionBox(); return; }
+      var box = $('mentionBox'); box.innerHTML = '';
+      matches.forEach(function(mem){
+        var b = ce('button','w-full text-left px-3 py-2 hover:bg-gray-100 block'); b.type = 'button';
+        b.innerHTML = '<div class="text-sm font-medium truncate">' + esc(mem.name || mem.email) + '</div><div class="text-xs text-gray-400 truncate">' + esc(mem.email) + '</div>';
+        b.onclick = function(){ insertMention(mem, m[2].length); };
+        box.appendChild(b);
+      });
+      var rect = t.getBoundingClientRect();
+      box.style.left = Math.max(8, rect.left) + 'px';
+      box.style.width = Math.min(rect.width, 320) + 'px';
+      box.style.top = ''; box.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+      show('mentionBox');
+    }
+    function hideMentionBox(){ hide('mentionBox'); }
+    function insertMention(mem, partialLen){
+      var t = $('composerInput'); var pos = t.selectionStart;
+      var token = '@' + (mem.name || String(mem.email).split('@')[0]);
+      var before = t.value.slice(0, pos - partialLen - 1);   // drop the '@' + typed partial
+      var after = t.value.slice(pos);
+      t.value = before + token + ' ' + after;
+      pendingMentions[token] = mem.email;
+      var np = (before + token + ' ').length;
+      t.focus(); try { t.selectionStart = t.selectionEnd = np; } catch(_){}
+      hideMentionBox();
+    }
+
+    /* ---------- pinned messages ---------- */
+    async function refreshPinsCount(){
+      if(!active) return;
+      try {
+        var r = await api('/api/groups/' + active.id + '/pins');
+        var n = (r.pins || []).length;
+        $('pinsCount').textContent = n ? String(n) : '';
+      } catch(e){}
+    }
+    async function openPins(){
+      if(!active) return;
+      show('pinsModal');
+      $('pinsList').innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">Loading…</p>';
+      try {
+        var r = await api('/api/groups/' + active.id + '/pins');
+        var list = $('pinsList'); list.innerHTML = '';
+        var pins = r.pins || [];
+        if(!pins.length){ list.innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">No pinned messages yet.</p>'; return; }
+        pins.forEach(function(m){
+          var card = ce('div','border rounded-xl p-3');
+          var who = ce('div','text-xs text-gray-400 mb-1'); who.textContent = (m.sender_name || m.sender_email) + ' · ' + fmtTime(m.created_at); card.appendChild(who);
+          var bodyEl = ce('div','text-sm break-words'); renderRich(bodyEl, m.body || '', false, m.mentions); card.appendChild(bodyEl);
+          if(m.attachments && m.attachments.length){ card.appendChild(renderAttachments(m.attachments, false)); }
+          var un = ce('button','text-xs text-gray-500 hover:text-black mt-2'); un.textContent = '📌 Unpin';
+          un.onclick = function(){ unpinFromModal(m.id, card); };
+          card.appendChild(un);
+          list.appendChild(card);
+        });
+      } catch(e){ $('pinsList').innerHTML = '<p class="text-sm text-red-500 py-4 text-center">' + esc(e.message) + '</p>'; }
+    }
+    async function unpinFromModal(id, card){
+      try {
+        await api('/api/messages/' + id + '/pin', { method:'POST', body: JSON.stringify({ pin: false }) });
+        if(msgModel[id]){ msgModel[id].pinned = false; document.querySelectorAll('[data-mid="' + id + '"]').forEach(function(row){ row.replaceWith(renderMessage(msgModel[id], {})); }); }
+        if(card) card.remove();
+        refreshPinsCount();
+      } catch(e){ alert(e.message); }
+    }
+
     /* ---------- voice notes (record → upload as an audio attachment) ---------- */
     var recRecorder = null, recStream = null, recChunks = [], recTimer = null, recStart = 0, recDiscard = false, recMime = '';
     function pickRecMime(){
@@ -1511,6 +1717,8 @@ const APP_HTML = `<!doctype html>
     document.addEventListener('click', function(ev){
       var pick = $('emojiPicker');
       if(pick && !pick.classList.contains('hidden') && !pick.contains(ev.target) && !(ev.target.title==='React' || ev.target.title==='Emoji')){ hide('emojiPicker'); }
+      var mb = $('mentionBox');
+      if(mb && !mb.classList.contains('hidden') && !mb.contains(ev.target) && ev.target.id!=='composerInput'){ hideMentionBox(); }
     });
     async function toggleReact(mid, emoji){
       try {
@@ -1604,17 +1812,20 @@ const APP_HTML = `<!doctype html>
       if(!body && !state.files.length) return;
       if(!active) return;
       var files = state.files.slice();
+      var ments = []; for(var tok in pendingMentions){ if(pendingMentions.hasOwnProperty(tok) && body.indexOf(tok) >= 0) ments.push(pendingMentions[tok]); }
       inp.value=''; inp.style.height='auto'; state.files=[]; renderChips(state);
+      if(inputId==='composerInput'){ pendingMentions = {}; hideMentionBox(); }
       try {
         var res;
         if(files.length){
           var fd = new FormData();
           fd.append('body', body);
           if(parentId) fd.append('parent_id', String(parentId));
+          if(ments.length) fd.append('mentions', JSON.stringify(ments));
           files.forEach(function(f){ fd.append('files', f); });
           res = await fetch(API + '/api/groups/' + active.id + '/messages', { method:'POST', headers:{ Authorization:'Bearer ' + token }, body: fd });
         } else {
-          res = await fetch(API + '/api/groups/' + active.id + '/messages', { method:'POST', headers:{ Authorization:'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify({ body: body, parent_id: parentId || null }) });
+          res = await fetch(API + '/api/groups/' + active.id + '/messages', { method:'POST', headers:{ Authorization:'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify({ body: body, parent_id: parentId || null, mentions: ments }) });
         }
         var data = {}; try { data = await res.json(); } catch(e){}
         if(!res.ok) throw new Error(data.error || 'Send failed');
@@ -1710,6 +1921,7 @@ const APP_HTML = `<!doctype html>
       if(e.target && (e.target.id==='composerInput' || e.target.id==='threadInput')){
         e.target.style.height='auto'; e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
       }
+      if(e.target && e.target.id==='composerInput'){ onComposerInput(); }
     });
 
     /* ---------- boot ---------- */

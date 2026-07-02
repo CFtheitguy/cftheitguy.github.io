@@ -26,6 +26,12 @@ serves the web app *and* the API, backed by a D1 database.
   App color); it follows them across devices.
 - **Installable (PWA)** — "Add to Home Screen" for a full-screen app icon
   (served `/manifest.webmanifest` + `/sw.js`).
+- **Markdown** — `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, and fenced
+  code blocks, rendered safely (built as DOM nodes, never innerHTML).
+- **@mentions** — type `@` for a member autocomplete; mentions are stored,
+  highlighted, and the message is ringed for the person mentioned.
+- **Pinned messages** — any member can pin/unpin; a 📌 in the header opens the
+  pinned list for the group.
 
 ```
 chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages, reactions)
