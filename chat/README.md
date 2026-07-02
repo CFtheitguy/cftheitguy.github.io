@@ -32,6 +32,13 @@ serves the web app *and* the API, backed by a D1 database.
   highlighted, and the message is ringed for the person mentioned.
 - **Pinned messages** — any member can pin/unpin; a 📌 in the header opens the
   pinned list for the group.
+- **Direct messages (1:1)** — a "Direct Messages" section in the sidebar; start
+  one from the people you share a group with. DMs are private 2-person
+  conversations with all the same features (threads, calls, files…).
+- **Avatars & group icons** — upload a profile photo (Account → Change photo)
+  and a group photo (admin). Shown in the sidebar, message list, and members;
+  a colored initials circle is the fallback. Stored in R2, served via
+  short-lived signed links.
 
 ```
 chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages, reactions)

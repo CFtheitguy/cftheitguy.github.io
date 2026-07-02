@@ -73,6 +73,7 @@ async function handleApi(request, env, url, p, method) {
   if (method === "GET") {
     const fm = p.match(/^\/api\/files\/(\d+)$/);
     if (fm) return serveFile(env, url, Number(fm[1]));
+    if (p === "/api/blob") return serveBlob(env, url);
   }
 
   // ---- Authenticated ----
@@ -82,6 +83,9 @@ async function handleApi(request, env, url, p, method) {
 
   if (p === "/api/me" && method === "GET") return getMe(env, email);
   if (p === "/api/me" && method === "POST") return updateMe(request, env, email);
+  if (p === "/api/me/avatar" && method === "POST") return uploadAvatar(request, env, email);
+  if (p === "/api/directory" && method === "GET") return directory(env, email);
+  if (p === "/api/dm" && method === "POST") return openDm(request, env, email);
   if (p === "/api/groups" && method === "GET") return listGroups(env, email);
   if (p === "/api/groups" && method === "POST") return createGroup(request, env, email);
 
@@ -97,9 +101,10 @@ async function handleApi(request, env, url, p, method) {
     if (m[2] === "delete" && method === "POST") return deleteMessage(env, email, Number(m[1]));
     if (m[2] === "pin" && method === "POST") return pinMessage(request, env, email, Number(m[1]));
   }
-  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call|read|pins)$/))) {
+  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call|read|pins|icon)$/))) {
     const gid = Number(m[1]);
     const sub = m[2];
+    if (sub === "icon" && method === "POST") return uploadGroupIcon(request, env, email, gid);
     if (sub === "members" && method === "GET") return listMembers(env, email, gid);
     if (sub === "members" && method === "POST") return addMember(request, env, email, gid);
     if (sub === "members/remove" && method === "POST") return removeMember(request, env, email, gid);
@@ -189,7 +194,7 @@ async function authVerify(request, env) {
   await env.DB.prepare("UPDATE login_codes SET consumed=1 WHERE id=?").bind(row.id).run();
   const user = await upsertUser(env, email);
   const token = await makeToken(env, { email });
-  return json({ token, user: publicUser(user) });
+  return json({ token, user: await userPublic(env, user) });
 }
 
 async function emailAllowed(env, email) {
@@ -223,7 +228,7 @@ async function upsertUser(env, email) {
 async function getMe(env, email) {
   const u = await env.DB.prepare("SELECT * FROM users WHERE email=?").bind(email).first();
   if (!u) return json({ error: "Unknown user" }, 401);
-  return json({ user: publicUser(u) });
+  return json({ user: await userPublic(env, u) });
 }
 async function updateMe(request, env, email) {
   const body = await readBody(request);
@@ -235,15 +240,15 @@ async function updateMe(request, env, email) {
     await env.DB.prepare("UPDATE users SET accent=? WHERE email=?").bind(body.accent, email).run();
   }
   const u = await env.DB.prepare("SELECT * FROM users WHERE email=?").bind(email).first();
-  return json({ user: publicUser(u) });
+  return json({ user: await userPublic(env, u) });
 }
 
 /* ============================================================
  * Groups
  * ============================================================ */
 async function listGroups(env, email) {
-  const rows = await env.DB.prepare(
-    `SELECT g.id, g.name, gm.role,
+  const rows = (await env.DB.prepare(
+    `SELECT g.id, g.name, g.is_dm, g.icon_key, gm.role,
             (SELECT COUNT(*) FROM group_members x WHERE x.group_id = g.id) AS member_count,
             (SELECT body FROM messages msg WHERE msg.group_id = g.id AND msg.deleted=0 ORDER BY msg.id DESC LIMIT 1) AS last_body,
             (SELECT COALESCE(sender_name, sender_email) FROM messages msg WHERE msg.group_id = g.id AND msg.deleted=0 ORDER BY msg.id DESC LIMIT 1) AS last_sender,
@@ -254,8 +259,20 @@ async function listGroups(env, email) {
        JOIN chat_groups g ON g.id = gm.group_id
       WHERE gm.email = ?
       ORDER BY (last_at IS NULL), last_at DESC, g.id DESC`
-  ).bind(email, email, email).all();
-  return json({ groups: rows.results || [] });
+  ).bind(email, email, email).all()).results || [];
+  for (const g of rows) {
+    g.is_dm = !!g.is_dm;
+    if (g.is_dm) {
+      const other = await env.DB.prepare(
+        "SELECT gm.email, u.name, u.avatar_key FROM group_members gm LEFT JOIN users u ON u.email=gm.email WHERE gm.group_id=? AND gm.email<>? LIMIT 1"
+      ).bind(g.id, email).first();
+      if (other) { g.name = other.name || other.email; g.other_email = other.email; g.avatar_url = other.avatar_key ? await signedBlobUrl(env, other.avatar_key) : null; }
+    } else if (g.icon_key) {
+      g.icon_url = await signedBlobUrl(env, g.icon_key);
+    }
+    delete g.icon_key;
+  }
+  return json({ groups: rows });
 }
 
 async function createGroup(request, env, email) {
@@ -291,14 +308,15 @@ async function createGroup(request, env, email) {
  * ============================================================ */
 async function listMembers(env, email, gid) {
   await requireMember(env, gid, email);
-  const rows = await env.DB.prepare(
-    `SELECT gm.email, gm.role, u.name
+  const rows = (await env.DB.prepare(
+    `SELECT gm.email, gm.role, u.name, u.avatar_key
        FROM group_members gm
        LEFT JOIN users u ON u.email = gm.email
       WHERE gm.group_id = ?
       ORDER BY (gm.role = 'admin') DESC, COALESCE(u.name, gm.email) ASC`
-  ).bind(gid).all();
-  return json({ members: rows.results || [] });
+  ).bind(gid).all()).results || [];
+  for (const m of rows) { m.avatar_url = m.avatar_key ? await signedBlobUrl(env, m.avatar_key) : null; delete m.avatar_key; }
+  return json({ members: rows });
 }
 
 async function addMember(request, env, email, gid) {
@@ -539,11 +557,20 @@ async function enrich(env, email, rows) {
   const mmap = {};
   for (const r of mn.results || []) { (mmap[r.message_id] = mmap[r.message_id] || []).push({ email: r.email, name: r.name || null }); }
 
+  const senders = [...new Set(rows.map((r) => r.sender_email))];
+  const avmap = {};
+  if (senders.length) {
+    const aph = senders.map(() => "?").join(",");
+    const av = await env.DB.prepare("SELECT email, avatar_key FROM users WHERE email IN (" + aph + ")").bind(...senders).all();
+    for (const u of av.results || []) { if (u.avatar_key) avmap[u.email] = await signedBlobUrl(env, u.avatar_key); }
+  }
+
   for (const r of rows) {
     r.reply_count = cmap[r.id] || 0;
     r.edited = !!r.edited_at;
     r.pinned = !!r.pinned;
     r.mentions = mmap[r.id] || [];
+    r.sender_avatar = avmap[r.sender_email] || null;
     if (r.deleted) {
       r.deleted = true; r.body = null; r.reactions = []; r.attachments = []; r.meta = null; r.pinned = false;
       continue;
@@ -688,6 +715,95 @@ async function serveFile(env, url, id) {
 }
 
 /* ============================================================
+ * Avatars / group icons: signed blob URLs (arbitrary R2 keys) + uploads
+ * ============================================================ */
+async function signedBlobUrl(env, key) {
+  if (!key) return null;
+  const exp = Date.now() + 7 * 24 * 3600 * 1000;
+  const sig = await hmacSign(env, "blob:" + key + ":" + exp);
+  return "/api/blob?k=" + encodeURIComponent(key) + "&e=" + exp + "&t=" + sig;
+}
+async function serveBlob(env, url) {
+  const key = url.searchParams.get("k") || "";
+  const exp = Number(url.searchParams.get("e") || 0);
+  const t = url.searchParams.get("t") || "";
+  if (!key || !exp || exp < Date.now()) return new Response("Link expired", { status: 403 });
+  const good = await hmacSign(env, "blob:" + key + ":" + exp);
+  if (!timingSafeEqual(t, good)) return new Response("Bad signature", { status: 403 });
+  if (!env.FILES) return new Response("Not configured", { status: 404 });
+  const obj = await env.FILES.get(key);
+  if (!obj) return new Response("Not found", { status: 404 });
+  const type = (obj.httpMetadata && obj.httpMetadata.contentType) || "image/jpeg";
+  return new Response(obj.body, { headers: { "Content-Type": type, "Cache-Control": "private, max-age=86400" } });
+}
+async function readImageUpload(request, env) {
+  if (!env.FILES) { const e = new Error("Image storage isn't enabled (bind R2 as FILES)."); e.status = 400; throw e; }
+  const fd = await request.formData();
+  const f = fd.get("file");
+  if (!f || typeof f.arrayBuffer !== "function") { const e = new Error("No image uploaded."); e.status = 400; throw e; }
+  if (!/^image\//.test(f.type || "")) { const e = new Error("Please upload an image."); e.status = 400; throw e; }
+  if (f.size > 5 * 1024 * 1024) { const e = new Error("Image too large (max 5 MB)."); e.status = 400; throw e; }
+  return f;
+}
+async function uploadAvatar(request, env, email) {
+  const f = await readImageUpload(request, env);
+  const key = "avatar/" + (await sha256Hex(email)).slice(0, 16) + "-" + crypto.randomUUID();
+  await env.FILES.put(key, await f.arrayBuffer(), { httpMetadata: { contentType: f.type } });
+  await env.DB.prepare("UPDATE users SET avatar_key=? WHERE email=?").bind(key, email).run();
+  const u = await env.DB.prepare("SELECT * FROM users WHERE email=?").bind(email).first();
+  return json({ user: await userPublic(env, u) });
+}
+async function uploadGroupIcon(request, env, email, gid) {
+  const me = await requireMember(env, gid, email);
+  if (me.role !== "admin") return json({ error: "Only the group admin can set the icon." }, 403);
+  const f = await readImageUpload(request, env);
+  const key = "icon/g" + gid + "-" + crypto.randomUUID();
+  await env.FILES.put(key, await f.arrayBuffer(), { httpMetadata: { contentType: f.type } });
+  await env.DB.prepare("UPDATE chat_groups SET icon_key=? WHERE id=?").bind(key, gid).run();
+  return json({ ok: true, icon: await signedBlobUrl(env, key) });
+}
+
+/* ============================================================
+ * Direct messages (1:1) + directory
+ * ============================================================ */
+function dmKey(a, b) { return [normEmail(a), normEmail(b)].sort().join("|"); }
+async function directory(env, email) {
+  // People you can DM = anyone you share a group with (excluding yourself).
+  const rows = await env.DB.prepare(
+    `SELECT DISTINCT gm.email, u.name, u.avatar_key
+       FROM group_members gm
+       LEFT JOIN users u ON u.email = gm.email
+      WHERE gm.email <> ?
+        AND gm.group_id IN (SELECT group_id FROM group_members WHERE email = ?)
+      ORDER BY COALESCE(u.name, gm.email) ASC`
+  ).bind(email, email).all();
+  const people = [];
+  for (const r of rows.results || []) {
+    people.push({ email: r.email, name: r.name || null, avatar_url: r.avatar_key ? await signedBlobUrl(env, r.avatar_key) : null });
+  }
+  return json({ people });
+}
+async function openDm(request, env, email) {
+  const body = await readBody(request);
+  const other = normEmail(body.email);
+  if (!validEmail(other) || other === email) return json({ error: "Pick a valid person to message." }, 400);
+  const target = await env.DB.prepare("SELECT email FROM users WHERE email=?").bind(other).first();
+  if (!target) return json({ error: "That person hasn't joined Linear Chat yet." }, 404);
+
+  const key = dmKey(email, other);
+  let g = await env.DB.prepare("SELECT id FROM chat_groups WHERE is_dm=1 AND dm_key=?").bind(key).first();
+  if (!g) {
+    const res = await env.DB.prepare("INSERT INTO chat_groups (name, created_by, is_dm, dm_key) VALUES ('', ?, 1, ?)").bind(email, key).run();
+    const gid = res.meta.last_row_id;
+    await env.DB.prepare("INSERT OR IGNORE INTO group_members (group_id, email, role) VALUES (?,?, 'member')").bind(gid, email).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO group_members (group_id, email, role) VALUES (?,?, 'member')").bind(gid, other).run();
+    g = { id: gid };
+  }
+  const u = await env.DB.prepare("SELECT name, avatar_key FROM users WHERE email=?").bind(other).first();
+  return json({ group: { id: g.id, is_dm: true, role: "member", member_count: 2, name: (u && u.name) || other, other_email: other, avatar_url: u && u.avatar_key ? await signedBlobUrl(env, u.avatar_key) : null } });
+}
+
+/* ============================================================
  * Membership helpers
  * ============================================================ */
 async function membership(env, gid, email) {
@@ -708,6 +824,7 @@ function adminEmailSet(env) {
 function hasAdminEmails(env) { return adminEmailSet(env).length > 0; }
 function isAdminEmail(env, email) { return adminEmailSet(env).includes(normEmail(email)); }
 function publicUser(u) { return { email: u.email, name: u.name || null, is_admin: !!u.is_admin, accent: u.accent || null }; }
+async function userPublic(env, u) { const pu = publicUser(u); pu.avatar_url = u.avatar_key ? await signedBlobUrl(env, u.avatar_key) : null; return pu; }
 function isEmoji(s) { return typeof s === "string" && s.length > 0 && s.length <= 24 && !/\s/.test(s) && /\p{Extended_Pictographic}/u.test(s); }
 
 /* ============================================================
@@ -882,10 +999,10 @@ async function ensureSchema(env) {
   if (SCHEMA_READY) return;
   if (!env.DB) { const e = new Error("Database not configured — bind a D1 database as DB."); e.status = 500; throw e; }
   const base = [
-    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, name TEXT, is_admin INTEGER NOT NULL DEFAULT 0, accent TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+    "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, name TEXT, is_admin INTEGER NOT NULL DEFAULT 0, accent TEXT, avatar_key TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE TABLE IF NOT EXISTS login_codes (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, consumed INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)",
     "CREATE INDEX IF NOT EXISTS idx_login_codes_email ON login_codes(email)",
-    "CREATE TABLE IF NOT EXISTS chat_groups (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+    "CREATE TABLE IF NOT EXISTS chat_groups (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, created_by TEXT NOT NULL, is_dm INTEGER NOT NULL DEFAULT 0, dm_key TEXT, icon_key TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE TABLE IF NOT EXISTS group_members (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE(group_id, email))",
     "CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id)",
     "CREATE INDEX IF NOT EXISTS idx_group_members_email ON group_members(email)",
@@ -903,6 +1020,10 @@ async function ensureSchema(env) {
     "ALTER TABLE messages ADD COLUMN edited_at TEXT",
     "ALTER TABLE messages ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE users ADD COLUMN accent TEXT",
+    "ALTER TABLE users ADD COLUMN avatar_key TEXT",
+    "ALTER TABLE chat_groups ADD COLUMN is_dm INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE chat_groups ADD COLUMN dm_key TEXT",
+    "ALTER TABLE chat_groups ADD COLUMN icon_key TEXT",
   ];
   for (const a of migrations) {
     try { await env.DB.prepare(a).run(); } catch (_) { /* already exists */ }
@@ -1002,7 +1123,14 @@ const APP_HTML = `<!doctype html>
           <h2 class="font-semibold text-sm">Groups</h2>
           <button id="newGroupBtn" onclick="createGroup()" class="hidden text-sm bg-brand text-white rounded-lg px-3 py-1.5 hover:opacity-90">+ New</button>
         </div>
-        <div id="groupList" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+        <div class="flex-1 overflow-y-auto p-2">
+          <div id="groupList" class="space-y-1"></div>
+          <div class="px-1 pt-4 pb-1 flex items-center justify-between">
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-400">Direct Messages</h3>
+            <button onclick="openDmPicker()" class="text-xs text-brand hover:underline font-medium">+ New</button>
+          </div>
+          <div id="dmList" class="space-y-1"></div>
+        </div>
         <div class="px-4 py-3 border-t text-xs text-gray-400 flex items-center justify-between">
           <span id="whoami" class="truncate"></span>
           <button onclick="logout()" class="hover:text-black underline shrink-0 ml-2">Sign out</button>
@@ -1097,12 +1225,29 @@ const APP_HTML = `<!doctype html>
         <h3 class="font-semibold">Members</h3>
         <button onclick="closeModal('membersModal')" class="text-gray-400 hover:text-black text-xl leading-none">&times;</button>
       </div>
-      <div id="addMemberRow" class="hidden flex gap-2 mb-3">
-        <input id="newMemberEmail" type="email" placeholder="teammate@company.com"
-          class="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand">
-        <button onclick="addMember()" class="bg-brand text-white rounded-lg px-3 py-2 text-sm hover:opacity-90">Add</button>
+      <div id="addMemberRow" class="hidden mb-3">
+        <div class="flex gap-2">
+          <input id="newMemberEmail" type="email" placeholder="teammate@company.com"
+            class="flex-1 rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand">
+          <button onclick="addMember()" class="bg-brand text-white rounded-lg px-3 py-2 text-sm hover:opacity-90">Add</button>
+        </div>
+        <input id="iconInput" type="file" accept="image/*" class="hidden" onchange="uploadGroupIcon(this)">
+        <button onclick="document.getElementById('iconInput').click()" class="text-xs text-brand hover:underline font-medium mt-2">Change group photo</button>
       </div>
       <div id="memberList" class="max-h-72 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- new direct message picker -->
+  <div id="dmModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-30">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-5 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">New message</h3>
+        <button onclick="closeModal('dmModal')" class="text-gray-400 hover:text-black text-xl leading-none">&times;</button>
+      </div>
+      <input id="dmSearch" oninput="filterDmList()" placeholder="Search people…"
+        class="w-full rounded-lg border px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-brand">
+      <div id="dmPeople" class="overflow-y-auto"></div>
     </div>
   </div>
 
@@ -1112,6 +1257,13 @@ const APP_HTML = `<!doctype html>
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-semibold">Your account</h3>
         <button onclick="closeModal('meModal')" class="text-gray-400 hover:text-black text-xl leading-none">&times;</button>
+      </div>
+      <div class="flex items-center gap-3 mb-4">
+        <div id="meAvatar"></div>
+        <div>
+          <input id="avatarInput" type="file" accept="image/*" class="hidden" onchange="uploadAvatar(this)">
+          <button onclick="document.getElementById('avatarInput').click()" class="text-sm text-brand hover:underline font-medium">Change photo</button>
+        </div>
       </div>
       <label class="text-xs text-gray-500">Email</label>
       <p id="meEmail" class="text-sm font-medium mb-3"></p>
@@ -1157,6 +1309,14 @@ const APP_HTML = `<!doctype html>
     function closeModal(id){ hide(id); }
     function ce(tag, cls){ var e=document.createElement(tag); if(cls) e.className=cls; return e; }
     function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function initials(name){ name=String(name||'?').trim(); if(!name) return '?'; var p=name.split(/\\s+/); if(p.length>=2 && p[0] && p[1]) return (p[0][0]+p[1][0]).toUpperCase(); return name.slice(0,2).toUpperCase(); }
+    function avatarColor(s){ var h=0; s=String(s||'?'); for(var i=0;i<s.length;i++){ h=(h*31+s.charCodeAt(i))>>>0; } return 'hsl(' + (h%360) + ',52%,45%)'; }
+    function avatarEl(name, url, sizeCls){
+      sizeCls = sizeCls || 'w-8 h-8';
+      if(url){ var img=ce('img', sizeCls+' rounded-full object-cover border shrink-0'); img.src=url; img.alt=name||''; img.loading='lazy'; return img; }
+      var d=ce('div', sizeCls+' rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0'); d.style.background=avatarColor(name); d.textContent=initials(name);
+      return d;
+    }
     function isMobile(){ return window.matchMedia('(max-width: 767px)').matches; }
     function setBusy(id, on){ var b=$(id); if(!b) return; b.disabled=on; b.classList.toggle('opacity-60', on); }
     function authErr(msg){ var e=$('authErr'); e.textContent=msg; e.classList.remove('hidden'); }
@@ -1218,27 +1378,31 @@ const APP_HTML = `<!doctype html>
       try { var r = await api('/api/groups'); groups = r.groups || []; renderGroups(); }
       catch(e){ if(e.status===401) return logout(); }
     }
+    function groupRow(g){
+      var b = ce('button', 'w-full text-left px-2 py-2 rounded-lg hover:bg-gray-100 transition flex items-center gap-2 ' + (active && active.id===g.id ? 'bg-gray-100' : ''));
+      b.appendChild(avatarEl(g.name, g.is_dm ? g.avatar_url : g.icon_url, 'w-9 h-9'));
+      var unread = (!active || active.id!==g.id) ? (g.unread||0) : 0;
+      var sub = g.last_body ? esc((g.last_sender ? g.last_sender + ': ' : '') + g.last_body)
+                            : (g.is_dm ? esc(g.other_email||'') : (g.member_count + ' member' + (g.member_count===1 ? '' : 's')));
+      var mid = ce('div','min-w-0 flex-1');
+      mid.innerHTML = '<div class="flex items-center justify-between gap-2">' +
+          '<span class="' + (unread>0?'font-bold':'font-medium') + ' truncate">' + esc(g.name) + '</span>' +
+          (unread>0 ? '<span class="text-[10px] font-semibold bg-brand text-white rounded-full text-center px-1.5 py-0.5 shrink-0">' + (unread>99?'99+':unread) + '</span>'
+                    : (!g.is_dm && g.role==='admin' ? '<span class="text-[10px] uppercase tracking-wide bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 shrink-0">admin</span>' : '')) +
+        '</div><div class="text-xs ' + (unread>0?'text-gray-600 font-medium':'text-gray-400') + ' truncate mt-0.5">' + sub + '</div>';
+      b.appendChild(mid);
+      b.onclick = function(){ openGroup(g); };
+      return b;
+    }
     function renderGroups(){
-      var el = $('groupList'); el.innerHTML = '';
-      if(!groups.length){
-        el.innerHTML = '<p class="text-sm text-gray-400 px-3 py-6 text-center">' +
-          (me.is_admin ? 'No groups yet. Tap <b>+ New</b> to create one.' : 'You\\'re not in any groups yet.') + '</p>';
-        return;
-      }
-      groups.forEach(function(g){
-        var b = ce('button', 'w-full text-left px-3 py-2.5 rounded-lg hover:bg-gray-100 transition ' + (active && active.id===g.id ? 'bg-gray-100' : ''));
-        var sub = g.last_body ? esc((g.last_sender ? g.last_sender + ': ' : '') + g.last_body)
-                              : (g.member_count + ' member' + (g.member_count===1 ? '' : 's'));
-        var unread = (!active || active.id!==g.id) ? (g.unread||0) : 0;
-        var right = unread>0
-          ? '<span class="text-[10px] font-semibold bg-brand text-white rounded-full text-center px-1.5 py-0.5 shrink-0">' + (unread>99?'99+':unread) + '</span>'
-          : (g.role==='admin' ? '<span class="text-[10px] uppercase tracking-wide bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 shrink-0">admin</span>' : '');
-        b.innerHTML = '<div class="flex items-center justify-between gap-2">' +
-            '<span class="' + (unread>0?'font-bold':'font-medium') + ' truncate">' + esc(g.name) + '</span>' + right +
-          '</div><div class="text-xs ' + (unread>0?'text-gray-600 font-medium':'text-gray-400') + ' truncate mt-0.5">' + sub + '</div>';
-        b.onclick = function(){ openGroup(g); };
-        el.appendChild(b);
-      });
+      var gEl = $('groupList'), dEl = $('dmList');
+      gEl.innerHTML = ''; dEl.innerHTML = '';
+      var gs = groups.filter(function(g){ return !g.is_dm; });
+      var dms = groups.filter(function(g){ return g.is_dm; });
+      if(!gs.length){ gEl.innerHTML = '<p class="text-xs text-gray-400 px-2 py-3">' + (me.is_admin ? 'No groups yet — tap <b>+ New</b>.' : 'No groups yet.') + '</p>'; }
+      else { gs.forEach(function(g){ gEl.appendChild(groupRow(g)); }); }
+      if(!dms.length){ dEl.innerHTML = '<p class="text-xs text-gray-400 px-2 py-2">No direct messages yet.</p>'; }
+      else { dms.forEach(function(g){ dEl.appendChild(groupRow(g)); }); }
     }
 
     /* ---------- one group ---------- */
@@ -1248,8 +1412,8 @@ const APP_HTML = `<!doctype html>
       renderGroups();
       hide('chatEmpty'); show('chatActive');
       $('chatTitle').textContent = g.name;
-      $('chatSub').textContent = (g.role==='admin' ? 'Admin · ' : '') + g.member_count + ' member' + (g.member_count===1 ? '' : 's');
-      if(g.role==='admin'){ show('membersBtn'); } else { hide('membersBtn'); }
+      $('chatSub').textContent = g.is_dm ? 'Direct message' : ((g.role==='admin' ? 'Admin · ' : '') + g.member_count + ' member' + (g.member_count===1 ? '' : 's'));
+      if(!g.is_dm && g.role==='admin'){ show('membersBtn'); } else { hide('membersBtn'); }
       if(config.calls_enabled){ show('callAudioBtn'); show('callVideoBtn'); }
       show('pinsBtn');
       $('messages').innerHTML = '<p class="text-center text-sm text-gray-400 py-6">Loading…</p>';
@@ -1296,7 +1460,7 @@ const APP_HTML = `<!doctype html>
       msgModel[m.id] = m;
       if(m.kind==='call' && m.meta){ var cc = renderCallCard(m); cc.setAttribute('data-mid', m.id); return cc; }
       var mine = me && m.sender_email === me.email;
-      var row = ce('div', 'group flex ' + (mine ? 'justify-end' : 'justify-start'));
+      var row = ce('div', 'group flex items-end gap-2 ' + (mine ? 'justify-end' : 'justify-start'));
       row.setAttribute('data-mid', m.id);
 
       if(m.deleted){
@@ -1305,6 +1469,7 @@ const APP_HTML = `<!doctype html>
         dc.appendChild(db); row.appendChild(dc); return row;
       }
 
+      if(!mine){ row.appendChild(avatarEl(m.sender_name || m.sender_email, m.sender_avatar, 'w-8 h-8')); }
       var col = ce('div', 'max-w-[80%] flex flex-col ' + (mine ? 'items-end' : 'items-start'));
       var mentionsMe = me && (m.mentions || []).some(function(x){ return x.email === me.email; });
       var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-brand text-white' : 'bg-white text-gray-900 border') + (mentionsMe ? ' ring-2 ring-blue-400' : ''));
@@ -1856,6 +2021,58 @@ const APP_HTML = `<!doctype html>
       catch(e){ alert(e.message); }
     }
 
+    /* ---------- direct messages ---------- */
+    var dmDirectory = [];
+    async function openDmPicker(){
+      show('dmModal'); $('dmSearch').value=''; $('dmPeople').innerHTML = '<p class="text-sm text-gray-400 py-3 text-center">Loading…</p>';
+      try { dmDirectory = (await api('/api/directory')).people || []; renderDmPeople(dmDirectory); }
+      catch(e){ $('dmPeople').innerHTML = '<p class="text-sm text-red-500 py-3 text-center">' + esc(e.message) + '</p>'; }
+    }
+    function renderDmPeople(people){
+      var box = $('dmPeople'); box.innerHTML = '';
+      if(!people.length){ box.innerHTML = '<p class="text-sm text-gray-400 py-3 text-center">No one to message yet. You can DM people you share a group with.</p>'; return; }
+      people.forEach(function(p){
+        var b = ce('button','w-full text-left px-2 py-2 rounded-lg hover:bg-gray-100 flex items-center gap-2');
+        b.appendChild(avatarEl(p.name || p.email, p.avatar_url, 'w-8 h-8'));
+        var d = ce('div','min-w-0'); d.innerHTML = '<div class="text-sm font-medium truncate">' + esc(p.name || p.email) + '</div><div class="text-xs text-gray-400 truncate">' + esc(p.email) + '</div>';
+        b.appendChild(d); b.onclick = function(){ startDm(p.email); };
+        box.appendChild(b);
+      });
+    }
+    function filterDmList(){
+      var q = $('dmSearch').value.toLowerCase();
+      renderDmPeople(dmDirectory.filter(function(p){ return (p.name||'').toLowerCase().indexOf(q)>=0 || (p.email||'').toLowerCase().indexOf(q)>=0; }));
+    }
+    async function startDm(email){
+      try { var r = await api('/api/dm', { method:'POST', body: JSON.stringify({ email: email }) }); closeModal('dmModal'); await loadGroups(); if(r.group) openGroup(r.group); }
+      catch(e){ alert(e.message); }
+    }
+
+    /* ---------- avatar upload ---------- */
+    async function uploadAvatar(input){
+      var f = input.files && input.files[0]; if(!f) return; input.value='';
+      if(!/^image\\//.test(f.type||'')){ alert('Please choose an image.'); return; }
+      try {
+        var fd = new FormData(); fd.append('file', f);
+        var res = await fetch(API + '/api/me/avatar', { method:'POST', headers:{ Authorization:'Bearer ' + token }, body: fd });
+        var data = {}; try { data = await res.json(); } catch(e){}
+        if(!res.ok) throw new Error(data.error || 'Upload failed');
+        me = data.user; renderMeAvatar(); loadGroups();
+      } catch(e){ alert(e.message); }
+    }
+    function renderMeAvatar(){ var box=$('meAvatar'); if(!box) return; box.innerHTML=''; box.appendChild(avatarEl(me.name||me.email, me.avatar_url, 'w-16 h-16')); }
+    async function uploadGroupIcon(input){
+      var f = input.files && input.files[0]; if(!f || !active) return; input.value='';
+      if(!/^image\\//.test(f.type||'')){ alert('Please choose an image.'); return; }
+      try {
+        var fd = new FormData(); fd.append('file', f);
+        var res = await fetch(API + '/api/groups/' + active.id + '/icon', { method:'POST', headers:{ Authorization:'Bearer ' + token }, body: fd });
+        var data = {}; try { data = await res.json(); } catch(e){}
+        if(!res.ok) throw new Error(data.error || 'Upload failed');
+        loadGroups();
+      } catch(e){ alert(e.message); }
+    }
+
     /* ---------- members ---------- */
     async function openMembers(){
       if(!active) return;
@@ -1867,7 +2084,10 @@ const APP_HTML = `<!doctype html>
         var list = $('memberList'); list.innerHTML='';
         (r.members || []).forEach(function(mem){
           var rowEl = ce('div','flex items-center justify-between py-2 border-b last:border-0');
-          var left = ce('div'); left.innerHTML = '<div class="text-sm font-medium">' + esc(mem.name || mem.email) + '</div><div class="text-xs text-gray-400">' + esc(mem.email) + (mem.role==='admin' ? ' · admin' : '') + '</div>';
+          var left = ce('div','flex items-center gap-2 min-w-0');
+          left.appendChild(avatarEl(mem.name || mem.email, mem.avatar_url, 'w-8 h-8'));
+          var info = ce('div','min-w-0'); info.innerHTML = '<div class="text-sm font-medium truncate">' + esc(mem.name || mem.email) + '</div><div class="text-xs text-gray-400 truncate">' + esc(mem.email) + (mem.role==='admin' ? ' · admin' : '') + '</div>';
+          left.appendChild(info);
           rowEl.appendChild(left);
           if(active.role==='admin' && mem.email !== me.email){
             var del = ce('button','text-xs text-red-500 hover:underline'); del.textContent='Remove'; del.onclick=function(){ removeMember(mem.email); };
@@ -1908,7 +2128,7 @@ const APP_HTML = `<!doctype html>
       renderSwatches();
       try { await api('/api/me', { method:'POST', body: JSON.stringify({ accent: hex }) }); } catch(e){}
     }
-    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; renderSwatches(); show('meModal'); }
+    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; renderMeAvatar(); renderSwatches(); show('meModal'); }
     async function saveName(){
       var name = $('meName').value.trim();
       try { var r = await api('/api/me', { method:'POST', body: JSON.stringify({ name: name }) }); me = r.user; $('whoami').textContent = me.name || me.email; closeModal('meModal'); }
