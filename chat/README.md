@@ -39,6 +39,13 @@ serves the web app *and* the API, backed by a D1 database.
   and a group photo (admin). Shown in the sidebar, message list, and members;
   a colored initials circle is the fallback. Stored in R2, served via
   short-lived signed links.
+- **Push notifications** — turn them on per device (Account → Notifications) to
+  get alerts for new messages, DMs, and @mentions even when the app is closed.
+  Real Web Push (VAPID + RFC 8291 payload encryption) done entirely in the
+  Worker — no third-party push service and no keys to manage (they
+  auto-generate). The OS banner is suppressed while the app is open and
+  focused; @mentions and DMs are high-priority. On iPhone/iPad, "Add to Home
+  Screen" first (an Apple requirement for web push).
 
 ```
 chat.linearit.co  →  linear-chat Worker  →  D1 (users, groups, members, messages, reactions)
@@ -74,6 +81,9 @@ See **[`DEPLOY.md`](./DEPLOY.md)**. Short version:
 | `DEV_MODE` | optional | `"1"` returns the code in the API response so you can test without email. **Turn off in production.** |
 | `RESTRICT_TO_MEMBERS` | optional | `"1"` only lets known admins/members request a code (locks out strangers). |
 | `ALLOW_ORIGIN` | optional | CORS origin for the API. The bundled app is same-origin, so usually unneeded. |
+| `VAPID_PUBLIC_KEY` | optional | Web Push public key (base64url, 65-byte P-256 point). If unset, a keypair is generated once and stored in D1 (`app_kv`). Set this only to bring your own keys. |
+| `VAPID_PRIVATE_KEY` | optional | Web Push private key (base64url `d`). Pair with `VAPID_PUBLIC_KEY`. |
+| `VAPID_SUBJECT` | optional | `mailto:` (or `https:`) contact for push services. Defaults to the `EMAIL_FROM` address, else `mailto:admin@linearit.co`. |
 
 > **Email is required for real use.** Set **either** `RESEND_API_KEY` **or**
 > `EMAIL_WEBHOOK_URL`. Since Linear IT runs on Microsoft 365, the
@@ -103,6 +113,9 @@ See **[`DEPLOY.md`](./DEPLOY.md)**. Short version:
 | POST | `/api/messages/{mid}/react` | Bearer (member) | `{emoji}` → toggle a reaction |
 | POST | `/api/groups/{id}/call` | Bearer (member) | `{mode:'audio'|'video'}` → start a call; posts a Join card |
 | GET | `/api/files/{id}?e=&t=` | signed link | Stream an attachment from R2 (time-limited HMAC link) |
+| GET | `/api/push/key` | Bearer | `{enabled, key}` → the VAPID public key for `pushManager.subscribe` |
+| POST | `/api/push/subscribe` | Bearer | `{endpoint, keys:{p256dh, auth}}` → save this device's push subscription |
+| POST | `/api/push/unsubscribe` | Bearer | `{endpoint}` → remove this device's subscription |
 | GET | `/api/config` | — | Client config (attachments enabled, max upload, emoji set) |
 
 Sessions are stateless HMAC-signed bearer tokens (30-day expiry) — no cookies,
@@ -120,6 +133,11 @@ with its `reactions`, `attachments`, and `reply_count`.
 - Attachments are served only via **short-lived HMAC-signed links** (24h) and
   the upload/serve paths re-check group membership. Uploads are size-capped
   (`MAX_UPLOAD_MB`, default 20) and limited to 10 files per message.
+- Push payloads are **end-to-end encrypted per RFC 8291** (ECDH → HKDF →
+  AES-128-GCM) with a fresh ephemeral key per message, and each request is
+  authorized with a short-lived **VAPID** JWT (ES256). The push service only
+  ever sees ciphertext. Only a group's own members are ever notified, and dead
+  subscriptions are pruned automatically (HTTP 404/410).
 
 ## Calls
 - A 📞/🎥 button in the group header starts a voice or video call. The Worker
@@ -136,8 +154,24 @@ with its `reactions`, `attachments`, and `reply_count`.
   public servers. For private media, set `JITSI_DOMAIN` to a self-hosted Jitsi
   (or move to Cloudflare Realtime).
 
+## Notifications
+- **Turn on per device:** Account → Notifications → *Turn on*. The browser asks
+  permission, then this device subscribes; the button flips to *Turn off*.
+- **What fires one:** a new message, reply, DM, or @mention sent by someone else
+  in a group you belong to. @mentions and DMs are sent high-priority.
+- **When it's quiet:** if the app is open and focused, the service worker skips
+  the OS banner (it just nudges the page). Banners only show when the app is
+  closed or in the background.
+- **iPhone/iPad:** Apple only allows web push for **installed** web apps — use
+  Share → *Add to Home Screen*, open it from the icon, then turn on
+  notifications. Desktop Chrome/Edge/Firefox and Android Chrome work directly.
+- **Keys:** the VAPID keypair auto-generates on first use and is stored in D1
+  (`app_kv`) so it survives deploys. Override with `VAPID_PUBLIC_KEY` /
+  `VAPID_PRIVATE_KEY` secrets if you'd rather manage your own.
+
 ## Possible upgrades
 - Self-hosted Jitsi / Cloudflare Realtime SFU for in-house call media.
 - Swap polling for WebSockets via a Cloudflare **Durable Object** per group for
   instant delivery and presence.
-- Read receipts / unread counts, push notifications.
+- Read receipts, message search, and richer notification preferences
+  (per-group mute, mentions-only).

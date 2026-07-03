@@ -85,6 +85,27 @@ CREATE TABLE IF NOT EXISTS attachments (
 );
 CREATE INDEX IF NOT EXISTS idx_attachments_msg ON attachments(message_id);
 
+-- Web Push subscriptions. One row per browser/device a user turned notifications
+-- on for (p256dh + auth are the subscription's public key + shared secret, used
+-- to encrypt the push payload per RFC 8291). Expired ones are pruned on 404/410.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_email  TEXT NOT NULL,
+  endpoint    TEXT NOT NULL UNIQUE,
+  p256dh      TEXT NOT NULL,
+  auth        TEXT NOT NULL,
+  created_at  INTEGER NOT NULL              -- epoch milliseconds
+);
+CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_email);
+
+-- Tiny key/value store. Holds the auto-generated VAPID keypair (key 'vapid')
+-- so the applicationServerKey stays stable across deploys. Not needed if you
+-- set VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY as Worker secrets instead.
+CREATE TABLE IF NOT EXISTS app_kv (
+  k  TEXT PRIMARY KEY,
+  v  TEXT
+);
+
 -- Migrations for databases created before threads/calls existed (the Worker
 -- runs these too, ignoring "duplicate column" errors):
 --   ALTER TABLE messages ADD COLUMN parent_id INTEGER;

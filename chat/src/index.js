@@ -50,7 +50,7 @@ export default {
       if (p === "/manifest.webmanifest") return manifestResponse();
       if (p === "/sw.js") return swResponse();
       if (p.startsWith("/api/")) {
-        return cors(env, await handleApi(request, env, url, p, method));
+        return cors(env, await handleApi(request, env, ctx, url, p, method));
       }
       return htmlResponse(APP_HTML);
     } catch (err) {
@@ -63,7 +63,7 @@ export default {
 /* ============================================================
  * API router
  * ============================================================ */
-async function handleApi(request, env, url, p, method) {
+async function handleApi(request, env, ctx, url, p, method) {
   await ensureSchema(env);
 
   // ---- Public (no token) ----
@@ -86,6 +86,9 @@ async function handleApi(request, env, url, p, method) {
   if (p === "/api/me/avatar" && method === "POST") return uploadAvatar(request, env, email);
   if (p === "/api/directory" && method === "GET") return directory(env, email);
   if (p === "/api/dm" && method === "POST") return openDm(request, env, email);
+  if (p === "/api/push/key" && method === "GET") return pushKey(env);
+  if (p === "/api/push/subscribe" && method === "POST") return subscribePush(request, env, email);
+  if (p === "/api/push/unsubscribe" && method === "POST") return unsubscribePush(request, env, email);
   if (p === "/api/groups" && method === "GET") return listGroups(env, email);
   if (p === "/api/groups" && method === "POST") return createGroup(request, env, email);
 
@@ -109,7 +112,7 @@ async function handleApi(request, env, url, p, method) {
     if (sub === "members" && method === "POST") return addMember(request, env, email, gid);
     if (sub === "members/remove" && method === "POST") return removeMember(request, env, email, gid);
     if (sub === "messages" && method === "GET") return listMessages(env, email, gid, url);
-    if (sub === "messages" && method === "POST") return postMessage(request, env, email, gid);
+    if (sub === "messages" && method === "POST") return postMessage(request, env, ctx, email, gid);
     if (sub === "badges" && method === "POST") return badges(request, env, email, gid);
     if (sub === "call" && method === "POST") return startCall(request, env, email, gid);
     if (sub === "read" && method === "POST") return markRead(request, env, email, gid);
@@ -388,7 +391,7 @@ async function getThread(env, email, gid, mid, url) {
   return json({ parent: p, messages: replies });
 }
 
-async function postMessage(request, env, email, gid) {
+async function postMessage(request, env, ctx, email, gid) {
   await requireMember(env, gid, email);
 
   const ct = request.headers.get("content-type") || "";
@@ -456,6 +459,12 @@ async function postMessage(request, env, email, gid) {
     "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE id=?"
   ).bind(id).first();
   const [enriched] = await enrich(env, email, [row]);
+
+  // Push notifications to the other members (fire-and-forget; the service
+  // worker suppresses the OS banner when the app is focused).
+  const notify = notifyForMessage(env, gid, email, name, body, id, mentions).catch(() => {});
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notify);
+
   return json({ message: enriched, parent_id: parentId });
 }
 
@@ -985,9 +994,36 @@ function manifestResponse() {
 // Minimal service worker: network passthrough (makes the app installable without
 // caching stale versions — every load still comes from the Worker).
 function swResponse() {
-  const sw = "self.addEventListener('install',function(e){self.skipWaiting();});" +
-    "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});" +
-    "self.addEventListener('fetch',function(e){});";
+  const sw = [
+    "var ICON = 'https://cftheitguy.github.io/assets/logo.png';",
+    "self.addEventListener('install', function(e){ self.skipWaiting(); });",
+    "self.addEventListener('activate', function(e){ e.waitUntil(self.clients.claim()); });",
+    "self.addEventListener('fetch', function(e){});",
+    // Show an OS notification for an incoming push — unless the app is already
+    // open and focused, in which case we just nudge the page instead.
+    "self.addEventListener('push', function(event){",
+    "  var data = {}; try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }",
+    "  var title = data.title || 'Linear Chat';",
+    "  var options = { body: data.body || '', tag: data.tag || 'linear-chat', renotify: true, icon: ICON, badge: ICON, data: { url: data.url || '/', gid: (data.gid != null ? data.gid : null) } };",
+    "  event.waitUntil((async function(){",
+    "    var list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });",
+    "    var focused = list.some(function(c){ return c.focused || c.visibilityState === 'visible'; });",
+    "    if (focused) { list.forEach(function(c){ c.postMessage({ type: 'push', data: data }); }); return; }",
+    "    await self.registration.showNotification(title, options);",
+    "  })());",
+    "});",
+    // Clicking a notification focuses the app (and jumps to the group) or opens it.
+    "self.addEventListener('notificationclick', function(event){",
+    "  event.notification.close();",
+    "  var d = event.notification.data || {}; var gid = d.gid != null ? d.gid : null;",
+    "  event.waitUntil((async function(){",
+    "    var list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });",
+    "    for (var i = 0; i < list.length; i++) { var c = list[i];",
+    "      if ('focus' in c) { try { await c.focus(); } catch (e) {} if (gid != null) c.postMessage({ type: 'open-group', gid: gid }); return; } }",
+    "    if (self.clients.openWindow) return self.clients.openWindow(gid != null ? ('/?g=' + gid) : (d.url || '/'));",
+    "  })());",
+    "});",
+  ].join("\n");
   return new Response(sw, { status: 200, headers: { "Content-Type": "application/javascript; charset=utf-8" } });
 }
 
@@ -1039,10 +1075,221 @@ async function ensureSchema(env) {
     "CREATE TABLE IF NOT EXISTS mentions (id INTEGER PRIMARY KEY AUTOINCREMENT, message_id INTEGER NOT NULL, group_id INTEGER NOT NULL, email TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
     "CREATE INDEX IF NOT EXISTS idx_mentions_msg ON mentions(message_id)",
     "CREATE INDEX IF NOT EXISTS idx_mentions_email ON mentions(email)",
+    // Web Push: per-device subscriptions + a tiny key/value store for the
+    // auto-generated VAPID keypair (so it stays stable across deploys).
+    "CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_email TEXT NOT NULL, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at INTEGER NOT NULL)",
+    "CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_email)",
+    "CREATE TABLE IF NOT EXISTS app_kv (k TEXT PRIMARY KEY, v TEXT)",
   ];
   for (const s of more) await env.DB.prepare(s).run();
 
   SCHEMA_READY = true;
+}
+
+/* ============================================================
+ * Web Push — VAPID auth (RFC 8292) + payload encryption (RFC 8291),
+ * implemented with WebCrypto only (no libraries). Everything below the
+ * START marker is self-contained enough to unit-test in Node.
+ * ==PUSH-CRYPTO-START==
+ * ============================================================ */
+const PUSH_ENC = new TextEncoder();
+
+function b64urlToBytes(s) {
+  s = String(s).replace(/-/g, "+").replace(/_/g, "/");
+  const pad = s.length % 4;
+  if (pad) s += "=".repeat(4 - pad);
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function bytesToB64url(bytes) {
+  const b = new Uint8Array(bytes);
+  let bin = "";
+  for (let i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function concatBytes(...arrs) {
+  let len = 0;
+  for (const a of arrs) len += a.length;
+  const out = new Uint8Array(len);
+  let o = 0;
+  for (const a of arrs) { out.set(a, o); o += a.length; }
+  return out;
+}
+async function hmacSha256(keyBytes, dataBytes) {
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, dataBytes));
+}
+
+function vapidSubject(env) {
+  if (env.VAPID_SUBJECT) return env.VAPID_SUBJECT;
+  const from = env.EMAIL_FROM || "";
+  const m = from.match(/<([^>]+)>/);
+  const addr = (m ? m[1] : from).trim();
+  if (addr && /@/.test(addr)) return "mailto:" + addr;
+  return "mailto:admin@linearit.co";
+}
+
+// VAPID keypair: explicit env keys win; otherwise generate once and persist in
+// app_kv so the applicationServerKey (which the browser ties subscriptions to)
+// stays stable across deploys. Cached in memory for the isolate's lifetime.
+let VAPID_CACHE = null;
+async function getVapid(env) {
+  if (VAPID_CACHE) return VAPID_CACHE;
+  const subject = vapidSubject(env);
+  if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+    const pub = b64urlToBytes(env.VAPID_PUBLIC_KEY); // 65 bytes: 0x04 || X || Y
+    const jwk = { kty: "EC", crv: "P-256", x: bytesToB64url(pub.slice(1, 33)), y: bytesToB64url(pub.slice(33, 65)), d: env.VAPID_PRIVATE_KEY };
+    VAPID_CACHE = { publicKey: env.VAPID_PUBLIC_KEY, jwk, subject };
+    return VAPID_CACHE;
+  }
+  const row = await env.DB.prepare("SELECT v FROM app_kv WHERE k='vapid'").first();
+  if (row && row.v) {
+    try { const saved = JSON.parse(row.v); VAPID_CACHE = { publicKey: saved.publicKey, jwk: saved.jwk, subject }; return VAPID_CACHE; } catch (_) { /* regenerate */ }
+  }
+  const kp = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+  const rawPub = new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey)); // 65 bytes
+  const jwk = await crypto.subtle.exportKey("jwk", kp.privateKey);
+  const publicKey = bytesToB64url(rawPub);
+  await env.DB.prepare("INSERT OR REPLACE INTO app_kv (k, v) VALUES ('vapid', ?)").bind(JSON.stringify({ publicKey, jwk })).run();
+  VAPID_CACHE = { publicKey, jwk, subject };
+  return VAPID_CACHE;
+}
+
+async function vapidAuthHeader(env, endpoint) {
+  const vapid = await getVapid(env);
+  const aud = new URL(endpoint).origin;
+  const header = bytesToB64url(PUSH_ENC.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+  const payload = bytesToB64url(PUSH_ENC.encode(JSON.stringify({ aud, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: vapid.subject })));
+  const signingInput = header + "." + payload;
+  const key = await crypto.subtle.importKey("jwk", { kty: "EC", crv: "P-256", x: vapid.jwk.x, y: vapid.jwk.y, d: vapid.jwk.d, ext: true }, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, PUSH_ENC.encode(signingInput))); // JOSE r||s
+  const jwt = signingInput + "." + bytesToB64url(sig);
+  return { Authorization: "vapid t=" + jwt + ", k=" + vapid.publicKey };
+}
+
+// RFC 8291 aes128gcm. `injected` (as_private JWK, as_public, salt) is only used
+// by the tests to reproduce the RFC's fixed vectors; production is random.
+async function encryptPush(plaintextBytes, p256dhB64, authB64, injected) {
+  const uaPublic = b64urlToBytes(p256dhB64);   // 65 bytes
+  const authSecret = b64urlToBytes(authB64);   // 16 bytes
+  let asPriv, asPubRaw;
+  if (injected) {
+    asPriv = await crypto.subtle.importKey("jwk", injected.asPrivateJwk, { name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+    asPubRaw = b64urlToBytes(injected.asPublic);
+  } else {
+    const kp = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+    asPriv = kp.privateKey;
+    asPubRaw = new Uint8Array(await crypto.subtle.exportKey("raw", kp.publicKey));
+  }
+  const uaKey = await crypto.subtle.importKey("raw", uaPublic, { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const shared = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: uaKey }, asPriv, 256));
+  const salt = injected && injected.salt ? b64urlToBytes(injected.salt) : crypto.getRandomValues(new Uint8Array(16));
+
+  // key derivation (RFC 8291 §3.4)
+  const prkKey = await hmacSha256(authSecret, shared);
+  const keyInfo = concatBytes(PUSH_ENC.encode("WebPush: info\0"), uaPublic, asPubRaw);
+  const ikm = await hmacSha256(prkKey, concatBytes(keyInfo, new Uint8Array([1])));
+  const prk = await hmacSha256(salt, ikm);
+  const cek = (await hmacSha256(prk, concatBytes(PUSH_ENC.encode("Content-Encoding: aes128gcm\0"), new Uint8Array([1])))).slice(0, 16);
+  const nonce = (await hmacSha256(prk, concatBytes(PUSH_ENC.encode("Content-Encoding: nonce\0"), new Uint8Array([1])))).slice(0, 12);
+
+  // one record: plaintext || 0x02 (last-record padding delimiter)
+  const record = concatBytes(plaintextBytes, new Uint8Array([2]));
+  const cekKey = await crypto.subtle.importKey("raw", cek, { name: "AES-GCM" }, false, ["encrypt"]);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce, tagLength: 128 }, cekKey, record));
+
+  // aes128gcm header: salt(16) | rs(4, =4096) | idlen(1) | keyid(as_public,65)
+  const header = concatBytes(salt, new Uint8Array([0, 0, 0x10, 0x00]), new Uint8Array([asPubRaw.length]), asPubRaw);
+  return concatBytes(header, ct);
+}
+
+async function sendOnePush(env, sub, payloadObj, urgency) {
+  let body;
+  try { body = await encryptPush(PUSH_ENC.encode(JSON.stringify(payloadObj)), sub.p256dh, sub.auth); }
+  catch (_) { return 400; }
+  const auth = await vapidAuthHeader(env, sub.endpoint);
+  let res;
+  try {
+    res = await fetch(sub.endpoint, {
+      method: "POST",
+      headers: Object.assign({}, auth, {
+        "Content-Encoding": "aes128gcm",
+        "Content-Type": "application/octet-stream",
+        "TTL": "86400",
+        "Urgency": urgency || "normal",
+      }),
+      body,
+    });
+  } catch (_) { return 0; }
+  if (res.status === 404 || res.status === 410) {
+    try { await env.DB.prepare("DELETE FROM push_subscriptions WHERE endpoint=?").bind(sub.endpoint).run(); } catch (_) {}
+  }
+  return res.status;
+}
+
+async function notifyPush(env, emails, payloadObj, urgency) {
+  if (!emails || !emails.length) return;
+  try { await getVapid(env); } catch (_) { return; }
+  const ph = emails.map(() => "?").join(",");
+  const subs = await env.DB.prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_email IN (" + ph + ")").bind(...emails).all();
+  await Promise.allSettled((subs.results || []).map((s) => sendOnePush(env, s, payloadObj, urgency)));
+}
+
+function pushSnippet(body) {
+  let s = String(body || "").replace(/\s+/g, " ").trim();
+  if (!s) return "Sent an attachment";
+  return s.length > 140 ? s.slice(0, 139) + "…" : s;
+}
+
+async function notifyForMessage(env, gid, senderEmail, senderName, body, msgId, mentions) {
+  const g = await env.DB.prepare("SELECT id, name, is_dm FROM chat_groups WHERE id=?").bind(gid).first();
+  if (!g) return;
+  const membersRes = await env.DB.prepare("SELECT email FROM group_members WHERE group_id=? AND email<>?").bind(gid, senderEmail).all();
+  const recipients = (membersRes.results || []).map((r) => r.email);
+  if (!recipients.length) return;
+
+  const sender = senderName || senderEmail;
+  const snippet = pushSnippet(body);
+  const isDm = !!g.is_dm;
+  const tag = "g" + gid;
+  const url = "/?g=" + gid;
+  const mentionSet = new Set((mentions || []).map((e) => String(e).toLowerCase()));
+  const mentioned = recipients.filter((e) => mentionSet.has(e.toLowerCase()));
+  const others = recipients.filter((e) => !mentionSet.has(e.toLowerCase()));
+
+  if (mentioned.length) {
+    await notifyPush(env, mentioned, { title: sender + " mentioned you" + (isDm ? "" : " in " + g.name), body: snippet, tag, url, gid, kind: "mention" }, "high");
+  }
+  if (others.length) {
+    await notifyPush(env, others, { title: isDm ? sender : g.name, body: (isDm ? "" : sender + ": ") + snippet, tag, url, gid, kind: isDm ? "dm" : "message" }, isDm ? "high" : "normal");
+  }
+}
+/* ==PUSH-CRYPTO-END== */
+
+async function pushKey(env) {
+  try { const v = await getVapid(env); return json({ enabled: true, key: v.publicKey }); }
+  catch (_) { return json({ enabled: false }); }
+}
+async function subscribePush(request, env, email) {
+  const b = await readBody(request);
+  const endpoint = String(b.endpoint || "");
+  const keys = b.keys || {};
+  const p256dh = String(keys.p256dh || "");
+  const auth = String(keys.auth || "");
+  if (!endpoint || !p256dh || !auth) return json({ error: "Invalid subscription." }, 400);
+  await env.DB.prepare(
+    "INSERT INTO push_subscriptions (user_email, endpoint, p256dh, auth, created_at) VALUES (?,?,?,?,?) " +
+    "ON CONFLICT(endpoint) DO UPDATE SET user_email=excluded.user_email, p256dh=excluded.p256dh, auth=excluded.auth"
+  ).bind(email, endpoint, p256dh, auth, Date.now()).run();
+  return json({ ok: true });
+}
+async function unsubscribePush(request, env, email) {
+  const b = await readBody(request);
+  const endpoint = String(b.endpoint || "");
+  if (endpoint) await env.DB.prepare("DELETE FROM push_subscriptions WHERE endpoint=? AND user_email=?").bind(endpoint, email).run();
+  return json({ ok: true });
 }
 
 /* ============================================================
@@ -1275,6 +1522,12 @@ const APP_HTML = `<!doctype html>
       </div>
       <label class="text-xs text-gray-500 block mt-4">App color</label>
       <div id="accentSwatches" class="flex flex-wrap gap-2 mt-1"></div>
+
+      <label class="text-xs text-gray-500 block mt-4">Notifications</label>
+      <div class="flex items-center justify-between gap-3 mt-1">
+        <span id="pushStatus" class="text-xs text-gray-500 flex-1">Get notified about new messages.</span>
+        <button id="pushBtn" type="button" onclick="enablePush()" class="bg-brand text-white rounded-lg px-3 py-1.5 text-sm hover:opacity-90 shrink-0">Turn on</button>
+      </div>
     </div>
   </div>
 
@@ -1372,6 +1625,9 @@ const APP_HTML = `<!doctype html>
       // Voice notes need R2 (attachments) + a browser that can record.
       if(!config.attachments_enabled || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || !window.MediaRecorder){ $('recBtn').classList.add('hidden'); }
       await loadGroups();
+      var mg = (location.search.match(/[?&]g=(\\d+)/) || [])[1];
+      if(mg){ openGroupById(Number(mg)); }
+      ensurePushSynced();   // keep this device's subscription fresh if already granted
     }
 
     async function loadGroups(){
@@ -2128,13 +2384,66 @@ const APP_HTML = `<!doctype html>
       renderSwatches();
       try { await api('/api/me', { method:'POST', body: JSON.stringify({ accent: hex }) }); } catch(e){}
     }
-    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; renderMeAvatar(); renderSwatches(); show('meModal'); }
+    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; renderMeAvatar(); renderSwatches(); updatePushBtn(); show('meModal'); }
     async function saveName(){
       var name = $('meName').value.trim();
       try { var r = await api('/api/me', { method:'POST', body: JSON.stringify({ name: name }) }); me = r.user; $('whoami').textContent = me.name || me.email; closeModal('meModal'); }
       catch(e){ alert(e.message); }
     }
     function logout(){ localStorage.removeItem('chat_token'); token=''; me=null; stopPoll(); stopThreadPoll(); location.reload(); }
+
+    /* ---------- push notifications ---------- */
+    function pushSupported(){ return ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window); }
+    function urlB64ToUint8Array(b){
+      var pad = '='.repeat((4 - b.length % 4) % 4);
+      var base64 = (b + pad).replace(/-/g, '+').replace(/_/g, '/');
+      var raw = atob(base64), arr = new Uint8Array(raw.length);
+      for(var i=0;i<raw.length;i++){ arr[i] = raw.charCodeAt(i); }
+      return arr;
+    }
+    async function pushGetSub(){ var reg = await navigator.serviceWorker.ready; return reg.pushManager.getSubscription(); }
+    async function pushSubscribeNow(){
+      var reg = await navigator.serviceWorker.ready;
+      var r = await api('/api/push/key');
+      if(!r || !r.enabled || !r.key){ throw new Error('Push is not configured on the server.'); }
+      var sub = await reg.pushManager.getSubscription();
+      if(!sub){ sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(r.key) }); }
+      var j = sub.toJSON();
+      await api('/api/push/subscribe', { method:'POST', body: JSON.stringify({ endpoint: sub.endpoint, keys: j.keys }) });
+      return sub;
+    }
+    async function enablePush(){
+      if(!pushSupported()){ alert('Notifications are not supported here. On iPhone/iPad, add this app to your Home Screen first, then open it and try again.'); return; }
+      try {
+        var perm = await Notification.requestPermission();
+        if(perm !== 'granted'){ updatePushBtn(); return; }
+        await pushSubscribeNow();
+      } catch(e){ alert('Could not enable notifications: ' + (e && e.message ? e.message : e)); }
+      updatePushBtn();
+    }
+    async function disablePush(){
+      try {
+        var sub = await pushGetSub();
+        if(sub){ await api('/api/push/unsubscribe', { method:'POST', body: JSON.stringify({ endpoint: sub.endpoint }) }); await sub.unsubscribe(); }
+      } catch(e){}
+      updatePushBtn();
+    }
+    async function updatePushBtn(){
+      var btn = $('pushBtn'), status = $('pushStatus'); if(!btn) return;
+      if(!pushSupported()){ btn.classList.add('hidden'); if(status){ status.textContent = 'Not supported here. On iPhone/iPad, add to Home Screen first.'; } return; }
+      btn.classList.remove('hidden');
+      if(Notification.permission === 'denied'){ btn.textContent='Blocked'; btn.disabled=true; btn.onclick=null; if(status){ status.textContent='Notifications are blocked in your browser settings.'; } return; }
+      btn.disabled = false;
+      var subbed = false; try { subbed = !!(await pushGetSub()); } catch(e){}
+      if(Notification.permission === 'granted' && subbed){ btn.textContent='Turn off'; btn.onclick=disablePush; if(status){ status.textContent='On for this device.'; } }
+      else { btn.textContent='Turn on'; btn.onclick=enablePush; if(status){ status.textContent='Get notified about new messages.'; } }
+    }
+    async function ensurePushSynced(){ if(!pushSupported() || Notification.permission !== 'granted') return; try { await pushSubscribeNow(); } catch(e){} }
+    function openGroupById(gid){
+      var g = groups.filter(function(x){ return x.id === gid; })[0];
+      if(g){ openGroup(g); return; }
+      loadGroups().then(function(){ var g2 = groups.filter(function(x){ return x.id === gid; })[0]; if(g2){ openGroup(g2); } });
+    }
 
     /* ---------- composer auto-grow ---------- */
     document.addEventListener('input', function(e){
@@ -2147,6 +2456,12 @@ const APP_HTML = `<!doctype html>
     /* ---------- boot ---------- */
     applyAccent(localStorage.getItem('chat_accent') || '#111827');   // instant theme before login
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
+    if('serviceWorker' in navigator && navigator.serviceWorker.addEventListener){
+      navigator.serviceWorker.addEventListener('message', function(ev){
+        var d = ev.data || {};
+        if(d.type === 'open-group' && d.gid != null){ openGroupById(d.gid); }
+      });
+    }
     (async function init(){
       if(token){
         try { var r = await api('/api/me'); me = r.user; return enterApp(); }
