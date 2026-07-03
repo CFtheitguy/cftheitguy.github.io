@@ -717,15 +717,6 @@ async function serveFile(request, env, url, id) {
 
   const type = row.content_type || "application/octet-stream";
   const inline = /^(image|audio|video)\//.test(type) || type === "application/pdf";
-  const rangeHeader = request && request.headers.get("Range");
-
-  // Honor HTTP Range requests. iOS Safari refuses to play <audio>/<video>
-  // unless the server answers with 206 Partial Content + Content-Range — this
-  // is why voice notes showed a spinner / "--:--" on iPad but played on a PC.
-  let obj;
-  try { obj = await env.FILES.get(row.r2_key, rangeHeader ? { range: request.headers } : undefined); }
-  catch (_) { obj = await env.FILES.get(row.r2_key); }
-  if (!obj) return new Response("Not found", { status: 404 });
 
   const h = new Headers();
   h.set("Content-Type", type);
@@ -733,19 +724,39 @@ async function serveFile(request, env, url, id) {
   h.set("Cache-Control", "private, max-age=86400");
   h.set("Accept-Ranges", "bytes");
 
-  const size = obj.size;
-  if (rangeHeader && obj.range) {
-    const r = obj.range;
+  // Total size (head() is cheap — no body download).
+  const meta = await env.FILES.head(row.r2_key);
+  if (!meta) return new Response("Not found", { status: 404 });
+  const size = meta.size;
+
+  // HTTP Range: iOS Safari REQUIRES a 206 Partial Content reply to play
+  // <audio>/<video>. Parse the range ourselves and ask R2 for an explicit byte
+  // window ({ range: { offset, length } }) — the canonical, reliable form — so
+  // we never depend on R2 parsing the header. (This is why iPad showed a
+  // spinner / "--:--" while a PC, which just downloads the whole file, played.)
+  const rangeHeader = request && request.headers.get("Range");
+  const mm = rangeHeader && /^bytes=(\d*)-(\d*)$/.exec(rangeHeader.trim());
+  if (mm) {
     let start, end;
-    if (typeof r.suffix === "number") { start = Math.max(0, size - r.suffix); end = size - 1; }
-    else { start = r.offset || 0; end = typeof r.length === "number" ? Math.min(size - 1, start + r.length - 1) : size - 1; }
-    h.set("Content-Range", "bytes " + start + "-" + end + "/" + size);
-    h.set("Content-Length", String(end - start + 1));
-    return new Response(obj.body, { status: 206, headers: h });
+    if (mm[1] === "" && mm[2] !== "") { const n = Math.min(size, Number(mm[2])); start = size - n; end = size - 1; }
+    else if (mm[1] !== "") { start = Number(mm[1]); end = mm[2] === "" ? size - 1 : Math.min(size - 1, Number(mm[2])); }
+    if (start === undefined || isNaN(start) || start < 0 || start >= size || end < start) {
+      h.set("Content-Range", "bytes */" + size);
+      return new Response("Range Not Satisfiable", { status: 416, headers: h });
+    }
+    const length = end - start + 1;
+    const part = await env.FILES.get(row.r2_key, { range: { offset: start, length } });
+    if (part && part.body) {
+      h.set("Content-Range", "bytes " + start + "-" + end + "/" + size);
+      h.set("Content-Length", String(length));
+      return new Response(part.body, { status: 206, headers: h });
+    }
   }
 
-  if (typeof size === "number") h.set("Content-Length", String(size));
-  return new Response(obj.body, { status: 200, headers: h });
+  const full = await env.FILES.get(row.r2_key);
+  if (!full) return new Response("Not found", { status: 404 });
+  h.set("Content-Length", String(size));
+  return new Response(full.body, { status: 200, headers: h });
 }
 
 /* ============================================================
