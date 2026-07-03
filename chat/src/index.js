@@ -89,6 +89,14 @@ async function handleApi(request, env, ctx, url, p, method) {
   if (p === "/api/push/key" && method === "GET") return pushKey(env);
   if (p === "/api/push/subscribe" && method === "POST") return subscribePush(request, env, email);
   if (p === "/api/push/unsubscribe" && method === "POST") return unsubscribePush(request, env, email);
+
+  // Cloudflare Realtime: SFU proxy (keeps the app secret server-side) + signaling
+  if (p === "/api/calls/sfu/sessions/new" && method === "POST") return sfuProxy(request, env, "/sessions/new");
+  { const cm = p.match(/^\/api\/calls\/sfu\/sessions\/([A-Za-z0-9._-]+)\/tracks\/new$/); if (cm && method === "POST") return sfuProxy(request, env, "/sessions/" + cm[1] + "/tracks/new"); }
+  { const cm = p.match(/^\/api\/calls\/sfu\/sessions\/([A-Za-z0-9._-]+)\/renegotiate$/); if (cm && method === "PUT") return sfuProxy(request, env, "/sessions/" + cm[1] + "/renegotiate"); }
+  { const cm = p.match(/^\/api\/calls\/sfu\/sessions\/([A-Za-z0-9._-]+)\/tracks\/close$/); if (cm && method === "PUT") return sfuProxy(request, env, "/sessions/" + cm[1] + "/tracks/close"); }
+  { const cm = p.match(/^\/api\/calls\/([A-Za-z0-9_-]+)\/(join|state|leave)$/); if (cm && method === "POST") return callSignal(request, env, email, cm[1], cm[2]); }
+
   if (p === "/api/groups" && method === "GET") return listGroups(env, email);
   if (p === "/api/groups" && method === "POST") return createGroup(request, env, email);
 
@@ -697,6 +705,67 @@ function randToken(n) {
 }
 
 /* ============================================================
+ * Cloudflare Realtime — SFU proxy + room signaling (D1-polled)
+ * ============================================================ */
+function callsConfigured(env) { return !!(env.REALTIME_APP_ID && env.REALTIME_APP_SECRET); }
+
+// Transparent proxy to the Realtime SFU. The browser never sees the app secret;
+// it POSTs SDP to us, we forward with the Bearer token and return the answer.
+async function sfuProxy(request, env, path) {
+  if (!callsConfigured(env)) return json({ error: "Calling isn't configured yet (set REALTIME_APP_ID and REALTIME_APP_SECRET)." }, 503);
+  const url = "https://rtc.live.cloudflare.com/v1/apps/" + env.REALTIME_APP_ID + path;
+  const init = { method: request.method, headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET } };
+  if (request.method !== "GET" && request.method !== "HEAD") { init.body = await request.text(); init.headers["Content-Type"] = "application/json"; }
+  let res;
+  try { res = await fetch(url, init); }
+  catch (_) { return json({ error: "Call service unreachable." }, 502); }
+  return new Response(res.body, { status: res.status, headers: { "Content-Type": "application/json" } });
+}
+
+function safeJsonParse(s, fallback) { try { return JSON.parse(s || ""); } catch (_) { return fallback; } }
+
+// Room presence: join / heartbeat+state / leave, all returning the live roster.
+// Media is realtime via the SFU; this only tracks who's present + their tracks.
+async function callSignal(request, env, email, room, action) {
+  const rm = room.match(/^linear-(\d+)-/);
+  if (!rm) return json({ error: "Unknown call room." }, 400);
+  await requireMember(env, Number(rm[1]), email);
+  const now = Date.now();
+
+  if (action === "leave") {
+    await env.DB.prepare("DELETE FROM call_participants WHERE room=? AND email=?").bind(room, email).run();
+    return json({ ok: true });
+  }
+
+  const b = await readBody(request);
+  const u = await env.DB.prepare("SELECT name FROM users WHERE email=?").bind(email).first();
+  const name = (u && u.name) || (b.name ? String(b.name).slice(0, 80) : email);
+  const sessionId = b.sessionId ? String(b.sessionId).slice(0, 300) : null;
+  const tracks = JSON.stringify(Array.isArray(b.tracks) ? b.tracks.slice(0, 8) : []).slice(0, 2000);
+  const muted = b.muted ? 1 : 0;
+  const videoOff = b.videoOff ? 1 : 0;
+
+  if (action === "join") {
+    await env.DB.prepare(
+      "INSERT INTO call_participants (room,email,name,session_id,tracks,muted,video_off,joined_at,last_seen) VALUES (?,?,?,?,?,?,?,?,?) " +
+      "ON CONFLICT(room,email) DO UPDATE SET name=excluded.name, session_id=excluded.session_id, tracks=excluded.tracks, muted=excluded.muted, video_off=excluded.video_off, last_seen=excluded.last_seen"
+    ).bind(room, email, name, sessionId, tracks, muted, videoOff, now, now).run();
+  } else {
+    await env.DB.prepare(
+      "UPDATE call_participants SET session_id=COALESCE(?, session_id), tracks=?, muted=?, video_off=?, last_seen=? WHERE room=? AND email=?"
+    ).bind(sessionId, tracks, muted, videoOff, now, room, email).run();
+  }
+
+  // GC anyone who stopped heartbeating (left / crashed), then return who's live.
+  await env.DB.prepare("DELETE FROM call_participants WHERE last_seen < ?").bind(now - 30000).run();
+  const rows = (await env.DB.prepare(
+    "SELECT email,name,session_id,tracks,muted,video_off FROM call_participants WHERE room=? AND last_seen >= ?"
+  ).bind(room, now - 15000).all()).results || [];
+  const participants = rows.map((r) => ({ email: r.email, name: r.name, sessionId: r.session_id, tracks: safeJsonParse(r.tracks, []), muted: !!r.muted, videoOff: !!r.video_off, self: r.email === email }));
+  return json({ self: { email, name }, participants });
+}
+
+/* ============================================================
  * Attachments: signed URLs + R2 serving
  * ============================================================ */
 async function signedFileUrl(env, id) {
@@ -1121,6 +1190,10 @@ async function ensureSchema(env) {
     "CREATE TABLE IF NOT EXISTS push_subscriptions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_email TEXT NOT NULL, endpoint TEXT NOT NULL UNIQUE, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at INTEGER NOT NULL)",
     "CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_email)",
     "CREATE TABLE IF NOT EXISTS app_kv (k TEXT PRIMARY KEY, v TEXT)",
+    // Cloudflare Realtime calling: live roster of who's in a call room, plus
+    // each participant's SFU session id + published track names (for signaling).
+    "CREATE TABLE IF NOT EXISTS call_participants (room TEXT NOT NULL, email TEXT NOT NULL, name TEXT, session_id TEXT, tracks TEXT, muted INTEGER NOT NULL DEFAULT 0, video_off INTEGER NOT NULL DEFAULT 0, joined_at INTEGER NOT NULL, last_seen INTEGER NOT NULL, PRIMARY KEY (room, email))",
+    "CREATE INDEX IF NOT EXISTS idx_call_room ON call_participants(room)",
   ];
   for (const s of more) await env.DB.prepare(s).run();
 
