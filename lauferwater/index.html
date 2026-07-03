@@ -1,0 +1,558 @@
+e it as index.html.
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PureFlow Water Solutions</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+scroll-behavior:smooth;
+font-family:'Poppins',sans-serif;
+}
+
+body{
+background:#f5f9fc;
+color:#333;
+line-height:1.7;
+}
+
+header{
+position:fixed;
+top:0;
+width:100%;
+background:white;
+box-shadow:0 2px 15px rgba(0,0,0,.08);
+z-index:999;
+}
+
+nav{
+max-width:1200px;
+margin:auto;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:18px;
+}
+
+.logo{
+font-size:28px;
+font-weight:700;
+color:#0b75d1;
+}
+
+nav ul{
+display:flex;
+list-style:none;
+gap:30px;
+}
+
+nav a{
+text-decoration:none;
+color:#333;
+font-weight:500;
+transition:.3s;
+}
+
+nav a:hover{
+color:#0b75d1;
+}
+
+.hero{
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+background:linear-gradient(rgba(0,65,130,.75),rgba(0,65,130,.75)),
+url('https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=1800&q=80');
+background-size:cover;
+background-position:center;
+text-align:center;
+color:white;
+padding:20px;
+}
+
+.hero h1{
+font-size:60px;
+margin-bottom:20px;
+}
+
+.hero p{
+font-size:22px;
+max-width:800px;
+margin:auto;
+}
+
+.hero button{
+margin-top:40px;
+padding:18px 40px;
+font-size:18px;
+background:#0bb4ff;
+border:none;
+color:white;
+border-radius:50px;
+cursor:pointer;
+transition:.3s;
+}
+
+.hero button:hover{
+background:#0094dd;
+transform:translateY(-3px);
+}
+
+section{
+padding:110px 20px;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+}
+
+h2{
+font-size:40px;
+margin-bottom:20px;
+text-align:center;
+color:#0b75d1;
+}
+
+.subtitle{
+text-align:center;
+margin-bottom:60px;
+color:#666;
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+gap:30px;
+}
+
+.card{
+background:white;
+padding:35px;
+border-radius:15px;
+box-shadow:0 10px 30px rgba(0,0,0,.08);
+transition:.3s;
+}
+
+.card:hover{
+transform:translateY(-8px);
+}
+
+.card h3{
+margin-bottom:15px;
+color:#0b75d1;
+}
+
+.projects{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:25px;
+}
+
+.project{
+background:white;
+border-radius:15px;
+overflow:hidden;
+box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.project img{
+width:100%;
+height:220px;
+object-fit:cover;
+}
+
+.project div{
+padding:25px;
+}
+
+.faq-item{
+background:white;
+padding:25px;
+margin-bottom:20px;
+border-left:6px solid #0b75d1;
+box-shadow:0 5px 20px rgba(0,0,0,.05);
+}
+
+.contact{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
+gap:50px;
+}
+
+.contact-info{
+font-size:18px;
+}
+
+.contact-form input,
+.contact-form textarea{
+width:100%;
+padding:15px;
+margin-bottom:20px;
+border:1px solid #ddd;
+border-radius:8px;
+font-size:16px;
+}
+
+.contact-form button{
+background:#0b75d1;
+color:white;
+padding:15px 35px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-size:17px;
+}
+
+footer{
+background:#0d2d4f;
+color:white;
+text-align:center;
+padding:30px;
+}
+
+@media(max-width:768px){
+
+.hero h1{
+font-size:42px;
+}
+
+.hero p{
+font-size:18px;
+}
+
+nav{
+flex-direction:column;
+gap:15px;
+}
+
+nav ul{
+flex-wrap:wrap;
+justify-content:center;
+gap:18px;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<nav>
+
+<div class="logo">PureFlow</div>
+
+<ul>
+
+<li><a href="#services">What We Do</a></li>
+<li><a href="#projects">Projects</a></li>
+<li><a href="#why">Why Us</a></li>
+<li><a href="#faq">FAQ</a></li>
+<li><a href="#contact">Contact</a></li>
+
+</ul>
+
+</nav>
+
+</header>
+
+<section class="hero">
+
+<div>
+
+<h1>Clean Water. Better Living.</h1>
+
+<p>
+Professional installation of residential and commercial water filtration
+systems, water softeners, reverse osmosis systems, and whole-house water
+treatment solutions.
+</p>
+
+<button onclick="location.href='#contact'">
+Get a Free Quote
+</button>
+
+</div>
+
+</section>
+
+<section id="services">
+
+<div class="container">
+
+<h2>What We Do</h2>
+
+<p class="subtitle">
+Reliable water treatment solutions designed to improve water quality,
+protect plumbing, and give your family or business cleaner, healthier water.
+</p>
+
+<div class="cards">
+
+<div class="card">
+
+<h3>Residential Water Filters</h3>
+
+<p>
+Whole-house filtration systems, under-sink filters, drinking water systems,
+and maintenance services for homes of every size.
+</p>
+
+</div>
+
+<div class="card">
+
+<h3>Water Softener Installation</h3>
+
+<p>
+Prevent hard water damage, improve appliance lifespan, eliminate scale
+build-up, and enjoy softer water throughout your home.
+</p>
+
+</div>
+
+<div class="card">
+
+<h3>Commercial Solutions</h3>
+
+<p>
+Water treatment systems for offices, apartment buildings, restaurants,
+industrial facilities, and commercial properties.
+</p>
+
+</div>
+
+<div class="card">
+
+<h3>Maintenance & Repairs</h3>
+
+<p>
+Filter replacement, system servicing, diagnostics, and emergency repairs
+to keep your equipment operating efficiently.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<section id="projects" style="background:#eef6fc;">
+
+<div class="container">
+
+<h2>Our Projects</h2>
+
+<p class="subtitle">
+Examples of installations completed for homeowners and businesses.
+</p>
+
+<div class="projects">
+
+<div class="project">
+
+<img src="https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?auto=format&fit=crop&w=800&q=80">
+
+<div>
+
+<h3>Whole House Water Filtration</h3>
+
+<p>
+Complete installation for a modern residential home including sediment,
+carbon filtration and UV purification.
+</p>
+
+</div>
+
+</div>
+
+<div class="project">
+
+<img src="https://images.unsplash.com/photo-1509395176047-4a66953fd231?auto=format&fit=crop&w=800&q=80">
+
+<div>
+
+<h3>Commercial Water Softener</h3>
+
+<p>
+Large-capacity commercial softener installed for a restaurant to improve
+equipment performance and reduce maintenance.
+</p>
+
+</div>
+
+</div>
+
+<div class="project">
+
+<img src="https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=800&q=80">
+
+<div>
+
+<h3>Reverse Osmosis System</h3>
+
+<p>
+Premium drinking water installation with dedicated faucet and multi-stage
+purification.
+</p>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<section id="why">
+
+<div class="container">
+
+<h2>Why Choose Us?</h2>
+
+<div class="cards">
+
+<div class="card">
+<h3>✔ Experienced Installers</h3>
+<p>Years of professional experience installing water treatment systems.</p>
+</div>
+
+<div class="card">
+<h3>✔ Quality Equipment</h3>
+<p>We install trusted brands designed for long-lasting performance.</p>
+</div>
+
+<div class="card">
+<h3>✔ Honest Pricing</h3>
+<p>No hidden fees. Clear estimates before every installation.</p>
+</div>
+
+<div class="card">
+<h3>✔ Customer Satisfaction</h3>
+<p>Our reputation is built on quality workmanship and dependable service.</p>
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<section id="faq" style="background:#eef6fc;">
+
+<div class="container">
+
+<h2>Frequently Asked Questions</h2>
+
+<div class="faq-item">
+
+<h3>How often should filters be replaced?</h3>
+
+<p>
+Most filters should be replaced every 6–12 months depending on water usage
+and water quality.
+</p>
+
+</div>
+
+<div class="faq-item">
+
+<h3>Do I need a water softener?</h3>
+
+<p>
+If your home has hard water, a softener helps reduce scale buildup,
+improves appliance efficiency, and protects plumbing.
+</p>
+
+</div>
+
+<div class="faq-item">
+
+<h3>Do you install systems for businesses?</h3>
+
+<p>
+Yes. We provide installation and maintenance for commercial properties,
+restaurants, offices, apartment buildings, and industrial facilities.
+</p>
+
+</div>
+
+</div>
+
+</section>
+
+<section id="contact">
+
+<div class="container">
+
+<h2>Contact Us</h2>
+
+<div class="contact">
+
+<div class="contact-info">
+
+<h3>Get Your Free Estimate</h3>
+
+<br>
+
+<p><strong>Phone:</strong> (555) 123-4567</p>
+
+<p><strong>Email:</strong> info@pureflow.com</p>
+
+<p><strong>Service Area:</strong> Your City & Surrounding Areas</p>
+
+<br>
+
+<p>
+Contact us today to discuss your water filtration or softener installation
+needs. We're happy to answer your questions and recommend the right system.
+</p>
+
+</div>
+
+<div class="contact-form">
+
+<input type="text" placeholder="Your Name">
+
+<input type="email" placeholder="Email">
+
+<input type="tel" placeholder="Phone">
+
+<textarea rows="6" placeholder="Tell us about your project"></textarea>
+
+<button>Send Message</button>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<footer>
+
+© 2026 PureFlow Water Solutions • Residential & Commercial Water Treatment
+
+</footer>
+
+</body>
+</html>
