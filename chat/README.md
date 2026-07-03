@@ -24,6 +24,12 @@ serves the web app *and* the API, backed by a D1 database.
 - **Full emoji picker** — react with (or type) any emoji, not a fixed few.
 - **Per-user theme color** — each person picks an accent color (Account →
   App color); it follows them across devices.
+- **Chat wallpaper & messenger look** — WhatsApp/Telegram/Signal-style message
+  area: tailed bubbles (yours accent-colored, theirs white), Telegram-style
+  colored sender names in groups, "Today/Yesterday" date separators, and a
+  per-user **chat background** picker (Account → Chat background) with a doodle
+  pattern, gradients, solids, and a dark option. The background follows you
+  across devices.
 - **Installable (PWA)** — "Add to Home Screen" for a full-screen app icon
   (served `/manifest.webmanifest` + `/sw.js`).
 - **Markdown** — `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, and fenced

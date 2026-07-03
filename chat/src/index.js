@@ -242,6 +242,9 @@ async function updateMe(request, env, email) {
   if (typeof body.accent === "string" && /^#[0-9a-fA-F]{6}$/.test(body.accent)) {
     await env.DB.prepare("UPDATE users SET accent=? WHERE email=?").bind(body.accent, email).run();
   }
+  if (typeof body.wallpaper === "string" && /^[a-z]{2,12}$/.test(body.wallpaper)) {
+    await env.DB.prepare("UPDATE users SET wallpaper=? WHERE email=?").bind(body.wallpaper, email).run();
+  }
   const u = await env.DB.prepare("SELECT * FROM users WHERE email=?").bind(email).first();
   return json({ user: await userPublic(env, u) });
 }
@@ -832,7 +835,7 @@ function adminEmailSet(env) {
 }
 function hasAdminEmails(env) { return adminEmailSet(env).length > 0; }
 function isAdminEmail(env, email) { return adminEmailSet(env).includes(normEmail(email)); }
-function publicUser(u) { return { email: u.email, name: u.name || null, is_admin: !!u.is_admin, accent: u.accent || null }; }
+function publicUser(u) { return { email: u.email, name: u.name || null, is_admin: !!u.is_admin, accent: u.accent || null, wallpaper: u.wallpaper || null }; }
 async function userPublic(env, u) { const pu = publicUser(u); pu.avatar_url = u.avatar_key ? await signedBlobUrl(env, u.avatar_key) : null; return pu; }
 function isEmoji(s) { return typeof s === "string" && s.length > 0 && s.length <= 24 && !/\s/.test(s) && /\p{Extended_Pictographic}/u.test(s); }
 
@@ -1060,6 +1063,7 @@ async function ensureSchema(env) {
     "ALTER TABLE chat_groups ADD COLUMN is_dm INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE chat_groups ADD COLUMN dm_key TEXT",
     "ALTER TABLE chat_groups ADD COLUMN icon_key TEXT",
+    "ALTER TABLE users ADD COLUMN wallpaper TEXT",
   ];
   for (const a of migrations) {
     try { await env.DB.prepare(a).run(); } catch (_) { /* already exists */ }
@@ -1323,6 +1327,26 @@ const APP_HTML = `<!doctype html>
     .msg-actions { opacity: 0; pointer-events: none; transition: opacity .12s; }
     @media (hover: hover) { .group:hover .msg-actions { opacity: 1; pointer-events: auto; } }
     .msg-actions.show { opacity: 1; pointer-events: auto; }
+
+    /* ---- chat wallpapers (applied to #messages) ---- */
+    .wp-none   { background: #f3f4f6; }
+    .wp-slate  { background: #e7ebf1; }
+    .wp-mint   { background: #e6f4ea; }
+    .wp-purple { background: linear-gradient(135deg,#c9b7f2,#e7b5d6); background-size: cover; background-repeat: no-repeat; }
+    .wp-blue   { background: linear-gradient(135deg,#a8c8ea,#d0e4f6); background-size: cover; background-repeat: no-repeat; }
+    .wp-teal   { background: linear-gradient(135deg,#9bdaca,#c1e9d9); background-size: cover; background-repeat: no-repeat; }
+    .wp-peach  { background: linear-gradient(135deg,#f5c8a3,#f8dbc6); background-size: cover; background-repeat: no-repeat; }
+    .wp-doodle { background-color: #efe7dd; background-repeat: repeat; background-size: 84px 84px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84'%3E%3Cg fill='none' stroke='%23b9a992' stroke-opacity='0.30' stroke-width='1.6'%3E%3Ccircle cx='20' cy='20' r='7'/%3E%3Cpath d='M54 14h12M60 8v12'/%3E%3Cpath d='M10 60q9-11 18 0'/%3E%3Crect x='54' y='52' width='15' height='15' rx='3'/%3E%3Cpath d='M20 44c3-4 7-4 10 0'/%3E%3C/g%3E%3C/svg%3E"); }
+    .wp-dark { background-color: #0b141a; background-repeat: repeat; background-size: 84px 84px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84' viewBox='0 0 84 84'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='1.6'%3E%3Ccircle cx='20' cy='20' r='7'/%3E%3Cpath d='M54 14h12M60 8v12'/%3E%3Cpath d='M10 60q9-11 18 0'/%3E%3Crect x='54' y='52' width='15' height='15' rx='3'/%3E%3C/g%3E%3C/svg%3E"); }
+
+    /* ---- date separators (Today / Yesterday / date) ---- */
+    .date-sep { display: flex; justify-content: center; margin: 12px 0 8px; }
+    .date-sep span { background: rgba(255,255,255,0.9); color: #374151; font-size: 11px; font-weight: 600; padding: 3px 12px; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+    .wp-dark .date-sep span { background: rgba(0,0,0,0.55); color: #e5e7eb; }
+    /* swatch previews in the account modal share the same wp-* backgrounds */
+    .wp-sw { width: 2.75rem; height: 2.75rem; border-radius: 0.6rem; }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-900 antialiased">
@@ -1523,6 +1547,9 @@ const APP_HTML = `<!doctype html>
       <label class="text-xs text-gray-500 block mt-4">App color</label>
       <div id="accentSwatches" class="flex flex-wrap gap-2 mt-1"></div>
 
+      <label class="text-xs text-gray-500 block mt-4">Chat background</label>
+      <div id="wallSwatches" class="flex flex-wrap gap-2 mt-1"></div>
+
       <label class="text-xs text-gray-500 block mt-4">Notifications</label>
       <div class="flex items-center justify-between gap-3 mt-1">
         <span id="pushStatus" class="text-xs text-gray-500 flex-1">Get notified about new messages.</span>
@@ -1546,7 +1573,7 @@ const APP_HTML = `<!doctype html>
     var me = null, config = { emoji: ['👍','❤️','😂','🎉','✅'], attachments_enabled: false, max_upload_mb: 20, calls_enabled: true, jitsi_domain: 'meet.jit.si' };
     var jitsiApi = null;
     var groups = [], active = null;
-    var lastMsgId = 0, poll = null, pollTick = 0;
+    var lastMsgId = 0, poll = null, pollTick = 0, lastMainDay = '';
     var pendingEmail = '';
     var msgModel = {};            // id -> message object (latest)
     var topIds = {};              // top-level message ids rendered in main list
@@ -1618,6 +1645,7 @@ const APP_HTML = `<!doctype html>
       hide('authScreen'); show('appScreen');
       $('whoami').textContent = me.name || me.email;
       if(me && me.accent){ applyAccent(me.accent); }   // theme follows the user across devices
+      applyWallpaper(currentWallpaper());               // chat background follows the user too
       if(me.is_admin){ show('newGroupBtn'); } else { hide('newGroupBtn'); }
       if(!isMobile()){ $('chatPane').classList.remove('hidden'); }
       try { config = await api('/api/config'); } catch(e){}
@@ -1663,8 +1691,9 @@ const APP_HTML = `<!doctype html>
 
     /* ---------- one group ---------- */
     async function openGroup(g){
-      active = g; lastMsgId = 0; msgModel = {}; topIds = {}; pendingMentions = {}; groupMembers = [];
+      active = g; lastMsgId = 0; msgModel = {}; topIds = {}; pendingMentions = {}; groupMembers = []; lastMainDay = '';
       closeThread(); hideMentionBox();
+      applyWallpaper(currentWallpaper());
       renderGroups();
       hide('chatEmpty'); show('chatActive');
       $('chatTitle').textContent = g.name;
@@ -1692,14 +1721,19 @@ const APP_HTML = `<!doctype html>
         var msgs = r.messages || [];
         var box = $('messages');
         var nearBottom = (box.scrollHeight - box.scrollTop - box.clientHeight) < 100;
-        if(lastMsgId===0){ box.innerHTML=''; }
+        if(lastMsgId===0){ box.innerHTML=''; lastMainDay=''; }
         msgs.forEach(function(m){ appendTop(m); });
         if(msgs.length){ lastMsgId = msgs[msgs.length-1].id; markRead(active.id, lastMsgId); }
         if(forceScroll || nearBottom){ scrollBottom(); }
       } catch(e){ if(e.status===403 || e.status===401){ stopPoll(); } }
     }
     function markRead(gid, lastId){ if(!lastId) return; api('/api/groups/' + gid + '/read', { method:'POST', body: JSON.stringify({ last_id: lastId }) }).catch(function(){}); }
-    function appendTop(m){ msgModel[m.id]=m; topIds[m.id]=true; $('messages').appendChild(renderMessage(m, {})); }
+    function appendTop(m){
+      msgModel[m.id]=m; topIds[m.id]=true;
+      var dk = dayKey(parseMsgDate(m.created_at));
+      if(dk && dk !== lastMainDay){ $('messages').appendChild(makeDateSep(dayLabel(parseMsgDate(m.created_at)))); lastMainDay = dk; }
+      $('messages').appendChild(renderMessage(m, {}));
+    }
     function scrollBottom(){ var b=$('messages'); b.scrollTop = b.scrollHeight; }
 
     function fmtTime(s){
@@ -1709,6 +1743,17 @@ const APP_HTML = `<!doctype html>
       return d.toLocaleString(undefined, { hour:'2-digit', minute:'2-digit' });
     }
     function fmtSize(b){ if(!b) return ''; if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(0)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+    function parseMsgDate(s){ if(!s) return null; var d = new Date((s.indexOf('Z')<0 && s.indexOf('T')<0) ? s.replace(' ','T')+'Z' : s); return isNaN(d) ? null : d; }
+    function dayKey(d){ return d ? (d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()) : ''; }
+    function dayLabel(d){
+      if(!d) return '';
+      var now = new Date(); var yes = new Date(now.getTime() - 86400000);
+      if(dayKey(d)===dayKey(now)) return 'Today';
+      if(dayKey(d)===dayKey(yes)) return 'Yesterday';
+      var opts = { month:'short', day:'numeric' }; if(d.getFullYear()!==now.getFullYear()){ opts.year='numeric'; }
+      return d.toLocaleDateString(undefined, opts);
+    }
+    function makeDateSep(label){ var w = ce('div','date-sep'); var sp = ce('span'); sp.textContent = label; w.appendChild(sp); return w; }
 
     /* ---------- render a message ---------- */
     function renderMessage(m, opts){
@@ -1725,15 +1770,16 @@ const APP_HTML = `<!doctype html>
         dc.appendChild(db); row.appendChild(dc); return row;
       }
 
-      if(!mine){ row.appendChild(avatarEl(m.sender_name || m.sender_email, m.sender_avatar, 'w-8 h-8')); }
+      var isDm = active && active.is_dm;
+      if(!mine && !isDm){ row.appendChild(avatarEl(m.sender_name || m.sender_email, m.sender_avatar, 'w-8 h-8')); }
       var col = ce('div', 'max-w-[80%] flex flex-col ' + (mine ? 'items-end' : 'items-start'));
       var mentionsMe = me && (m.mentions || []).some(function(x){ return x.email === me.email; });
-      var bubble = ce('div', 'rounded-2xl px-3 py-2 shadow-sm ' + (mine ? 'bg-brand text-white' : 'bg-white text-gray-900 border') + (mentionsMe ? ' ring-2 ring-blue-400' : ''));
-      if(!mine){ var who = ce('div','text-xs font-medium text-gray-500 mb-0.5'); who.textContent = m.sender_name || m.sender_email; bubble.appendChild(who); }
+      var bubble = ce('div', 'rounded-2xl ' + (mine ? 'rounded-br-md ' : 'rounded-bl-md ') + 'px-3 py-2 shadow-sm ' + (mine ? 'bg-brand text-white' : 'bg-white text-gray-900 border') + (mentionsMe ? ' ring-2 ring-blue-400' : ''));
+      if(!mine && !isDm){ var who = ce('div','text-xs font-semibold mb-0.5'); who.style.color = avatarColor(m.sender_name || m.sender_email); who.textContent = m.sender_name || m.sender_email; bubble.appendChild(who); }
       if(m.body){ var b = ce('div','text-sm whitespace-pre-wrap break-words'); renderRich(b, m.body, mine, m.mentions); bubble.appendChild(b); }
       if(m.attachments && m.attachments.length){ bubble.appendChild(renderAttachments(m.attachments, mine)); }
       if(m.pinned){ var pin = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300' : 'text-gray-400')); pin.textContent = '📌 pinned'; bubble.appendChild(pin); }
-      var time = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300 text-right' : 'text-gray-400')); time.textContent = fmtTime(m.created_at) + (m.edited ? ' · edited' : ''); bubble.appendChild(time);
+      var time = ce('div','text-[10px] mt-1 ' + (mine ? 'text-gray-300 text-right' : 'text-gray-400')); time.textContent = fmtTime(m.created_at) + (m.edited ? ' · edited' : '') + (mine ? ' ✓' : ''); bubble.appendChild(time);
       col.appendChild(bubble);
       if(m.body){ var emb = buildEmbeds(m.body); if(emb) col.appendChild(emb); }
 
@@ -2384,7 +2430,42 @@ const APP_HTML = `<!doctype html>
       renderSwatches();
       try { await api('/api/me', { method:'POST', body: JSON.stringify({ accent: hex }) }); } catch(e){}
     }
-    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; renderMeAvatar(); renderSwatches(); updatePushBtn(); show('meModal'); }
+
+    /* ---------- chat wallpaper ---------- */
+    var WP_IDS = ['none','doodle','purple','blue','teal','peach','slate','mint','dark'];
+    var WALLPAPERS = [
+      { id:'none', name:'Default' }, { id:'doodle', name:'Doodle' }, { id:'purple', name:'Purple' },
+      { id:'blue', name:'Blue' }, { id:'teal', name:'Teal' }, { id:'peach', name:'Peach' },
+      { id:'slate', name:'Slate' }, { id:'mint', name:'Mint' }, { id:'dark', name:'Dark' }
+    ];
+    function currentWallpaper(){ return (me && me.wallpaper) || localStorage.getItem('chat_wallpaper') || 'none'; }
+    function applyWallpaper(id){
+      if(WP_IDS.indexOf(id) < 0){ id = 'none'; }
+      ['messages','threadMessages'].forEach(function(bid){
+        var box = $(bid); if(!box) return;
+        WP_IDS.forEach(function(w){ box.classList.remove('wp-'+w); });
+        box.classList.add('wp-'+id);
+      });
+      localStorage.setItem('chat_wallpaper', id);
+    }
+    function renderWallpaperSwatches(){
+      var box = $('wallSwatches'); if(!box) return; box.innerHTML='';
+      var cur = currentWallpaper();
+      WALLPAPERS.forEach(function(w){
+        var s = ce('button','wp-sw wp-' + w.id + ' border-2 ' + (w.id===cur ? 'border-gray-900' : 'border-gray-200'));
+        s.type='button'; s.title = w.name;
+        s.onclick = function(){ setWallpaper(w.id); };
+        box.appendChild(s);
+      });
+    }
+    async function setWallpaper(id){
+      applyWallpaper(id);
+      if(me) me.wallpaper = id;
+      renderWallpaperSwatches();
+      try { await api('/api/me', { method:'POST', body: JSON.stringify({ wallpaper: id }) }); } catch(e){}
+    }
+
+    function openMe(){ $('meEmail').textContent = me.email; $('meName').value = me.name || ''; renderMeAvatar(); renderSwatches(); renderWallpaperSwatches(); updatePushBtn(); show('meModal'); }
     async function saveName(){
       var name = $('meName').value.trim();
       try { var r = await api('/api/me', { method:'POST', body: JSON.stringify({ name: name }) }); me = r.user; $('whoami').textContent = me.name || me.email; closeModal('meModal'); }
@@ -2455,6 +2536,7 @@ const APP_HTML = `<!doctype html>
 
     /* ---------- boot ---------- */
     applyAccent(localStorage.getItem('chat_accent') || '#111827');   // instant theme before login
+    applyWallpaper(localStorage.getItem('chat_wallpaper') || 'none');
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
     if('serviceWorker' in navigator && navigator.serviceWorker.addEventListener){
       navigator.serviceWorker.addEventListener('message', function(ev){
