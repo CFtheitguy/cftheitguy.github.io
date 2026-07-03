@@ -137,6 +137,7 @@ function getConfig(env) {
     max_upload_mb: Number(env.MAX_UPLOAD_MB || 20),
     emoji: MAX_EMOJI,
     calls_enabled: true,
+    calls_provider: callsConfigured(env) ? "cloudflare" : "jitsi",
     jitsi_domain: env.JITSI_DOMAIN || "meet.jit.si",
   });
 }
