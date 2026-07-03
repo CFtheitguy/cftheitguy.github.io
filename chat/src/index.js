@@ -96,6 +96,7 @@ async function handleApi(request, env, ctx, url, p, method) {
   { const cm = p.match(/^\/api\/calls\/sfu\/sessions\/([A-Za-z0-9._-]+)\/renegotiate$/); if (cm && method === "PUT") return sfuProxy(request, env, "/sessions/" + cm[1] + "/renegotiate"); }
   { const cm = p.match(/^\/api\/calls\/sfu\/sessions\/([A-Za-z0-9._-]+)\/tracks\/close$/); if (cm && method === "PUT") return sfuProxy(request, env, "/sessions/" + cm[1] + "/tracks/close"); }
   { const cm = p.match(/^\/api\/calls\/([A-Za-z0-9_-]+)\/(join|state|leave)$/); if (cm && method === "POST") return callSignal(request, env, email, cm[1], cm[2]); }
+  if (p === "/api/calls/status" && method === "GET") return callStatus(env);
 
   if (p === "/api/groups" && method === "GET") return listGroups(env, email);
   if (p === "/api/groups" && method === "POST") return createGroup(request, env, email);
@@ -683,7 +684,8 @@ async function startCall(request, env, email, gid) {
   const b = await readBody(request);
   const mode = b.mode === "audio" ? "audio" : "video";
   const room = "linear-" + gid + "-" + randToken(10);
-  const meta = JSON.stringify({ provider: "jitsi", room, domain: env.JITSI_DOMAIN || "meet.jit.si", mode, by: email });
+  const provider = callsConfigured(env) ? "cloudflare" : "jitsi";
+  const meta = JSON.stringify({ provider, room, domain: env.JITSI_DOMAIN || "meet.jit.si", mode, by: email });
   const u = await env.DB.prepare("SELECT name FROM users WHERE email=?").bind(email).first();
   const name = u && u.name ? u.name : null;
   const label = mode === "audio" ? "Voice call started" : "Video call started";
@@ -723,6 +725,21 @@ async function sfuProxy(request, env, path) {
 }
 
 function safeJsonParse(s, fallback) { try { return JSON.parse(s || ""); } catch (_) { return fallback; } }
+
+// Quick health check for the Realtime credentials: are the vars set, and does
+// the SFU actually accept them? Never exposes the secret. Lets the app show a
+// clear "not configured / wrong key" message instead of a mystery failure.
+async function callStatus(env) {
+  if (!callsConfigured(env)) return json({ configured: false, ok: false });
+  try {
+    const res = await fetch("https://rtc.live.cloudflare.com/v1/apps/" + env.REALTIME_APP_ID + "/sessions/new", {
+      method: "POST", headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET, "Content-Type": "application/json" }, body: "{}",
+    });
+    if (res.ok) return json({ configured: true, ok: true });
+    const detail = (await res.text()).slice(0, 200);
+    return json({ configured: true, ok: false, status: res.status, detail });
+  } catch (e) { return json({ configured: true, ok: false, error: String((e && e.message) || e) }); }
+}
 
 // Room presence: join / heartbeat+state / leave, all returning the live roster.
 // Media is realtime via the SFU; this only tracks who's present + their tracks.
@@ -1678,13 +1695,18 @@ const APP_HTML = `<!doctype html>
     </div>
   </div>
 
-  <!-- call overlay (Jitsi) -->
-  <div id="callOverlay" class="hidden fixed inset-0 z-50 bg-black flex flex-col">
-    <div class="flex items-center justify-between px-4 py-2 bg-gray-900 text-white shrink-0">
+  <!-- call overlay -->
+  <div id="callOverlay" class="hidden fixed inset-0 z-50 bg-gray-900 flex flex-col">
+    <div class="flex items-center justify-between px-4 py-2 bg-black/40 text-white shrink-0">
       <span id="callTitle" class="text-sm font-medium">Call</span>
+      <span id="callStatusMsg" class="text-xs text-gray-300"></span>
       <button onclick="endCall()" class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-3 py-1.5 text-sm font-medium">Leave call</button>
     </div>
+    <!-- Jitsi (legacy/fallback) mounts here -->
     <div id="callFrame" class="flex-1 min-h-0"></div>
+    <!-- Cloudflare Realtime video tiles -->
+    <div id="callTiles" class="hidden flex-1 min-h-0 overflow-auto p-3 grid gap-3 content-center justify-center"></div>
+    <div id="callControls" class="hidden items-center justify-center gap-4 py-4 bg-black/40 shrink-0"></div>
   </div>
 
   <script>
@@ -2137,7 +2159,7 @@ const APP_HTML = `<!doctype html>
       var audio = m.meta.mode === 'audio';
       var t = ce('div','text-sm font-medium'); t.textContent = (audio ? '📞 ' : '🎥 ') + (audio ? 'Voice call' : 'Video call'); card.appendChild(t);
       var who = ce('div','text-xs text-gray-400 mb-2'); who.textContent = 'Started by ' + (m.sender_name || m.sender_email) + ' · ' + fmtTime(m.created_at); card.appendChild(who);
-      var join = ce('button','text-sm bg-brand text-white rounded-lg px-4 py-1.5 hover:opacity-90'); join.textContent = 'Join'; join.onclick = function(){ joinCall(m.meta); };
+      var join = ce('button','text-sm bg-brand text-white rounded-lg px-4 py-1.5 hover:opacity-90'); join.textContent = 'Join'; join.onclick = function(){ joinCall(m.meta, active && active.id); };
       card.appendChild(join);
       row.appendChild(card);
       return row;
@@ -2148,10 +2170,14 @@ const APP_HTML = `<!doctype html>
       if(!active) return;
       try {
         var r = await api('/api/groups/' + active.id + '/call', { method:'POST', body: JSON.stringify({ mode: mode }) });
-        if(r.message){ appendTop(r.message); scrollBottom(); lastMsgId = Math.max(lastMsgId, r.message.id); startJitsi(r.message.meta.room, r.message.meta.mode); }
+        if(r.message){ appendTop(r.message); scrollBottom(); lastMsgId = Math.max(lastMsgId, r.message.id); joinCall(r.message.meta, active.id); }
       } catch(e){ alert(e.message); }
     }
-    function joinCall(meta){ if(meta && meta.room){ startJitsi(meta.room, meta.mode || 'video'); } }
+    function joinCall(meta, gid){
+      if(!meta || !meta.room) return;
+      if(meta.provider === 'cloudflare'){ startRealtimeCall(meta.room, meta.mode || 'video', gid || (active && active.id)); }
+      else { startJitsi(meta.room, meta.mode || 'video'); }
+    }
     function loadJitsiScript(){
       return new Promise(function(resolve, reject){
         if(window.JitsiMeetExternalAPI) return resolve();
@@ -2183,7 +2209,178 @@ const APP_HTML = `<!doctype html>
         hide('callOverlay');
       });
     }
-    function endCall(){ if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; } $('callFrame').innerHTML = ''; hide('callOverlay'); }
+    function endCall(){
+      if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; }
+      if(rtc){
+        try { if(rtc.polling){ clearInterval(rtc.polling); } } catch(e){}
+        try { if(rtc.pc){ rtc.pc.close(); } } catch(e){}
+        try { if(rtc.localStream){ rtc.localStream.getTracks().forEach(function(t){ t.stop(); }); } } catch(e){}
+        try { Object.keys(rtc.tiles).forEach(function(k){ var st=rtc.tiles[k].stream; if(st){ st.getTracks().forEach(function(x){ try{ x.stop(); }catch(e){} }); } }); } catch(e){}
+        try { api('/api/calls/' + rtc.room + '/leave', { method:'POST', body: '{}' }).catch(function(){}); } catch(e){}
+        rtc = null;
+      }
+      $('callFrame').innerHTML = '';
+      $('callTiles').innerHTML = ''; $('callTiles').classList.add('hidden');
+      $('callControls').innerHTML = ''; $('callControls').classList.add('hidden');
+      $('callFrame').classList.remove('hidden');
+      callSetStatus('');
+      hide('callOverlay');
+    }
+
+    /* ---------- calls: Cloudflare Realtime (SFU) ----------
+       Flow per participant: getUserMedia -> RTCPeerConnection -> create an SFU
+       session and publish local tracks (offer/answer) -> announce to the room
+       -> subscribe to everyone else's tracks (SFU sends an offer; we answer via
+       renegotiate). Roster is polled from D1 (~1.5s). */
+    var rtc = null;
+    function callSetStatus(msg){ var el=$('callStatusMsg'); if(el){ el.textContent = msg || ''; } }
+    function sfuName(kind){ return kind === 'audio' ? 'mic' : 'cam'; }
+    async function sfuPost(path, body, method){
+      var res = await fetch(API + path, { method: method || 'POST', headers:{ Authorization:'Bearer ' + token, 'Content-Type':'application/json' }, body: JSON.stringify(body || {}) });
+      var data = {}; try { data = await res.json(); } catch(e){}
+      if(!res.ok){ throw new Error((data && data.error) || ('Call service error ' + res.status)); }
+      return data;
+    }
+    function showCallOverlay(mode){
+      show('callOverlay');
+      $('callTitle').textContent = (mode === 'audio' ? '📞 Voice call' : '🎥 Video call');
+      $('callFrame').classList.add('hidden');
+      $('callTiles').classList.remove('hidden'); $('callTiles').innerHTML = '';
+      $('callControls').classList.remove('hidden'); $('callControls').innerHTML = '';
+    }
+    async function startRealtimeCall(room, mode, gid){
+      if(rtc){ return; }
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ alert('This browser cannot access the microphone/camera.'); return; }
+      showCallOverlay(mode);
+      callSetStatus('Checking call service…');
+      try {
+        var stt = await api('/api/calls/status');
+        if(!stt.configured){ alert('Calling is not configured on the server yet (REALTIME_APP_ID / REALTIME_APP_SECRET).'); return endCall(); }
+        if(!stt.ok){ alert('The call service rejected the credentials (' + (stt.status || 'error') + '). Re-check the SFU App ID and Secret in the Worker.'); return endCall(); }
+      } catch(e){}
+      callSetStatus('Connecting…');
+      try {
+        var stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: (mode !== 'audio') });
+        rtc = { room:room, gid:gid, mode:mode, pc:null, sessionId:null, localStream:stream, tiles:{}, subscribed:{}, midOwner:{}, myTracks:[], polling:null, micOn:true, camOn:(mode !== 'audio'), negChain:Promise.resolve() };
+        var pc = new RTCPeerConnection({ iceServers:[{ urls:'stun:stun.cloudflare.com:3478' }], bundlePolicy:'max-bundle' });
+        rtc.pc = pc;
+        pc.ontrack = onRtcTrack;
+        pc.onconnectionstatechange = function(){ if(!rtc) return; if(pc.connectionState === 'connected'){ callSetStatus(''); } else if(pc.connectionState === 'failed'){ callSetStatus('Reconnecting…'); } };
+        var pubTracks = [];
+        stream.getTracks().forEach(function(track){
+          var tr = pc.addTransceiver(track, { direction:'sendonly' });
+          pubTracks.push({ tr:tr, trackName: sfuName(track.kind) });
+          rtc.myTracks.push({ trackName: sfuName(track.kind), kind: track.kind });
+        });
+        await pc.setLocalDescription(await pc.createOffer());
+        var sess = await sfuPost('/api/calls/sfu/sessions/new', {});
+        rtc.sessionId = sess.sessionId;
+        var pubRes = await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/tracks/new', { sessionDescription:{ type:'offer', sdp: pc.localDescription.sdp }, tracks: pubTracks.map(function(x){ return { location:'local', mid: x.tr.mid, trackName: x.trackName }; }) });
+        if(pubRes.sessionDescription){ await pc.setRemoteDescription(pubRes.sessionDescription); }
+        addTile('__self__', ((me && (me.name || me.email)) || 'You'), stream, true);
+        renderCallControls();
+        var j = await api('/api/calls/' + room + '/join', { method:'POST', body: JSON.stringify({ name:((me && (me.name || me.email)) || ''), sessionId: rtc.sessionId, tracks: rtc.myTracks, muted: !rtc.micOn, videoOff: !rtc.camOn }) });
+        applyRoster(j.participants);
+        rtc.polling = setInterval(pollRoster, 1500);
+      } catch(e){ alert('Could not start the call: ' + ((e && e.message) || e)); endCall(); }
+    }
+    async function pollRoster(){
+      if(!rtc) return;
+      try {
+        var r = await api('/api/calls/' + rtc.room + '/state', { method:'POST', body: JSON.stringify({ sessionId: rtc.sessionId, tracks: rtc.myTracks, muted: !rtc.micOn, videoOff: !rtc.camOn }) });
+        applyRoster(r.participants);
+      } catch(e){}
+    }
+    function applyRoster(participants){
+      if(!rtc || !participants){ return; }
+      var present = { '__self__': true };
+      participants.forEach(function(p){
+        if(p.self){ return; }
+        present[p.email] = true;
+        if(!rtc.tiles[p.email]){ addTile(p.email, p.name, null, false); }
+        updateTileState(p);
+        if(!rtc.subscribed[p.email] && p.sessionId && p.tracks && p.tracks.length){
+          rtc.subscribed[p.email] = true;
+          var pp = p;
+          rtc.negChain = rtc.negChain.then(function(){ return subscribeTo(pp); }).catch(function(){});
+        }
+      });
+      Object.keys(rtc.tiles).forEach(function(email){
+        if(email !== '__self__' && !present[email]){ removeTile(email); delete rtc.subscribed[email]; }
+      });
+    }
+    async function subscribeTo(p){
+      if(!rtc){ return; }
+      var tracks = p.tracks.map(function(t){ return { location:'remote', sessionId: p.sessionId, trackName: t.trackName }; });
+      var res = await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/tracks/new', { tracks: tracks });
+      if(res.tracks){ res.tracks.forEach(function(rt){ if(rt.mid){ rtc.midOwner[rt.mid] = { email: p.email, name: p.name }; } }); }
+      if(res.requiresImmediateRenegotiation && res.sessionDescription){
+        await rtc.pc.setRemoteDescription(res.sessionDescription);
+        await rtc.pc.setLocalDescription(await rtc.pc.createAnswer());
+        await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/renegotiate', { sessionDescription:{ type:'answer', sdp: rtc.pc.localDescription.sdp } }, 'PUT');
+      }
+    }
+    function onRtcTrack(e){
+      if(!rtc){ return; }
+      var mid = e.transceiver && e.transceiver.mid;
+      var owner = mid && rtc.midOwner[mid] ? rtc.midOwner[mid] : null;
+      if(!owner){ return; }
+      var t = rtc.tiles[owner.email] || addTile(owner.email, owner.name, null, false);
+      try { t.stream.addTrack(e.track); } catch(err){}
+      t.video.srcObject = t.stream;
+      if(e.track.kind === 'video'){ t.hasVideo = true; t.avatar.style.display = 'none'; }
+      t.video.play().catch(function(){});
+    }
+    function addTile(key, name, stream, isSelf){
+      if(rtc.tiles[key]){ return rtc.tiles[key]; }
+      var tile = ce('div','relative bg-black rounded-xl overflow-hidden');
+      tile.style.aspectRatio = '4 / 3'; tile.style.minWidth = '160px'; tile.style.maxWidth = '520px'; tile.style.width = '100%';
+      var video = ce('video','w-full h-full object-cover bg-black'); video.autoplay = true; video.playsInline = true; video.setAttribute('playsinline',''); video.muted = !!isSelf;
+      var ms = stream || new MediaStream(); video.srcObject = ms; tile.appendChild(video);
+      var av = ce('div','absolute inset-0 flex items-center justify-center bg-gray-800'); av.appendChild(avatarEl(name || key, null, 'w-24 h-24 text-2xl')); av.style.display = isSelf ? 'none' : 'flex'; tile.appendChild(av);
+      var label = ce('div','absolute bottom-1 left-1 text-xs text-white bg-black/50 rounded px-1.5 py-0.5 max-w-[85%] truncate'); label.textContent = (name || key) + (isSelf ? ' (you)' : ''); tile.appendChild(label);
+      $('callTiles').appendChild(tile);
+      rtc.tiles[key] = { el:tile, video:video, stream:ms, avatar:av, label:label, name:name, hasVideo:!!isSelf };
+      layoutTiles();
+      video.play().catch(function(){});
+      return rtc.tiles[key];
+    }
+    function updateTileState(p){
+      var t = rtc.tiles[p.email]; if(!t){ return; }
+      if(!t.hasVideo || p.videoOff){ t.avatar.style.display = 'flex'; } else { t.avatar.style.display = 'none'; }
+      t.label.textContent = (p.name || p.email) + (p.muted ? ' 🔇' : '');
+    }
+    function removeTile(key){
+      var t = rtc.tiles[key]; if(!t){ return; }
+      try { t.stream.getTracks().forEach(function(x){ try{ x.stop(); }catch(e){} }); } catch(e){}
+      if(t.el && t.el.parentNode){ t.el.parentNode.removeChild(t.el); }
+      delete rtc.tiles[key]; layoutTiles();
+    }
+    function layoutTiles(){
+      var n = Object.keys(rtc.tiles).length; if(n < 1){ n = 1; }
+      var cols = n <= 1 ? 1 : (n <= 4 ? 2 : (n <= 9 ? 3 : 4));
+      $('callTiles').style.gridTemplateColumns = 'repeat(' + cols + ', minmax(0, 1fr))';
+    }
+    function ctlBtn(label, on, danger){
+      var b = ce('button','rounded-full w-14 h-14 flex items-center justify-center text-2xl ' + (danger ? 'bg-red-600 text-white hover:bg-red-700' : (on ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-red-600 text-white')));
+      b.textContent = label; return b;
+    }
+    function renderCallControls(){
+      if(!rtc){ return; }
+      var box = $('callControls'); box.innerHTML = '';
+      var mic = ctlBtn(rtc.micOn ? '🎤' : '🔇', rtc.micOn, false); mic.title = rtc.micOn ? 'Mute' : 'Unmute'; mic.onclick = toggleMic; box.appendChild(mic);
+      if(rtc.mode !== 'audio'){
+        var cam = ctlBtn(rtc.camOn ? '🎥' : '📷', rtc.camOn, false); cam.title = rtc.camOn ? 'Turn camera off' : 'Turn camera on'; cam.onclick = toggleCam; box.appendChild(cam);
+      }
+      var leave = ctlBtn('📞', true, true); leave.title = 'Leave'; leave.onclick = endCall; box.appendChild(leave);
+    }
+    function toggleMic(){ if(!rtc){ return; } rtc.micOn = !rtc.micOn; rtc.localStream.getAudioTracks().forEach(function(t){ t.enabled = rtc.micOn; }); renderCallControls(); pollRoster(); }
+    function toggleCam(){
+      if(!rtc){ return; } rtc.camOn = !rtc.camOn;
+      rtc.localStream.getVideoTracks().forEach(function(t){ t.enabled = rtc.camOn; });
+      var self = rtc.tiles['__self__']; if(self){ self.avatar.style.display = rtc.camOn ? 'none' : 'flex'; }
+      renderCallControls(); pollRoster();
+    }
 
     /* ---------- @mention autocomplete ---------- */
     function onComposerInput(){
