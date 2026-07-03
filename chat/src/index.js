@@ -72,7 +72,7 @@ async function handleApi(request, env, ctx, url, p, method) {
   if (p === "/api/config" && method === "GET") return getConfig(env);
   if (method === "GET") {
     const fm = p.match(/^\/api\/files\/(\d+)$/);
-    if (fm) return serveFile(env, url, Number(fm[1]));
+    if (fm) return serveFile(request, env, url, Number(fm[1]));
     if (p === "/api/blob") return serveBlob(env, url);
   }
 
@@ -704,7 +704,7 @@ async function signedFileUrl(env, id) {
   const sig = await hmacSign(env, "file:" + id + ":" + exp);
   return "/api/files/" + id + "?e=" + exp + "&t=" + sig;
 }
-async function serveFile(env, url, id) {
+async function serveFile(request, env, url, id) {
   const exp = Number(url.searchParams.get("e") || 0);
   const t = url.searchParams.get("t") || "";
   if (!exp || exp < Date.now()) return new Response("Link expired", { status: 403 });
@@ -714,16 +714,38 @@ async function serveFile(env, url, id) {
 
   const row = await env.DB.prepare("SELECT r2_key, filename, content_type FROM attachments WHERE id=?").bind(id).first();
   if (!row) return new Response("Not found", { status: 404 });
-  const obj = await env.FILES.get(row.r2_key);
-  if (!obj) return new Response("Not found", { status: 404 });
 
   const type = row.content_type || "application/octet-stream";
   const inline = /^(image|audio|video)\//.test(type) || type === "application/pdf";
+  const rangeHeader = request && request.headers.get("Range");
+
+  // Honor HTTP Range requests. iOS Safari refuses to play <audio>/<video>
+  // unless the server answers with 206 Partial Content + Content-Range — this
+  // is why voice notes showed a spinner / "--:--" on iPad but played on a PC.
+  let obj;
+  try { obj = await env.FILES.get(row.r2_key, rangeHeader ? { range: request.headers } : undefined); }
+  catch (_) { obj = await env.FILES.get(row.r2_key); }
+  if (!obj) return new Response("Not found", { status: 404 });
+
   const h = new Headers();
   h.set("Content-Type", type);
   h.set("Content-Disposition", (inline ? "inline" : "attachment") + '; filename="' + String(row.filename || "file").replace(/"/g, "") + '"');
   h.set("Cache-Control", "private, max-age=86400");
-  return new Response(obj.body, { headers: h });
+  h.set("Accept-Ranges", "bytes");
+
+  const size = obj.size;
+  if (rangeHeader && obj.range) {
+    const r = obj.range;
+    let start, end;
+    if (typeof r.suffix === "number") { start = Math.max(0, size - r.suffix); end = size - 1; }
+    else { start = r.offset || 0; end = typeof r.length === "number" ? Math.min(size - 1, start + r.length - 1) : size - 1; }
+    h.set("Content-Range", "bytes " + start + "-" + end + "/" + size);
+    h.set("Content-Length", String(end - start + 1));
+    return new Response(obj.body, { status: 206, headers: h });
+  }
+
+  if (typeof size === "number") h.set("Content-Length", String(size));
+  return new Response(obj.body, { status: 200, headers: h });
 }
 
 /* ============================================================
@@ -1866,6 +1888,12 @@ const APP_HTML = `<!doctype html>
       } catch(e){ alert(e.message); }
     }
 
+    function attLink(a, mine, icon){
+      var link = ce('a','flex items-center gap-2 rounded-lg border px-3 py-2 ' + (mine ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-50 hover:bg-gray-100'));
+      link.href=a.url; link.setAttribute('download', a.filename); link.target='_blank';
+      link.innerHTML = '<span>' + (icon || '📎') + '</span><span class="text-sm truncate">' + esc(a.filename) + '</span><span class="text-xs opacity-60 shrink-0">' + fmtSize(a.size) + '</span>';
+      return link;
+    }
     function renderAttachments(atts, mine){
       var wrap = ce('div','mt-2 space-y-2');
       atts.forEach(function(a){
@@ -1875,15 +1903,16 @@ const APP_HTML = `<!doctype html>
           wrap.appendChild(img);
         } else if(/^audio\\//.test(a.content_type || '')){
           var au = ce('audio','w-56 sm:w-64'); au.src=a.url; au.controls=true; au.preload='metadata';
+          // If the browser can't decode this codec (e.g. a WebM/Opus note on
+          // iOS Safari), swap the dead player for a tap-to-download link.
+          au.onerror = function(){ if(au.parentNode){ au.parentNode.replaceChild(attLink(a, mine, '🎧'), au); } };
           wrap.appendChild(au);
         } else if(/^video\\//.test(a.content_type || '')){
           var vid = ce('video','w-64 sm:w-80 rounded-lg border'); vid.src=a.url; vid.controls=true; vid.preload='metadata';
+          vid.onerror = function(){ if(vid.parentNode){ vid.parentNode.replaceChild(attLink(a, mine, '🎬'), vid); } };
           wrap.appendChild(vid);
         } else {
-          var link = ce('a','flex items-center gap-2 rounded-lg border px-3 py-2 ' + (mine ? 'bg-white/10 border-white/20 text-white' : 'bg-gray-50 hover:bg-gray-100'));
-          link.href=a.url; link.setAttribute('download', a.filename); link.target='_blank';
-          link.innerHTML = '<span>📎</span><span class="text-sm truncate">' + esc(a.filename) + '</span><span class="text-xs opacity-60 shrink-0">' + fmtSize(a.size) + '</span>';
-          wrap.appendChild(link);
+          wrap.appendChild(attLink(a, mine, '📎'));
         }
       });
       return wrap;
