@@ -1347,6 +1347,14 @@ const APP_HTML = `<!doctype html>
     .wp-dark .date-sep span { background: rgba(0,0,0,0.55); color: #e5e7eb; }
     /* swatch previews in the account modal share the same wp-* backgrounds */
     .wp-sw { width: 2.75rem; height: 2.75rem; border-radius: 0.6rem; }
+
+    /* ---- collapsible sidebar (desktop/tablet) ---- */
+    .sb-expand { display: none; }
+    @media (min-width: 768px) {
+      #appShell.sb-collapsed #sidebar { display: none; }
+      #appShell.sb-collapsed .sb-collapse { display: none; }
+      #appShell.sb-collapsed .sb-expand { display: inline-flex; }
+    }
   </style>
 </head>
 <body class="bg-gray-100 text-gray-900 antialiased">
@@ -1382,7 +1390,7 @@ const APP_HTML = `<!doctype html>
 
   <!-- ============ APP SCREEN ============ -->
   <div id="appScreen" class="hidden">
-    <div class="flex h-screen overflow-hidden">
+    <div id="appShell" class="flex h-screen overflow-hidden">
 
       <!-- sidebar -->
       <aside id="sidebar" class="w-full md:w-80 bg-white border-r flex flex-col">
@@ -1415,7 +1423,9 @@ const APP_HTML = `<!doctype html>
         </div>
         <div id="chatActive" class="hidden flex-1 flex flex-col min-h-0">
           <header class="bg-white border-b px-4 py-3 flex items-center gap-3">
-            <button onclick="backToList()" class="md:hidden text-gray-500 hover:text-black">&larr;</button>
+            <button onclick="backToList()" class="md:hidden text-gray-500 hover:text-black text-xl leading-none">&larr;</button>
+            <button class="sb-collapse hidden md:inline-flex text-gray-400 hover:text-black text-xl leading-none" onclick="toggleSidebar()" title="Hide sidebar (full-screen chat)">&laquo;</button>
+            <button class="sb-expand text-gray-400 hover:text-black text-xl leading-none" onclick="toggleSidebar()" title="Show sidebar">&#9776;</button>
             <div class="min-w-0 flex-1">
               <h2 id="chatTitle" class="font-semibold truncate"></h2>
               <p id="chatSub" class="text-xs text-gray-400 truncate"></p>
@@ -1573,6 +1583,7 @@ const APP_HTML = `<!doctype html>
     var me = null, config = { emoji: ['👍','❤️','😂','🎉','✅'], attachments_enabled: false, max_upload_mb: 20, calls_enabled: true, jitsi_domain: 'meet.jit.si' };
     var jitsiApi = null;
     var groups = [], active = null;
+    var sidebarCollapsed = localStorage.getItem('chat_sidebar_collapsed') === '1';
     var lastMsgId = 0, poll = null, pollTick = 0, lastMainDay = '';
     var pendingEmail = '';
     var msgModel = {};            // id -> message object (latest)
@@ -1646,6 +1657,7 @@ const APP_HTML = `<!doctype html>
       $('whoami').textContent = me.name || me.email;
       if(me && me.accent){ applyAccent(me.accent); }   // theme follows the user across devices
       applyWallpaper(currentWallpaper());               // chat background follows the user too
+      applySidebar();
       if(me.is_admin){ show('newGroupBtn'); } else { hide('newGroupBtn'); }
       if(!isMobile()){ $('chatPane').classList.remove('hidden'); }
       try { config = await api('/api/config'); } catch(e){}
@@ -1696,6 +1708,7 @@ const APP_HTML = `<!doctype html>
       applyWallpaper(currentWallpaper());
       renderGroups();
       hide('chatEmpty'); show('chatActive');
+      applySidebar();
       $('chatTitle').textContent = g.name;
       $('chatSub').textContent = g.is_dm ? 'Direct message' : ((g.role==='admin' ? 'Admin · ' : '') + g.member_count + ' member' + (g.member_count===1 ? '' : 's'));
       if(!g.is_dm && g.role==='admin'){ show('membersBtn'); } else { hide('membersBtn'); }
@@ -1712,6 +1725,19 @@ const APP_HTML = `<!doctype html>
     function backToList(){
       stopPoll(); active = null; closeThread(); renderGroups();
       if(isMobile()){ show('sidebar'); $('chatPane').classList.add('hidden'); $('chatPane').classList.remove('flex'); }
+      applySidebar();
+    }
+    // Collapse the sidebar for a full-screen conversation (desktop/tablet only;
+    // phones already go full-screen on open). Only applied while a chat is open
+    // so you can never get stranded with no way back to the list.
+    function applySidebar(){
+      var shell = $('appShell'); if(!shell) return;
+      shell.classList.toggle('sb-collapsed', !!(sidebarCollapsed && active && !isMobile()));
+    }
+    function toggleSidebar(){
+      sidebarCollapsed = !sidebarCollapsed;
+      localStorage.setItem('chat_sidebar_collapsed', sidebarCollapsed ? '1' : '0');
+      applySidebar();
     }
 
     async function loadMessages(forceScroll){
@@ -2537,6 +2563,7 @@ const APP_HTML = `<!doctype html>
     /* ---------- boot ---------- */
     applyAccent(localStorage.getItem('chat_accent') || '#111827');   // instant theme before login
     applyWallpaper(localStorage.getItem('chat_wallpaper') || 'none');
+    window.addEventListener('resize', applySidebar);   // re-evaluate on rotate/resize
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
     if('serviceWorker' in navigator && navigator.serviceWorker.addEventListener){
       navigator.serviceWorker.addEventListener('message', function(ev){

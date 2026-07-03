@@ -30,6 +30,9 @@ serves the web app *and* the API, backed by a D1 database.
   per-user **chat background** picker (Account → Chat background) with a doodle
   pattern, gradients, solids, and a dark option. The background follows you
   across devices.
+- **Collapsible sidebar** — a `«` button in the chat header hides the group
+  list for a full-screen conversation (great on tablets/laptops); `☰` brings it
+  back. Remembered per device. Phones already open chats full-screen.
 - **Installable (PWA)** — "Add to Home Screen" for a full-screen app icon
   (served `/manifest.webmanifest` + `/sw.js`).
 - **Markdown** — `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, and fenced
