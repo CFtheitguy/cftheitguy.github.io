@@ -1034,7 +1034,11 @@ function swResponse() {
     "var ICON = 'https://cftheitguy.github.io/assets/logo.png';",
     "self.addEventListener('install', function(e){ self.skipWaiting(); });",
     "self.addEventListener('activate', function(e){ e.waitUntil(self.clients.claim()); });",
-    "self.addEventListener('fetch', function(e){});",
+    // NOTE: intentionally NO 'fetch' handler. On iOS Safari a service worker
+    // with ANY fetch listener (even an empty pass-through) breaks HTTP Range
+    // requests for <audio>/<video> — which made voice notes never play on iPad
+    // even with server-side Range support. Omitting it lets iOS load media
+    // straight from the network. (Push handlers below are unaffected.)
     // Show an OS notification for an incoming push — unless the app is already
     // open and focused, in which case we just nudge the page instead.
     "self.addEventListener('push', function(event){",
