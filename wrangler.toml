@@ -23,9 +23,13 @@ database_id = "201d9672-d0c5-48e8-b275-67cbeb6b93cc"
 binding = "FILES"
 bucket_name = "linear-chat-files"
 
-# Non-secret vars are optional — the code defaults JITSI_DOMAIN to meet.jit.si
-# and MAX_UPLOAD_MB to 20. Keep AUTH_SECRET / RESEND_API_KEY / ADMIN_EMAILS /
-# EMAIL_FROM as encrypted Secrets in the dashboard, not here.
-# [vars]
+# Non-secret vars. Keep AUTH_SECRET / RESEND_API_KEY / ADMIN_EMAILS / EMAIL_FROM
+# and REALTIME_APP_SECRET as encrypted Secrets in the dashboard, not here.
+[vars]
+# Cloudflare Realtime SFU App ID. NOT a secret — it's useless without
+# REALTIME_APP_SECRET (which stays an encrypted Secret on the Worker). Keeping it
+# here means it survives every deploy, instead of being wiped like a dashboard
+# plaintext variable would be.
+REALTIME_APP_ID = "3b7cfb2c214d401de82467559465add2"
 # JITSI_DOMAIN = "meet.jit.si"
 # MAX_UPLOAD_MB = "20"
