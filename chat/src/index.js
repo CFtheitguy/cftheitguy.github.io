@@ -686,9 +686,17 @@ async function startCall(request, env, email, gid) {
   const mode = b.mode === "audio" ? "audio" : "video";
   const room = "linear-" + gid + "-" + randToken(10);
   const provider = callsConfigured(env) ? "cloudflare" : "jitsi";
-  const meta = JSON.stringify({ provider, room, domain: env.JITSI_DOMAIN || "meet.jit.si", mode, by: email });
   const u = await env.DB.prepare("SELECT name FROM users WHERE email=?").bind(email).first();
   const name = u && u.name ? u.name : null;
+  let token = null;
+  if (provider === "jitsi" && env.JITSI_JWT_SECRET) {
+    const payload = { iss: "jitsi", sub: "linear-chat", aud: "jitsi", room, email, name, moderator: true };
+    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+    const body = btoa(JSON.stringify(payload));
+    const sig = await signHS256(header + "." + body, env.JITSI_JWT_SECRET);
+    token = header + "." + body + "." + sig;
+  }
+  const meta = JSON.stringify({ provider, room, domain: env.JITSI_DOMAIN || "meet.jit.si", mode, by: email, token });
   const label = mode === "audio" ? "Voice call started" : "Video call started";
   const res = await env.DB
     .prepare("INSERT INTO messages (group_id, sender_email, sender_name, body, kind, meta) VALUES (?,?,?,?, 'call', ?)")
@@ -698,6 +706,11 @@ async function startCall(request, env, email, gid) {
   ).bind(res.meta.last_row_id).first();
   const [enriched] = await enrich(env, email, [row]);
   return json({ message: enriched });
+}
+async function signHS256(data, secret) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 function randToken(n) {
   const a = "abcdefghijkmnpqrstuvwxyz23456789";
@@ -2177,7 +2190,7 @@ const APP_HTML = `<!doctype html>
     function joinCall(meta, gid){
       if(!meta || !meta.room) return;
       if(meta.provider === 'cloudflare'){ startRealtimeCall(meta.room, meta.mode || 'video', gid || (active && active.id)); }
-      else { startJitsi(meta.room, meta.mode || 'video'); }
+      else { startJitsi(meta.room, meta.mode || 'video', meta.token); }
     }
     function loadJitsiScript(){
       return new Promise(function(resolve, reject){
@@ -2188,21 +2201,23 @@ const APP_HTML = `<!doctype html>
         document.head.appendChild(s);
       });
     }
-    function startJitsi(room, mode){
+    function startJitsi(room, mode, token){
       var domain = config.jitsi_domain || 'meet.jit.si';
       show('callOverlay');
       $('callTitle').textContent = (mode==='audio' ? '📞 Voice call' : '🎥 Video call');
       loadJitsiScript().then(function(){
         if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; }
         $('callFrame').innerHTML = '';
-        jitsiApi = new JitsiMeetExternalAPI(domain, {
+        var opts = {
           roomName: room,
           parentNode: $('callFrame'),
           width: '100%', height: '100%',
           userInfo: { displayName: (me && (me.name || me.email)) || 'Guest' },
           configOverwrite: { startWithVideoMuted: (mode==='audio'), prejoinPageEnabled: false, disableDeepLinking: true },
           interfaceConfigOverwrite: { MOBILE_APP_PROMO: false }
-        });
+        };
+        if(token) opts.token = token;
+        jitsiApi = new JitsiMeetExternalAPI(domain, opts);
         jitsiApi.addEventListener('readyToClose', endCall);
       }).catch(function(){
         // fallback: open the room in a new tab
