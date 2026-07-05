@@ -139,6 +139,7 @@ function getConfig(env) {
     calls_enabled: true,
     calls_provider: callsConfigured(env) ? "cloudflare" : "jitsi",
     jitsi_domain: env.JITSI_DOMAIN || "meet.jit.si",
+    _debug: { app_id: !!env.REALTIME_APP_ID, secret: !!env.REALTIME_APP_SECRET },
   });
 }
 
