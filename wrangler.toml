@@ -30,6 +30,6 @@ bucket_name = "linear-chat-files"
 # REALTIME_APP_SECRET (which stays an encrypted Secret on the Worker). Keeping it
 # here means it survives every deploy, instead of being wiped like a dashboard
 # plaintext variable would be.
-REALTIME_APP_ID = "3b7cfb2c214d401de82467559465add2"
+REALTIME_APP_ID = "bc7326338ec634e31886f09f9892feef"
 # JITSI_DOMAIN = "meet.jit.si"
 # MAX_UPLOAD_MB = "20"
