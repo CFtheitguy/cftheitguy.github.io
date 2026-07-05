@@ -98,6 +98,9 @@ async function handleApi(request, env, ctx, url, p, method) {
   { const cm = p.match(/^\/api\/calls\/([A-Za-z0-9_-]+)\/(join|state|leave)$/); if (cm && method === "POST") return callSignal(request, env, email, cm[1], cm[2]); }
   if (p === "/api/calls/status" && method === "GET") return callStatus(env);
 
+  // Presence & typing (WebSocket)
+  { const m = p.match(/^\/api\/presence\/(\d+)$/); if (m && request.headers.get("upgrade") === "websocket") return presenceWS(request, env, email, Number(m[1])); }
+
   if (p === "/api/groups" && method === "GET") return listGroups(env, email);
   if (p === "/api/groups" && method === "POST") return createGroup(request, env, email);
 
@@ -1438,6 +1441,58 @@ async function unsubscribePush(request, env, email) {
 }
 
 /* ============================================================
+ * Presence & typing (WebSocket + Durable Objects)
+ * ============================================================ */
+async function presenceWS(request, env, email, gid) {
+  await requireMember(env, gid, email);
+  const id = env.PRESENCE.idFromName("group:" + gid);
+  const stub = env.PRESENCE.get(id);
+  return stub.fetch(request, { email, gid });
+}
+
+export class PresenceState {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+    this.clients = new Map();
+    this.typing = new Set();
+  }
+  async fetch(request, { email, gid }) {
+    const url = new URL(request.url);
+    if (url.pathname === "/api/presence/" + gid) {
+      const { 0: client, 1: server } = new WebSocketPair();
+      this.state.acceptWebSocket(server);
+      this.clients.set(server, email);
+      this.broadcast({ type: "join", email });
+      return new Response(null, { status: 101, webSocket: client });
+    }
+    return new Response("Not found", { status: 404 });
+  }
+  async webSocketMessage(server, msg) {
+    try {
+      const data = JSON.parse(msg);
+      const email = this.clients.get(server);
+      if (!email) return;
+      if (data.type === "typing" && data.typing) this.typing.add(email);
+      else if (data.type === "typing") this.typing.delete(email);
+      this.broadcast({ type: data.type, email, typing: data.typing });
+    } catch (_) {}
+  }
+  async webSocketClose(server) {
+    const email = this.clients.get(server);
+    this.clients.delete(server);
+    this.typing.delete(email);
+    this.broadcast({ type: "leave", email });
+  }
+  broadcast(msg) {
+    const data = JSON.stringify(msg);
+    for (const [server] of this.clients) {
+      try { server.send(data); } catch (_) {}
+    }
+  }
+}
+
+/* ============================================================
  * The web app (served at GET /).
  * NOTE: the inline <script> deliberately uses string concatenation
  * and single quotes — no backticks / ${} — so it doesn't clash with
@@ -1590,6 +1645,7 @@ const APP_HTML = `<!doctype html>
               class="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand max-h-32"></textarea>
             <button type="submit" class="bg-brand text-white rounded-xl px-4 py-2 text-sm font-medium hover:opacity-90">Send</button>
           </form>
+          <div id="typingStatus" class="text-xs text-gray-400 px-2 py-1 hidden"></div>
           <!-- voice-note recording bar (shown while recording) -->
           <div id="recBar" class="hidden bg-white border-t p-3 flex items-center gap-3">
             <span class="flex items-center gap-2 text-red-600 font-medium">
@@ -1866,13 +1922,46 @@ const APP_HTML = `<!doctype html>
       await loadMessages(true);
       refreshPinsCount();
       startPoll();
+      connectPresence(g.id);
       $('composerInput').focus();
     }
     function backToList(){
-      stopPoll(); active = null; closeThread(); renderGroups();
+      stopPoll(); disconnectPresence(); active = null; closeThread(); renderGroups();
       if(isMobile()){ show('sidebar'); $('chatPane').classList.add('hidden'); $('chatPane').classList.remove('flex'); }
       applySidebar();
     }
+    var presenceWS = null; var typingTimeout = null;
+    function connectPresence(gid){
+      disconnectPresence();
+      try {
+        var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        presenceWS = new WebSocket(proto + '//' + window.location.host + '/api/presence/' + gid);
+        presenceWS.onmessage = function(ev){ try { handlePresenceMsg(JSON.parse(ev.data)); } catch(e){} };
+        presenceWS.onerror = function(){ disconnectPresence(); };
+        presenceWS.onclose = function(){ presenceWS = null; };
+      } catch(e){}
+    }
+    function disconnectPresence(){ if(presenceWS){ try { presenceWS.close(); } catch(e){} presenceWS = null; } }
+    function sendPresenceMsg(msg){ if(presenceWS && presenceWS.readyState === 1){ presenceWS.send(JSON.stringify(msg)); } }
+    var typingUsers = {};
+    function handlePresenceMsg(msg){
+      if(msg.type === 'typing'){
+        if(msg.typing){ typingUsers[msg.email] = true; } else { delete typingUsers[msg.email]; }
+        updateTypingStatus();
+      }
+    }
+    function updateTypingStatus(){
+      var typingList = Object.keys(typingUsers).filter(function(e){ return e !== (me && me.email); });
+      var el = $('typingStatus');
+      if(!el) return;
+      if(typingList.length === 0){ el.textContent = ''; el.classList.add('hidden'); }
+      else { el.textContent = typingList.join(', ') + ' ' + (typingList.length === 1 ? 'is' : 'are') + ' typing…'; el.classList.remove('hidden'); }
+    }
+    $('composerInput').addEventListener('input', function(){
+      if(typingTimeout){ clearTimeout(typingTimeout); }
+      sendPresenceMsg({ type: 'typing', typing: true });
+      typingTimeout = setTimeout(function(){ sendPresenceMsg({ type: 'typing', typing: false }); typingTimeout = null; }, 1000);
+    });
     // Collapse the sidebar for a full-screen conversation (desktop/tablet only;
     // phones already go full-screen on open). Only applied while a chat is open
     // so you can never get stranded with no way back to the list.

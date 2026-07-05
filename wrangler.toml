@@ -23,6 +23,11 @@ database_id = "201d9672-d0c5-48e8-b275-67cbeb6b93cc"
 binding = "FILES"
 bucket_name = "linear-chat-files"
 
+# --- Durable Objects (presence & typing) ---
+[[durable_objects.bindings]]
+name = "PRESENCE"
+class_name = "PresenceState"
+
 # Non-secret vars. Keep AUTH_SECRET / RESEND_API_KEY / ADMIN_EMAILS / EMAIL_FROM
 # and REALTIME_APP_SECRET as encrypted Secrets in the dashboard, not here.
 [vars]
