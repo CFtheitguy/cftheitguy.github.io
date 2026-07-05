@@ -34,11 +34,6 @@ script_name = "linear-chat"
 tag = "v1"
 new_classes = ["PresenceState"]
 
-# Export PresenceState Durable Object class
-[exports.PresenceState]
-type = "durable-object"
-storage = "sqlite"
-
 # Non-secret vars. Keep AUTH_SECRET / RESEND_API_KEY / ADMIN_EMAILS / EMAIL_FROM
 # and REALTIME_APP_SECRET as encrypted Secrets in the dashboard, not here.
 [vars]
