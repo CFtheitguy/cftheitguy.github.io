@@ -108,6 +108,9 @@ async function handleApi(request, env, ctx, url, p, method) {
   if ((m = p.match(/^\/api\/groups\/(\d+)\/messages\/(\d+)\/thread$/))) {
     if (method === "GET") return getThread(env, email, Number(m[1]), Number(m[2]), url);
   }
+  if ((m = p.match(/^\/api\/groups\/(\d+)\/search$/))) {
+    if (method === "GET") return searchMessages(env, email, Number(m[1]), url);
+  }
   if ((m = p.match(/^\/api\/messages\/(\d+)\/react$/))) {
     if (method === "POST") return react(request, env, email, Number(m[1]));
   }
@@ -116,7 +119,7 @@ async function handleApi(request, env, ctx, url, p, method) {
     if (m[2] === "delete" && method === "POST") return deleteMessage(env, email, Number(m[1]));
     if (m[2] === "pin" && method === "POST") return pinMessage(request, env, email, Number(m[1]));
   }
-  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call|read|pins|icon)$/))) {
+  if ((m = p.match(/^\/api\/groups\/(\d+)\/(members\/remove|members|messages|badges|call|read|pins|icon|scheduled)$/))) {
     const gid = Number(m[1]);
     const sub = m[2];
     if (sub === "icon" && method === "POST") return uploadGroupIcon(request, env, email, gid);
@@ -129,6 +132,8 @@ async function handleApi(request, env, ctx, url, p, method) {
     if (sub === "call" && method === "POST") return startCall(request, env, email, gid);
     if (sub === "read" && method === "POST") return markRead(request, env, email, gid);
     if (sub === "pins" && method === "GET") return listPins(env, email, gid);
+    if (sub === "scheduled" && method === "GET") return listScheduledMessages(env, email, gid);
+    if (sub === "scheduled" && method === "POST") return processDueMessages(env, email, gid);
   }
 
   return json({ error: "Not found" }, 404);
@@ -378,11 +383,11 @@ async function listMessages(env, email, gid, url) {
   let rows;
   if (after > 0) {
     rows = (await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? ORDER BY id ASC LIMIT 200"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND id>? AND scheduled_at IS NULL ORDER BY id ASC LIMIT 200"
     ).bind(gid, after).all()).results || [];
   } else {
     rows = ((await env.DB.prepare(
-      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND parent_id IS NULL ORDER BY id DESC LIMIT 100"
+      "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND parent_id IS NULL AND scheduled_at IS NULL ORDER BY id DESC LIMIT 100"
     ).bind(gid).all()).results || []).reverse();
   }
   await enrich(env, email, rows);
@@ -415,11 +420,13 @@ async function postMessage(request, env, ctx, email, gid) {
   let parentId = null;
   let files = [];
   let mentions = [];
+  let scheduledAt = null;
   if (ct.includes("multipart/form-data")) {
     const fd = await request.formData();
     body = String(fd.get("body") || "").trim();
     parentId = fd.get("parent_id") ? Number(fd.get("parent_id")) : null;
     mentions = parseMentions(fd.get("mentions"));
+    scheduledAt = fd.get("scheduled_at") ? Number(fd.get("scheduled_at")) : null;
     for (const f of fd.getAll("files")) {
       if (f && typeof f === "object" && typeof f.arrayBuffer === "function") files.push(f);
     }
@@ -428,6 +435,7 @@ async function postMessage(request, env, ctx, email, gid) {
     body = String(j.body || "").trim();
     parentId = j.parent_id ? Number(j.parent_id) : null;
     mentions = parseMentions(j.mentions);
+    scheduledAt = j.scheduled_at ? Number(j.scheduled_at) : null;
   }
 
   if (parentId) {
@@ -438,6 +446,7 @@ async function postMessage(request, env, ctx, email, gid) {
 
   if (!body && files.length === 0) return json({ error: "Message is empty." }, 400);
   if (body.length > 4000) return json({ error: "Message is too long." }, 400);
+  if (scheduledAt && scheduledAt <= Date.now()) return json({ error: "Scheduled time must be in the future." }, 400);
 
   if (files.length) {
     if (!env.FILES) return json({ error: "Attachments aren't enabled. Bind an R2 bucket named FILES." }, 400);
@@ -453,8 +462,8 @@ async function postMessage(request, env, ctx, email, gid) {
   // Store "" rather than NULL: databases first created by the original schema
   // have body TEXT NOT NULL, and attachment-only messages have no text.
   const res = await env.DB
-    .prepare("INSERT INTO messages (group_id, parent_id, sender_email, sender_name, body) VALUES (?,?,?,?,?)")
-    .bind(gid, parentId, email, name, body || "").run();
+    .prepare("INSERT INTO messages (group_id, parent_id, sender_email, sender_name, body, scheduled_at) VALUES (?,?,?,?,?,?)")
+    .bind(gid, parentId, email, name, body || "", scheduledAt).run();
   const id = res.meta.last_row_id;
 
   for (const f of files) {
@@ -472,14 +481,15 @@ async function postMessage(request, env, ctx, email, gid) {
   }
 
   const row = await env.DB.prepare(
-    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE id=?"
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at, scheduled_at FROM messages WHERE id=?"
   ).bind(id).first();
   const [enriched] = await enrich(env, email, [row]);
 
-  // Push notifications to the other members (fire-and-forget; the service
-  // worker suppresses the OS banner when the app is focused).
-  const notify = notifyForMessage(env, gid, email, name, body, id, mentions).catch(() => {});
-  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notify);
+  // Only notify if not scheduled for the future
+  if (!scheduledAt) {
+    const notify = notifyForMessage(env, gid, email, name, body, id, mentions).catch(() => {});
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notify);
+  }
 
   return json({ message: enriched, parent_id: parentId });
 }
@@ -670,6 +680,42 @@ async function listPins(env, email, gid) {
   ).bind(gid).all()).results || [];
   await enrich(env, email, rows);
   return json({ pins: rows });
+}
+
+async function searchMessages(env, email, gid, url) {
+  await requireMember(env, gid, email);
+  const q = (url.searchParams.get("q") || "").trim();
+  if (!q || q.length < 2) return json({ results: [] });
+  const term = "%" + q.replace(/%/g, "\\%") + "%";
+  const rows = (await env.DB.prepare(
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at FROM messages WHERE group_id=? AND deleted=0 AND scheduled_at IS NULL AND body LIKE ? ESCAPE '\\' ORDER BY id DESC LIMIT 50"
+  ).bind(gid, term).all()).results || [];
+  await enrich(env, email, rows);
+  return json({ results: rows });
+}
+
+async function listScheduledMessages(env, email, gid) {
+  await requireMember(env, gid, email);
+  const rows = (await env.DB.prepare(
+    "SELECT id, parent_id, sender_email, sender_name, body, kind, meta, deleted, edited_at, pinned, created_at, scheduled_at FROM messages WHERE group_id=? AND sender_email=? AND scheduled_at IS NOT NULL ORDER BY scheduled_at ASC"
+  ).bind(gid, email).all()).results || [];
+  await enrich(env, email, rows);
+  return json({ scheduled: rows });
+}
+
+async function processDueMessages(env, email, gid) {
+  await requireMember(env, gid, email);
+  const now = Date.now();
+  const rows = (await env.DB.prepare(
+    "SELECT id, sender_email, sender_name, body FROM messages WHERE group_id=? AND scheduled_at IS NOT NULL AND scheduled_at <= ?"
+  ).bind(gid, now).all()).results || [];
+  for (const row of rows) {
+    await env.DB.prepare("UPDATE messages SET scheduled_at=NULL WHERE id=?").bind(row.id).run();
+    if (row.sender_email && row.sender_name !== undefined) {
+      notifyForMessage(env, gid, row.sender_email, row.sender_name, row.body, row.id, []).catch(() => {});
+    }
+  }
+  return json({ processed: rows.length });
 }
 
 function parseMentions(v) {
@@ -1231,6 +1277,15 @@ async function ensureSchema(env) {
   ];
   for (const s of more) await env.DB.prepare(s).run();
 
+  // Scheduled messages: store scheduled_at timestamp for deferred sending
+  const scheduled = [
+    "ALTER TABLE messages ADD COLUMN scheduled_at INTEGER",
+    "CREATE INDEX IF NOT EXISTS idx_messages_scheduled ON messages(group_id, scheduled_at) WHERE scheduled_at IS NOT NULL",
+  ];
+  for (const s of scheduled) {
+    try { await env.DB.prepare(s).run(); } catch (_) { /* already exists */ }
+  }
+
   SCHEMA_READY = true;
 }
 
@@ -1628,6 +1683,7 @@ const APP_HTML = `<!doctype html>
             </div>
             <button id="callAudioBtn" onclick="startCall('audio')" class="hidden text-xl leading-none hover:opacity-70" title="Start voice call">📞</button>
             <button id="callVideoBtn" onclick="startCall('video')" class="hidden text-xl leading-none hover:opacity-70" title="Start video call">🎥</button>
+            <button id="searchBtn" onclick="openSearch()" class="text-sm text-gray-500 hover:text-black" title="Search messages">🔍</button>
             <button id="pinsBtn" onclick="openPins()" class="hidden text-sm text-gray-500 hover:text-black" title="Pinned messages">📌 <span id="pinsCount"></span></button>
             <button id="membersBtn" onclick="openMembers()" class="hidden text-sm text-gray-500 hover:text-black underline">Members</button>
           </header>
@@ -1643,6 +1699,7 @@ const APP_HTML = `<!doctype html>
               class="text-gray-500 hover:text-black text-xl leading-none px-1">😀</button>
             <textarea id="composerInput" rows="1" placeholder="Type a message…" onkeydown="composerKey(event)"
               class="flex-1 resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand max-h-32"></textarea>
+            <button type="button" onclick="openScheduleModal()" class="text-gray-500 hover:text-black text-xl leading-none px-1" title="Schedule message">⏰</button>
             <button type="submit" class="bg-brand text-white rounded-xl px-4 py-2 text-sm font-medium hover:opacity-90">Send</button>
           </form>
           <div id="typingStatus" class="text-xs text-gray-400 px-2 py-1 hidden"></div>
@@ -1713,6 +1770,39 @@ const APP_HTML = `<!doctype html>
         <button onclick="document.getElementById('iconInput').click()" class="text-xs text-brand hover:underline font-medium mt-2">Change group photo</button>
       </div>
       <div id="memberList" class="max-h-72 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- search modal -->
+  <div id="searchModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-30">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-2xl p-5 max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">🔍 Search messages</h3>
+        <button onclick="closeModal('searchModal')" class="text-gray-400 hover:text-black text-xl leading-none">&times;</button>
+      </div>
+      <input id="searchInput" placeholder="Search in this group…" onkeyup="performSearch()"
+        class="w-full rounded-lg border px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-brand">
+      <div id="searchResults" class="overflow-y-auto space-y-2"></div>
+    </div>
+  </div>
+
+  <!-- schedule message modal -->
+  <div id="scheduleModal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-30">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">⏰ Schedule message</h3>
+        <button onclick="closeModal('scheduleModal')" class="text-gray-400 hover:text-black text-xl leading-none">&times;</button>
+      </div>
+      <label class="text-xs text-gray-500">Send at</label>
+      <input id="scheduleDateTime" type="datetime-local" class="w-full rounded-lg border px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-brand">
+      <div class="flex gap-2">
+        <button onclick="closeModal('scheduleModal')" class="flex-1 rounded-lg border px-3 py-2 text-sm hover:bg-gray-50">Cancel</button>
+        <button onclick="confirmSchedule()" class="flex-1 bg-brand text-white rounded-lg px-3 py-2 text-sm font-medium hover:opacity-90">Schedule</button>
+      </div>
+      <div id="scheduledList" class="mt-4 pt-4 border-t">
+        <h4 class="text-xs font-semibold text-gray-500 mb-2">Scheduled messages</h4>
+        <div id="scheduledItems" class="space-y-2 text-sm"></div>
+      </div>
     </div>
   </div>
 
@@ -1923,6 +2013,7 @@ const APP_HTML = `<!doctype html>
       refreshPinsCount();
       startPoll();
       connectPresence(g.id);
+      try { await api('/api/groups/' + g.id + '/scheduled', { method:'POST' }); } catch(e){}
       $('composerInput').focus();
     }
     function backToList(){
@@ -2562,6 +2653,83 @@ const APP_HTML = `<!doctype html>
         if(msgModel[id]){ msgModel[id].pinned = false; document.querySelectorAll('[data-mid="' + id + '"]').forEach(function(row){ row.replaceWith(renderMessage(msgModel[id], {})); }); }
         if(card) card.remove();
         refreshPinsCount();
+      } catch(e){ alert(e.message); }
+    }
+
+    async function openSearch(){
+      if(!active) return;
+      show('searchModal');
+      $('searchInput').focus();
+      $('searchResults').innerHTML = '';
+    }
+    async function performSearch(){
+      if(!active) return;
+      var q = $('searchInput').value.trim();
+      if(q.length < 2){ $('searchResults').innerHTML = ''; return; }
+      try {
+        var r = await api('/api/groups/' + active.id + '/search?q=' + encodeURIComponent(q));
+        var list = $('searchResults'); list.innerHTML = '';
+        var results = r.results || [];
+        if(!results.length){ list.innerHTML = '<p class="text-sm text-gray-400 py-4 text-center">No messages found.</p>'; return; }
+        results.forEach(function(m){
+          var card = ce('div','border rounded-lg p-3 text-sm cursor-pointer hover:bg-gray-50');
+          var who = ce('div','text-xs text-gray-400 mb-1'); who.textContent = (m.sender_name || m.sender_email) + ' · ' + fmtTime(m.created_at); card.appendChild(who);
+          var bodyEl = ce('div','break-words line-clamp-2'); renderRich(bodyEl, m.body || '', false, m.mentions); card.appendChild(bodyEl);
+          card.onclick = function(){ closeModal('searchModal'); scrollToMessage(m.id); };
+          list.appendChild(card);
+        });
+      } catch(e){ $('searchResults').innerHTML = '<p class="text-sm text-red-500 py-4 text-center">' + esc(e.message) + '</p>'; }
+    }
+    function scrollToMessage(id){
+      var el = document.querySelector('[data-mid="' + id + '"]');
+      if(el){ el.scrollIntoView({ behavior:'smooth', block:'center' }); el.classList.add('bg-yellow-100'); setTimeout(function(){ el.classList.remove('bg-yellow-100'); }, 2000); }
+    }
+
+    var scheduledTime = null;
+    function openScheduleModal(){
+      if(!active) return;
+      scheduledTime = null;
+      show('scheduleModal');
+      var now = new Date();
+      now.setMinutes(now.getMinutes() + 5);
+      $('scheduleDateTime').value = now.toISOString().slice(0,16);
+      loadScheduledMessages();
+    }
+    async function loadScheduledMessages(){
+      if(!active) return;
+      try {
+        var r = await api('/api/groups/' + active.id + '/scheduled');
+        var list = $('scheduledItems'); list.innerHTML = '';
+        var items = r.scheduled || [];
+        if(!items.length){ list.innerHTML = '<p class="text-xs text-gray-400">No scheduled messages.</p>'; return; }
+        items.forEach(function(m){
+          var item = ce('div','flex items-start gap-2 pb-2 border-b last:border-b-0');
+          var time = ce('span','text-xs text-gray-500 shrink-0'); time.textContent = fmtTime(new Date(m.scheduled_at)); item.appendChild(time);
+          var txt = ce('span','text-xs flex-1 line-clamp-1 text-gray-600'); txt.textContent = m.body || '(no text)'; item.appendChild(txt);
+          list.appendChild(item);
+        });
+      } catch(e){ $('scheduledItems').innerHTML = '<p class="text-xs text-red-500">' + esc(e.message) + '</p>'; }
+    }
+    async function confirmSchedule(){
+      if(!active || !$('composerInput').value.trim()) return alert('Write a message first.');
+      var dtStr = $('scheduleDateTime').value;
+      if(!dtStr) return alert('Pick a date and time.');
+      var dt = new Date(dtStr);
+      var now = new Date();
+      if(dt <= now) return alert('Schedule time must be in the future.');
+      try {
+        var fd = new FormData();
+        fd.append('body', $('composerInput').value);
+        fd.append('scheduled_at', dt.getTime());
+        if(mainFiles.files.length){
+          for(var i=0;i<mainFiles.files.length;i++) fd.append('files', mainFiles.files[i]);
+        }
+        await api('/api/groups/' + active.id + '/messages', { method:'POST', body: fd });
+        $('composerInput').value = '';
+        mainFiles.files = []; renderFileChips(mainFiles);
+        alert('Message scheduled for ' + dt.toLocaleString() + '.');
+        closeModal('scheduleModal');
+        loadScheduledMessages();
       } catch(e){ alert(e.message); }
     }
 
