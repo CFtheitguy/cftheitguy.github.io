@@ -1683,7 +1683,6 @@ const APP_HTML = `<!doctype html>
             </div>
             <button id="callAudioBtn" onclick="startCall('audio')" class="hidden text-xl leading-none hover:opacity-70" title="Start voice call">📞</button>
             <button id="callVideoBtn" onclick="startCall('video')" class="hidden text-xl leading-none hover:opacity-70" title="Start video call">🎥</button>
-            <button id="searchBtn" onclick="openSearch()" class="text-sm text-gray-500 hover:text-black" title="Search messages">🔍</button>
             <button id="pinsBtn" onclick="openPins()" class="hidden text-sm text-gray-500 hover:text-black" title="Pinned messages">📌 <span id="pinsCount"></span></button>
             <button id="membersBtn" onclick="openMembers()" class="hidden text-sm text-gray-500 hover:text-black underline">Members</button>
           </header>
@@ -1695,6 +1694,8 @@ const APP_HTML = `<!doctype html>
               class="text-gray-500 hover:text-black text-xl leading-none px-1">📎</button>
             <button type="button" id="recBtn" onclick="startRec()" title="Record voice note"
               class="text-gray-500 hover:text-black text-xl leading-none px-1">🎤</button>
+            <button type="button" onclick="openSearch()" title="Search messages"
+              class="text-gray-500 hover:text-black text-xl leading-none px-1">🔍</button>
             <button type="button" onclick="openEmojiInsert(event)" title="Emoji"
               class="text-gray-500 hover:text-black text-xl leading-none px-1">😀</button>
             <textarea id="composerInput" rows="1" placeholder="Type a message…" onkeydown="composerKey(event)"
