@@ -70,7 +70,6 @@ async function handleApi(request, env, ctx, url, p, method) {
   if (p === "/api/auth/request" && method === "POST") return authRequest(request, env);
   if (p === "/api/auth/verify" && method === "POST") return authVerify(request, env);
   if (p === "/api/config" && method === "GET") return getConfig(env);
-  if (p === "/api/debug/creds" && method === "GET") return json({ app_id: !!env.REALTIME_APP_ID, app_id_val: env.REALTIME_APP_ID || "MISSING", secret: !!env.REALTIME_APP_SECRET });
   if (method === "GET") {
     const fm = p.match(/^\/api\/files\/(\d+)$/);
     if (fm) return serveFile(request, env, url, Number(fm[1]));
