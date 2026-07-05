@@ -3152,6 +3152,9 @@ const APP_HTML = `<!doctype html>
     applyAccent(localStorage.getItem('chat_accent') || '#111827');   // instant theme before login
     applyWallpaper(localStorage.getItem('chat_wallpaper') || 'none');
     window.addEventListener('resize', applySidebar);   // re-evaluate on rotate/resize
+    document.addEventListener('keydown', function(e){
+      if((e.ctrlKey || e.metaKey) && e.key === 'k'){ e.preventDefault(); openSearch(); }
+    });
     if('serviceWorker' in navigator){ navigator.serviceWorker.register('/sw.js').catch(function(){}); }
     if('serviceWorker' in navigator && navigator.serviceWorker.addEventListener){
       navigator.serviceWorker.addEventListener('message', function(ev){
