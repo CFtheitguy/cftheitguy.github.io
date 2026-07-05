@@ -27,7 +27,6 @@ bucket_name = "linear-chat-files"
 [[durable_objects.bindings]]
 name = "PRESENCE"
 class_name = "PresenceState"
-script_name = "linear-chat"
 
 # Register PresenceState Durable Object on first deployment
 [[migrations]]
