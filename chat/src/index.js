@@ -2674,7 +2674,7 @@ const APP_HTML = `<!doctype html>
         results.forEach(function(m){
           var card = ce('div','border rounded-lg p-3 text-sm cursor-pointer hover:bg-gray-50');
           var who = ce('div','text-xs text-gray-400 mb-1'); who.textContent = (m.sender_name || m.sender_email) + ' · ' + fmtTime(m.created_at); card.appendChild(who);
-          var bodyEl = ce('div','break-words line-clamp-2'); renderRich(bodyEl, m.body || '', false, m.mentions); card.appendChild(bodyEl);
+          var bodyEl = ce('div','break-words line-clamp-2 text-gray-700'); bodyEl.textContent = m.body || '(no text)'; card.appendChild(bodyEl);
           card.onclick = function(){ closeModal('searchModal'); scrollToMessage(m.id); };
           list.appendChild(card);
         });
