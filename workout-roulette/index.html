@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Workout Roulette — No-Equipment Circuit Generator</title>
+<meta name="description" content="Pick a time and a body part, spin, and get an instant no-equipment workout circuit with a built-in countdown timer."/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400;1,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f7f3ff;
+    --ink:      #1a2533;
+    --ink2:     #4a5568;
+    --ink3:     #8898aa;
+    --white:    #ffffff;
+
+    --c-full:   #f4a535; /* orange */
+    --c-upper:  #5b8dee; /* blue */
+    --c-lower:  #3dba7a; /* green */
+    --c-core:   #ee6b6b; /* red/pink */
+    --c-cardio: #9b5de5; /* purple */
+    --c-glutes: #2bb6b6; /* teal */
+
+    --work:     #3dba7a;
+    --rest:     #5b8dee;
+    --roundrest:#f4a535;
+    --ready:    #ee6b6b;
+    --done:     #9b5de5;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(244,165,53,0.14) 0%, transparent 40%),
+      radial-gradient(circle at 85% 10%, rgba(91,141,238,0.14) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(238,107,107,0.12) 0%, transparent 40%),
+      radial-gradient(circle at 10% 85%, rgba(61,186,122,0.14) 0%, transparent 40%);
+  }
+
+  .float-shape {
+    position: fixed; pointer-events: none; z-index: 0; opacity: 0.5;
+    animation: floaty 14s ease-in-out infinite; font-size: 26px;
+  }
+  .float-shape:nth-child(2) { animation-duration: 18s; animation-delay: -4s; }
+  .float-shape:nth-child(3) { animation-duration: 16s; animation-delay: -8s; }
+  .float-shape:nth-child(4) { animation-duration: 20s; animation-delay: -2s; }
+  .float-shape:nth-child(5) { animation-duration: 15s; animation-delay: -10s; }
+  .float-shape:nth-child(6) { animation-duration: 22s; animation-delay: -6s; }
+  @keyframes floaty {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25%       { transform: translate(24px, -36px) rotate(12deg); }
+    50%       { transform: translate(-18px, -12px) rotate(-8deg); }
+    75%       { transform: translate(12px, 28px) rotate(6deg); }
+  }
+
+  header {
+    background: var(--white);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .logo {
+    font-size: 18px; font-weight: 800; color: var(--ink);
+    text-decoration: none; display: flex; align-items: center; gap: 8px;
+  }
+  .logo-bubble {
+    background: var(--c-cardio); color: white;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .header-sub { font-size: 12px; color: var(--ink3); font-family: 'DM Mono', monospace; }
+
+  main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 0 20px 80px; }
+
+  .hero { text-align: center; padding: 44px 8px 28px; }
+  .hero-emoji { font-size: 44px; display: block; margin-bottom: 10px; animation: wobble 2.4s ease-in-out infinite; }
+  @keyframes wobble { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-8deg); } }
+  .hero h1 { font-size: clamp(26px, 5vw, 38px); font-weight: 800; line-height: 1.2; }
+  .hero h1 span { color: var(--c-cardio); }
+  .hero p { font-size: 15px; color: var(--ink2); margin-top: 10px; line-height: 1.6; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+  /* ── PANELS ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--white); border-radius: 28px; padding: 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    margin-bottom: 20px;
+  }
+  .section-label {
+    font-size: 12.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink3); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-label .num {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--c-cardio); color: white;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+
+  /* chip grids */
+  .chip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .chip-grid.time { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+
+  .chip {
+    border: 2.5px solid rgba(0,0,0,0.07); background: #faf9fc; border-radius: 18px;
+    padding: 14px 10px; text-align: center; cursor: pointer; user-select: none;
+    transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+  .chip:hover { transform: translateY(-2px); border-color: rgba(0,0,0,0.15); }
+  .chip .chip-emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+  .chip .chip-label { font-size: 13px; font-weight: 700; color: var(--ink2); }
+  .chip.selected {
+    border-color: var(--c-select, var(--c-cardio));
+    background: color-mix(in srgb, var(--c-select, var(--c-cardio)) 12%, white);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--c-select, var(--c-cardio)) 30%, transparent);
+    transform: translateY(-2px) scale(1.03);
+  }
+  .chip.selected .chip-label { color: var(--ink); }
+
+  /* spin button */
+  .spin-btn {
+    width: 100%; padding: 20px; border: none; border-radius: 22px;
+    background: linear-gradient(135deg, var(--c-cardio), #6f3fc4);
+    color: white; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 18px;
+    cursor: pointer; box-shadow: 0 10px 28px rgba(155,93,229,0.4);
+    transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s ease, filter 0.18s ease;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .spin-btn:hover:not(:disabled) { transform: translateY(-2px) scale(1.015); filter: brightness(1.06); }
+  .spin-btn:active:not(:disabled) { transform: scale(0.98); }
+  .spin-btn:disabled { opacity: 0.6; cursor: default; }
+  .spin-btn .dice { font-size: 22px; }
+  .spin-btn.spinning .dice { animation: spin360 0.5s linear infinite; }
+  @keyframes spin360 { to { transform: rotate(360deg); } }
+
+  .hint { text-align: center; font-size: 12.5px; color: var(--ink3); margin-top: 10px; }
+
+  /* ── PREVIEW (slot machine + circuit list) ── */
+  .slot-window {
+    background: var(--ink); border-radius: 20px; padding: 26px 20px; text-align: center;
+    margin-bottom: 18px; overflow: hidden; position: relative; min-height: 100px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .slot-window .slot-text {
+    color: white; font-size: 22px; font-weight: 800; font-family: 'DM Mono', monospace;
+  }
+  .slot-window.locked .slot-text { color: #b6f5d8; }
+
+  .circuit-meta {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 18px;
+  }
+  .meta-pill {
+    font-size: 12.5px; font-weight: 700; background: #f0edfa; color: #6f3fc4;
+    padding: 6px 14px; border-radius: 20px;
+  }
+
+  .ex-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .ex-row {
+    display: flex; align-items: center; gap: 14px; background: #faf9fc;
+    border-radius: 16px; padding: 12px 16px; border: 1.5px solid rgba(0,0,0,0.05);
+  }
+  .ex-num {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: var(--c-cardio); color: white; font-weight: 800; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ex-info .ex-name { font-weight: 800; font-size: 14.5px; }
+  .ex-info .ex-cue { font-size: 12.5px; color: var(--ink3); margin-top: 1px; }
+
+  .action-row { display: flex; gap: 10px; }
+  .btn-secondary {
+    flex: 0 0 auto; padding: 16px 18px; border-radius: 18px; border: 2px solid rgba(0,0,0,0.08);
+    background: white; color: var(--ink2); font-weight: 800; font-size: 14px; cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .btn-secondary:hover { border-color: rgba(0,0,0,0.2); transform: translateY(-1px); }
+
+  /* ── TIMER SCREEN ── */
+  .timer-card {
+    background: var(--white); border-radius: 32px; padding: 8px;
+    box-shadow: 0 4px 28px rgba(0,0,0,0.08); overflow: hidden;
+  }
+  .timer-phase-bar {
+    padding: 20px 24px; border-radius: 26px; text-align: center; transition: background 0.35s ease;
+  }
+  .phase-label {
+    font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(255,255,255,0.85); margin-bottom: 8px;
+  }
+  .phase-exercise { font-size: clamp(22px, 5vw, 30px); font-weight: 800; color: white; line-height: 1.2; min-height: 1.2em; }
+  .phase-cue { font-size: 14px; color: rgba(255,255,255,0.85); margin-top: 6px; min-height: 1.2em; }
+
+  .timer-ring-wrap { display: flex; justify-content: center; margin: 24px 0 10px; position: relative; }
+  .timer-ring-wrap svg { transform: rotate(-90deg); }
+  .ring-time {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-family: 'DM Mono', monospace; font-size: 42px; font-weight: 700; color: var(--ink);
+  }
+
+  .round-info {
+    text-align: center; font-size: 13px; color: var(--ink3); font-weight: 700; margin-bottom: 14px;
+  }
+
+  .next-up {
+    text-align: center; font-size: 13.5px; color: var(--ink2); margin-bottom: 18px;
+    background: #faf9fc; border-radius: 14px; padding: 10px; margin-left: 16px; margin-right: 16px;
+  }
+  .next-up b { color: var(--ink); }
+
+  .timer-controls { display: flex; gap: 10px; padding: 0 16px 20px; }
+  .tc-btn {
+    flex: 1; padding: 16px; border-radius: 18px; border: none; cursor: pointer;
+    font-weight: 800; font-size: 14px; font-family: 'Nunito', sans-serif;
+    transition: transform 0.15s cubic-bezier(.34,1.56,.64,1), filter 0.15s ease;
+  }
+  .tc-btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+  .tc-btn:active { transform: scale(0.96); }
+  .tc-pause { background: var(--ink); color: white; }
+  .tc-skip { background: #eef0f5; color: var(--ink2); }
+  .tc-quit { background: #ffe8e8; color: #c03030; flex: 0 0 auto; padding: 16px 20px; }
+
+  /* ── DONE SCREEN ── */
+  .done-card { text-align: center; padding: 44px 28px; }
+  .done-emoji { font-size: 56px; display: block; margin-bottom: 14px; }
+  .done-card h2 { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+  .done-card p { color: var(--ink2); font-size: 15px; margin-bottom: 22px; }
+  .done-stats { display: flex; gap: 12px; justify-content: center; margin-bottom: 26px; flex-wrap: wrap; }
+  .done-stat { background: #faf9fc; border-radius: 16px; padding: 14px 20px; min-width: 100px; }
+  .done-stat .num { font-size: 22px; font-weight: 800; color: var(--c-cardio); font-family: 'DM Mono', monospace; }
+  .done-stat .lbl { font-size: 11.5px; color: var(--ink3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  footer {
+    text-align: center; padding: 24px; font-size: 13px; color: var(--ink3);
+    border-top: 1px solid rgba(0,0,0,0.07); position: relative; z-index: 1;
+  }
+  footer a { color: var(--c-cardio); text-decoration: none; font-weight: 700; }
+
+  @media (max-width: 480px) {
+    header { padding: 14px 18px; }
+    .card { padding: 20px; border-radius: 22px; }
+    .action-row { flex-direction: column; }
+    .timer-controls { flex-wrap: wrap; }
+    .tc-quit { flex: 1 1 100%; order: 3; }
+  }
+</style>
+</head>
+<body>
+
+<span class="float-shape" style="top:12%; left:4%;">💪</span>
+<span class="float-shape" style="top:30%; right:5%;">🔥</span>
+<span class="float-shape" style="top:60%; left:3%;">⏱️</span>
+<span class="float-shape" style="top:78%; right:7%;">✨</span>
+<span class="float-shape" style="top:46%; left:48%;">🎲</span>
+<span class="float-shape" style="top:90%; left:30%;">💥</span>
+
+<header>
+  <span class="logo"><span class="logo-bubble">🎰</span> Workout Roulette</span>
+  <span class="header-sub">no equipment · your time</span>
+</header>
+
+<main>
+
+  <div class="hero">
+    <span class="hero-emoji">🎰</span>
+    <h1>Pick your time. Pick your <span>body part</span>. Spin.</h1>
+    <p>Instant no-equipment circuit, built just for you — with a countdown timer baked right in. No gym, no gear, no excuses.</p>
+  </div>
+
+  <!-- ═══ PANEL 1: SETUP ═══ -->
+  <section id="panel-setup" class="panel active">
+    <div class="card">
+      <div class="section-label"><span class="num">1</span> How much time do you have?</div>
+      <div id="time-grid" class="chip-grid time"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-label"><span class="num">2</span> What do you want to hit?</div>
+      <div id="part-grid" class="chip-grid"></div>
+    </div>
+
+    <button id="spin-btn" class="spin-btn" disabled>
+      <span class="dice">🎲</span> <span id="spin-btn-label">Pick a time &amp; body part</span>
+    </button>
+    <p class="hint">Every spin builds a fresh circuit — no two workouts are quite the same.</p>
+  </section>
+
+  <!-- ═══ PANEL 2: PREVIEW ═══ -->
+  <section id="panel-preview" class="panel">
+    <div class="card">
+      <div class="slot-window" id="slot-window">
+        <div class="slot-text" id="slot-text">🎲</div>
+      </div>
+      <div class="circuit-meta" id="circuit-meta"></div>
+      <div class="ex-list" id="ex-list"></div>
+      <div class="action-row">
+        <button class="btn-secondary" id="respin-btn">🔁 Spin Again</button>
+        <button class="spin-btn" id="start-btn" style="flex:1;">
+          <span class="dice">▶️</span> Start Workout
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PANEL 3: TIMER ═══ -->
+  <section id="panel-timer" class="panel">
+    <div class="timer-card">
+      <div class="timer-phase-bar" id="phase-bar">
+        <div class="phase-label" id="phase-label">GET READY</div>
+        <div class="phase-exercise" id="phase-exercise">Starting in…</div>
+        <div class="phase-cue" id="phase-cue">&nbsp;</div>
+      </div>
+
+      <div class="timer-ring-wrap">
+        <svg width="220" height="220" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="98" fill="none" stroke="#eef0f5" stroke-width="14"/>
+          <circle id="ring-progress" cx="110" cy="110" r="98" fill="none" stroke="#3dba7a" stroke-width="14"
+                  stroke-linecap="round" stroke-dasharray="615.75" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-time" id="ring-time">--</div>
+      </div>
+
+      <div class="round-info" id="round-info">Round 1 of 1</div>
+      <div class="next-up" id="next-up">Next up: —</div>
+
+      <div class="timer-controls">
+        <button class="tc-btn tc-pause" id="pause-btn">⏸ Pause</button>
+        <button class="tc-btn tc-skip" id="skip-btn">⏭ Skip</button>
+        <button class="tc-btn tc-quit" id="quit-btn">✕</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PANEL 4: DONE ═══ -->
+  <section id="panel-done" class="panel">
+    <div class="card done-card">
+      <span class="done-emoji">🎉</span>
+      <h2>Circuit complete!</h2>
+      <p>You just crushed a workout you didn't even plan five minutes ago.</p>
+      <div class="done-stats">
+        <div class="done-stat"><div class="num" id="done-time">—</div><div class="lbl">Minutes</div></div>
+        <div class="done-stat"><div class="num" id="done-rounds">—</div><div class="lbl">Rounds</div></div>
+        <div class="done-stat"><div class="num" id="done-exercises">—</div><div class="lbl">Exercises</div></div>
+      </div>
+      <button class="spin-btn" id="spin-again-btn"><span class="dice">🎲</span> Spin Another</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <p>Workout Roulette · no equipment, no excuses · part of <a href="/">cftheitguy.github.io</a></p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // ───────────────────────── DATA ─────────────────────────
+  const TIMES = [5, 10, 15, 20, 30, 45]; // minutes
+
+  const PARTS = [
+    { key: 'full',   label: 'Full Body',     emoji: '🔥', color: 'var(--c-full)' },
+    { key: 'upper',  label: 'Upper Body',    emoji: '💪', color: 'var(--c-upper)' },
+    { key: 'lower',  label: 'Lower Body',    emoji: '🦵', color: 'var(--c-lower)' },
+    { key: 'core',   label: 'Core',          emoji: '🧱', color: 'var(--c-core)' },
+    { key: 'cardio', label: 'Cardio Blast',  emoji: '⚡', color: 'var(--c-cardio)' },
+    { key: 'glutes', label: 'Glutes & Legs', emoji: '🍑', color: 'var(--c-glutes)' },
+  ];
+
+  const EXERCISES = {
+    full: [
+      ['Burpees', 'Chest to floor, explode up'],
+      ['Mountain Climbers', 'Drive knees to chest, fast'],
+      ['Jumping Jacks', 'Full arm swing overhead'],
+      ['Squat to Reach', 'Squat low, reach up on stand'],
+      ['Bear Crawl (in place)', 'Hips low, core braced'],
+      ['Plank Jacks', 'Feet jump wide from plank'],
+      ['Star Jumps', 'Explode into an X shape'],
+      ['High Knees', 'Drive knees to hip height'],
+      ['Squat Thrusts', 'Squat, plank, squat, stand'],
+      ['Inchworms', 'Walk hands out to plank & back'],
+      ['Squat Jumps', 'Land soft, reset, repeat'],
+      ['Cross-Body Climbers', 'Knee to opposite elbow'],
+    ],
+    upper: [
+      ['Push-Ups', 'Elbows at 45°, chest low'],
+      ['Tricep Dips (chair/couch)', 'Elbows point straight back'],
+      ['Pike Push-Ups', 'Hips high, target shoulders'],
+      ['Diamond Push-Ups', 'Hands form a diamond'],
+      ['Arm Circles', 'Small then large, both ways'],
+      ['Plank Shoulder Taps', 'Hips stay still, tap slow'],
+      ['Superman Holds', 'Lift chest & legs together'],
+      ['Incline Push-Ups (couch)', 'Hands elevated, easier variant'],
+      ['Wide Push-Ups', 'Hands outside shoulder width'],
+      ['Push-Up to Side Plank', 'Rotate and reach up after each rep'],
+      ['Wall Push-Ups', 'Great low-impact option'],
+      ['T Push-Ups', 'Rotate into a side plank T'],
+    ],
+    lower: [
+      ['Bodyweight Squats', 'Knees track over toes'],
+      ['Forward Lunges', 'Front knee stacked over ankle'],
+      ['Glute Bridges', 'Squeeze glutes at the top'],
+      ['Calf Raises', 'Slow up, slow down'],
+      ['Wall Sit', 'Thighs parallel to floor'],
+      ['Reverse Lunges', 'Step back, drop straight down'],
+      ['Sumo Squats', 'Wide stance, toes out'],
+      ['Single-Leg Deadlift', 'Hinge at hips, chest proud'],
+      ['Step-Ups (stair/step)', 'Drive through the heel'],
+      ['Curtsy Lunges', 'Step back and across'],
+      ['Squat Pulses', 'Small pulses at the bottom'],
+      ['Side Lunges', 'Sit back into one hip'],
+    ],
+    core: [
+      ['Plank Hold', 'Straight line, ribs down'],
+      ['Bicycle Crunches', 'Slow and controlled'],
+      ['Russian Twists', 'Rotate from the ribs'],
+      ['Leg Raises', 'Lower back pressed to floor'],
+      ['Sit-Ups', 'Exhale as you rise'],
+      ['Flutter Kicks', 'Small, fast, legs low'],
+      ['Side Plank (each side)', 'Stack hips, lift them up'],
+      ['V-Ups', 'Reach hands to toes'],
+      ['Dead Bug', 'Opposite arm/leg, slow'],
+      ['Mountain Climbers', 'Keep hips level'],
+      ['Standing Toe Touches', 'Soft knees, hinge forward'],
+      ['Hollow Body Hold', 'Lower back glued to floor'],
+    ],
+    cardio: [
+      ['Jumping Jacks', 'Full range, steady pace'],
+      ['High Knees', 'As fast as you can control'],
+      ['Butt Kicks', 'Heels snap to glutes'],
+      ['Burpees', 'Full extension on the jump'],
+      ['Mountain Climbers', 'Sprint pace'],
+      ['Skater Jumps', 'Bound side to side'],
+      ['Squat Jumps', 'Soft landing every rep'],
+      ['Jump Rope (no rope)', 'Small hops, light feet'],
+      ['Sprint in Place', 'Pump the arms hard'],
+      ['Star Jumps', 'Big explosive reps'],
+      ['Plank Jacks', 'Keep the core braced'],
+      ['Speed Skaters', 'Touch the floor each side'],
+    ],
+    glutes: [
+      ['Glute Bridges', 'Squeeze hard at the top'],
+      ['Donkey Kicks (each side)', 'Knee bent, heel to ceiling'],
+      ['Fire Hydrants (each side)', 'Hips stay square'],
+      ['Bodyweight Squats', 'Sit back into the heels'],
+      ['Reverse Lunges', 'Push through the front heel'],
+      ['Single-Leg Glute Bridge', 'One foot planted, drive up'],
+      ['Sumo Squat Pulses', 'Wide stance, small pulses'],
+      ['Curtsy Lunges', 'Cross behind, drop low'],
+      ['Step-Ups (stair/step)', 'Squeeze the glute on top'],
+      ['Wall Sit', 'Hold steady, breathe'],
+      ['Calf Raises', 'Full range of motion'],
+      ['Frog Pumps', 'Soles together, drive hips up'],
+    ],
+  };
+
+  // ───────────────────────── TIMING CONSTANTS ─────────────────────────
+  const WORK_SEC = 40;
+  const REST_SEC = 15;
+  const ROUND_REST_SEC = 45;
+  const READY_SEC = 10;
+
+  function exercisesPerRound(totalSeconds) {
+    const min = totalSeconds / 60;
+    if (min <= 7) return 4;
+    if (min <= 12) return 5;
+    if (min <= 20) return 6;
+    if (min <= 35) return 7;
+    return 8;
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function pickPool(list, count) {
+    if (count <= list.length) return shuffle(list).slice(0, count);
+    // need repeats: cycle through shuffled copies
+    const pool = [];
+    while (pool.length < count) pool.push(...shuffle(list));
+    return pool.slice(0, count);
+  }
+
+  // build the full step sequence for a workout
+  function buildWorkout(partKey, minutes) {
+    const totalSeconds = minutes * 60;
+    const perRound = exercisesPerRound(totalSeconds);
+    const list = EXERCISES[partKey];
+    const pool = pickPool(list, perRound);
+
+    const roundContent = perRound * (WORK_SEC + REST_SEC) - REST_SEC;
+    const rounds = Math.max(1, Math.round((totalSeconds - READY_SEC + ROUND_REST_SEC) / (roundContent + ROUND_REST_SEC)));
+
+    const steps = [{ type: 'ready', duration: READY_SEC, label: 'GET READY', exercise: 'Starting in…', cue: 'Grab some water 💧' }];
+
+    for (let r = 0; r < rounds; r++) {
+      for (let i = 0; i < pool.length; i++) {
+        const [name, cue] = pool[i];
+        steps.push({ type: 'work', duration: WORK_SEC, label: 'WORK', exercise: name, cue, round: r + 1, idx: i });
+        const isLastExerciseOfRound = i === pool.length - 1;
+        if (!isLastExerciseOfRound) {
+          const [nextName] = pool[i + 1];
+          steps.push({ type: 'rest', duration: REST_SEC, label: 'REST', exercise: 'Shake it out', cue: 'Next: ' + nextName, round: r + 1 });
+        }
+      }
+      const isLastRound = r === rounds - 1;
+      if (!isLastRound) {
+        steps.push({ type: 'roundrest', duration: ROUND_REST_SEC, label: 'ROUND COMPLETE', exercise: `Round ${r + 1} done 🎉`, cue: `Round ${r + 2} starts soon`, round: r + 1 });
+      }
+    }
+
+    const actualSeconds = steps.reduce((s, st) => s + st.duration, 0);
+
+    return { steps, pool, rounds, perRound, actualSeconds, partKey, minutes };
+  }
+
+  // ───────────────────────── UI: SETUP ─────────────────────────
+  const timeGrid = document.getElementById('time-grid');
+  const partGrid = document.getElementById('part-grid');
+  const spinBtn = document.getElementById('spin-btn');
+  const spinBtnLabel = document.getElementById('spin-btn-label');
+
+  let selectedTime = null;
+  let selectedPart = null;
+
+  TIMES.forEach(min => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = `<span class="chip-emoji">⏱️</span><span class="chip-label">${min} min</span>`;
+    chip.addEventListener('click', () => {
+      selectedTime = min;
+      [...timeGrid.children].forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      chip.style.setProperty('--c-select', 'var(--c-cardio)');
+      updateSpinBtn();
+    });
+    timeGrid.appendChild(chip);
+  });
+
+  PARTS.forEach(part => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.innerHTML = `<span class="chip-emoji">${part.emoji}</span><span class="chip-label">${part.label}</span>`;
+    chip.addEventListener('click', () => {
+      selectedPart = part.key;
+      [...partGrid.children].forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      chip.style.setProperty('--c-select', part.color);
+      updateSpinBtn();
+    });
+    partGrid.appendChild(chip);
+  });
+
+  function updateSpinBtn() {
+    if (selectedTime && selectedPart) {
+      spinBtn.disabled = false;
+      spinBtnLabel.textContent = `Spin: ${selectedTime} min · ${PARTS.find(p => p.key === selectedPart).label}`;
+    } else {
+      spinBtn.disabled = true;
+      spinBtnLabel.textContent = 'Pick a time & body part';
+    }
+  }
+
+  // ───────────────────────── PANEL SWITCHING ─────────────────────────
+  const panels = {
+    setup: document.getElementById('panel-setup'),
+    preview: document.getElementById('panel-preview'),
+    timer: document.getElementById('panel-timer'),
+    done: document.getElementById('panel-done'),
+  };
+  function showPanel(name) {
+    Object.values(panels).forEach(p => p.classList.remove('active'));
+    panels[name].classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ───────────────────────── SPIN ANIMATION + PREVIEW ─────────────────────────
+  const slotWindow = document.getElementById('slot-window');
+  const slotText = document.getElementById('slot-text');
+  const circuitMeta = document.getElementById('circuit-meta');
+  const exList = document.getElementById('ex-list');
+
+  let currentWorkout = null;
+
+  function doSpin() {
+    spinBtn.disabled = true;
+    spinBtn.classList.add('spinning');
+    const workout = buildWorkout(selectedPart, selectedTime);
+    currentWorkout = workout;
+    showPanel('preview');
+    slotWindow.classList.remove('locked');
+
+    const allNames = EXERCISES[selectedPart].map(e => e[0]);
+    let ticks = 0;
+    const maxTicks = 16;
+    const interval = setInterval(() => {
+      slotText.textContent = allNames[Math.floor(Math.random() * allNames.length)];
+      ticks++;
+      if (ticks >= maxTicks) {
+        clearInterval(interval);
+        slotText.textContent = workout.pool[0][0];
+        slotWindow.classList.add('locked');
+        spinBtn.classList.remove('spinning');
+        spinBtn.disabled = false;
+        renderPreview(workout);
+      }
+    }, 90);
+  }
+
+  function renderPreview(workout) {
+    const part = PARTS.find(p => p.key === workout.partKey);
+    const mins = Math.round(workout.actualSeconds / 60);
+    circuitMeta.innerHTML = `
+      <span class="meta-pill">${part.emoji} ${part.label}</span>
+      <span class="meta-pill">⏱️ ~${mins} min</span>
+      <span class="meta-pill">🔁 ${workout.rounds} round${workout.rounds > 1 ? 's' : ''}</span>
+      <span class="meta-pill">💪 ${workout.perRound} exercises</span>
+    `;
+    exList.innerHTML = '';
+    workout.pool.forEach((ex, i) => {
+      const row = document.createElement('div');
+      row.className = 'ex-row';
+      row.innerHTML = `
+        <div class="ex-num">${i + 1}</div>
+        <div class="ex-info">
+          <div class="ex-name">${ex[0]}</div>
+          <div class="ex-cue">${ex[1]}</div>
+        </div>
+      `;
+      exList.appendChild(row);
+    });
+  }
+
+  spinBtn.addEventListener('click', doSpin);
+  document.getElementById('respin-btn').addEventListener('click', doSpin);
+  document.getElementById('spin-again-btn').addEventListener('click', () => showPanel('setup'));
+
+  // ───────────────────────── TIMER ─────────────────────────
+  const phaseBar = document.getElementById('phase-bar');
+  const phaseLabel = document.getElementById('phase-label');
+  const phaseExercise = document.getElementById('phase-exercise');
+  const phaseCue = document.getElementById('phase-cue');
+  const ringProgress = document.getElementById('ring-progress');
+  const ringTime = document.getElementById('ring-time');
+  const roundInfo = document.getElementById('round-info');
+  const nextUp = document.getElementById('next-up');
+  const pauseBtn = document.getElementById('pause-btn');
+  const skipBtn = document.getElementById('skip-btn');
+  const quitBtn = document.getElementById('quit-btn');
+
+  const RING_CIRC = 2 * Math.PI * 98;
+  ringProgress.setAttribute('stroke-dasharray', RING_CIRC.toFixed(2));
+
+  const PHASE_COLORS = { ready: 'var(--ready)', work: 'var(--work)', rest: 'var(--rest)', roundrest: 'var(--roundrest)' };
+
+  let steps = [];
+  let stepIdx = 0;
+  let remaining = 0;
+  let timerHandle = null;
+  let paused = false;
+  let wakeLock = null;
+
+  document.getElementById('start-btn').addEventListener('click', startWorkout);
+
+  async function startWorkout() {
+    steps = currentWorkout.steps;
+    stepIdx = 0;
+    showPanel('timer');
+    try {
+      if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+    } catch (e) { /* ignore — best effort only */ }
+    enterStep(0);
+    runTick();
+  }
+
+  function enterStep(idx) {
+    const step = steps[idx];
+    remaining = step.duration;
+    phaseLabel.textContent = step.label;
+    phaseExercise.textContent = step.exercise;
+    phaseCue.textContent = step.cue || ' ';
+    phaseBar.style.background = PHASE_COLORS[step.type] || 'var(--ink)';
+    ringProgress.style.stroke = PHASE_COLORS[step.type];
+    roundInfo.textContent = step.round ? `Round ${step.round} of ${currentWorkout.rounds}` : (step.type === 'ready' ? 'Get ready!' : `Round 1 of ${currentWorkout.rounds}`);
+    const next = steps[idx + 1];
+    nextUp.innerHTML = next ? `Next: <b>${next.exercise}</b>` : 'Next: <b>Finish 🎉</b>';
+    updateRing();
+    beepPhaseChange(step.type);
+    vibrate(step.type === 'work' ? [80] : [40, 40, 40]);
+  }
+
+  function updateRing() {
+    const step = steps[stepIdx];
+    const frac = remaining / step.duration;
+    ringProgress.setAttribute('stroke-dashoffset', (RING_CIRC * (1 - frac)).toFixed(2));
+    ringTime.textContent = remaining;
+  }
+
+  function runTick() {
+    clearInterval(timerHandle);
+    timerHandle = setInterval(() => {
+      if (paused) return;
+      remaining--;
+      if (remaining <= 3 && remaining > 0) beepCount();
+      if (remaining < 0) {
+        advanceStep();
+        return;
+      }
+      updateRing();
+    }, 1000);
+  }
+
+  function advanceStep() {
+    stepIdx++;
+    if (stepIdx >= steps.length) {
+      finishWorkout();
+      return;
+    }
+    enterStep(stepIdx);
+  }
+
+  pauseBtn.addEventListener('click', () => {
+    paused = !paused;
+    pauseBtn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+  });
+  skipBtn.addEventListener('click', () => { advanceStep(); });
+  quitBtn.addEventListener('click', () => {
+    if (confirm('Quit this workout?')) {
+      clearInterval(timerHandle);
+      releaseWakeLock();
+      showPanel('setup');
+    }
+  });
+
+  function finishWorkout() {
+    clearInterval(timerHandle);
+    releaseWakeLock();
+    document.getElementById('done-time').textContent = Math.round(currentWorkout.actualSeconds / 60);
+    document.getElementById('done-rounds').textContent = currentWorkout.rounds;
+    document.getElementById('done-exercises').textContent = currentWorkout.perRound * currentWorkout.rounds;
+    showPanel('done');
+    launchConfetti();
+  }
+
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  }
+
+  // ───────────────────────── AUDIO + HAPTICS ─────────────────────────
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    return audioCtx;
+  }
+  function beep(freq, dur, delay) {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const t0 = ctx.currentTime + (delay || 0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = freq;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.25, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  }
+  function beepCount() { beep(880, 0.12); }
+  function beepPhaseChange(type) {
+    if (type === 'work') { beep(660, 0.14); beep(990, 0.16, 0.15); }
+    else if (type === 'ready') { beep(523, 0.14); }
+    else { beep(440, 0.18); }
+  }
+  function vibrate(pattern) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  // ───────────────────────── CONFETTI (on finish) ─────────────────────────
+  const confettiStyle = document.createElement('style');
+  confettiStyle.textContent = `
+    @keyframes wr-confetti-fall {
+      0%   { opacity: 1; transform: translate(0,0) rotate(0deg) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.4); }
+    }`;
+  document.head.appendChild(confettiStyle);
+
+  function launchConfetti() {
+    const colors = ['#f4a535', '#5b8dee', '#ee6b6b', '#3dba7a', '#9b5de5', '#2bb6b6'];
+    const shapes = ['🎉', '✦', '●', '▲', '■', '★', '💪'];
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 3;
+    for (let i = 0; i < 40; i++) {
+      const c = document.createElement('span');
+      const isEmoji = Math.random() > 0.5;
+      c.textContent = isEmoji ? shapes[Math.floor(Math.random() * shapes.length)] : '●';
+      const angle = (Math.PI * 2 * i) / 40 + Math.random() * 0.5;
+      const dist = 80 + Math.random() * 160;
+      c.style.cssText = `
+        position: fixed; left: ${cx}px; top: ${cy}px;
+        pointer-events: none; z-index: 9999;
+        font-size: ${isEmoji ? 16 + Math.random() * 12 : 8 + Math.random() * 8}px;
+        color: ${colors[Math.floor(Math.random() * colors.length)]};
+        --dx: ${Math.cos(angle) * dist}px;
+        --dy: ${Math.sin(angle) * dist - 60}px;
+        --rot: ${Math.random() * 720 - 360}deg;
+        animation: wr-confetti-fall ${0.9 + Math.random() * 0.6}s cubic-bezier(.17,.67,.4,1) forwards;
+      `;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 1600);
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
