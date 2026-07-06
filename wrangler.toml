@@ -24,14 +24,14 @@ binding = "FILES"
 bucket_name = "linear-chat-files"
 
 # --- Durable Objects (presence & typing) ---
-[[durable_objects.bindings]]
-name = "PRESENCE"
-class_name = "PresenceState"
-
-# Register PresenceState Durable Object on first deployment
-[[migrations]]
-tag = "v1"
-new_classes = ["PresenceState"]
+# Disabled for now - causing deployment issues
+# [[durable_objects.bindings]]
+# name = "PRESENCE"
+# class_name = "PresenceState"
+#
+# [[migrations]]
+# tag = "v1"
+# new_classes = ["PresenceState"]
 
 # Non-secret vars. Keep AUTH_SECRET / RESEND_API_KEY / ADMIN_EMAILS / EMAIL_FROM
 # and REALTIME_APP_SECRET as encrypted Secrets in the dashboard, not here.
