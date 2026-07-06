@@ -1357,6 +1357,7 @@ scene.add(floor);
 const neutralMat = new THREE.MeshStandardMaterial({ color: 0x8993a8, roughness: 0.55, metalness: 0.08 });
 const highlightMat = new THREE.MeshStandardMaterial({ color: 0x9b5de5, roughness: 0.45, metalness: 0.1 });
 const shortsMat = new THREE.MeshStandardMaterial({ color: 0x2b2f3a, roughness: 0.75 });
+const eyeMat = new THREE.MeshStandardMaterial({ color: 0x22242c, roughness: 0.3 });
 
 function capsule(radius, length, mat) {
   const geo = new THREE.CapsuleGeometry(radius, Math.max(length - radius * 2, 0.02), 6, 12);
@@ -1390,7 +1391,9 @@ const meshes = {
   footL: sphere(0.082, neutralMat), footR: sphere(0.082, neutralMat),
   bicepL: sphere(0.072, neutralMat), bicepR: sphere(0.072, neutralMat),
   quadL: sphere(0.095, neutralMat), quadR: sphere(0.095, neutralMat),
+  eyeL: sphere(0.026, eyeMat), eyeR: sphere(0.026, eyeMat),
 };
+meshes.eyeL.castShadow = false; meshes.eyeR.castShadow = false;
 meshes.shorts.castShadow = true;
 Object.values(meshes).forEach(m => root.add(m));
 
@@ -1467,6 +1470,8 @@ function render(frame) {
   orientBetween(meshes.legRLo, kneeR, footR);
 
   meshes.head.position.copy(head);
+  meshes.eyeL.position.set(head.x - 0.07, head.y + 0.02, head.z + 0.18);
+  meshes.eyeR.position.set(head.x + 0.07, head.y + 0.02, head.z + 0.18);
   meshes.handL.position.copy(handL);
   meshes.handR.position.copy(handR);
   meshes.footL.position.copy(footL);
