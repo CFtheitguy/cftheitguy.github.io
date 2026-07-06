@@ -240,7 +240,7 @@
   }
   .timer-music { grid-area: music; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 6px; }
   .timer-main { grid-area: main; min-width: 0; }
-  .timer-diagram { grid-area: diagram; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .timer-diagram { grid-area: diagram; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
 
   .music-btn {
     width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
@@ -271,17 +271,35 @@
     overflow: hidden;
   }
   .diagram-box svg { width: 94%; height: 94%; }
-  #fig-limbs line { fill: none; stroke: var(--fig-color, var(--c-cardio)); stroke-linecap: round; }
-  #fig-torso { stroke-width: 17; }
-  #fig-armL-up, #fig-armR-up, #fig-legL-up, #fig-legR-up { stroke-width: 13; }
-  #fig-armL-lo, #fig-armR-lo, #fig-legL-lo, #fig-legR-lo { stroke-width: 10; }
-  #fig-head { fill: var(--fig-color, var(--c-cardio)); }
-  #fig-shorts { fill: var(--ink); opacity: 0.88; }
+  #fig-limbs line { fill: none; stroke: url(#fig-neutral-grad); stroke-linecap: round; }
+  #fig-torso { stroke-width: 20; }
+  #fig-armL-up, #fig-armR-up, #fig-legL-up, #fig-legR-up { stroke-width: 14; }
+  #fig-armL-lo, #fig-armR-lo, #fig-legL-lo, #fig-legR-lo { stroke-width: 11; }
+  #fig-head { fill: url(#fig-neutral-grad); }
+  #fig-shorts { fill: var(--ink); opacity: 0.9; }
+  #fig-footL, #fig-footR, #fig-handL, #fig-handR, #fig-bicepL, #fig-bicepR, #fig-quadL, #fig-quadR { fill: url(#fig-neutral-grad); }
+  #fig-floor { stroke: var(--ink3); stroke-width: 2; stroke-dasharray: 3 4; opacity: 0.4; }
+
+  #fig-torso.hl, #fig-armL-up.hl, #fig-armL-lo.hl, #fig-armR-up.hl, #fig-armR-lo.hl,
+  #fig-legL-up.hl, #fig-legL-lo.hl, #fig-legR-up.hl, #fig-legR-lo.hl { stroke: url(#fig-highlight-grad); }
+  #fig-handL.hl, #fig-handR.hl, #fig-footL.hl, #fig-footR.hl,
+  #fig-bicepL.hl, #fig-bicepR.hl, #fig-quadL.hl, #fig-quadR.hl { fill: url(#fig-highlight-grad); }
   .diagram-label {
     font-size: 13px; font-weight: 800; color: var(--ink); text-align: center; line-height: 1.25;
   }
-  .diagram-cue {
-    font-size: 11.5px; font-weight: 600; color: var(--ink3); text-align: center; line-height: 1.4;
+  .diagram-cue { width: 100%; }
+  .diagram-cue ol {
+    list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 7px;
+    margin-top: 4px;
+  }
+  .diagram-cue li {
+    counter-increment: step; font-size: 11.5px; font-weight: 600; color: var(--ink2);
+    line-height: 1.35; text-align: left; display: flex; gap: 7px; align-items: flex-start;
+  }
+  .diagram-cue li::before {
+    content: counter(step); flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--fig-color, var(--c-cardio)); color: white; font-size: 10px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
   }
 
   @media (max-width: 640px) {
@@ -418,19 +436,38 @@
         <div class="timer-diagram">
           <div class="diagram-box">
             <svg id="figure-svg" viewBox="0 0 120 120">
+              <defs>
+                <linearGradient id="fig-neutral-grad" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#a3acbd"/>
+                  <stop offset="100%" stop-color="#5c6579"/>
+                </linearGradient>
+                <linearGradient id="fig-highlight-grad" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" style="stop-color: color-mix(in srgb, var(--fig-color, var(--c-cardio)) 55%, white)"/>
+                  <stop offset="100%" style="stop-color: var(--fig-color, var(--c-cardio))"/>
+                </linearGradient>
+              </defs>
+              <line id="fig-floor" x1="10" y1="109" x2="110" y2="109"/>
               <g id="fig-bounce">
                 <g id="fig-limbs">
                   <line id="fig-legL-lo" x1="60" y1="65" x2="45" y2="99"/>
                   <line id="fig-legR-lo" x1="60" y1="65" x2="75" y2="99"/>
                   <line id="fig-legL-up" x1="60" y1="65" x2="45" y2="99"/>
                   <line id="fig-legR-up" x1="60" y1="65" x2="75" y2="99"/>
+                  <ellipse id="fig-quadL" cx="52" cy="82" rx="6" ry="9"/>
+                  <ellipse id="fig-quadR" cx="68" cy="82" rx="6" ry="9"/>
                   <line id="fig-torso" x1="60" y1="33" x2="60" y2="65"/>
                   <rect id="fig-shorts" x="51" y="58" width="18" height="13" rx="4"/>
                   <line id="fig-armL-lo" x1="60" y1="33" x2="40" y2="55"/>
                   <line id="fig-armR-lo" x1="60" y1="33" x2="80" y2="55"/>
                   <line id="fig-armL-up" x1="60" y1="33" x2="40" y2="55"/>
                   <line id="fig-armR-up" x1="60" y1="33" x2="80" y2="55"/>
+                  <ellipse id="fig-bicepL" cx="50" cy="44" rx="5.5" ry="7.5"/>
+                  <ellipse id="fig-bicepR" cx="70" cy="44" rx="5.5" ry="7.5"/>
                 </g>
+                <circle id="fig-footL" cx="45" cy="99" r="6"/>
+                <circle id="fig-footR" cx="75" cy="99" r="6"/>
+                <circle id="fig-handL" cx="40" cy="55" r="5.5"/>
+                <circle id="fig-handR" cx="80" cy="55" r="5.5"/>
                 <circle id="fig-head" cx="60" cy="19" r="11"/>
               </g>
             </svg>
@@ -482,90 +519,94 @@
 
   const EXERCISES = {
     full: [
-      ['Burpees', 'Chest to floor, explode up'],
-      ['Mountain Climbers', 'Drive knees to chest, fast'],
-      ['Jumping Jacks', 'Full arm swing overhead'],
-      ['Squat to Reach', 'Squat low, reach up on stand'],
-      ['Bear Crawl (in place)', 'Hips low, core braced'],
-      ['Plank Jacks', 'Feet jump wide from plank'],
-      ['Star Jumps', 'Explode into an X shape'],
-      ['High Knees', 'Drive knees to hip height'],
-      ['Squat Thrusts', 'Squat, plank, squat, stand'],
-      ['Inchworms', 'Walk hands out to plank & back'],
-      ['Squat Jumps', 'Land soft, reset, repeat'],
-      ['Cross-Body Climbers', 'Knee to opposite elbow'],
+      ['Burpees', ['Squat down, kick feet back to plank', 'Push up, jump feet in, explode up']],
+      ['Mountain Climbers', ['Start in plank, drive one knee to chest', 'Switch legs fast, keep hips level']],
+      ['Jumping Jacks', ['Jump feet out, arms overhead', 'Jump feet in, arms back to sides']],
+      ['Squat to Reach', ['Squat down, hips back, knees bent', 'Stand tall, reach arms overhead']],
+      ['Bear Crawl (in place)', ['Hands and feet on floor, hips low', 'Drive knees up and down, stay low']],
+      ['Plank Jacks', ['Start in plank, jump feet out wide', 'Jump feet back together']],
+      ['Star Jumps', ['Squat down slightly, arms in', 'Jump up, arms and legs out wide']],
+      ['High Knees', ['Drive one knee up to hip height', 'Switch legs quickly, pump your arms']],
+      ['Squat Thrusts', ['Squat down, hands to floor, kick back to plank', 'Kick feet back in, stand up']],
+      ['Inchworms', ['Bend down, walk hands out to plank', 'Walk feet up to hands, stand tall']],
+      ['Squat Jumps', ['Squat down, hips back', 'Jump straight up, land soft in a squat']],
+      ['Cross-Body Climbers', ['From plank, drive knee toward opposite elbow', 'Switch sides, keep core tight']],
     ],
     upper: [
-      ['Push-Ups', 'Elbows at 45°, chest low'],
-      ['Tricep Dips (chair/couch)', 'Elbows point straight back'],
-      ['Pike Push-Ups', 'Hips high, target shoulders'],
-      ['Diamond Push-Ups', 'Hands form a diamond'],
-      ['Arm Circles', 'Small then large, both ways'],
-      ['Plank Shoulder Taps', 'Hips stay still, tap slow'],
-      ['Superman Holds', 'Lift chest & legs together'],
-      ['Incline Push-Ups (couch)', 'Hands elevated, easier variant'],
-      ['Wide Push-Ups', 'Hands outside shoulder width'],
-      ['Push-Up to Side Plank', 'Rotate and reach up after each rep'],
-      ['Wall Push-Ups', 'Great low-impact option'],
-      ['T Push-Ups', 'Rotate into a side plank T'],
+      ['Push-Ups', ['Lower chest to the floor, elbows at 45°', 'Push back up to a straight-arm plank']],
+      ['Tricep Dips (chair/couch)', ['Hands on the edge, lower hips straight down', 'Push back up through your palms']],
+      ['Pike Push-Ups', ['Hips high in an inverted V, lower head toward floor', 'Push back up to start']],
+      ['Diamond Push-Ups', ['Hands together under chest, lower down', 'Push back up, squeeze triceps']],
+      ['Arm Circles', ['Arms out to the sides, small circles forward', 'Reverse direction, keep arms level']],
+      ['Plank Shoulder Taps', ['In a plank, tap opposite shoulder', 'Switch hands, keep hips still']],
+      ['Superman Holds', ['Lie face down, lift chest and legs together', 'Hold, squeeze glutes and back']],
+      ['Incline Push-Ups (couch)', ['Hands elevated on a couch or step', 'Lower chest to hands, push back up']],
+      ['Wide Push-Ups', ['Hands wider than shoulders, lower down', 'Push back up to start']],
+      ['Push-Up to Side Plank', ['Do a push-up, rotate into a side plank', 'Reach top arm up, return and repeat']],
+      ['Wall Push-Ups', ['Hands on a wall, lower chest toward it', 'Push back to standing']],
+      ['T Push-Ups', ['Do a push-up, rotate into a T with one arm up', 'Return hand down, repeat other side']],
     ],
     lower: [
-      ['Bodyweight Squats', 'Knees track over toes'],
-      ['Forward Lunges', 'Front knee stacked over ankle'],
-      ['Glute Bridges', 'Squeeze glutes at the top'],
-      ['Calf Raises', 'Slow up, slow down'],
-      ['Wall Sit', 'Thighs parallel to floor'],
-      ['Reverse Lunges', 'Step back, drop straight down'],
-      ['Sumo Squats', 'Wide stance, toes out'],
-      ['Single-Leg Deadlift', 'Hinge at hips, chest proud'],
-      ['Step-Ups (stair/step)', 'Drive through the heel'],
-      ['Curtsy Lunges', 'Step back and across'],
-      ['Squat Pulses', 'Small pulses at the bottom'],
-      ['Side Lunges', 'Sit back into one hip'],
+      ['Bodyweight Squats', ['Feet shoulder-width, hips back, knees bent', 'Drive through heels to stand']],
+      ['Forward Lunges', ['Step forward, drop back knee toward floor', 'Push through front heel to stand']],
+      ['Glute Bridges', ['Lie back, knees bent, feet flat', 'Squeeze glutes, lift hips up']],
+      ['Calf Raises', ['Stand tall, feet hip-width', 'Rise onto your toes, lower slow']],
+      ['Wall Sit', ['Back against a wall, slide down to seated', 'Hold, thighs parallel to floor']],
+      ['Reverse Lunges', ['Step back, drop back knee toward floor', 'Push through front heel to stand']],
+      ['Sumo Squats', ['Wide stance, toes out, hips back', 'Drive through heels to stand']],
+      ['Single-Leg Deadlift', ['Hinge forward on one leg, other leg lifts back', 'Chest up, return to standing']],
+      ['Step-Ups (stair/step)', ['Step one foot onto a stair, drive up', 'Step down with control, switch legs']],
+      ['Curtsy Lunges', ['Step one leg behind and across', 'Bend both knees, push back to stand']],
+      ['Squat Pulses', ['Lower into a squat', 'Small pulses up and down, stay low']],
+      ['Side Lunges', ['Step wide to one side, bend that knee', 'Push back to center, switch sides']],
     ],
     core: [
-      ['Plank Hold', 'Straight line, ribs down'],
-      ['Bicycle Crunches', 'Slow and controlled'],
-      ['Russian Twists', 'Rotate from the ribs'],
-      ['Leg Raises', 'Lower back pressed to floor'],
-      ['Sit-Ups', 'Exhale as you rise'],
-      ['Flutter Kicks', 'Small, fast, legs low'],
-      ['Side Plank (each side)', 'Stack hips, lift them up'],
-      ['V-Ups', 'Reach hands to toes'],
-      ['Dead Bug', 'Opposite arm/leg, slow'],
-      ['Mountain Climbers', 'Keep hips level'],
-      ['Standing Toe Touches', 'Soft knees, hinge forward'],
-      ['Hollow Body Hold', 'Lower back glued to floor'],
+      ['Plank Hold', ['Forearms and toes on floor, straight line', 'Brace your core, hold steady']],
+      ['Bicycle Crunches', ['Lying down, knee to opposite elbow', 'Switch sides in a pedaling motion']],
+      ['Russian Twists', ['Sit back slightly, feet off the floor', 'Rotate your torso side to side']],
+      ['Leg Raises', ['Lie flat, legs straight', 'Raise legs to vertical, lower slow']],
+      ['Sit-Ups', ['Lie back, knees bent, feet flat', 'Curl chest up to knees, lower slow']],
+      ['Flutter Kicks', ['Lie flat, legs straight, lift slightly', 'Small fast up-and-down kicks']],
+      ['Side Plank (each side)', ['Stack feet, prop up on one forearm', 'Lift hips into a straight line, hold']],
+      ['V-Ups', ['Lie flat, arms overhead', 'Fold up, hands reach toward toes']],
+      ['Dead Bug', ['Lie back, arms up, knees bent 90°', 'Extend opposite arm and leg, switch']],
+      ['Standing Toe Touches', ['Stand tall, soft knees', 'Hinge forward, reach toward your toes']],
+      ['Hollow Body Hold', ['Lie back, arms and legs extended', 'Lift shoulders and legs, lower back flat']],
     ],
     cardio: [
-      ['Jumping Jacks', 'Full range, steady pace'],
-      ['High Knees', 'As fast as you can control'],
-      ['Butt Kicks', 'Heels snap to glutes'],
-      ['Burpees', 'Full extension on the jump'],
-      ['Mountain Climbers', 'Sprint pace'],
-      ['Skater Jumps', 'Bound side to side'],
-      ['Squat Jumps', 'Soft landing every rep'],
-      ['Jump Rope (no rope)', 'Small hops, light feet'],
-      ['Sprint in Place', 'Pump the arms hard'],
-      ['Star Jumps', 'Big explosive reps'],
-      ['Plank Jacks', 'Keep the core braced'],
-      ['Speed Skaters', 'Touch the floor each side'],
+      ['Butt Kicks', ['Jog in place', 'Kick heels up toward your glutes']],
+      ['Skater Jumps', ['Bound to one side, land on outside foot', 'Push off, bound to the other side']],
+      ['Jump Rope (no rope)', ['Small hops, stay light on your feet', 'Keep a steady rhythm, arms turning']],
+      ['Sprint in Place', ['Drive your knees and arms fast', 'Stay light on your feet']],
+      ['Speed Skaters', ['Bound side to side, tap trailing foot behind', 'Stay low, swing arms for momentum']],
     ],
     glutes: [
-      ['Glute Bridges', 'Squeeze hard at the top'],
-      ['Donkey Kicks (each side)', 'Knee bent, heel to ceiling'],
-      ['Fire Hydrants (each side)', 'Hips stay square'],
-      ['Bodyweight Squats', 'Sit back into the heels'],
-      ['Reverse Lunges', 'Push through the front heel'],
-      ['Single-Leg Glute Bridge', 'One foot planted, drive up'],
-      ['Sumo Squat Pulses', 'Wide stance, small pulses'],
-      ['Curtsy Lunges', 'Cross behind, drop low'],
-      ['Step-Ups (stair/step)', 'Squeeze the glute on top'],
-      ['Wall Sit', 'Hold steady, breathe'],
-      ['Calf Raises', 'Full range of motion'],
-      ['Frog Pumps', 'Soles together, drive hips up'],
+      ['Donkey Kicks (each side)', ['On all fours, knee bent at 90°', 'Kick heel toward ceiling, squeeze glute']],
+      ['Fire Hydrants (each side)', ['On all fours, knee bent', 'Lift leg out to the side, keep hips square']],
+      ['Single-Leg Glute Bridge', ['Lie back, one foot planted, other leg up', 'Drive hips up through the planted heel']],
+      ['Sumo Squat Pulses', ['Wide stance, toes out, drop into a squat', 'Small pulses up and down, stay low']],
+      ['Frog Pumps', ['Lie back, soles of feet together, knees out', 'Drive hips up, squeeze glutes']],
     ],
   };
+  // shared moves reused verbatim across multiple categories (kept as one source of truth)
+  EXERCISES.cardio.push(
+    ['Jumping Jacks', EXERCISES.full[2][1]],
+    ['High Knees', EXERCISES.full[7][1]],
+    ['Burpees', EXERCISES.full[0][1]],
+    ['Mountain Climbers', EXERCISES.full[1][1]],
+    ['Squat Jumps', EXERCISES.full[10][1]],
+    ['Star Jumps', EXERCISES.full[6][1]],
+    ['Plank Jacks', EXERCISES.full[5][1]],
+  );
+  EXERCISES.glutes.push(
+    ['Glute Bridges', EXERCISES.lower[2][1]],
+    ['Bodyweight Squats', EXERCISES.lower[0][1]],
+    ['Reverse Lunges', EXERCISES.lower[5][1]],
+    ['Curtsy Lunges', EXERCISES.lower[9][1]],
+    ['Step-Ups (stair/step)', EXERCISES.lower[8][1]],
+    ['Wall Sit', EXERCISES.lower[4][1]],
+    ['Calf Raises', EXERCISES.lower[3][1]],
+  );
 
   // ───────────────────────── TIMING CONSTANTS ─────────────────────────
   const WORK_SEC = 40;
@@ -613,8 +654,8 @@
 
     for (let r = 0; r < rounds; r++) {
       for (let i = 0; i < pool.length; i++) {
-        const [name, cue] = pool[i];
-        steps.push({ type: 'work', duration: WORK_SEC, label: 'WORK', exercise: name, cue, round: r + 1, idx: i });
+        const [name, howTo] = pool[i];
+        steps.push({ type: 'work', duration: WORK_SEC, label: 'WORK', exercise: name, cue: howTo, round: r + 1, idx: i });
         const isLastExerciseOfRound = i === pool.length - 1;
         if (!isLastExerciseOfRound) {
           const [nextName] = pool[i + 1];
@@ -742,7 +783,7 @@
         <div class="ex-num">${i + 1}</div>
         <div class="ex-info">
           <div class="ex-name">${ex[0]}</div>
-          <div class="ex-cue">${ex[1]}</div>
+          <div class="ex-cue">${ex[1].join(' → ')}</div>
         </div>
       `;
       exList.appendChild(row);
@@ -799,7 +840,7 @@
     remaining = step.duration;
     phaseLabel.textContent = step.label;
     phaseExercise.textContent = step.exercise;
-    phaseCue.textContent = step.cue || ' ';
+    phaseCue.textContent = Array.isArray(step.cue) ? step.cue.join(' → ') : (step.cue || ' ');
     phaseBar.style.background = PHASE_COLORS[step.type] || 'var(--ink)';
     ringProgress.style.stroke = PHASE_COLORS[step.type];
     roundInfo.textContent = step.round ? `Round ${step.round} of ${currentWorkout.rounds}` : (step.type === 'ready' ? 'Get ready!' : `Round 1 of ${currentWorkout.rounds}`);
@@ -973,6 +1014,10 @@
   const figHeadEl = document.getElementById('fig-head');
   const figTorsoEl = document.getElementById('fig-torso');
   const figShortsEl = document.getElementById('fig-shorts');
+  const figFootLEl = document.getElementById('fig-footL');
+  const figFootREl = document.getElementById('fig-footR');
+  const figHandLEl = document.getElementById('fig-handL');
+  const figHandREl = document.getElementById('fig-handR');
   const figArmLUpEl = document.getElementById('fig-armL-up');
   const figArmLLoEl = document.getElementById('fig-armL-lo');
   const figArmRUpEl = document.getElementById('fig-armR-up');
@@ -981,8 +1026,43 @@
   const figLegLLoEl = document.getElementById('fig-legL-lo');
   const figLegRUpEl = document.getElementById('fig-legR-up');
   const figLegRLoEl = document.getElementById('fig-legR-lo');
+  const figBicepLEl = document.getElementById('fig-bicepL');
+  const figBicepREl = document.getElementById('fig-bicepR');
+  const figQuadLEl = document.getElementById('fig-quadL');
+  const figQuadREl = document.getElementById('fig-quadR');
   const diagramLabel = document.getElementById('diagram-label');
   const diagramCue = document.getElementById('diagram-cue');
+
+  const MUSCLE_GROUPS = {
+    torso: [figTorsoEl],
+    armL: [figArmLUpEl, figArmLLoEl, figHandLEl, figBicepLEl],
+    armR: [figArmRUpEl, figArmRLoEl, figHandREl, figBicepREl],
+    legL: [figLegLUpEl, figLegLLoEl, figFootLEl, figQuadLEl],
+    legR: [figLegRUpEl, figLegRLoEl, figFootREl, figQuadREl],
+  };
+  const ALL_MUSCLE_EL = Object.values(MUSCLE_GROUPS).flat();
+
+  const MUSCLE_ZONES = {
+    squat: ['legL', 'legR'], squatJump: ['legL', 'legR'], lunge: ['legL', 'legR'],
+    toeTouch: ['legL', 'legR'], gluteBridge: ['legL', 'legR'], donkeyKick: ['legL', 'legR'],
+    calfRaise: ['legL', 'legR'], wallSit: ['legL', 'legR'], stepUp: ['legL', 'legR'],
+    highKnees: ['legL', 'legR'], buttKick: ['legL', 'legR'], skaterJump: ['legL', 'legR'],
+    pushup: ['torso', 'armL', 'armR'], pikePushup: ['torso', 'armL', 'armR'], dip: ['armL', 'armR'],
+    plank: ['torso'], plankJack: ['torso', 'legL', 'legR'], plankTap: ['torso', 'armL', 'armR'],
+    mountainClimber: ['torso', 'legL', 'legR'], sidePlank: ['torso'], superman: ['torso', 'legL', 'legR'],
+    situp: ['torso'], bicycleCrunch: ['torso'], russianTwist: ['torso'], legRaise: ['torso'], deadBug: ['torso'],
+    armCircle: ['armL', 'armR'],
+    jumpingJack: ['legL', 'legR', 'armL', 'armR'],
+    burpee: ['torso', 'armL', 'armR', 'legL', 'legR'],
+    bearCrawl: ['torso', 'armL', 'armR', 'legL', 'legR'],
+    inchworm: ['torso', 'armL', 'armR'],
+  };
+
+  function applyMuscleHighlight(poseKey) {
+    ALL_MUSCLE_EL.forEach(el => el.classList.remove('hl'));
+    const zones = MUSCLE_ZONES[poseKey] || [];
+    zones.forEach(zone => MUSCLE_GROUPS[zone].forEach(el => el.classList.add('hl')));
+  }
 
   function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
 
@@ -997,6 +1077,13 @@
   function setLine(el, p1, p2) {
     el.setAttribute('x1', p1[0]); el.setAttribute('y1', p1[1]);
     el.setAttribute('x2', p2[0]); el.setAttribute('y2', p2[1]);
+  }
+
+  function placeBulge(el, p1, p2) {
+    const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+    const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * (180 / Math.PI);
+    el.setAttribute('cx', mx); el.setAttribute('cy', my);
+    el.setAttribute('transform', `rotate(${angle + 90} ${mx} ${my})`);
   }
 
   function renderFigure(frame) {
@@ -1024,6 +1111,14 @@
     setLine(figLegRUpEl, hip, kneeR);
     setLine(figLegRLoEl, kneeR, footR);
     figHeadEl.setAttribute('cx', head[0]); figHeadEl.setAttribute('cy', head[1]);
+    figFootLEl.setAttribute('cx', footL[0]); figFootLEl.setAttribute('cy', footL[1]);
+    figFootREl.setAttribute('cx', footR[0]); figFootREl.setAttribute('cy', footR[1]);
+    figHandLEl.setAttribute('cx', handL[0]); figHandLEl.setAttribute('cy', handL[1]);
+    figHandREl.setAttribute('cx', handR[0]); figHandREl.setAttribute('cy', handR[1]);
+    placeBulge(figBicepLEl, shoulder, elbowL);
+    placeBulge(figBicepREl, shoulder, elbowR);
+    placeBulge(figQuadLEl, hip, kneeL);
+    placeBulge(figQuadREl, hip, kneeR);
 
     const torsoScreenAngle = Math.atan2(shoulder[1] - hip[1], shoulder[0] - hip[0]) * (180 / Math.PI);
     figShortsEl.setAttribute('transform', `rotate(${torsoScreenAngle + 90} ${hip[0]} ${hip[1]})`);
@@ -1041,7 +1136,10 @@
     if (poseKey === currentPoseKey) return;
     currentPoseKey = poseKey in POSES ? poseKey : 'idleReady';
     figurePhaseStart = performance.now();
+    applyMuscleHighlight(currentPoseKey);
   }
+
+  const HOLD_FRAC = 0.1; // brief settle at each rep extreme, then flows continuously like real reps
 
   function figureLoop(now) {
     const pose = POSES[currentPoseKey] || POSES.idleReady;
@@ -1052,7 +1150,13 @@
     const segT = (elapsed % segDur) / segDur;
     const a = pose.frames[segIdx];
     const b = pose.frames[(segIdx + 1) % n];
-    renderFigure(lerpFrame(a, b, easeInOutSine(segT)));
+    if (a.mode !== b.mode) {
+      // stance changes (stand <-> floor) can't be blended — cut cleanly at the midpoint instead of warping
+      renderFigure(segT < 0.5 ? a : b);
+    } else {
+      const moveT = segT < HOLD_FRAC ? 0 : (segT - HOLD_FRAC) / (1 - HOLD_FRAC);
+      renderFigure(lerpFrame(a, b, easeInOutSine(moveT)));
+    }
     figureAnimHandle = requestAnimationFrame(figureLoop);
   }
 
@@ -1082,7 +1186,11 @@
     }
     setDiagramPose(poseKey);
     diagramLabel.textContent = label;
-    diagramCue.textContent = step.cue || ' ';
+    if (Array.isArray(step.cue)) {
+      diagramCue.innerHTML = '<ol>' + step.cue.map(s => `<li>${s}</li>`).join('') + '</ol>';
+    } else {
+      diagramCue.textContent = step.cue || '\xa0';
+    }
   }
 
   // ───────────────────────── MUSIC (procedural workout beat) ─────────────────────────
