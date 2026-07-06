@@ -145,6 +145,46 @@
 
   .hint { text-align: center; font-size: 12.5px; color: var(--ink3); margin-top: 10px; }
 
+  .or-divider {
+    text-align: center; color: var(--ink3); font-size: 12px; font-weight: 800;
+    margin: 16px 0 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+
+  .custom-group { margin-bottom: 18px; }
+  .custom-group-label {
+    font-size: 12px; font-weight: 800; color: var(--ink3); text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 8px;
+  }
+  .ex-chip-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ex-chip {
+    font-size: 13px; font-weight: 700; padding: 9px 14px; border-radius: 20px;
+    border: 2px solid rgba(0,0,0,0.08); background: #faf9fc; color: var(--ink2);
+    cursor: pointer; user-select: none; transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .ex-chip:hover { border-color: rgba(0,0,0,0.2); transform: translateY(-1px); }
+  .ex-chip.selected {
+    background: var(--grp-color, var(--c-cardio)); border-color: var(--grp-color, var(--c-cardio)); color: white;
+  }
+
+  .mix-name-input {
+    width: 100%; padding: 14px 16px; border-radius: 16px; border: 2px solid rgba(0,0,0,0.08);
+    font-size: 15px; font-family: 'Nunito', sans-serif; color: var(--ink);
+  }
+  .mix-name-input:focus { outline: none; border-color: var(--c-cardio); }
+
+  .saved-mix-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: #faf9fc; border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .saved-mix-info .name { font-weight: 800; font-size: 14px; color: var(--ink); }
+  .saved-mix-info .meta { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+  .saved-mix-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .saved-mix-actions button {
+    border: none; border-radius: 10px; padding: 8px 12px; font-weight: 700; cursor: pointer; font-size: 12.5px;
+  }
+  .saved-mix-actions .start-btn { background: var(--c-cardio); color: white; }
+  .saved-mix-actions .del-btn { background: #ffe8e8; color: #c03030; }
+
   /* ── PREVIEW (slot machine + circuit list) ── */
   .slot-window {
     background: var(--ink); border-radius: 20px; padding: 26px 20px; text-align: center;
@@ -199,6 +239,14 @@
   }
   .phase-exercise { font-size: clamp(22px, 5vw, 30px); font-weight: 800; color: white; line-height: 1.2; min-height: 1.2em; }
   .phase-cue { font-size: 14px; color: rgba(255,255,255,0.85); margin-top: 6px; min-height: 1.2em; }
+
+  .beginner-note {
+    text-align: center; font-size: 13px; font-weight: 700; color: #8a6d1f;
+    background: #fff3d6; border-radius: 12px; padding: 0; margin: 0 16px;
+    max-height: 0; overflow: hidden; opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+  }
+  .beginner-note.show { max-height: 60px; opacity: 1; padding: 10px 14px; margin: 10px 16px 0; }
 
   .timer-ring-wrap { display: flex; justify-content: center; margin: 24px 0 10px; position: relative; }
   .timer-ring-wrap svg { transform: rotate(-90deg); }
@@ -371,6 +419,39 @@
       <span class="dice">🎲</span> <span id="spin-btn-label">Pick a time &amp; body part</span>
     </button>
     <p class="hint">Every spin builds a fresh circuit — no two workouts are quite the same.</p>
+
+    <p class="or-divider">or</p>
+    <button id="custom-mix-btn" class="btn-secondary" style="width:100%;">🎛️ Build Your Own Mix</button>
+  </section>
+
+  <!-- ═══ PANEL 1B: CUSTOM MIX BUILDER ═══ -->
+  <section id="panel-custom" class="panel">
+    <div class="card">
+      <div class="section-label"><span class="num">🎛️</span> Build Your Own Mix</div>
+      <p class="hint" style="margin:0 0 16px;">Pick any exercises you like and how many rounds to repeat them.</p>
+
+      <div class="section-label">Rounds</div>
+      <div id="custom-rounds-grid" class="chip-grid time" style="margin-bottom:20px;"></div>
+
+      <div class="section-label">Exercises</div>
+      <div id="custom-exercise-groups"></div>
+    </div>
+
+    <div class="card">
+      <input id="custom-mix-name" type="text" placeholder="Name this mix (optional)" class="mix-name-input" maxlength="40"/>
+      <div class="action-row" style="margin-top:12px;">
+        <button class="btn-secondary" id="custom-back-btn">← Back</button>
+        <button class="spin-btn" id="custom-start-btn" style="flex:1;" disabled>
+          <span class="dice">▶️</span> <span id="custom-start-label">Pick at least 3 exercises</span>
+        </button>
+      </div>
+      <button class="btn-secondary" id="custom-save-btn" style="width:100%; margin-top:10px;" disabled>💾 Save this mix for later</button>
+    </div>
+
+    <div class="card" id="saved-mixes-card" style="display:none;">
+      <div class="section-label">Your Saved Mixes</div>
+      <div id="saved-mixes-list"></div>
+    </div>
   </section>
 
   <!-- ═══ PANEL 2: PREVIEW ═══ -->
@@ -409,6 +490,8 @@
             <div class="phase-exercise" id="phase-exercise">Starting in…</div>
             <div class="phase-cue" id="phase-cue">&nbsp;</div>
           </div>
+
+          <div class="beginner-note" id="beginner-note">💛 Beginners: rest now if you need to</div>
 
           <div class="timer-ring-wrap">
             <svg width="220" height="220" viewBox="0 0 220 220">
@@ -582,19 +665,29 @@
     ['Calf Raises', EXERCISES.lower[3][1]],
   );
 
+  // flat, deduplicated list of every exercise (for the custom mix builder)
+  const MASTER_EXERCISES = [];
+  (function buildMasterExercises() {
+    const seen = new Set();
+    PARTS.forEach(part => {
+      EXERCISES[part.key].forEach(([name, cue]) => {
+        if (seen.has(name)) return;
+        seen.add(name);
+        MASTER_EXERCISES.push({ name, cue, category: part.label, emoji: part.emoji, color: part.color });
+      });
+    });
+  })();
+
   // ───────────────────────── TIMING CONSTANTS ─────────────────────────
-  const WORK_SEC = 40;
+  const WORK_SEC = 45;
   const REST_SEC = 15;
   const ROUND_REST_SEC = 45;
   const READY_SEC = 10;
+  const EXERCISES_PER_ROUND = 10;
+  const BEGINNER_REST_WINDOW = 10; // last N seconds of each work interval where beginners can rest
 
-  function exercisesPerRound(totalSeconds) {
-    const min = totalSeconds / 60;
-    if (min <= 7) return 4;
-    if (min <= 12) return 5;
-    if (min <= 20) return 6;
-    if (min <= 35) return 7;
-    return 8;
+  function exercisesPerRound() {
+    return EXERCISES_PER_ROUND;
   }
 
   function shuffle(arr) {
@@ -614,16 +707,8 @@
     return pool.slice(0, count);
   }
 
-  // build the full step sequence for a workout
-  function buildWorkout(partKey, minutes) {
-    const totalSeconds = minutes * 60;
-    const perRound = exercisesPerRound(totalSeconds);
-    const list = EXERCISES[partKey];
-    const pool = pickPool(list, perRound);
-
-    const roundContent = perRound * (WORK_SEC + REST_SEC) - REST_SEC;
-    const rounds = Math.max(1, Math.round((totalSeconds - READY_SEC + ROUND_REST_SEC) / (roundContent + ROUND_REST_SEC)));
-
+  // shared step-sequence builder: turns an exercise pool + round count into a full timer program
+  function buildStepsForPool(pool, rounds) {
     const steps = [{ type: 'ready', duration: READY_SEC, label: 'GET READY', exercise: 'Starting in…', cue: 'Grab some water 💧' }];
 
     for (let r = 0; r < rounds; r++) {
@@ -643,8 +728,27 @@
     }
 
     const actualSeconds = steps.reduce((s, st) => s + st.duration, 0);
+    return { steps, actualSeconds };
+  }
 
+  // build the full step sequence for a random spin workout
+  function buildWorkout(partKey, minutes) {
+    const totalSeconds = minutes * 60;
+    const perRound = exercisesPerRound();
+    const list = EXERCISES[partKey];
+    const pool = pickPool(list, perRound);
+
+    const roundContent = perRound * (WORK_SEC + REST_SEC) - REST_SEC;
+    const rounds = Math.max(1, Math.round((totalSeconds - READY_SEC + ROUND_REST_SEC) / (roundContent + ROUND_REST_SEC)));
+
+    const { steps, actualSeconds } = buildStepsForPool(pool, rounds);
     return { steps, pool, rounds, perRound, actualSeconds, partKey, minutes };
+  }
+
+  // build the full step sequence for a user-picked custom mix
+  function buildCustomWorkout(pool, rounds) {
+    const { steps, actualSeconds } = buildStepsForPool(pool, rounds);
+    return { steps, pool, rounds, perRound: pool.length, actualSeconds, partKey: 'custom', minutes: null };
   }
 
   // ───────────────────────── UI: SETUP ─────────────────────────
@@ -697,6 +801,7 @@
   // ───────────────────────── PANEL SWITCHING ─────────────────────────
   const panels = {
     setup: document.getElementById('panel-setup'),
+    custom: document.getElementById('panel-custom'),
     preview: document.getElementById('panel-preview'),
     timer: document.getElementById('panel-timer'),
     done: document.getElementById('panel-done'),
@@ -741,7 +846,7 @@
   }
 
   function renderPreview(workout) {
-    const part = PARTS.find(p => p.key === workout.partKey);
+    const part = PARTS.find(p => p.key === workout.partKey) || { emoji: '🎛️', label: 'Custom Mix' };
     const mins = Math.round(workout.actualSeconds / 60);
     circuitMeta.innerHTML = `
       <span class="meta-pill">${part.emoji} ${part.label}</span>
@@ -762,10 +867,170 @@
       `;
       exList.appendChild(row);
     });
+    document.getElementById('respin-btn').textContent = workout.partKey === 'custom' ? '✏️ Edit Mix' : '🔁 Spin Again';
   }
 
+  function startCustomMix(pool, rounds) {
+    currentWorkout = buildCustomWorkout(pool, rounds);
+    showPanel('preview');
+    slotWindow.classList.add('locked');
+    slotText.textContent = pool[0][0];
+    renderPreview(currentWorkout);
+  }
+
+  // ───────────────────────── CUSTOM MIX BUILDER ─────────────────────────
+  const MIXES_KEY = 'workoutRoulette.customMixes';
+  let customSelected = new Set();
+  let customRounds = 2;
+
+  function loadSavedMixes() {
+    try { return JSON.parse(localStorage.getItem(MIXES_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveSavedMixes(list) {
+    try { localStorage.setItem(MIXES_KEY, JSON.stringify(list)); } catch (e) { /* storage unavailable — ignore */ }
+  }
+
+  function getCustomPool() {
+    return MASTER_EXERCISES.filter(e => customSelected.has(e.name)).map(e => [e.name, e.cue]);
+  }
+
+  function updateCustomStartState() {
+    const count = customSelected.size;
+    const startBtn = document.getElementById('custom-start-btn');
+    const startLabel = document.getElementById('custom-start-label');
+    const saveBtn = document.getElementById('custom-save-btn');
+    if (count < 3) {
+      startBtn.disabled = true;
+      startLabel.textContent = `Pick at least 3 exercises (${count} selected)`;
+      saveBtn.disabled = true;
+    } else {
+      startBtn.disabled = false;
+      startLabel.textContent = `Start My Mix — ${count} exercise${count > 1 ? 's' : ''}`;
+      saveBtn.disabled = false;
+    }
+  }
+
+  function renderCustomExerciseGroups() {
+    const container = document.getElementById('custom-exercise-groups');
+    container.innerHTML = '';
+    PARTS.forEach(part => {
+      const groupExercises = MASTER_EXERCISES.filter(e => e.category === part.label);
+      if (!groupExercises.length) return;
+      const group = document.createElement('div');
+      group.className = 'custom-group';
+      const groupLabel = document.createElement('div');
+      groupLabel.className = 'custom-group-label';
+      groupLabel.textContent = `${part.emoji} ${part.label}`;
+      group.appendChild(groupLabel);
+      const grid = document.createElement('div');
+      grid.className = 'ex-chip-grid';
+      groupExercises.forEach(ex => {
+        const chip = document.createElement('div');
+        chip.className = 'ex-chip';
+        chip.textContent = ex.name;
+        chip.style.setProperty('--grp-color', part.color);
+        if (customSelected.has(ex.name)) chip.classList.add('selected');
+        chip.addEventListener('click', () => {
+          if (customSelected.has(ex.name)) customSelected.delete(ex.name);
+          else customSelected.add(ex.name);
+          chip.classList.toggle('selected');
+          updateCustomStartState();
+        });
+        grid.appendChild(chip);
+      });
+      group.appendChild(grid);
+      container.appendChild(group);
+    });
+    updateCustomStartState();
+  }
+
+  function renderCustomRoundsGrid() {
+    const grid = document.getElementById('custom-rounds-grid');
+    grid.innerHTML = '';
+    [1, 2, 3, 4].forEach(n => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = `<span class="chip-emoji">🔁</span><span class="chip-label">${n} round${n > 1 ? 's' : ''}</span>`;
+      if (n === customRounds) {
+        chip.classList.add('selected');
+        chip.style.setProperty('--c-select', 'var(--c-cardio)');
+      }
+      chip.addEventListener('click', () => {
+        customRounds = n;
+        [...grid.children].forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        chip.style.setProperty('--c-select', 'var(--c-cardio)');
+      });
+      grid.appendChild(chip);
+    });
+  }
+
+  function renderSavedMixes() {
+    const mixes = loadSavedMixes();
+    const card = document.getElementById('saved-mixes-card');
+    const list = document.getElementById('saved-mixes-list');
+    list.innerHTML = '';
+    if (!mixes.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    mixes.forEach(mix => {
+      const row = document.createElement('div');
+      row.className = 'saved-mix-row';
+      row.innerHTML = `
+        <div class="saved-mix-info">
+          <div class="name">${mix.name}</div>
+          <div class="meta">${mix.exerciseNames.length} exercises · ${mix.rounds} round${mix.rounds > 1 ? 's' : ''}</div>
+        </div>
+        <div class="saved-mix-actions">
+          <button class="start-btn">▶ Start</button>
+          <button class="del-btn">✕</button>
+        </div>
+      `;
+      row.querySelector('.start-btn').addEventListener('click', () => {
+        const pool = MASTER_EXERCISES.filter(e => mix.exerciseNames.includes(e.name)).map(e => [e.name, e.cue]);
+        if (!pool.length) return;
+        startCustomMix(pool, mix.rounds);
+      });
+      row.querySelector('.del-btn').addEventListener('click', () => {
+        saveSavedMixes(loadSavedMixes().filter(m => m.id !== mix.id));
+        renderSavedMixes();
+      });
+      list.appendChild(row);
+    });
+  }
+
+  document.getElementById('custom-mix-btn').addEventListener('click', () => {
+    showPanel('custom');
+    renderCustomRoundsGrid();
+    renderCustomExerciseGroups();
+    renderSavedMixes();
+  });
+  document.getElementById('custom-back-btn').addEventListener('click', () => showPanel('setup'));
+  document.getElementById('custom-start-btn').addEventListener('click', () => {
+    const pool = getCustomPool();
+    if (pool.length < 3) return;
+    startCustomMix(pool, customRounds);
+  });
+  document.getElementById('custom-save-btn').addEventListener('click', () => {
+    if (customSelected.size < 3) return;
+    const nameInput = document.getElementById('custom-mix-name');
+    const name = (nameInput.value || '').trim() || `My Mix (${customSelected.size} exercises)`;
+    const mixes = loadSavedMixes();
+    mixes.unshift({ id: Date.now().toString(36), name, exerciseNames: [...customSelected], rounds: customRounds });
+    saveSavedMixes(mixes.slice(0, 20));
+    nameInput.value = '';
+    renderSavedMixes();
+  });
+
   spinBtn.addEventListener('click', doSpin);
-  document.getElementById('respin-btn').addEventListener('click', doSpin);
+  document.getElementById('respin-btn').addEventListener('click', () => {
+    if (currentWorkout && currentWorkout.partKey === 'custom') {
+      showPanel('custom');
+      renderCustomExerciseGroups();
+      renderSavedMixes();
+    } else {
+      doSpin();
+    }
+  });
   document.getElementById('spin-again-btn').addEventListener('click', () => showPanel('setup'));
 
   // ───────────────────────── TIMER ─────────────────────────
@@ -773,6 +1038,7 @@
   const phaseLabel = document.getElementById('phase-label');
   const phaseExercise = document.getElementById('phase-exercise');
   const phaseCue = document.getElementById('phase-cue');
+  const beginnerNote = document.getElementById('beginner-note');
   const ringProgress = document.getElementById('ring-progress');
   const ringTime = document.getElementById('ring-time');
   const roundInfo = document.getElementById('round-info');
@@ -799,7 +1065,7 @@
     steps = currentWorkout.steps;
     stepIdx = 0;
     showPanel('timer');
-    const partHex = PARTS.find(p => p.key === currentWorkout.partKey).hex;
+    const partHex = (PARTS.find(p => p.key === currentWorkout.partKey) || { hex: 0x9b5de5 }).hex;
     window.Figure3D.setAccentColor(partHex);
     window.Figure3D.show();
     startFigureLoop();
@@ -832,6 +1098,8 @@
     const frac = remaining / step.duration;
     ringProgress.setAttribute('stroke-dashoffset', (RING_CIRC * (1 - frac)).toFixed(2));
     ringTime.textContent = remaining;
+    const showBeginnerNote = step.type === 'work' && remaining > 0 && remaining <= BEGINNER_REST_WINDOW;
+    beginnerNote.classList.toggle('show', showBeginnerNote);
   }
 
   function runTick() {
