@@ -232,7 +232,7 @@
   /* ── TIMER LAYOUT (music / main / diagram) ── */
   .timer-layout {
     display: grid;
-    grid-template-columns: 78px 1fr 132px;
+    grid-template-columns: 64px 1fr 186px;
     grid-template-areas: "music main diagram";
     gap: 10px;
     align-items: start;
@@ -270,21 +270,28 @@
     border: 1.5px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center;
     overflow: hidden;
   }
-  .diagram-box svg { width: 82%; height: 82%; }
-  #fig-lines { fill: none; stroke: var(--fig-color, var(--c-cardio)); stroke-width: 7; stroke-linecap: round; }
+  .diagram-box svg { width: 94%; height: 94%; }
+  #fig-limbs line { fill: none; stroke: var(--fig-color, var(--c-cardio)); stroke-linecap: round; }
+  #fig-torso { stroke-width: 17; }
+  #fig-armL-up, #fig-armR-up, #fig-legL-up, #fig-legR-up { stroke-width: 13; }
+  #fig-armL-lo, #fig-armR-lo, #fig-legL-lo, #fig-legR-lo { stroke-width: 10; }
   #fig-head { fill: var(--fig-color, var(--c-cardio)); }
+  #fig-shorts { fill: var(--ink); opacity: 0.88; }
   .diagram-label {
-    font-size: 11.5px; font-weight: 700; color: var(--ink2); text-align: center; line-height: 1.3;
+    font-size: 13px; font-weight: 800; color: var(--ink); text-align: center; line-height: 1.25;
+  }
+  .diagram-cue {
+    font-size: 11.5px; font-weight: 600; color: var(--ink3); text-align: center; line-height: 1.4;
   }
 
   @media (max-width: 640px) {
     .timer-layout {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1.3fr;
       grid-template-areas: "music diagram" "main main";
       gap: 12px;
     }
     .timer-music { flex-direction: row; justify-content: center; }
-    .timer-diagram { max-width: 160px; margin: 0 auto; }
+    .timer-diagram { max-width: 220px; margin: 0 auto; }
   }
 
   /* ── DONE SCREEN ── */
@@ -412,18 +419,24 @@
           <div class="diagram-box">
             <svg id="figure-svg" viewBox="0 0 120 120">
               <g id="fig-bounce">
-                <g id="fig-lines">
+                <g id="fig-limbs">
+                  <line id="fig-legL-lo" x1="60" y1="65" x2="45" y2="99"/>
+                  <line id="fig-legR-lo" x1="60" y1="65" x2="75" y2="99"/>
+                  <line id="fig-legL-up" x1="60" y1="65" x2="45" y2="99"/>
+                  <line id="fig-legR-up" x1="60" y1="65" x2="75" y2="99"/>
                   <line id="fig-torso" x1="60" y1="33" x2="60" y2="65"/>
-                  <line id="fig-armL" x1="60" y1="33" x2="40" y2="55"/>
-                  <line id="fig-armR" x1="60" y1="33" x2="80" y2="55"/>
-                  <line id="fig-legL" x1="60" y1="65" x2="45" y2="99"/>
-                  <line id="fig-legR" x1="60" y1="65" x2="75" y2="99"/>
+                  <rect id="fig-shorts" x="51" y="58" width="18" height="13" rx="4"/>
+                  <line id="fig-armL-lo" x1="60" y1="33" x2="40" y2="55"/>
+                  <line id="fig-armR-lo" x1="60" y1="33" x2="80" y2="55"/>
+                  <line id="fig-armL-up" x1="60" y1="33" x2="40" y2="55"/>
+                  <line id="fig-armR-up" x1="60" y1="33" x2="80" y2="55"/>
                 </g>
-                <circle id="fig-head" cx="60" cy="19" r="10"/>
+                <circle id="fig-head" cx="60" cy="19" r="11"/>
               </g>
             </svg>
           </div>
           <div class="diagram-label" id="diagram-label">Get ready</div>
+          <div class="diagram-cue" id="diagram-cue">&nbsp;</div>
         </div>
 
       </div>
@@ -865,15 +878,15 @@
     stand: { hip: [60, 65], torsoBase: 180, torsoLen: 32, headLen: 46 },
     prone: { hip: [78, 60], torsoBase: -90, torsoLen: 32, headLen: 46 },
   };
-  const LEG_LEN = 34, ARM_LEN = 26;
+  const UPPER_ARM_LEN = 16, LOWER_ARM_LEN = 15, UPPER_LEG_LEN = 20, LOWER_LEG_LEN = 20;
 
   function limbPoint(origin, angleDeg, len) {
     const a = angleDeg * D2R;
     return [origin[0] + len * Math.sin(a), origin[1] + len * Math.cos(a)];
   }
 
-  const STAND_DEFAULT = { armL: -15, armR: 15, legL: -8, legR: 8, torsoLean: 0, bounce: 0, mode: 'stand' };
-  const PRONE_DEFAULT = { armL: 8, armR: 16, legL: 86, legR: 98, torsoLean: 0, bounce: 0, mode: 'prone' };
+  const STAND_DEFAULT = { armL: -15, armR: 15, legL: -8, legR: 8, torsoLean: 0, bounce: 0, mode: 'stand', armLBend: 25, armRBend: 25, legLBend: 16, legRBend: 16 };
+  const PRONE_DEFAULT = { armL: 8, armR: 16, legL: 86, legR: 98, torsoLean: 0, bounce: 0, mode: 'prone', armLBend: 25, armRBend: 25, legLBend: 16, legRBend: 16 };
   function f(base, over) { return Object.assign({}, base, over); }
 
   const POSES = {
@@ -881,54 +894,54 @@
     restBreath:  { frames: [ f(STAND_DEFAULT, { armL: -25, armR: 25, legL: -10, legR: 10 }), f(STAND_DEFAULT, { armL: -40, armR: 40, legL: -10, legR: 10, bounce: -2 }) ], dur: 900 },
     celebrate:   { frames: [ f(STAND_DEFAULT, { armL: 160, armR: -160, legL: -14, legR: 14 }), f(STAND_DEFAULT, { armL: 150, armR: -150, legL: -18, legR: 18, bounce: -10 }) ], dur: 450 },
 
-    squat:       { frames: [ f(STAND_DEFAULT, { armL: -90, armR: 90 }), f(STAND_DEFAULT, { armL: -95, armR: 95, legL: -28, legR: 28, torsoLean: 12, bounce: 16 }) ], dur: 1300 },
-    squatJump:   { frames: [ f(STAND_DEFAULT, { armL: -60, armR: 60, legL: -22, legR: 22, torsoLean: 15, bounce: 16 }), f(STAND_DEFAULT, { armL: 170, armR: -170, legL: -6, legR: 6, bounce: -18 }) ], dur: 750 },
+    squat:       { frames: [ f(STAND_DEFAULT, { armL: -90, armR: 90, legLBend: 15, legRBend: 15 }), f(STAND_DEFAULT, { armL: -95, armR: 95, legL: -32, legR: 32, torsoLean: 16, bounce: 22, legLBend: 72, legRBend: 72 }) ], dur: 1300 },
+    squatJump:   { frames: [ f(STAND_DEFAULT, { armL: -60, armR: 60, legL: -24, legR: 24, torsoLean: 16, bounce: 22, legLBend: 68, legRBend: 68 }), f(STAND_DEFAULT, { armL: 170, armR: -170, legL: -6, legR: 6, bounce: -24, legLBend: 10, legRBend: 10 }) ], dur: 750 },
     burpee: {
       frames: [
         f(STAND_DEFAULT, {}),
-        f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -25, legR: 25, torsoLean: 40, bounce: 16 }),
-        f(PRONE_DEFAULT, { armL: 0, armR: 0, legL: 92, legR: 92 }),
-        f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -25, legR: 25, torsoLean: 40, bounce: 16 }),
+        f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -25, legR: 25, torsoLean: 40, bounce: 16, legLBend: 65, legRBend: 65 }),
+        f(PRONE_DEFAULT, { armL: 0, armR: 0, legL: 92, legR: 92, armLBend: 15, armRBend: 15, legLBend: 12, legRBend: 12 }),
+        f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -25, legR: 25, torsoLean: 40, bounce: 16, legLBend: 65, legRBend: 65 }),
         f(STAND_DEFAULT, { armL: 170, armR: -170, legL: -6, legR: 6, bounce: -14 }),
       ], dur: 1900,
     },
-    lunge:       { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: -40, armR: 20, legL: -45, legR: 35, torsoLean: 8, bounce: 6 }) ], dur: 1300 },
+    lunge:       { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: -40, armR: 20, legL: -58, legR: 44, torsoLean: 10, bounce: 12, legLBend: 22, legRBend: 74 }) ], dur: 1300 },
 
-    pushup:      { frames: [ f(PRONE_DEFAULT, { armL: 15, armR: 15 }), f(PRONE_DEFAULT, { armL: 55, armR: 55, bounce: 8 }) ], dur: 1200 },
-    pikePushup:  { frames: [ f(PRONE_DEFAULT, { armL: 20, armR: 20, legL: 60, legR: 70, torsoLean: 70 }), f(PRONE_DEFAULT, { armL: 55, armR: 55, legL: 60, legR: 70, torsoLean: 70, bounce: 6 }) ], dur: 1300 },
-    dip:         { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20, legR: 15 }), f(STAND_DEFAULT, { armL: -45, armR: 45, legR: 20, torsoLean: 5, bounce: 10 }) ], dur: 1200 },
+    pushup:      { frames: [ f(PRONE_DEFAULT, { armL: 12, armR: 12, armLBend: 15, armRBend: 15 }), f(PRONE_DEFAULT, { armL: 66, armR: 66, bounce: 13, armLBend: 92, armRBend: 92 }) ], dur: 1200 },
+    pikePushup:  { frames: [ f(PRONE_DEFAULT, { armL: 20, armR: 20, legL: 60, legR: 70, torsoLean: 70, armLBend: 55, armRBend: 55, legLBend: 8, legRBend: 8 }), f(PRONE_DEFAULT, { armL: 55, armR: 55, legL: 60, legR: 70, torsoLean: 70, bounce: 6, armLBend: 90, armRBend: 90, legLBend: 8, legRBend: 8 }) ], dur: 1300 },
+    dip:         { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20, legR: 15, armLBend: 30, armRBend: 30 }), f(STAND_DEFAULT, { armL: -45, armR: 45, legR: 20, torsoLean: 5, bounce: 10, armLBend: 96, armRBend: 96 }) ], dur: 1200 },
 
-    plank:       { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { bounce: -2 }) ], dur: 2000 },
-    plankJack:   { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { legL: 70, legR: 110 }) ], dur: 650 },
-    plankTap:    { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { armL: 70, torsoLean: 5 }) ], dur: 900 },
-    mountainClimber: { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { legL: 220 }) ], dur: 550 },
-    sidePlank:   { frames: [ f(PRONE_DEFAULT, { armL: 0, armR: 180, legL: 90, legR: 92, bounce: -4 }), f(PRONE_DEFAULT, { armL: 0, armR: 170, legL: 90, legR: 92 }) ], dur: 1800 },
-    superman:    { frames: [ f(PRONE_DEFAULT, { armL: 170, armR: 170, legL: 120, legR: 130, torsoLean: 8, bounce: -4 }), f(PRONE_DEFAULT, { armL: 160, armR: 160, legL: 110, legR: 120, torsoLean: 4 }) ], dur: 1400 },
+    plank:       { frames: [ f(PRONE_DEFAULT, { legLBend: 10, legRBend: 10 }), f(PRONE_DEFAULT, { bounce: -2, legLBend: 10, legRBend: 10 }) ], dur: 2000 },
+    plankJack:   { frames: [ f(PRONE_DEFAULT, { legLBend: 10, legRBend: 10 }), f(PRONE_DEFAULT, { legL: 70, legR: 110, legLBend: 10, legRBend: 10 }) ], dur: 650 },
+    plankTap:    { frames: [ f(PRONE_DEFAULT, { legLBend: 10, legRBend: 10 }), f(PRONE_DEFAULT, { armL: 70, torsoLean: 5, legLBend: 10, legRBend: 10 }) ], dur: 900 },
+    mountainClimber: { frames: [ f(PRONE_DEFAULT, { legLBend: 10, legRBend: 10 }), f(PRONE_DEFAULT, { legL: 228, legLBend: 62, legRBend: 10 }) ], dur: 620 },
+    sidePlank:   { frames: [ f(PRONE_DEFAULT, { armL: 0, armR: 180, legL: 90, legR: 92, bounce: -4, legLBend: 8, legRBend: 8 }), f(PRONE_DEFAULT, { armL: 0, armR: 170, legL: 90, legR: 92, legLBend: 8, legRBend: 8 }) ], dur: 1800 },
+    superman:    { frames: [ f(PRONE_DEFAULT, { armL: 170, armR: 170, legL: 120, legR: 130, torsoLean: 8, bounce: -4, legLBend: 8, legRBend: 8 }), f(PRONE_DEFAULT, { armL: 160, armR: 160, legL: 110, legR: 120, torsoLean: 4, legLBend: 8, legRBend: 8 }) ], dur: 1400 },
 
-    situp:       { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 60 }), f(PRONE_DEFAULT, { armL: 60, armR: 60, legL: 60, legR: 60, torsoLean: -70, bounce: -6 }) ], dur: 1100 },
-    bicycleCrunch: { frames: [ f(PRONE_DEFAULT, { armL: 150, armR: 150, legL: 150, legR: 70, torsoLean: -40, bounce: -3 }), f(PRONE_DEFAULT, { armL: 150, armR: 150, legL: 70, legR: 150, torsoLean: -40, bounce: -3 }) ], dur: 700 },
-    russianTwist:{ frames: [ f(PRONE_DEFAULT, { armL: 60, armR: 60, legL: 60, legR: 70, torsoLean: -30 }), f(PRONE_DEFAULT, { armL: -60, armR: -60, legL: 60, legR: 70, torsoLean: -30 }) ], dur: 750 },
-    legRaise:    { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180 }), f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 190, legR: 170 }) ], dur: 1000 },
-    deadBug:     { frames: [ f(PRONE_DEFAULT, { armL: 170, armR: 100, legL: 100, legR: 170 }), f(PRONE_DEFAULT, { armL: 100, armR: 170, legL: 170, legR: 100 }) ], dur: 1100 },
-    toeTouch:    { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: 5, armR: -5, legL: -6, legR: 6, torsoLean: 75 }) ], dur: 1200 },
+    situp:       { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 60, legLBend: 92, legRBend: 92 }), f(PRONE_DEFAULT, { armL: 55, armR: 55, legL: 60, legR: 60, torsoLean: -78, bounce: -9, legLBend: 92, legRBend: 92 }) ], dur: 1100 },
+    bicycleCrunch: { frames: [ f(PRONE_DEFAULT, { armL: 150, armR: 150, legL: 150, legR: 70, torsoLean: -40, bounce: -3, legLBend: 60, legRBend: 20 }), f(PRONE_DEFAULT, { armL: 150, armR: 150, legL: 70, legR: 150, torsoLean: -40, bounce: -3, legLBend: 20, legRBend: 60 }) ], dur: 700 },
+    russianTwist:{ frames: [ f(PRONE_DEFAULT, { armL: 60, armR: 60, legL: 60, legR: 70, torsoLean: -30, legLBend: 85, legRBend: 85 }), f(PRONE_DEFAULT, { armL: -60, armR: -60, legL: 60, legR: 70, torsoLean: -30, legLBend: 85, legRBend: 85 }) ], dur: 750 },
+    legRaise:    { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180, legLBend: 8, legRBend: 8 }), f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 190, legR: 170, legLBend: 8, legRBend: 8 }) ], dur: 1000 },
+    deadBug:     { frames: [ f(PRONE_DEFAULT, { armL: 170, armR: 100, legL: 100, legR: 170, legLBend: 60, legRBend: 12 }), f(PRONE_DEFAULT, { armL: 100, armR: 170, legL: 170, legR: 100, legLBend: 12, legRBend: 60 }) ], dur: 1100 },
+    toeTouch:    { frames: [ f(STAND_DEFAULT, { legLBend: 6, legRBend: 6 }), f(STAND_DEFAULT, { armL: 5, armR: -5, legL: -6, legR: 6, torsoLean: 75, legLBend: 6, legRBend: 6 }) ], dur: 1200 },
 
-    gluteBridge: { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 70 }), f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 70, bounce: -14 }) ], dur: 1000 },
-    donkeyKick:  { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { legR: 130 }) ], dur: 750 },
+    gluteBridge: { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 70, legLBend: 88, legRBend: 88 }), f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 70, bounce: -14, legLBend: 88, legRBend: 88 }) ], dur: 1000 },
+    donkeyKick:  { frames: [ f(PRONE_DEFAULT, { legRBend: 90 }), f(PRONE_DEFAULT, { legR: 130, legRBend: 22 }) ], dur: 750 },
     calfRaise:   { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { bounce: -6 }) ], dur: 900 },
-    wallSit:     { frames: [ f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -30, legR: 30, bounce: 16 }), f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -30, legR: 30, bounce: 14 }) ], dur: 2200 },
-    stepUp:      { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20 }), f(STAND_DEFAULT, { armL: -40, armR: 40, legR: 200, bounce: -8 }) ], dur: 1000 },
+    wallSit:     { frames: [ f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -30, legR: 30, bounce: 16, legLBend: 90, legRBend: 90 }), f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -30, legR: 30, bounce: 14, legLBend: 90, legRBend: 90 }) ], dur: 2200 },
+    stepUp:      { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20 }), f(STAND_DEFAULT, { armL: -40, armR: 40, legR: 200, bounce: -8, legRBend: 70 }) ], dur: 1000 },
 
-    jumpingJack: { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: 175, armR: -175, legL: -35, legR: 35, bounce: -10 }) ], dur: 550 },
-    highKnees:   { frames: [ f(STAND_DEFAULT, { armL: -40, armR: 60, legL: -8, legR: 190, bounce: -4 }), f(STAND_DEFAULT, { armL: 60, armR: -40, legL: 190, legR: -8, bounce: -4 }) ], dur: 380 },
-    buttKick:    { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20, legR: 140 }), f(STAND_DEFAULT, { armL: -20, armR: 20, legL: 140, legR: -8 }) ], dur: 400 },
-    skaterJump:  { frames: [ f(STAND_DEFAULT, { armL: -60, armR: 100, legL: -15, legR: 50, torsoLean: 10 }), f(STAND_DEFAULT, { armL: 100, armR: -60, legL: 50, legR: -15, torsoLean: -10, bounce: -8 }) ], dur: 700 },
-    armCircle:   { frames: [ f(STAND_DEFAULT, { armL: -90, armR: 90 }), f(STAND_DEFAULT, { armL: 180, armR: 180 }), f(STAND_DEFAULT, { armL: -90, armR: 90 }), f(STAND_DEFAULT, { armL: 0, armR: 0 }) ], dur: 1600 },
-    bearCrawl:   { frames: [ f(PRONE_DEFAULT, { armL: 20, armR: 80, legL: 70, legR: 110, torsoLean: 20, bounce: -4 }), f(PRONE_DEFAULT, { armL: 80, armR: 20, legL: 110, legR: 70, torsoLean: 20, bounce: -4 }) ], dur: 750 },
+    jumpingJack: { frames: [ f(STAND_DEFAULT, { legLBend: 12, legRBend: 12 }), f(STAND_DEFAULT, { armL: 175, armR: -175, legL: -42, legR: 42, bounce: -15, legLBend: 26, legRBend: 26 }) ], dur: 550 },
+    highKnees:   { frames: [ f(STAND_DEFAULT, { armL: -40, armR: 60, legL: -8, legR: 195, bounce: -6, legLBend: 14, legRBend: 105 }), f(STAND_DEFAULT, { armL: 60, armR: -40, legL: 195, legR: -8, bounce: -6, legLBend: 105, legRBend: 14 }) ], dur: 460 },
+    buttKick:    { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20, legR: 145, legRBend: 128 }), f(STAND_DEFAULT, { armL: -20, armR: 20, legL: 145, legR: -8, legLBend: 128 }) ], dur: 460 },
+    skaterJump:  { frames: [ f(STAND_DEFAULT, { armL: -60, armR: 100, legL: -15, legR: 50, torsoLean: 10, legLBend: 20, legRBend: 45 }), f(STAND_DEFAULT, { armL: 100, armR: -60, legL: 50, legR: -15, torsoLean: -10, bounce: -8, legLBend: 45, legRBend: 20 }) ], dur: 700 },
+    armCircle:   { frames: [ f(STAND_DEFAULT, { armL: -90, armR: 90, armLBend: 10, armRBend: 10 }), f(STAND_DEFAULT, { armL: 180, armR: 180, armLBend: 10, armRBend: 10 }), f(STAND_DEFAULT, { armL: -90, armR: 90, armLBend: 10, armRBend: 10 }), f(STAND_DEFAULT, { armL: 0, armR: 0, armLBend: 10, armRBend: 10 }) ], dur: 1600 },
+    bearCrawl:   { frames: [ f(PRONE_DEFAULT, { armL: 20, armR: 80, legL: 70, legR: 110, torsoLean: 20, bounce: -4, legLBend: 55, legRBend: 55 }), f(PRONE_DEFAULT, { armL: 80, armR: 20, legL: 110, legR: 70, torsoLean: 20, bounce: -4, legLBend: 55, legRBend: 55 }) ], dur: 750 },
     inchworm: {
       frames: [
-        f(STAND_DEFAULT, { armL: 5, armR: -5, legL: -6, legR: 6, torsoLean: 80 }),
-        f(PRONE_DEFAULT, {}),
-        f(STAND_DEFAULT, { armL: 5, armR: -5, legL: -6, legR: 6, torsoLean: 80 }),
+        f(STAND_DEFAULT, { armL: 5, armR: -5, legL: -6, legR: 6, torsoLean: 80, legLBend: 8, legRBend: 8 }),
+        f(PRONE_DEFAULT, { legLBend: 10, legRBend: 10 }),
+        f(STAND_DEFAULT, { armL: 5, armR: -5, legL: -6, legR: 6, torsoLean: 80, legLBend: 8, legRBend: 8 }),
         f(STAND_DEFAULT, {}),
       ], dur: 2400,
     },
@@ -959,19 +972,31 @@
   const figBounceEl = document.getElementById('fig-bounce');
   const figHeadEl = document.getElementById('fig-head');
   const figTorsoEl = document.getElementById('fig-torso');
-  const figArmLEl = document.getElementById('fig-armL');
-  const figArmREl = document.getElementById('fig-armR');
-  const figLegLEl = document.getElementById('fig-legL');
-  const figLegREl = document.getElementById('fig-legR');
+  const figShortsEl = document.getElementById('fig-shorts');
+  const figArmLUpEl = document.getElementById('fig-armL-up');
+  const figArmLLoEl = document.getElementById('fig-armL-lo');
+  const figArmRUpEl = document.getElementById('fig-armR-up');
+  const figArmRLoEl = document.getElementById('fig-armR-lo');
+  const figLegLUpEl = document.getElementById('fig-legL-up');
+  const figLegLLoEl = document.getElementById('fig-legL-lo');
+  const figLegRUpEl = document.getElementById('fig-legR-up');
+  const figLegRLoEl = document.getElementById('fig-legR-lo');
   const diagramLabel = document.getElementById('diagram-label');
+  const diagramCue = document.getElementById('diagram-cue');
 
   function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
 
+  const POSE_KEYS = ['armL', 'armR', 'legL', 'legR', 'torsoLean', 'bounce', 'armLBend', 'armRBend', 'legLBend', 'legRBend'];
   function lerpFrame(a, b, t) {
     const out = {};
-    ['armL', 'armR', 'legL', 'legR', 'torsoLean', 'bounce'].forEach(k => { out[k] = a[k] + (b[k] - a[k]) * t; });
+    POSE_KEYS.forEach(k => { out[k] = a[k] + (b[k] - a[k]) * t; });
     out.mode = t < 0.5 ? a.mode : b.mode;
     return out;
+  }
+
+  function setLine(el, p1, p2) {
+    el.setAttribute('x1', p1[0]); el.setAttribute('y1', p1[1]);
+    el.setAttribute('x2', p2[0]); el.setAttribute('y2', p2[1]);
   }
 
   function renderFigure(frame) {
@@ -979,22 +1004,32 @@
     const hip = anchors.hip;
     const shoulder = limbPoint(hip, anchors.torsoBase + frame.torsoLean, anchors.torsoLen);
     const head = limbPoint(hip, anchors.torsoBase + frame.torsoLean, anchors.headLen);
-    const armLEnd = limbPoint(shoulder, frame.armL, ARM_LEN);
-    const armREnd = limbPoint(shoulder, frame.armR, ARM_LEN);
-    const legLEnd = limbPoint(hip, frame.legL, LEG_LEN);
-    const legREnd = limbPoint(hip, frame.legR, LEG_LEN);
 
-    figTorsoEl.setAttribute('x1', hip[0]); figTorsoEl.setAttribute('y1', hip[1]);
-    figTorsoEl.setAttribute('x2', shoulder[0]); figTorsoEl.setAttribute('y2', shoulder[1]);
-    figArmLEl.setAttribute('x1', shoulder[0]); figArmLEl.setAttribute('y1', shoulder[1]);
-    figArmLEl.setAttribute('x2', armLEnd[0]); figArmLEl.setAttribute('y2', armLEnd[1]);
-    figArmREl.setAttribute('x1', shoulder[0]); figArmREl.setAttribute('y1', shoulder[1]);
-    figArmREl.setAttribute('x2', armREnd[0]); figArmREl.setAttribute('y2', armREnd[1]);
-    figLegLEl.setAttribute('x1', hip[0]); figLegLEl.setAttribute('y1', hip[1]);
-    figLegLEl.setAttribute('x2', legLEnd[0]); figLegLEl.setAttribute('y2', legLEnd[1]);
-    figLegREl.setAttribute('x1', hip[0]); figLegREl.setAttribute('y1', hip[1]);
-    figLegREl.setAttribute('x2', legREnd[0]); figLegREl.setAttribute('y2', legREnd[1]);
+    const elbowL = limbPoint(shoulder, frame.armL, UPPER_ARM_LEN);
+    const handL = limbPoint(elbowL, frame.armL + frame.armLBend, LOWER_ARM_LEN);
+    const elbowR = limbPoint(shoulder, frame.armR, UPPER_ARM_LEN);
+    const handR = limbPoint(elbowR, frame.armR + frame.armRBend, LOWER_ARM_LEN);
+    const kneeL = limbPoint(hip, frame.legL, UPPER_LEG_LEN);
+    const footL = limbPoint(kneeL, frame.legL + frame.legLBend, LOWER_LEG_LEN);
+    const kneeR = limbPoint(hip, frame.legR, UPPER_LEG_LEN);
+    const footR = limbPoint(kneeR, frame.legR + frame.legRBend, LOWER_LEG_LEN);
+
+    setLine(figTorsoEl, hip, shoulder);
+    setLine(figArmLUpEl, shoulder, elbowL);
+    setLine(figArmLLoEl, elbowL, handL);
+    setLine(figArmRUpEl, shoulder, elbowR);
+    setLine(figArmRLoEl, elbowR, handR);
+    setLine(figLegLUpEl, hip, kneeL);
+    setLine(figLegLLoEl, kneeL, footL);
+    setLine(figLegRUpEl, hip, kneeR);
+    setLine(figLegRLoEl, kneeR, footR);
     figHeadEl.setAttribute('cx', head[0]); figHeadEl.setAttribute('cy', head[1]);
+
+    const torsoScreenAngle = Math.atan2(shoulder[1] - hip[1], shoulder[0] - hip[0]) * (180 / Math.PI);
+    figShortsEl.setAttribute('transform', `rotate(${torsoScreenAngle + 90} ${hip[0]} ${hip[1]})`);
+    figShortsEl.setAttribute('x', hip[0] - 9);
+    figShortsEl.setAttribute('y', hip[1] - 6);
+
     figBounceEl.setAttribute('transform', `translate(0, ${frame.bounce || 0})`);
   }
 
@@ -1047,13 +1082,14 @@
     }
     setDiagramPose(poseKey);
     diagramLabel.textContent = label;
+    diagramCue.textContent = step.cue || ' ';
   }
 
   // ───────────────────────── MUSIC (procedural workout beat) ─────────────────────────
   const musicBtn = document.getElementById('music-btn');
   const musicIcon = document.getElementById('music-icon');
   const musicBars = document.getElementById('music-bars');
-  const MUSIC_BPM = 128;
+  const MUSIC_BPM = 148;
   const MUSIC_STEP_DUR = 60 / MUSIC_BPM / 2;
   const MUSIC_BASS_NOTES = [110, 110, 130.81, 98];
   let musicGainNode = null;
@@ -1066,7 +1102,7 @@
     const ctx = getAudioCtx();
     if (!musicGainNode && ctx) {
       musicGainNode = ctx.createGain();
-      musicGainNode.gain.value = 0.16;
+      musicGainNode.gain.value = 0.34;
       musicGainNode.connect(ctx.destination);
     }
     return musicGainNode;
@@ -1077,15 +1113,41 @@
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(140, time);
-    osc.frequency.exponentialRampToValueAtTime(45, time + 0.12);
-    gain.gain.setValueAtTime(0.9, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
+    osc.frequency.setValueAtTime(165, time);
+    osc.frequency.exponentialRampToValueAtTime(42, time + 0.1);
+    gain.gain.setValueAtTime(1, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.24);
     osc.connect(gain).connect(ensureMusicGain());
-    osc.start(time); osc.stop(time + 0.24);
+    osc.start(time); osc.stop(time + 0.26);
   }
 
-  function playHihat(time) {
+  function playSnare(time) {
+    const ctx = getAudioCtx();
+    const bufferSize = Math.floor(ctx.sampleRate * 0.14);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = 1800; filt.Q.value = 0.7;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.8, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    src.connect(filt).connect(noiseGain).connect(ensureMusicGain());
+    src.start(time); src.stop(time + 0.16);
+
+    const osc = ctx.createOscillator();
+    const oGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(190, time);
+    oGain.gain.setValueAtTime(0.5, time);
+    oGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    osc.connect(oGain).connect(ensureMusicGain());
+    osc.start(time); osc.stop(time + 0.12);
+  }
+
+  function playHihat(time, accent) {
     const ctx = getAudioCtx();
     const bufferSize = Math.floor(ctx.sampleRate * 0.05);
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -1094,33 +1156,38 @@
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     const filt = ctx.createBiquadFilter();
-    filt.type = 'highpass'; filt.frequency.value = 6000;
+    filt.type = 'highpass'; filt.frequency.value = 7000;
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.4, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    gain.gain.setValueAtTime(accent ? 0.55 : 0.32, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
     src.connect(filt).connect(gain).connect(ensureMusicGain());
-    src.start(time); src.stop(time + 0.06);
+    src.start(time); src.stop(time + 0.05);
   }
 
   function playBass(time, freq) {
     const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const filt = ctx.createBiquadFilter();
     const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(freq, time);
-    filt.type = 'lowpass'; filt.frequency.value = 500;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.value = 900; filt.Q.value = 1.2;
     gain.gain.setValueAtTime(0.001, time);
-    gain.gain.linearRampToValueAtTime(0.5, time + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + MUSIC_STEP_DUR * 3.6);
-    osc.connect(filt).connect(gain).connect(ensureMusicGain());
-    osc.start(time); osc.stop(time + MUSIC_STEP_DUR * 4);
+    gain.gain.linearRampToValueAtTime(0.6, time + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + MUSIC_STEP_DUR * 1.8);
+    filt.connect(gain).connect(ensureMusicGain());
+    [0, -8].forEach(detune => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, time);
+      osc.detune.setValueAtTime(detune, time);
+      osc.connect(filt);
+      osc.start(time); osc.stop(time + MUSIC_STEP_DUR * 2);
+    });
   }
 
   function scheduleMusicStep(step, time) {
-    if (step % 4 === 0) playKick(time);
-    if (step % 2 === 1) playHihat(time);
-    if (step % 4 === 0) playBass(time, MUSIC_BASS_NOTES[(step / 4) % MUSIC_BASS_NOTES.length]);
+    if (step % 2 === 0) playKick(time);
+    if (step % 4 === 2) playSnare(time);
+    playHihat(time, step % 2 === 0);
+    if (step % 2 === 0) playBass(time, MUSIC_BASS_NOTES[Math.floor(step / 4) % MUSIC_BASS_NOTES.length]);
   }
 
   function musicScheduler() {
