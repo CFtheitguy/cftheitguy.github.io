@@ -738,7 +738,8 @@ async function startCall(request, env, email, gid) {
   const u = await env.DB.prepare("SELECT name FROM users WHERE email=?").bind(email).first();
   const name = u && u.name ? u.name : null;
   let token = null;
-  if (provider === "jitsi" && env.JITSI_JWT_SECRET) {
+  if (provider === "jitsi") {
+    const secret = env.JITSI_JWT_SECRET || "linear-chat-default-secret";
     const now = Math.floor(Date.now() / 1000);
     const exp = now + 3600; // 1 hour expiration
     const payload = {
@@ -757,7 +758,7 @@ async function startCall(request, env, email, gid) {
     };
     const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
     const body = btoa(JSON.stringify(payload));
-    const sig = await signHS256(header + "." + body, env.JITSI_JWT_SECRET);
+    const sig = await signHS256(header + "." + body, secret);
     token = header + "." + body + "." + sig;
   }
   const meta = JSON.stringify({ provider, room, domain: env.JITSI_DOMAIN || "meet.jit.si", mode, by: email, token });
