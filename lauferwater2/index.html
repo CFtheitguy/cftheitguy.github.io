@@ -30,7 +30,7 @@
     --r:18px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;overflow-x:hidden}
   body{font-family:'Mulish',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.6;-webkit-font-smoothing:antialiased}
   h1,h2,h3,.display{font-family:'Josefin Sans',sans-serif;letter-spacing:.02em;color:var(--blue);font-weight:500}
   a{color:inherit;text-decoration:none}
@@ -58,7 +58,19 @@
 
   /* Hero */
   .hero{position:relative;overflow:hidden;text-align:center;padding:4.5rem 0 8rem;background:radial-gradient(120% 80% at 50% -10%, var(--mint-soft) 0%, rgba(228,247,242,0) 58%),linear-gradient(180deg,#fff 0%,var(--paper-2) 100%)}
-  .hero .logo-big{width:min(360px,72vw);height:auto;margin:0 auto 1.6rem;display:block;filter:drop-shadow(0 16px 32px rgba(10,92,153,.10))}
+  .hero .logo-drop{position:relative;width:min(360px,72vw);margin:0 auto 1.6rem}
+  .hero .logo-big{width:100%;height:auto;display:block;transform-origin:center bottom;filter:drop-shadow(0 16px 32px rgba(10,92,153,.10));animation:dropIn 1.35s cubic-bezier(.5,.02,.45,1) .15s both}
+  .hero .ripple{position:absolute;left:50%;bottom:-4px;width:70%;height:24px;transform:translateX(-50%) scale(0);border-radius:50%;background:radial-gradient(ellipse at center,rgba(95,203,182,.45),rgba(95,203,182,0) 70%);opacity:0;pointer-events:none;animation:ripple 1.35s ease-out .15s both}
+  @keyframes dropIn{
+    0%{transform:translateY(-360px) scaleX(.48) scaleY(1.7);opacity:0}
+    8%{opacity:1}
+    52%{transform:translateY(0) scaleX(.82) scaleY(1.2)}
+    66%{transform:translateY(0) scaleX(1.14) scaleY(.8)}
+    80%{transform:translateY(0) scaleX(.95) scaleY(1.06)}
+    90%{transform:translateY(0) scaleX(1.02) scaleY(.98)}
+    100%{transform:translateY(0) scaleX(1) scaleY(1)}
+  }
+  @keyframes ripple{0%,48%{opacity:0;transform:translateX(-50%) scale(.2)}62%{opacity:.85;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(1.6)}}
   .hero .kicker{font-family:'Josefin Sans',sans-serif;font-weight:600;font-size:clamp(1.1rem,3vw,1.5rem);color:var(--yellow-deep);letter-spacing:.01em}
   .hero h1{font-size:clamp(2.8rem,8vw,5rem);font-weight:700;line-height:.98;color:var(--blue-deep);margin-top:.2rem}
   .hero h1 .hl{position:relative;white-space:nowrap}
@@ -161,6 +173,27 @@
     .section{padding:4rem 0}
     .hero{padding:3.5rem 0 6rem}
   }
+  @media(max-width:560px){
+    .nav{height:66px}
+    .brand img{height:40px}
+    .nav-links{top:66px}
+    .hero{padding:2.5rem 0 5rem}
+    .hero h1{font-size:clamp(2.4rem,12vw,3.2rem)}
+    .hero .lede{font-size:1rem}
+    .hero-cta{gap:.6rem}
+    .hero-cta .btn{flex:1 1 auto;justify-content:center}
+    .markets{font-size:.92rem;gap:.7rem}
+    .section{padding:3.25rem 0}
+    .section-head{margin-bottom:2.2rem}
+    .section-head h2{font-size:clamp(1.7rem,7vw,2.2rem)}
+    .card{padding:1.6rem 1.35rem}
+    .call-card{padding:1.75rem}
+    .phone-pill{font-size:1.4rem;padding:.45rem .9rem}
+    form{padding:1.5rem}
+    .split{gap:1.25rem}
+    .foot{justify-content:center;text-align:center}
+    .foot-links{flex-wrap:wrap;justify-content:center;gap:1rem}
+  }
   @media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -185,7 +218,7 @@
   <svg class="float-drop b" viewBox="0 0 24 32" fill="#3D7AB7"><path d="M12 0C12 0 0 14 0 22a12 12 0 0024 0C24 14 12 0 12 0z"/></svg>
   <svg class="float-drop c" viewBox="0 0 24 32" fill="#EDCF0F"><path d="M12 0C12 0 0 14 0 22a12 12 0 0024 0C24 14 12 0 12 0z"/></svg>
   <div class="wrap">
-    <img class="logo-big" src="logo.png" alt="Water Wonders — Let the goodness flow">
+    <div class="logo-drop"><img class="logo-big" src="logo.png" alt="Water Wonders — Let the goodness flow"><span class="ripple"></span></div>
     <p class="kicker">Whatever water means to you.</p>
     <h1>We speak <span class="hl">water.</span></h1>
     <p class="lede">Softeners, whole-house filtration, reverse osmosis and seltzer — done right for homes, businesses, and industry.</p>
