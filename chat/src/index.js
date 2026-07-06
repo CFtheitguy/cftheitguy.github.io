@@ -2410,13 +2410,35 @@ const APP_HTML = `<!doctype html>
           parentNode: $('callFrame'),
           width: '100%', height: '100%',
           userInfo: { displayName: (me && (me.name || me.email)) || 'Guest' },
-          configOverwrite: { startWithVideoMuted: (mode==='audio'), prejoinPageEnabled: false, disableDeepLinking: true },
+          configOverwrite: {
+            startWithVideoMuted: (mode==='audio'),
+            prejoinPageEnabled: false,
+            disableDeepLinking: true,
+            disableLobby: true,
+            requireDisplayName: false,
+            startAudioOnly: false,
+            enableWelcomePage: false
+          },
           interfaceConfigOverwrite: { MOBILE_APP_PROMO: false }
         };
-        if(token) opts.token = token;
-        if(token) console.log('Jitsi token provided:', token.substring(0, 50) + '...');
+        if(token) {
+          opts.token = token;
+          const parts = token.split('.');
+          if(parts.length === 3) {
+            try {
+              const payload = JSON.parse(atob(parts[1]));
+              console.log('Jitsi JWT payload:', payload);
+            } catch(e) {
+              console.log('Could not decode JWT payload');
+            }
+          }
+        }
+        console.log('Jitsi config:', { roomName: opts.roomName, configOverwrite: opts.configOverwrite, hasToken: !!opts.token, domain });
         jitsiApi = new JitsiMeetExternalAPI(domain, opts);
         jitsiApi.addEventListener('readyToClose', endCall);
+        jitsiApi.addEventListener('videoConferenceJoined', function(){ console.log('Jitsi: Video conference joined'); });
+        jitsiApi.addEventListener('videoConferenceFailed', function(err){ console.log('Jitsi: Video conference failed', err); });
+        jitsiApi.addEventListener('readyToClose', function(){ console.log('Jitsi: Ready to close'); });
       }).catch(function(){
         // fallback: open the room in a new tab
         window.open('https://' + domain + '/' + room, '_blank');
