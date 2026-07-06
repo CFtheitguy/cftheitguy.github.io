@@ -232,7 +232,7 @@
   /* ── TIMER LAYOUT (music / main / diagram) ── */
   .timer-layout {
     display: grid;
-    grid-template-columns: 78px 1fr 132px;
+    grid-template-columns: 64px 1fr 186px;
     grid-template-areas: "music main diagram";
     gap: 10px;
     align-items: start;
@@ -270,21 +270,24 @@
     border: 1.5px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center;
     overflow: hidden;
   }
-  .diagram-box svg { width: 82%; height: 82%; }
-  #fig-lines { fill: none; stroke: var(--fig-color, var(--c-cardio)); stroke-width: 7; stroke-linecap: round; }
+  .diagram-box svg { width: 94%; height: 94%; }
+  #fig-lines { fill: none; stroke: var(--fig-color, var(--c-cardio)); stroke-width: 9; stroke-linecap: round; }
   #fig-head { fill: var(--fig-color, var(--c-cardio)); }
   .diagram-label {
-    font-size: 11.5px; font-weight: 700; color: var(--ink2); text-align: center; line-height: 1.3;
+    font-size: 13px; font-weight: 800; color: var(--ink); text-align: center; line-height: 1.25;
+  }
+  .diagram-cue {
+    font-size: 11.5px; font-weight: 600; color: var(--ink3); text-align: center; line-height: 1.4;
   }
 
   @media (max-width: 640px) {
     .timer-layout {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1.3fr;
       grid-template-areas: "music diagram" "main main";
       gap: 12px;
     }
     .timer-music { flex-direction: row; justify-content: center; }
-    .timer-diagram { max-width: 160px; margin: 0 auto; }
+    .timer-diagram { max-width: 220px; margin: 0 auto; }
   }
 
   /* ── DONE SCREEN ── */
@@ -424,6 +427,7 @@
             </svg>
           </div>
           <div class="diagram-label" id="diagram-label">Get ready</div>
+          <div class="diagram-cue" id="diagram-cue">&nbsp;</div>
         </div>
 
       </div>
@@ -865,7 +869,7 @@
     stand: { hip: [60, 65], torsoBase: 180, torsoLen: 32, headLen: 46 },
     prone: { hip: [78, 60], torsoBase: -90, torsoLen: 32, headLen: 46 },
   };
-  const LEG_LEN = 34, ARM_LEN = 26;
+  const LEG_LEN = 38, ARM_LEN = 29;
 
   function limbPoint(origin, angleDeg, len) {
     const a = angleDeg * D2R;
@@ -881,8 +885,8 @@
     restBreath:  { frames: [ f(STAND_DEFAULT, { armL: -25, armR: 25, legL: -10, legR: 10 }), f(STAND_DEFAULT, { armL: -40, armR: 40, legL: -10, legR: 10, bounce: -2 }) ], dur: 900 },
     celebrate:   { frames: [ f(STAND_DEFAULT, { armL: 160, armR: -160, legL: -14, legR: 14 }), f(STAND_DEFAULT, { armL: 150, armR: -150, legL: -18, legR: 18, bounce: -10 }) ], dur: 450 },
 
-    squat:       { frames: [ f(STAND_DEFAULT, { armL: -90, armR: 90 }), f(STAND_DEFAULT, { armL: -95, armR: 95, legL: -28, legR: 28, torsoLean: 12, bounce: 16 }) ], dur: 1300 },
-    squatJump:   { frames: [ f(STAND_DEFAULT, { armL: -60, armR: 60, legL: -22, legR: 22, torsoLean: 15, bounce: 16 }), f(STAND_DEFAULT, { armL: 170, armR: -170, legL: -6, legR: 6, bounce: -18 }) ], dur: 750 },
+    squat:       { frames: [ f(STAND_DEFAULT, { armL: -90, armR: 90 }), f(STAND_DEFAULT, { armL: -95, armR: 95, legL: -32, legR: 32, torsoLean: 16, bounce: 22 }) ], dur: 1300 },
+    squatJump:   { frames: [ f(STAND_DEFAULT, { armL: -60, armR: 60, legL: -24, legR: 24, torsoLean: 16, bounce: 22 }), f(STAND_DEFAULT, { armL: 170, armR: -170, legL: -6, legR: 6, bounce: -24 }) ], dur: 750 },
     burpee: {
       frames: [
         f(STAND_DEFAULT, {}),
@@ -892,20 +896,20 @@
         f(STAND_DEFAULT, { armL: 170, armR: -170, legL: -6, legR: 6, bounce: -14 }),
       ], dur: 1900,
     },
-    lunge:       { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: -40, armR: 20, legL: -45, legR: 35, torsoLean: 8, bounce: 6 }) ], dur: 1300 },
+    lunge:       { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: -40, armR: 20, legL: -58, legR: 44, torsoLean: 10, bounce: 12 }) ], dur: 1300 },
 
-    pushup:      { frames: [ f(PRONE_DEFAULT, { armL: 15, armR: 15 }), f(PRONE_DEFAULT, { armL: 55, armR: 55, bounce: 8 }) ], dur: 1200 },
+    pushup:      { frames: [ f(PRONE_DEFAULT, { armL: 12, armR: 12 }), f(PRONE_DEFAULT, { armL: 66, armR: 66, bounce: 13 }) ], dur: 1200 },
     pikePushup:  { frames: [ f(PRONE_DEFAULT, { armL: 20, armR: 20, legL: 60, legR: 70, torsoLean: 70 }), f(PRONE_DEFAULT, { armL: 55, armR: 55, legL: 60, legR: 70, torsoLean: 70, bounce: 6 }) ], dur: 1300 },
     dip:         { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20, legR: 15 }), f(STAND_DEFAULT, { armL: -45, armR: 45, legR: 20, torsoLean: 5, bounce: 10 }) ], dur: 1200 },
 
     plank:       { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { bounce: -2 }) ], dur: 2000 },
     plankJack:   { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { legL: 70, legR: 110 }) ], dur: 650 },
     plankTap:    { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { armL: 70, torsoLean: 5 }) ], dur: 900 },
-    mountainClimber: { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { legL: 220 }) ], dur: 550 },
+    mountainClimber: { frames: [ f(PRONE_DEFAULT, {}), f(PRONE_DEFAULT, { legL: 228 }) ], dur: 620 },
     sidePlank:   { frames: [ f(PRONE_DEFAULT, { armL: 0, armR: 180, legL: 90, legR: 92, bounce: -4 }), f(PRONE_DEFAULT, { armL: 0, armR: 170, legL: 90, legR: 92 }) ], dur: 1800 },
     superman:    { frames: [ f(PRONE_DEFAULT, { armL: 170, armR: 170, legL: 120, legR: 130, torsoLean: 8, bounce: -4 }), f(PRONE_DEFAULT, { armL: 160, armR: 160, legL: 110, legR: 120, torsoLean: 4 }) ], dur: 1400 },
 
-    situp:       { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 60 }), f(PRONE_DEFAULT, { armL: 60, armR: 60, legL: 60, legR: 60, torsoLean: -70, bounce: -6 }) ], dur: 1100 },
+    situp:       { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 60, legR: 60 }), f(PRONE_DEFAULT, { armL: 55, armR: 55, legL: 60, legR: 60, torsoLean: -78, bounce: -9 }) ], dur: 1100 },
     bicycleCrunch: { frames: [ f(PRONE_DEFAULT, { armL: 150, armR: 150, legL: 150, legR: 70, torsoLean: -40, bounce: -3 }), f(PRONE_DEFAULT, { armL: 150, armR: 150, legL: 70, legR: 150, torsoLean: -40, bounce: -3 }) ], dur: 700 },
     russianTwist:{ frames: [ f(PRONE_DEFAULT, { armL: 60, armR: 60, legL: 60, legR: 70, torsoLean: -30 }), f(PRONE_DEFAULT, { armL: -60, armR: -60, legL: 60, legR: 70, torsoLean: -30 }) ], dur: 750 },
     legRaise:    { frames: [ f(PRONE_DEFAULT, { armL: 180, armR: 180 }), f(PRONE_DEFAULT, { armL: 180, armR: 180, legL: 190, legR: 170 }) ], dur: 1000 },
@@ -918,9 +922,9 @@
     wallSit:     { frames: [ f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -30, legR: 30, bounce: 16 }), f(STAND_DEFAULT, { armL: -70, armR: 70, legL: -30, legR: 30, bounce: 14 }) ], dur: 2200 },
     stepUp:      { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20 }), f(STAND_DEFAULT, { armL: -40, armR: 40, legR: 200, bounce: -8 }) ], dur: 1000 },
 
-    jumpingJack: { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: 175, armR: -175, legL: -35, legR: 35, bounce: -10 }) ], dur: 550 },
-    highKnees:   { frames: [ f(STAND_DEFAULT, { armL: -40, armR: 60, legL: -8, legR: 190, bounce: -4 }), f(STAND_DEFAULT, { armL: 60, armR: -40, legL: 190, legR: -8, bounce: -4 }) ], dur: 380 },
-    buttKick:    { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20, legR: 140 }), f(STAND_DEFAULT, { armL: -20, armR: 20, legL: 140, legR: -8 }) ], dur: 400 },
+    jumpingJack: { frames: [ f(STAND_DEFAULT, {}), f(STAND_DEFAULT, { armL: 175, armR: -175, legL: -42, legR: 42, bounce: -15 }) ], dur: 550 },
+    highKnees:   { frames: [ f(STAND_DEFAULT, { armL: -40, armR: 60, legL: -8, legR: 195, bounce: -6 }), f(STAND_DEFAULT, { armL: 60, armR: -40, legL: 195, legR: -8, bounce: -6 }) ], dur: 460 },
+    buttKick:    { frames: [ f(STAND_DEFAULT, { armL: -20, armR: 20, legR: 145 }), f(STAND_DEFAULT, { armL: -20, armR: 20, legL: 145, legR: -8 }) ], dur: 460 },
     skaterJump:  { frames: [ f(STAND_DEFAULT, { armL: -60, armR: 100, legL: -15, legR: 50, torsoLean: 10 }), f(STAND_DEFAULT, { armL: 100, armR: -60, legL: 50, legR: -15, torsoLean: -10, bounce: -8 }) ], dur: 700 },
     armCircle:   { frames: [ f(STAND_DEFAULT, { armL: -90, armR: 90 }), f(STAND_DEFAULT, { armL: 180, armR: 180 }), f(STAND_DEFAULT, { armL: -90, armR: 90 }), f(STAND_DEFAULT, { armL: 0, armR: 0 }) ], dur: 1600 },
     bearCrawl:   { frames: [ f(PRONE_DEFAULT, { armL: 20, armR: 80, legL: 70, legR: 110, torsoLean: 20, bounce: -4 }), f(PRONE_DEFAULT, { armL: 80, armR: 20, legL: 110, legR: 70, torsoLean: 20, bounce: -4 }) ], dur: 750 },
@@ -964,6 +968,7 @@
   const figLegLEl = document.getElementById('fig-legL');
   const figLegREl = document.getElementById('fig-legR');
   const diagramLabel = document.getElementById('diagram-label');
+  const diagramCue = document.getElementById('diagram-cue');
 
   function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
 
@@ -1047,13 +1052,14 @@
     }
     setDiagramPose(poseKey);
     diagramLabel.textContent = label;
+    diagramCue.textContent = step.cue || ' ';
   }
 
   // ───────────────────────── MUSIC (procedural workout beat) ─────────────────────────
   const musicBtn = document.getElementById('music-btn');
   const musicIcon = document.getElementById('music-icon');
   const musicBars = document.getElementById('music-bars');
-  const MUSIC_BPM = 128;
+  const MUSIC_BPM = 148;
   const MUSIC_STEP_DUR = 60 / MUSIC_BPM / 2;
   const MUSIC_BASS_NOTES = [110, 110, 130.81, 98];
   let musicGainNode = null;
@@ -1066,7 +1072,7 @@
     const ctx = getAudioCtx();
     if (!musicGainNode && ctx) {
       musicGainNode = ctx.createGain();
-      musicGainNode.gain.value = 0.16;
+      musicGainNode.gain.value = 0.34;
       musicGainNode.connect(ctx.destination);
     }
     return musicGainNode;
@@ -1077,15 +1083,41 @@
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(140, time);
-    osc.frequency.exponentialRampToValueAtTime(45, time + 0.12);
-    gain.gain.setValueAtTime(0.9, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
+    osc.frequency.setValueAtTime(165, time);
+    osc.frequency.exponentialRampToValueAtTime(42, time + 0.1);
+    gain.gain.setValueAtTime(1, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.24);
     osc.connect(gain).connect(ensureMusicGain());
-    osc.start(time); osc.stop(time + 0.24);
+    osc.start(time); osc.stop(time + 0.26);
   }
 
-  function playHihat(time) {
+  function playSnare(time) {
+    const ctx = getAudioCtx();
+    const bufferSize = Math.floor(ctx.sampleRate * 0.14);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = 1800; filt.Q.value = 0.7;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.8, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    src.connect(filt).connect(noiseGain).connect(ensureMusicGain());
+    src.start(time); src.stop(time + 0.16);
+
+    const osc = ctx.createOscillator();
+    const oGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(190, time);
+    oGain.gain.setValueAtTime(0.5, time);
+    oGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    osc.connect(oGain).connect(ensureMusicGain());
+    osc.start(time); osc.stop(time + 0.12);
+  }
+
+  function playHihat(time, accent) {
     const ctx = getAudioCtx();
     const bufferSize = Math.floor(ctx.sampleRate * 0.05);
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -1094,33 +1126,38 @@
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     const filt = ctx.createBiquadFilter();
-    filt.type = 'highpass'; filt.frequency.value = 6000;
+    filt.type = 'highpass'; filt.frequency.value = 7000;
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.4, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+    gain.gain.setValueAtTime(accent ? 0.55 : 0.32, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
     src.connect(filt).connect(gain).connect(ensureMusicGain());
-    src.start(time); src.stop(time + 0.06);
+    src.start(time); src.stop(time + 0.05);
   }
 
   function playBass(time, freq) {
     const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const filt = ctx.createBiquadFilter();
     const gain = ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(freq, time);
-    filt.type = 'lowpass'; filt.frequency.value = 500;
+    const filt = ctx.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.value = 900; filt.Q.value = 1.2;
     gain.gain.setValueAtTime(0.001, time);
-    gain.gain.linearRampToValueAtTime(0.5, time + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + MUSIC_STEP_DUR * 3.6);
-    osc.connect(filt).connect(gain).connect(ensureMusicGain());
-    osc.start(time); osc.stop(time + MUSIC_STEP_DUR * 4);
+    gain.gain.linearRampToValueAtTime(0.6, time + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + MUSIC_STEP_DUR * 1.8);
+    filt.connect(gain).connect(ensureMusicGain());
+    [0, -8].forEach(detune => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, time);
+      osc.detune.setValueAtTime(detune, time);
+      osc.connect(filt);
+      osc.start(time); osc.stop(time + MUSIC_STEP_DUR * 2);
+    });
   }
 
   function scheduleMusicStep(step, time) {
-    if (step % 4 === 0) playKick(time);
-    if (step % 2 === 1) playHihat(time);
-    if (step % 4 === 0) playBass(time, MUSIC_BASS_NOTES[(step / 4) % MUSIC_BASS_NOTES.length]);
+    if (step % 2 === 0) playKick(time);
+    if (step % 4 === 2) playSnare(time);
+    playHihat(time, step % 2 === 0);
+    if (step % 2 === 0) playBass(time, MUSIC_BASS_NOTES[Math.floor(step / 4) % MUSIC_BASS_NOTES.length]);
   }
 
   function musicScheduler() {
