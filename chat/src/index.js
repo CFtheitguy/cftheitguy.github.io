@@ -2414,6 +2414,7 @@ const APP_HTML = `<!doctype html>
           interfaceConfigOverwrite: { MOBILE_APP_PROMO: false }
         };
         if(token) opts.token = token;
+        if(token) console.log('Jitsi token provided:', token.substring(0, 50) + '...');
         jitsiApi = new JitsiMeetExternalAPI(domain, opts);
         jitsiApi.addEventListener('readyToClose', endCall);
       }).catch(function(){
