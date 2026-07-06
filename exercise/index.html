@@ -266,24 +266,20 @@
   @keyframes bar-bounce { 0%, 100% { height: 5px; } 50% { height: 17px; } }
 
   .diagram-box {
-    width: 100%; aspect-ratio: 1 / 1; background: #faf9fc; border-radius: 18px;
-    border: 1.5px solid rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center;
-    overflow: hidden;
+    width: 100%; aspect-ratio: 1 / 1; background: linear-gradient(160deg, #eef0f6, #dfe3ee);
+    border-radius: 18px; border: 1.5px solid rgba(0,0,0,0.05); position: relative;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    touch-action: none; cursor: grab;
   }
-  .diagram-box svg { width: 94%; height: 94%; }
-  #fig-limbs line { fill: none; stroke: url(#fig-neutral-grad); stroke-linecap: round; }
-  #fig-torso { stroke-width: 20; }
-  #fig-armL-up, #fig-armR-up, #fig-legL-up, #fig-legR-up { stroke-width: 14; }
-  #fig-armL-lo, #fig-armR-lo, #fig-legL-lo, #fig-legR-lo { stroke-width: 11; }
-  #fig-head { fill: url(#fig-neutral-grad); }
-  #fig-shorts { fill: var(--ink); opacity: 0.9; }
-  #fig-footL, #fig-footR, #fig-handL, #fig-handR, #fig-bicepL, #fig-bicepR, #fig-quadL, #fig-quadR { fill: url(#fig-neutral-grad); }
-  #fig-floor { stroke: var(--ink3); stroke-width: 2; stroke-dasharray: 3 4; opacity: 0.4; }
-
-  #fig-torso.hl, #fig-armL-up.hl, #fig-armL-lo.hl, #fig-armR-up.hl, #fig-armR-lo.hl,
-  #fig-legL-up.hl, #fig-legL-lo.hl, #fig-legR-up.hl, #fig-legR-lo.hl { stroke: url(#fig-highlight-grad); }
-  #fig-handL.hl, #fig-handR.hl, #fig-footL.hl, #fig-footR.hl,
-  #fig-bicepL.hl, #fig-bicepR.hl, #fig-quadL.hl, #fig-quadR.hl { fill: url(#fig-highlight-grad); }
+  .diagram-box:active { cursor: grabbing; }
+  .diagram-box canvas { display: block; width: 100% !important; height: 100% !important; }
+  .diagram-loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 11.5px; font-weight: 700; color: var(--ink3);
+  }
+  .diagram-hint {
+    font-size: 10.5px; font-weight: 600; color: var(--ink3); text-align: center; opacity: 0.75;
+  }
   .diagram-label {
     font-size: 13px; font-weight: 800; color: var(--ink); text-align: center; line-height: 1.25;
   }
@@ -434,44 +430,10 @@
         </div>
 
         <div class="timer-diagram">
-          <div class="diagram-box">
-            <svg id="figure-svg" viewBox="0 0 120 120">
-              <defs>
-                <linearGradient id="fig-neutral-grad" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#a3acbd"/>
-                  <stop offset="100%" stop-color="#5c6579"/>
-                </linearGradient>
-                <linearGradient id="fig-highlight-grad" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" style="stop-color: color-mix(in srgb, var(--fig-color, var(--c-cardio)) 55%, white)"/>
-                  <stop offset="100%" style="stop-color: var(--fig-color, var(--c-cardio))"/>
-                </linearGradient>
-              </defs>
-              <line id="fig-floor" x1="10" y1="109" x2="110" y2="109"/>
-              <g id="fig-bounce">
-                <g id="fig-limbs">
-                  <line id="fig-legL-lo" x1="60" y1="65" x2="45" y2="99"/>
-                  <line id="fig-legR-lo" x1="60" y1="65" x2="75" y2="99"/>
-                  <line id="fig-legL-up" x1="60" y1="65" x2="45" y2="99"/>
-                  <line id="fig-legR-up" x1="60" y1="65" x2="75" y2="99"/>
-                  <ellipse id="fig-quadL" cx="52" cy="82" rx="6" ry="9"/>
-                  <ellipse id="fig-quadR" cx="68" cy="82" rx="6" ry="9"/>
-                  <line id="fig-torso" x1="60" y1="33" x2="60" y2="65"/>
-                  <rect id="fig-shorts" x="51" y="58" width="18" height="13" rx="4"/>
-                  <line id="fig-armL-lo" x1="60" y1="33" x2="40" y2="55"/>
-                  <line id="fig-armR-lo" x1="60" y1="33" x2="80" y2="55"/>
-                  <line id="fig-armL-up" x1="60" y1="33" x2="40" y2="55"/>
-                  <line id="fig-armR-up" x1="60" y1="33" x2="80" y2="55"/>
-                  <ellipse id="fig-bicepL" cx="50" cy="44" rx="5.5" ry="7.5"/>
-                  <ellipse id="fig-bicepR" cx="70" cy="44" rx="5.5" ry="7.5"/>
-                </g>
-                <circle id="fig-footL" cx="45" cy="99" r="6"/>
-                <circle id="fig-footR" cx="75" cy="99" r="6"/>
-                <circle id="fig-handL" cx="40" cy="55" r="5.5"/>
-                <circle id="fig-handR" cx="80" cy="55" r="5.5"/>
-                <circle id="fig-head" cx="60" cy="19" r="11"/>
-              </g>
-            </svg>
+          <div class="diagram-box" id="figure3d-mount">
+            <div class="diagram-loading" id="diagram-loading">Loading 3D…</div>
           </div>
+          <div class="diagram-hint">Drag to rotate</div>
           <div class="diagram-label" id="diagram-label">Get ready</div>
           <div class="diagram-cue" id="diagram-cue">&nbsp;</div>
         </div>
@@ -502,6 +464,18 @@
 </footer>
 
 <script>
+  // Stub so early calls from the main script don't throw before the 3D module (loaded async below) is ready.
+  window.Figure3D = {
+    _pending: {},
+    render(frame) { this._pending.frame = frame; },
+    setHighlight(zones) { this._pending.zones = zones; },
+    setAccentColor(hex) { this._pending.hex = hex; },
+    show() { this._pending.show = true; },
+    hide() { this._pending.show = false; },
+  };
+</script>
+
+<script>
 (function () {
   'use strict';
 
@@ -509,12 +483,12 @@
   const TIMES = [5, 10, 15, 20, 30, 45]; // minutes
 
   const PARTS = [
-    { key: 'full',   label: 'Full Body',     emoji: '🔥', color: 'var(--c-full)' },
-    { key: 'upper',  label: 'Upper Body',    emoji: '💪', color: 'var(--c-upper)' },
-    { key: 'lower',  label: 'Lower Body',    emoji: '🦵', color: 'var(--c-lower)' },
-    { key: 'core',   label: 'Core',          emoji: '🧱', color: 'var(--c-core)' },
-    { key: 'cardio', label: 'Cardio Blast',  emoji: '⚡', color: 'var(--c-cardio)' },
-    { key: 'glutes', label: 'Glutes & Legs', emoji: '🍑', color: 'var(--c-glutes)' },
+    { key: 'full',   label: 'Full Body',     emoji: '🔥', color: 'var(--c-full)',   hex: 0xf4a535 },
+    { key: 'upper',  label: 'Upper Body',    emoji: '💪', color: 'var(--c-upper)',  hex: 0x5b8dee },
+    { key: 'lower',  label: 'Lower Body',    emoji: '🦵', color: 'var(--c-lower)',  hex: 0x3dba7a },
+    { key: 'core',   label: 'Core',          emoji: '🧱', color: 'var(--c-core)',   hex: 0xee6b6b },
+    { key: 'cardio', label: 'Cardio Blast',  emoji: '⚡', color: 'var(--c-cardio)', hex: 0x9b5de5 },
+    { key: 'glutes', label: 'Glutes & Legs', emoji: '🍑', color: 'var(--c-glutes)', hex: 0x2bb6b6 },
   ];
 
   const EXERCISES = {
@@ -825,8 +799,9 @@
     steps = currentWorkout.steps;
     stepIdx = 0;
     showPanel('timer');
-    const partColor = PARTS.find(p => p.key === currentWorkout.partKey).color;
-    document.getElementById('figure-svg').style.setProperty('--fig-color', partColor);
+    const partHex = PARTS.find(p => p.key === currentWorkout.partKey).hex;
+    window.Figure3D.setAccentColor(partHex);
+    window.Figure3D.show();
     startFigureLoop();
     try {
       if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
@@ -913,18 +888,7 @@
     if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
   }
 
-  // ───────────────────────── EXERCISE DIAGRAM (animated stick figure) ─────────────────────────
-  const D2R = Math.PI / 180;
-  const ANCHORS = {
-    stand: { hip: [60, 65], torsoBase: 180, torsoLen: 32, headLen: 46 },
-    prone: { hip: [78, 60], torsoBase: -90, torsoLen: 32, headLen: 46 },
-  };
-  const UPPER_ARM_LEN = 16, LOWER_ARM_LEN = 15, UPPER_LEG_LEN = 20, LOWER_LEG_LEN = 20;
-
-  function limbPoint(origin, angleDeg, len) {
-    const a = angleDeg * D2R;
-    return [origin[0] + len * Math.sin(a), origin[1] + len * Math.cos(a)];
-  }
+  // ───────────────────────── EXERCISE DIAGRAM (pose data — rendered in 3D by the Figure3D module) ─────────────────────────
 
   const STAND_DEFAULT = { armL: -15, armR: 15, legL: -8, legR: 8, torsoLean: 0, bounce: 0, mode: 'stand', armLBend: 25, armRBend: 25, legLBend: 16, legRBend: 16 };
   const PRONE_DEFAULT = { armL: 8, armR: 16, legL: 86, legR: 98, torsoLean: 0, bounce: 0, mode: 'prone', armLBend: 25, armRBend: 25, legLBend: 16, legRBend: 16 };
@@ -1010,37 +974,8 @@
     'Single-Leg Glute Bridge': 'gluteBridge', 'Sumo Squat Pulses': 'squat', 'Frog Pumps': 'gluteBridge',
   };
 
-  const figBounceEl = document.getElementById('fig-bounce');
-  const figHeadEl = document.getElementById('fig-head');
-  const figTorsoEl = document.getElementById('fig-torso');
-  const figShortsEl = document.getElementById('fig-shorts');
-  const figFootLEl = document.getElementById('fig-footL');
-  const figFootREl = document.getElementById('fig-footR');
-  const figHandLEl = document.getElementById('fig-handL');
-  const figHandREl = document.getElementById('fig-handR');
-  const figArmLUpEl = document.getElementById('fig-armL-up');
-  const figArmLLoEl = document.getElementById('fig-armL-lo');
-  const figArmRUpEl = document.getElementById('fig-armR-up');
-  const figArmRLoEl = document.getElementById('fig-armR-lo');
-  const figLegLUpEl = document.getElementById('fig-legL-up');
-  const figLegLLoEl = document.getElementById('fig-legL-lo');
-  const figLegRUpEl = document.getElementById('fig-legR-up');
-  const figLegRLoEl = document.getElementById('fig-legR-lo');
-  const figBicepLEl = document.getElementById('fig-bicepL');
-  const figBicepREl = document.getElementById('fig-bicepR');
-  const figQuadLEl = document.getElementById('fig-quadL');
-  const figQuadREl = document.getElementById('fig-quadR');
   const diagramLabel = document.getElementById('diagram-label');
   const diagramCue = document.getElementById('diagram-cue');
-
-  const MUSCLE_GROUPS = {
-    torso: [figTorsoEl],
-    armL: [figArmLUpEl, figArmLLoEl, figHandLEl, figBicepLEl],
-    armR: [figArmRUpEl, figArmRLoEl, figHandREl, figBicepREl],
-    legL: [figLegLUpEl, figLegLLoEl, figFootLEl, figQuadLEl],
-    legR: [figLegRUpEl, figLegRLoEl, figFootREl, figQuadREl],
-  };
-  const ALL_MUSCLE_EL = Object.values(MUSCLE_GROUPS).flat();
 
   const MUSCLE_ZONES = {
     squat: ['legL', 'legR'], squatJump: ['legL', 'legR'], lunge: ['legL', 'legR'],
@@ -1058,12 +993,6 @@
     inchworm: ['torso', 'armL', 'armR'],
   };
 
-  function applyMuscleHighlight(poseKey) {
-    ALL_MUSCLE_EL.forEach(el => el.classList.remove('hl'));
-    const zones = MUSCLE_ZONES[poseKey] || [];
-    zones.forEach(zone => MUSCLE_GROUPS[zone].forEach(el => el.classList.add('hl')));
-  }
-
   function easeInOutSine(t) { return -(Math.cos(Math.PI * t) - 1) / 2; }
 
   const POSE_KEYS = ['armL', 'armR', 'legL', 'legR', 'torsoLean', 'bounce', 'armLBend', 'armRBend', 'legLBend', 'legRBend'];
@@ -1074,60 +1003,6 @@
     return out;
   }
 
-  function setLine(el, p1, p2) {
-    el.setAttribute('x1', p1[0]); el.setAttribute('y1', p1[1]);
-    el.setAttribute('x2', p2[0]); el.setAttribute('y2', p2[1]);
-  }
-
-  function placeBulge(el, p1, p2) {
-    const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
-    const angle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]) * (180 / Math.PI);
-    el.setAttribute('cx', mx); el.setAttribute('cy', my);
-    el.setAttribute('transform', `rotate(${angle + 90} ${mx} ${my})`);
-  }
-
-  function renderFigure(frame) {
-    const anchors = ANCHORS[frame.mode];
-    const hip = anchors.hip;
-    const shoulder = limbPoint(hip, anchors.torsoBase + frame.torsoLean, anchors.torsoLen);
-    const head = limbPoint(hip, anchors.torsoBase + frame.torsoLean, anchors.headLen);
-
-    const elbowL = limbPoint(shoulder, frame.armL, UPPER_ARM_LEN);
-    const handL = limbPoint(elbowL, frame.armL + frame.armLBend, LOWER_ARM_LEN);
-    const elbowR = limbPoint(shoulder, frame.armR, UPPER_ARM_LEN);
-    const handR = limbPoint(elbowR, frame.armR + frame.armRBend, LOWER_ARM_LEN);
-    const kneeL = limbPoint(hip, frame.legL, UPPER_LEG_LEN);
-    const footL = limbPoint(kneeL, frame.legL + frame.legLBend, LOWER_LEG_LEN);
-    const kneeR = limbPoint(hip, frame.legR, UPPER_LEG_LEN);
-    const footR = limbPoint(kneeR, frame.legR + frame.legRBend, LOWER_LEG_LEN);
-
-    setLine(figTorsoEl, hip, shoulder);
-    setLine(figArmLUpEl, shoulder, elbowL);
-    setLine(figArmLLoEl, elbowL, handL);
-    setLine(figArmRUpEl, shoulder, elbowR);
-    setLine(figArmRLoEl, elbowR, handR);
-    setLine(figLegLUpEl, hip, kneeL);
-    setLine(figLegLLoEl, kneeL, footL);
-    setLine(figLegRUpEl, hip, kneeR);
-    setLine(figLegRLoEl, kneeR, footR);
-    figHeadEl.setAttribute('cx', head[0]); figHeadEl.setAttribute('cy', head[1]);
-    figFootLEl.setAttribute('cx', footL[0]); figFootLEl.setAttribute('cy', footL[1]);
-    figFootREl.setAttribute('cx', footR[0]); figFootREl.setAttribute('cy', footR[1]);
-    figHandLEl.setAttribute('cx', handL[0]); figHandLEl.setAttribute('cy', handL[1]);
-    figHandREl.setAttribute('cx', handR[0]); figHandREl.setAttribute('cy', handR[1]);
-    placeBulge(figBicepLEl, shoulder, elbowL);
-    placeBulge(figBicepREl, shoulder, elbowR);
-    placeBulge(figQuadLEl, hip, kneeL);
-    placeBulge(figQuadREl, hip, kneeR);
-
-    const torsoScreenAngle = Math.atan2(shoulder[1] - hip[1], shoulder[0] - hip[0]) * (180 / Math.PI);
-    figShortsEl.setAttribute('transform', `rotate(${torsoScreenAngle + 90} ${hip[0]} ${hip[1]})`);
-    figShortsEl.setAttribute('x', hip[0] - 9);
-    figShortsEl.setAttribute('y', hip[1] - 6);
-
-    figBounceEl.setAttribute('transform', `translate(0, ${frame.bounce || 0})`);
-  }
-
   let currentPoseKey = 'idleReady';
   let figureAnimHandle = null;
   let figurePhaseStart = performance.now();
@@ -1136,7 +1011,7 @@
     if (poseKey === currentPoseKey) return;
     currentPoseKey = poseKey in POSES ? poseKey : 'idleReady';
     figurePhaseStart = performance.now();
-    applyMuscleHighlight(currentPoseKey);
+    window.Figure3D.setHighlight(MUSCLE_ZONES[currentPoseKey] || []);
   }
 
   const HOLD_FRAC = 0.1; // brief settle at each rep extreme, then flows continuously like real reps
@@ -1152,10 +1027,10 @@
     const b = pose.frames[(segIdx + 1) % n];
     if (a.mode !== b.mode) {
       // stance changes (stand <-> floor) can't be blended — cut cleanly at the midpoint instead of warping
-      renderFigure(segT < 0.5 ? a : b);
+      window.Figure3D.render(segT < 0.5 ? a : b);
     } else {
       const moveT = segT < HOLD_FRAC ? 0 : (segT - HOLD_FRAC) / (1 - HOLD_FRAC);
-      renderFigure(lerpFrame(a, b, easeInOutSine(moveT)));
+      window.Figure3D.render(lerpFrame(a, b, easeInOutSine(moveT)));
     }
     figureAnimHandle = requestAnimationFrame(figureLoop);
   }
@@ -1169,6 +1044,7 @@
   function stopFigureLoop() {
     if (figureAnimHandle) cancelAnimationFrame(figureAnimHandle);
     figureAnimHandle = null;
+    window.Figure3D.hide();
   }
 
   function updateDiagram(step) {
@@ -1405,6 +1281,228 @@
     }
   }
 })();
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+const mount = document.getElementById('figure3d-mount');
+const loadingEl = document.getElementById('diagram-loading');
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+camera.position.set(0, 0.12, 4.4);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+mount.appendChild(renderer.domElement);
+if (loadingEl) loadingEl.remove();
+
+function resize() {
+  const w = mount.clientWidth, h = mount.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(mount);
+resize();
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minPolarAngle = Math.PI / 2 - 0.55;
+controls.maxPolarAngle = Math.PI / 2 + 0.35;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.7;
+controls.target.set(0, 0.05, 0);
+
+// ── Lighting ──
+scene.add(new THREE.HemisphereLight(0xffffff, 0x555566, 0.95));
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+keyLight.position.set(1.8, 3, 2.6);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(512, 512);
+keyLight.shadow.camera.left = -1.6; keyLight.shadow.camera.right = 1.6;
+keyLight.shadow.camera.top = 1.6; keyLight.shadow.camera.bottom = -1.6;
+scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
+fillLight.position.set(-2, 0.8, -1.2);
+scene.add(fillLight);
+
+// ── Floor ──
+const floor = new THREE.Mesh(
+  new THREE.CircleGeometry(1.7, 48),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.16 })
+);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -1.05;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// ── Materials ──
+const neutralMat = new THREE.MeshStandardMaterial({ color: 0x8993a8, roughness: 0.55, metalness: 0.08 });
+const highlightMat = new THREE.MeshStandardMaterial({ color: 0x9b5de5, roughness: 0.45, metalness: 0.1 });
+const shortsMat = new THREE.MeshStandardMaterial({ color: 0x2b2f3a, roughness: 0.75 });
+
+function capsule(radius, length, mat) {
+  const geo = new THREE.CapsuleGeometry(radius, Math.max(length - radius * 2, 0.02), 6, 12);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  return mesh;
+}
+function sphere(radius, mat) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 12), mat);
+  mesh.castShadow = true;
+  return mesh;
+}
+
+const root = new THREE.Group();
+scene.add(root);
+
+// ── Bone lengths (world units) — must match the distances baked into limbPoint() calls below ──
+const TORSO_LEN = 0.58, HEAD_DIST = 0.80;
+const UPPER_ARM_LEN = 0.30, LOWER_ARM_LEN = 0.28;
+const UPPER_LEG_LEN = 0.42, LOWER_LEG_LEN = 0.40;
+
+const meshes = {
+  torso: capsule(0.115, TORSO_LEN, neutralMat),
+  head: sphere(0.19, neutralMat),
+  shorts: new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.24, 16), shortsMat),
+  armLUp: capsule(0.082, UPPER_ARM_LEN, neutralMat), armLLo: capsule(0.068, LOWER_ARM_LEN, neutralMat),
+  armRUp: capsule(0.082, UPPER_ARM_LEN, neutralMat), armRLo: capsule(0.068, LOWER_ARM_LEN, neutralMat),
+  legLUp: capsule(0.105, UPPER_LEG_LEN, neutralMat), legLLo: capsule(0.086, LOWER_LEG_LEN, neutralMat),
+  legRUp: capsule(0.105, UPPER_LEG_LEN, neutralMat), legRLo: capsule(0.086, LOWER_LEG_LEN, neutralMat),
+  handL: sphere(0.068, neutralMat), handR: sphere(0.068, neutralMat),
+  footL: sphere(0.082, neutralMat), footR: sphere(0.082, neutralMat),
+  bicepL: sphere(0.072, neutralMat), bicepR: sphere(0.072, neutralMat),
+  quadL: sphere(0.095, neutralMat), quadR: sphere(0.095, neutralMat),
+};
+meshes.shorts.castShadow = true;
+Object.values(meshes).forEach(m => root.add(m));
+
+const MUSCLE_MESH_GROUPS = {
+  torso: [meshes.torso],
+  armL: [meshes.armLUp, meshes.armLLo, meshes.handL, meshes.bicepL],
+  armR: [meshes.armRUp, meshes.armRLo, meshes.handR, meshes.bicepR],
+  legL: [meshes.legLUp, meshes.legLLo, meshes.footL, meshes.quadL],
+  legR: [meshes.legRUp, meshes.legRLo, meshes.footR, meshes.quadR],
+};
+const ALL_ZONE_MESHES = Object.values(MUSCLE_MESH_GROUPS).flat();
+
+// ── Pose math — same angle convention as before (0=down, 90=right, 180=up, -90=left), now in 3D (Y-up) ──
+const D2R = Math.PI / 180;
+function limbPoint(origin, angleDeg, len) {
+  const a = angleDeg * D2R;
+  return new THREE.Vector3(origin.x + len * Math.sin(a), origin.y - len * Math.cos(a), origin.z);
+}
+const ANCHORS = { stand: { torsoBase: 180 }, prone: { torsoBase: -90 } };
+const HIP = new THREE.Vector3(0, 0, 0);
+
+const UP = new THREE.Vector3(0, 1, 0);
+function orientBetween(mesh, p1, p2) {
+  const dir = new THREE.Vector3().subVectors(p2, p1);
+  const dist = dir.length() || 0.0001;
+  mesh.position.copy(p1).addScaledVector(dir, 0.5);
+  const dirN = dir.clone().normalize();
+  const dot = THREE.MathUtils.clamp(UP.dot(dirN), -1, 1);
+  const axis = new THREE.Vector3().crossVectors(UP, dirN);
+  if (axis.lengthSq() < 1e-8) {
+    mesh.quaternion.set(0, 0, 0, 1);
+    if (dot < 0) mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
+  } else {
+    mesh.quaternion.setFromAxisAngle(axis.normalize(), Math.acos(dot));
+  }
+  return dist;
+}
+function orientAt(mesh, point, dirN) {
+  mesh.position.copy(point);
+  const dot = THREE.MathUtils.clamp(UP.dot(dirN), -1, 1);
+  const axis = new THREE.Vector3().crossVectors(UP, dirN);
+  if (axis.lengthSq() < 1e-8) {
+    mesh.quaternion.set(0, 0, 0, 1);
+    if (dot < 0) mesh.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
+  } else {
+    mesh.quaternion.setFromAxisAngle(axis.normalize(), Math.acos(dot));
+  }
+}
+function midpoint(p1, p2) { return new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5); }
+
+function render(frame) {
+  const anchors = ANCHORS[frame.mode] || ANCHORS.stand;
+  const hip = HIP;
+  const shoulder = limbPoint(hip, anchors.torsoBase + frame.torsoLean, TORSO_LEN);
+  const head = limbPoint(hip, anchors.torsoBase + frame.torsoLean, HEAD_DIST);
+
+  const elbowL = limbPoint(shoulder, frame.armL, UPPER_ARM_LEN);
+  const handL = limbPoint(elbowL, frame.armL + frame.armLBend, LOWER_ARM_LEN);
+  const elbowR = limbPoint(shoulder, frame.armR, UPPER_ARM_LEN);
+  const handR = limbPoint(elbowR, frame.armR + frame.armRBend, LOWER_ARM_LEN);
+  const kneeL = limbPoint(hip, frame.legL, UPPER_LEG_LEN);
+  const footL = limbPoint(kneeL, frame.legL + frame.legLBend, LOWER_LEG_LEN);
+  const kneeR = limbPoint(hip, frame.legR, UPPER_LEG_LEN);
+  const footR = limbPoint(kneeR, frame.legR + frame.legRBend, LOWER_LEG_LEN);
+
+  orientBetween(meshes.torso, hip, shoulder);
+  orientBetween(meshes.armLUp, shoulder, elbowL);
+  orientBetween(meshes.armLLo, elbowL, handL);
+  orientBetween(meshes.armRUp, shoulder, elbowR);
+  orientBetween(meshes.armRLo, elbowR, handR);
+  orientBetween(meshes.legLUp, hip, kneeL);
+  orientBetween(meshes.legLLo, kneeL, footL);
+  orientBetween(meshes.legRUp, hip, kneeR);
+  orientBetween(meshes.legRLo, kneeR, footR);
+
+  meshes.head.position.copy(head);
+  meshes.handL.position.copy(handL);
+  meshes.handR.position.copy(handR);
+  meshes.footL.position.copy(footL);
+  meshes.footR.position.copy(footR);
+  meshes.bicepL.position.copy(midpoint(shoulder, elbowL));
+  meshes.bicepR.position.copy(midpoint(shoulder, elbowR));
+  meshes.quadL.position.copy(midpoint(hip, kneeL));
+  meshes.quadR.position.copy(midpoint(hip, kneeR));
+
+  const torsoDir = new THREE.Vector3().subVectors(shoulder, hip).normalize();
+  orientAt(meshes.shorts, hip, torsoDir);
+
+  root.position.y = -(frame.bounce || 0) / 55;
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+function setHighlight(zones) {
+  ALL_ZONE_MESHES.forEach(m => { m.material = neutralMat; });
+  (zones || []).forEach(z => (MUSCLE_MESH_GROUPS[z] || []).forEach(m => { m.material = highlightMat; }));
+}
+
+function setAccentColor(hex) {
+  highlightMat.color.setHex(hex);
+}
+
+function show() { resize(); }
+function hide() {}
+
+const pending = (window.Figure3D && window.Figure3D._pending) || {};
+window.Figure3D = { render, setHighlight, setAccentColor, show, hide };
+if (pending.hex != null) setAccentColor(pending.hex);
+if (pending.zones) setHighlight(pending.zones);
+if (pending.frame) render(pending.frame);
+if (pending.show) show();
 </script>
 
 </body>
