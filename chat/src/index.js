@@ -739,7 +739,22 @@ async function startCall(request, env, email, gid) {
   const name = u && u.name ? u.name : null;
   let token = null;
   if (provider === "jitsi" && env.JITSI_JWT_SECRET) {
-    const payload = { iss: "jitsi", sub: "linear-chat", aud: "jitsi", room, email, name, moderator: true };
+    const now = Math.floor(Date.now() / 1000);
+    const exp = now + 3600; // 1 hour expiration
+    const payload = {
+      iss: "jitsi",
+      sub: "meet.jit.si",
+      aud: "jitsi",
+      room: room,
+      exp: exp,
+      context: {
+        user: {
+          name: name || email,
+          email: email,
+          moderator: true
+        }
+      }
+    };
     const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
     const body = btoa(JSON.stringify(payload));
     const sig = await signHS256(header + "." + body, env.JITSI_JWT_SECRET);
