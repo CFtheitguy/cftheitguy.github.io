@@ -4,7 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Water Wonders — We Speak Water</title>
-<meta name="description" content="Water Wonders — water softeners, whole-house filtration, reverse osmosis and seltzer machines for residential, commercial and industrial. Free estimates and water testing. Call 845.274.8119.">
+<meta name="description" content="Water Wonders in Monroe, NY — water softeners, whole-house filtration, reverse osmosis and seltzer machines for residential, commercial and industrial. Free estimates and water testing. Call 845.274.8119.">
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"HomeAndConstructionBusiness",
+  "name":"Water Wonders",
+  "telephone":"+1-845-274-8119",
+  "url":"https://linearit.co/waterwonders",
+  "image":"https://linearit.co/waterwonders/logo.png",
+  "priceRange":"$$",
+  "address":{"@type":"PostalAddress","streetAddress":"1 Maglenitz St, Unit 403","addressLocality":"Monroe","addressRegion":"NY","postalCode":"10950","addressCountry":"US"},
+  "geo":{"@type":"GeoCoordinates","latitude":41.3305116,"longitude":-74.159019},
+  "areaServed":"Orange County, NY",
+  "aggregateRating":{"@type":"AggregateRating","ratingValue":"5.0","reviewCount":"1"}
+}
+</script>
 <link rel="icon" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -132,6 +147,35 @@
   .step h3{font-size:1.2rem;font-weight:600;margin-bottom:.35rem}
   .step p{color:var(--ink-soft);font-size:.95rem}
 
+  /* Gallery */
+  .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+  .gtile{position:relative;aspect-ratio:4/3;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--paper-2);cursor:pointer}
+  .gtile img{width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+  .gtile:hover img{transform:scale(1.06)}
+  .gtile.add{display:grid;place-items:center;cursor:default;border-style:dashed;background:#fff}
+  .gtile.add .ph{display:flex;flex-direction:column;align-items:center;gap:.5rem;color:var(--ink-soft);font-size:.82rem;font-weight:700;text-align:center;padding:1rem}
+  .gtile.add svg{stroke:var(--mint-deep);fill:none;stroke-width:1.6}
+  .lightbox{position:fixed;inset:0;background:rgba(9,40,55,.92);display:none;align-items:center;justify-content:center;z-index:100;padding:4vw}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:var(--shadow)}
+  .lightbox .close{position:absolute;top:16px;right:20px;background:none;border:0;color:#fff;cursor:pointer;line-height:0}
+
+  /* Reviews */
+  .reviews-wrap{display:grid;grid-template-columns:.85fr 1.15fr;gap:2rem;align-items:start}
+  .rating-card{background:var(--blue-deep);color:#fff;border-radius:var(--r);padding:2.25rem;text-align:center;box-shadow:var(--shadow)}
+  .rating-num{font-family:'Josefin Sans',sans-serif;font-size:3.4rem;font-weight:700;line-height:1;color:#fff}
+  .stars{color:var(--yellow);letter-spacing:2px}
+  .rating-card .stars{font-size:1.35rem;margin:.5rem 0 .3rem}
+  .rating-card p{color:#D6EAF6;font-size:.9rem;margin-bottom:1.4rem}
+  .rating-card .btn{width:100%;justify-content:center;margin-top:.6rem}
+  .review-list{display:grid;gap:1rem}
+  .review{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:1.5rem 1.6rem}
+  .review .stars{font-size:1rem;display:block;margin-bottom:.5rem}
+  .review p{color:var(--ink);font-size:1.05rem;margin-bottom:.9rem;line-height:1.55}
+  .review .who{display:flex;align-items:center;gap:.65rem;font-size:.88rem;color:var(--ink-soft);font-weight:600}
+  .review .av{width:36px;height:36px;border-radius:50%;background:var(--mint-soft);color:var(--blue-deep);display:grid;place-items:center;font-weight:700;font-family:'Josefin Sans',sans-serif}
+  .review .gsrc{display:inline-flex;align-items:center;gap:.35rem;margin-left:auto;font-size:.78rem;color:var(--ink-soft)}
+
   /* Contact */
   .contact{background:var(--paper-2)}
   .contact-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:3rem;align-items:start}
@@ -168,7 +212,7 @@
     .nav-links a{padding:.9rem 6vw;width:100%}
     .nav .btn-yellow{display:none}
     .menu-btn{display:block}
-    .contact-grid,.split{grid-template-columns:1fr;gap:1.5rem}
+    .contact-grid,.split,.reviews-wrap{grid-template-columns:1fr;gap:1.5rem}
     .split .img-wrap{order:-1}
     .section{padding:4rem 0}
     .hero{padding:3.5rem 0 6rem}
@@ -205,7 +249,8 @@
     <nav class="nav-links" id="navLinks">
       <a href="#services">Services</a>
       <a href="#markets">Who We Serve</a>
-      <a href="#how">How It Works</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#reviews">Reviews</a>
       <a href="#contact">Contact</a>
     </nav>
     <a href="tel:+18452748119" class="btn btn-yellow">Call 845.274.8119</a>
@@ -317,7 +362,61 @@
   </div>
 </section>
 
-<section class="section why" id="how">
+<section class="section" id="gallery">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Our work</div>
+      <h2>Gallery</h2>
+      <p>Real systems, real installs — a look at the water we make better every day.</p>
+    </div>
+    <div class="gallery-grid" id="galleryGrid">
+      <div class="gtile" data-full="softener.jpg"><img src="softener.jpg" alt="Water Wonders water softener install"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGemV6r2BLNmVhiOg3hNPxTmaTJT3Esod4it5vkBLlUDJL8DrhU2Ru6VDAEJa2WpKTRpsspaKdzikjbuVgHJxaOq0fdxEycQqxfv8LhjZ5PHvwQ8Y0_4XogPBDE5xBLKPeETG4D2IuZ5WE=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGemV6r2BLNmVhiOg3hNPxTmaTJT3Esod4it5vkBLlUDJL8DrhU2Ru6VDAEJa2WpKTRpsspaKdzikjbuVgHJxaOq0fdxEycQqxfv8LhjZ5PHvwQ8Y0_4XogPBDE5xBLKPeETG4D2IuZ5WE=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHkXRXA1xEf99u7jO8EXrdgNDwR4iFQaKnzd29Q-HupfuNDQcBxKLlQOMhxqZxN3P2KPrGns381lj2VKKyHbZx6raNqc117uSxeEZBfgnikH2BPcklfOPE7TUMYricGorkja3wusU2x1TvB=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHkXRXA1xEf99u7jO8EXrdgNDwR4iFQaKnzd29Q-HupfuNDQcBxKLlQOMhxqZxN3P2KPrGns381lj2VKKyHbZx6raNqc117uSxeEZBfgnikH2BPcklfOPE7TUMYricGorkja3wusU2x1TvB=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEFDwNezXjkpb7RcAw4vbr7O0dCBahdTgcstOg3g16pmpWiYq6zYSNrmievPcF9Ag1-6_kQNDf8eEpN1W3xhcIXRVpVFZo0MsNLhK-MyyOfLG2ssrs9cPnjztnpsjXoVilv8_5N3fwCKC0i=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEFDwNezXjkpb7RcAw4vbr7O0dCBahdTgcstOg3g16pmpWiYq6zYSNrmievPcF9Ag1-6_kQNDf8eEpN1W3xhcIXRVpVFZo0MsNLhK-MyyOfLG2ssrs9cPnjztnpsjXoVilv8_5N3fwCKC0i=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGGBYrYsYE71OYI5KY7viMJ4ZyVgcQsVgFH31XZq3NtW1sFsuCBy-b_FWDCdrOFNTKIe0Pkp1ddSEEVv4n9RIpG3KQllecSdBkCvg9-hgkudVIeubygzV4e_b8uSC0YrCiptcgL4P0LMTG2=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGGBYrYsYE71OYI5KY7viMJ4ZyVgcQsVgFH31XZq3NtW1sFsuCBy-b_FWDCdrOFNTKIe0Pkp1ddSEEVv4n9RIpG3KQllecSdBkCvg9-hgkudVIeubygzV4e_b8uSC0YrCiptcgL4P0LMTG2=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGHEV3zHdaKJX3PKlXsIKmooFhrnBzd21wzXnB1D799sKLotzNeln3p_niylStxAmxx9zc5lEZ_AHHDDYhx3gt6Pf59TXt0_xFjGZZNFr8Si6R6Mz3vziJiRWZ2XzD3we-97MBa9g=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGHEV3zHdaKJX3PKlXsIKmooFhrnBzd21wzXnB1D799sKLotzNeln3p_niylStxAmxx9zc5lEZ_AHHDDYhx3gt6Pf59TXt0_xFjGZZNFr8Si6R6Mz3vziJiRWZ2XzD3we-97MBa9g=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEafkpuCHQwvp6gGO0cOphk-e_PYjLc3KxROxT073XnQVYeCbMXDgEHgmEosmPckaf6E8gA6MdIHP4hwZZTLeE2nhZVjoIW96FmNEoIydBv2MAZF2Z60aeqJ46RleU-qKJ8E0dMOEXAlZZ6=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEafkpuCHQwvp6gGO0cOphk-e_PYjLc3KxROxT073XnQVYeCbMXDgEHgmEosmPckaf6E8gA6MdIHP4hwZZTLeE2nhZVjoIW96FmNEoIydBv2MAZF2Z60aeqJ46RleU-qKJ8E0dMOEXAlZZ6=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAFVI-PMykQuhFxQOf786Afzxda1AoH_8lrslKkfmk3RfvffT1s8u4oJrj5qzBJwUUK9JN0Qe2CQiw4sRMotiSBDwZvY_dp__0duq2NLfYY-xKJZfUeJ3BKQk8I3d3W_ExsBStgc=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAFVI-PMykQuhFxQOf786Afzxda1AoH_8lrslKkfmk3RfvffT1s8u4oJrj5qzBJwUUK9JN0Qe2CQiw4sRMotiSBDwZvY_dp__0duq2NLfYY-xKJZfUeJ3BKQk8I3d3W_ExsBStgc=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHaSOZFRMqRgCK0yxDMdEPMM3_vVJlwJYqSFJSv6eBI0yQCnXW3BiB2Nl7zwBwv_G499V9W8Dbahz4k76HAe9RkI8vDC5p-zclNkecBWvBl3DvX2obhbXTqTKZIdILIu2DJTsFu2Tw3nP-L=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHaSOZFRMqRgCK0yxDMdEPMM3_vVJlwJYqSFJSv6eBI0yQCnXW3BiB2Nl7zwBwv_G499V9W8Dbahz4k76HAe9RkI8vDC5p-zclNkecBWvBl3DvX2obhbXTqTKZIdILIu2DJTsFu2Tw3nP-L=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEiIMFQ_igTJsjOO9TjS3QuAle3qarls6W435TaOeS5wnxWO-dKRrUlTP0QpkqZ-XuaSua54xkzXLz77ArbHYTq1HXjfJ2cUGlJ3zt3a2EfIoiQG3ArWR9XLA-_cmAbXOojkXVo-yu4aKVe=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEiIMFQ_igTJsjOO9TjS3QuAle3qarls6W435TaOeS5wnxWO-dKRrUlTP0QpkqZ-XuaSua54xkzXLz77ArbHYTq1HXjfJ2cUGlJ3zt3a2EfIoiQG3ArWR9XLA-_cmAbXOojkXVo-yu4aKVe=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAE7DaaiNqgYUqCE3-d2LwsOEl0b6Ewji_m33pwWKYGzLVWSLMqcr9D8tlXoeDrqnZU5Rh_go7GSrlKQ3bUzX52DWlR7n2uhfpKXLZUHQetcP14D6sfAbESBl1pTfICsi8PTLLsmojdObnPO=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAE7DaaiNqgYUqCE3-d2LwsOEl0b6Ewji_m33pwWKYGzLVWSLMqcr9D8tlXoeDrqnZU5Rh_go7GSrlKQ3bUzX52DWlR7n2uhfpKXLZUHQetcP14D6sfAbESBl1pTfICsi8PTLLsmojdObnPO=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+      <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEa6iTjEX9bRElmkaJSFuBFl6RYsgCZgbie0mydhqv9tDLUBgtJza-tEdswf4L1wZyqYWnJisJx-vs4vJJugpdmuf5epQ4bS1g1_E3FBdzwUh8sQhB_rROO-FCMA7zper_x6QSXaqKyp12R=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEa6iTjEX9bRElmkaJSFuBFl6RYsgCZgbie0mydhqv9tDLUBgtJza-tEdswf4L1wZyqYWnJisJx-vs4vJJugpdmuf5epQ4bS1g1_E3FBdzwUh8sQhB_rROO-FCMA7zper_x6QSXaqKyp12R=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
+    
+    </div>
+  </div>
+</section>
+
+<section class="section why" id="reviews">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">What customers say</div>
+      <h2>Reviews</h2>
+      <p>Rated 5.0 on Google — and we're just getting started.</p>
+    </div>
+    <div class="reviews-wrap">
+      <div class="rating-card">
+        <div class="rating-num">5.0</div>
+        <div class="stars">★★★★★</div>
+        <p>Based on Google reviews</p>
+        <a href="https://search.google.com/local/writereview?placeid=ChIJPZ2Rb_jXwokRADh96uQm4o0" target="_blank" rel="noopener" class="btn btn-yellow">Leave a review</a>
+        <a href="https://search.google.com/local/reviews?placeid=ChIJPZ2Rb_jXwokRADh96uQm4o0" target="_blank" rel="noopener" class="btn btn-ghost">Read on Google</a>
+      </div>
+      <div class="review-list">
+        <div class="review">
+          <span class="stars">★★★★★</span>
+          <p>"Best company."</p>
+          <div class="who"><span class="av">G</span>Google review
+            <span class="gsrc"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0012 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 010-4.2V7.06H2.18a11 11 0 000 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>Google</span>
+          </div>
+        </div>
+        <!-- To add more reviews, copy the block above and edit the stars, text, and initial. -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
   <div class="wrap">
     <div class="section-head">
       <div class="eyebrow">Simple from the start</div>
@@ -347,7 +446,9 @@
           <svg width="22" height="22" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.8 19.8 0 01-3-8.6A2 2 0 014.1 2h3a2 2 0 012 1.7c.1.9.3 1.8.6 2.6a2 2 0 01-.5 2.1L8 9.6a16 16 0 006 6l1.2-1.2a2 2 0 012.1-.5c.8.3 1.7.5 2.6.6a2 2 0 011.7 2z"/></svg>
           845.274.8119
         </a>
-        <div class="info-row"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span>Serving the local community and surrounding areas.</span></div>
+        <div class="info-row"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg><span>1 Maglenitz St, Unit 403<br>Monroe, NY 10950</span></div>
+        <div class="info-row"><svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg><span>Serving Monroe &amp; Orange County, NY</span></div>
+        <a href="https://www.google.com/maps/dir/?api=1&destination=The%20Water%20Wonders&destination_place_id=ChIJPZ2Rb_jXwokRADh96uQm4o0" target="_blank" rel="noopener" class="btn btn-yellow" style="margin-top:1.4rem">Get directions</a>
       </div>
       <form id="contactForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
         <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" required autocomplete="name" placeholder="Your name"></div>
@@ -369,16 +470,30 @@
       <div class="tag">let the goodness flow</div>
       <div class="foot-links"><a href="#services">Services</a><a href="#contact">Contact</a><a href="tel:+18452748119">845.274.8119</a></div>
     </div>
-    <div class="copy">© <span id="yr"></span> Water Wonders. All rights reserved.</div>
+    <div class="copy">© <span id="yr"></span> Water Wonders · 1 Maglenitz St, Unit 403, Monroe, NY 10950 · 845.274.8119</div>
   </div>
 </footer>
+
+<div class="lightbox" id="lightbox">
+  <button class="close" id="lbClose" aria-label="Close"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  <img id="lbImg" src="" alt="">
+</div>
 
 <script>
   document.getElementById('yr').textContent = new Date().getFullYear();
   const mb=document.getElementById('menuBtn'),nl=document.getElementById('navLinks');
   mb.addEventListener('click',()=>nl.classList.toggle('open'));
   nl.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>nl.classList.remove('open')));
-  const form=document.getElementById('contactForm'),ok=document.getElementById('formOk');
+  // gallery lightbox
+  const lb=document.getElementById('lightbox'),lbImg=document.getElementById('lbImg');
+  document.querySelectorAll('.gtile[data-full]').forEach(t=>{
+    t.addEventListener('click',()=>{lbImg.src=t.getAttribute('data-full');lb.classList.add('open')});
+  });
+  function closeLb(){lb.classList.remove('open');lbImg.src='';}
+  document.getElementById('lbClose').addEventListener('click',closeLb);
+  lb.addEventListener('click',e=>{if(e.target===lb)closeLb()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
+
   form.addEventListener('submit',async(e)=>{
     if(form.action.includes('YOUR_FORM_ID'))return;
     e.preventDefault();
