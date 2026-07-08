@@ -180,7 +180,7 @@
 
     async function shareRoast() {
       const roast = document.getElementById("roastText").textContent;
-      const text = `🔥 I just got roasted: "${roast}"\n\nGet roasted too: https://cftheitguy.github.io/roast/`;
+      const text = `🔥 I just got roasted: "${roast}"\n\nGet roasted too: https://cftheitguy.github.io/fun4/`;
       if (navigator.share) {
         try { await navigator.share({ text }); return; } catch { /* user cancelled */ }
       }

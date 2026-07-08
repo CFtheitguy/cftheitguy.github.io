@@ -1,7 +1,7 @@
 # Roast My Setup — Setup Guide
 
 An AI photo-roaster: upload a desk/room/car/pet/food pic, get a witty roast.
-Web app: **https://linearit.co/roast** (or `cftheitguy.github.io/roast`).
+Web app: **https://linearit.co/fun4** (or `cftheitguy.github.io/fun4`).
 
 Everything below can be done from the Cloudflare **dashboard** — no command
 line required. No D1 database, no secrets, no third-party API key — it runs
@@ -41,7 +41,7 @@ update the `API` constant near the top of that file's `<script>` block.
 ## 5) Test it
 
 1. Make sure GitHub Pages serves this repo (it already does — `linearit.co`).
-2. Go to **https://linearit.co/roast**, upload a photo, tap **Roast Me**.
+2. Go to **https://linearit.co/fun4**, upload a photo, tap **Roast Me**.
 
 ---
 
