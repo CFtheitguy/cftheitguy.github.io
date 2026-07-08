@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Spin the Wheel - Decision Maker - Linear Tech</title>
+<meta name="description" content="Can't decide? Type your options, spin the wheel, and let it pick for you. Free, private, works offline in your browser."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root,[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
+  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
+  --shadow:0 2px 16px rgba(0,0,0,.4);
+  --input-bg:#0f1117;
+  --hub:#181c2a;
+}
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
+  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
+  --shadow:0 2px 16px rgba(0,0,0,.08);
+  --input-bg:#f4f6fb;
+  --hub:#ffffff;
+}
+
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
+
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.logo-text span{color:var(--accent)}
+#theme-toggle{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+
+main{max-width:920px;margin:0 auto;padding:36px 20px 60px}
+
+.intro{text-align:center;margin-bottom:28px}
+.intro h1{font-size:1.7rem;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.intro p{color:var(--muted);font-size:.94rem;max-width:520px;margin:0 auto}
+
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media (max-width:760px){.layout{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow);transition:background .2s,border-color .2s}
+
+/* Wheel */
+.wheel-card{display:flex;flex-direction:column;align-items:center;gap:18px}
+.wheel-wrap{position:relative;width:100%;max-width:340px;aspect-ratio:1/1}
+.pointer{position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid var(--accent);z-index:3;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+#wheelCanvas{width:100%;height:100%;display:block;border-radius:50%;box-shadow:0 0 0 6px var(--card2),0 8px 24px rgba(0,0,0,.35);transition:transform 4.2s cubic-bezier(.17,.67,.16,1)}
+.hub{position:absolute;top:50%;left:50%;width:22%;height:22%;transform:translate(-50%,-50%);background:var(--hub);border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.3);border:3px solid var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:transform .12s}
+.hub:active{transform:translate(-50%,-50%) scale(.94)}
+.hub svg{width:38%;height:38%;fill:var(--accent)}
+
+.spin-row{display:flex;gap:10px;width:100%;max-width:340px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:11px 22px;
+  border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:600;font-family:inherit;transition:all .15s;letter-spacing:-.01em;white-space:nowrap}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,126,248,.3)}
+.btn:active{transform:none}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-full{width:100%}
+.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--card2);box-shadow:none;transform:none;border-color:var(--accent)}
+
+.result-banner{width:100%;max-width:340px;text-align:center;background:var(--success-bg);border:1px solid var(--success);color:var(--success);border-radius:10px;padding:12px 14px;font-weight:700;font-size:1rem;min-height:20px}
+.result-banner.empty{background:transparent;border-color:transparent;color:var(--muted);font-weight:500;font-size:.85rem}
+
+/* Options card */
+.options-card .card-title{font-size:1.2rem;font-weight:700;margin-bottom:4px}
+.options-card .card-desc{font-size:.85rem;color:var(--muted);margin-bottom:18px;line-height:1.6}
+
+.opt-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:14px;padding-right:2px}
+.opt-row{display:flex;align-items:center;gap:8px}
+.opt-swatch{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.opt-row input[type=text]{
+  flex:1;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
+  padding:9px 12px;border-radius:8px;font-size:.9rem;outline:none;font-family:inherit;min-width:0;
+  transition:border-color .15s,box-shadow .15s
+}
+.opt-row input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.opt-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;width:26px;height:26px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.opt-remove:hover{background:var(--bg3);color:#f87171}
+
+.add-row{display:flex;gap:8px;margin-bottom:16px}
+.add-row input{flex:1;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:10px 12px;border-radius:8px;font-size:.9rem;outline:none;font-family:inherit}
+.add-row input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.toolbar .btn-ghost{flex:1;font-size:.82rem;padding:9px 10px}
+
+.field-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:14px;border-top:1px solid var(--border)}
+.field-row label{font-size:.85rem;color:var(--text);cursor:pointer;user-select:none}
+.switch{position:relative;width:40px;height:22px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:var(--bg3);border:1px solid var(--border2);border-radius:22px;cursor:pointer;transition:.2s}
+.slider:before{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.2s}
+.switch input:checked+.slider{background:var(--accent-bg);border-color:var(--accent)}
+.switch input:checked+.slider:before{transform:translateX(18px);background:var(--accent)}
+
+/* History */
+.history-card{margin-top:24px}
+.history-card .card-title{font-size:1.05rem;font-weight:700;margin-bottom:12px}
+#historyList{list-style:none;display:flex;flex-direction:column;gap:6px;font-size:.88rem}
+#historyList li{display:flex;justify-content:space-between;color:var(--text);padding:8px 10px;background:var(--bg3);border-radius:8px}
+#historyList li span.n{color:var(--muted);font-size:.78rem}
+.history-empty{color:var(--muted);font-size:.85rem}
+
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:20px}
+footer a{color:var(--accent);text-decoration:none}
+
+/* confetti */
+#confettiCanvas{position:fixed;inset:0;pointer-events:none;z-index:50}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Linear<span>Tech</span></span>
+  </div>
+  <button id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">
+    <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+  </button>
+</header>
+
+<main>
+  <div class="intro">
+    <h1>Spin the Wheel</h1>
+    <p>Can't decide what to eat, who goes first, or which task lands on whom? Type your options and let the wheel choose. Everything stays in your browser.</p>
+  </div>
+
+  <div class="layout">
+    <div class="card wheel-card">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheelCanvas" width="600" height="600"></canvas>
+        <div class="hub" id="hub" title="Spin">
+          <svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L21 12l-6.4 3.4L12 22l-2.6-6.6L3 12l6.4-3.4z"/></svg>
+        </div>
+      </div>
+      <div class="spin-row">
+        <button class="btn btn-full" id="spinBtn" type="button">Spin the Wheel</button>
+      </div>
+      <div class="result-banner empty" id="resultBanner">Add options and spin to get a result</div>
+    </div>
+
+    <div>
+      <div class="card options-card">
+        <div class="card-title">Your Options</div>
+        <div class="card-desc">Add anything — restaurants, chores, names, numbers. Minimum 2 options.</div>
+
+        <div class="opt-list" id="optList"></div>
+
+        <div class="add-row">
+          <input type="text" id="newOption" placeholder="Add an option and press Enter" maxlength="40"/>
+          <button class="btn" id="addBtn" type="button">Add</button>
+        </div>
+
+        <div class="toolbar">
+          <button class="btn-ghost btn" id="shuffleBtn" type="button">Shuffle Colors</button>
+          <button class="btn-ghost btn" id="exampleBtn" type="button">Load Example</button>
+          <button class="btn-ghost btn" id="clearBtn" type="button">Clear All</button>
+        </div>
+
+        <div class="field-row">
+          <label for="removeAfterSpin">Remove winner after each spin</label>
+          <label class="switch">
+            <input type="checkbox" id="removeAfterSpin"/>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="field-row">
+          <label for="soundToggle">Tick sound while spinning</label>
+          <label class="switch">
+            <input type="checkbox" id="soundToggle" checked/>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card history-card">
+        <div class="card-title">Recent Spins</div>
+        <ul id="historyList"><li class="history-empty" style="background:none;padding:0">No spins yet</li></ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Free &amp; private &mdash; runs entirely in your browser, nothing is uploaded. <a href="/">Back to LinearTech</a></footer>
+
+<canvas id="confettiCanvas"></canvas>
+
+<script>
+function toggleTheme() {
+  var t = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", t);
+  document.getElementById("icon-moon").style.display = t === "dark" ? "block" : "none";
+  document.getElementById("icon-sun").style.display = t === "light" ? "block" : "none";
+  try { localStorage.setItem("theme", t); } catch(e) {}
+  drawWheel();
+}
+(function () {
+  var t;
+  try { t = localStorage.getItem("theme"); } catch(e) { t = null; }
+  t = t || "dark";
+  document.documentElement.setAttribute("data-theme", t);
+  if (t === "light") {
+    document.getElementById("icon-moon").style.display = "none";
+    document.getElementById("icon-sun").style.display = "block";
+  }
+})();
+
+(function () {
+  const PALETTE = ['#2a78d6','#1baf7a','#eda100','#008300','#4a3aa7','#e34948','#e87ba4','#eb6834'];
+  const STORAGE_KEY = 'wheelOptions_v1';
+  const HISTORY_KEY = 'wheelHistory_v1';
+  const DEFAULT_OPTIONS = ['Pizza', 'Sushi', 'Tacos', 'Burgers', 'Salad', 'Ramen'];
+
+  const canvas = document.getElementById('wheelCanvas');
+  const ctx = canvas.getContext('2d');
+  const optList = document.getElementById('optList');
+  const newOptionInput = document.getElementById('newOption');
+  const addBtn = document.getElementById('addBtn');
+  const spinBtn = document.getElementById('spinBtn');
+  const hub = document.getElementById('hub');
+  const resultBanner = document.getElementById('resultBanner');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  const exampleBtn = document.getElementById('exampleBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const removeAfterSpin = document.getElementById('removeAfterSpin');
+  const soundToggle = document.getElementById('soundToggle');
+  const historyList = document.getElementById('historyList');
+
+  let options = loadOptions();
+  let history = loadHistory();
+  let colorOffset = 0;
+  let rotation = 0;
+  let spinning = false;
+  let audioCtx = null;
+
+  function loadOptions() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    } catch (e) {}
+    return DEFAULT_OPTIONS.slice();
+  }
+  function saveOptions() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(options)); } catch (e) {}
+  }
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+  }
+  function saveHistory() {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 10))); } catch (e) {}
+  }
+
+  function colorFor(i) {
+    return PALETTE[(i + colorOffset) % PALETTE.length];
+  }
+
+  function renderOptionList() {
+    optList.innerHTML = '';
+    options.forEach((opt, i) => {
+      const row = document.createElement('div');
+      row.className = 'opt-row';
+
+      const swatch = document.createElement('span');
+      swatch.className = 'opt-swatch';
+      swatch.style.background = colorFor(i);
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = opt;
+      input.maxLength = 40;
+      input.setAttribute('aria-label', 'Option ' + (i + 1));
+      input.addEventListener('input', () => {
+        options[i] = input.value;
+        saveOptions();
+        drawWheel();
+      });
+
+      const remove = document.createElement('button');
+      remove.className = 'opt-remove';
+      remove.type = 'button';
+      remove.innerHTML = '&times;';
+      remove.title = 'Remove';
+      remove.addEventListener('click', () => {
+        options.splice(i, 1);
+        saveOptions();
+        renderOptionList();
+        drawWheel();
+        updateSpinAvailability();
+      });
+
+      row.appendChild(swatch);
+      row.appendChild(input);
+      row.appendChild(remove);
+      optList.appendChild(row);
+    });
+    updateSpinAvailability();
+  }
+
+  function updateSpinAvailability() {
+    const valid = options.filter(o => o.trim().length > 0);
+    spinBtn.disabled = valid.length < 2 || spinning;
+    hub.style.cursor = spinBtn.disabled ? 'default' : 'pointer';
+  }
+
+  function addOption(text) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    options.push(trimmed);
+    saveOptions();
+    renderOptionList();
+    drawWheel();
+  }
+
+  addBtn.addEventListener('click', () => {
+    addOption(newOptionInput.value);
+    newOptionInput.value = '';
+    newOptionInput.focus();
+  });
+  newOptionInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addOption(newOptionInput.value);
+      newOptionInput.value = '';
+    }
+  });
+
+  shuffleBtn.addEventListener('click', () => {
+    colorOffset = (colorOffset + 1) % PALETTE.length;
+    renderOptionList();
+    drawWheel();
+  });
+  exampleBtn.addEventListener('click', () => {
+    options = DEFAULT_OPTIONS.slice();
+    saveOptions();
+    renderOptionList();
+    drawWheel();
+  });
+  clearBtn.addEventListener('click', () => {
+    if (!confirm('Remove all options?')) return;
+    options = [];
+    saveOptions();
+    renderOptionList();
+    drawWheel();
+  });
+
+  function getTextColor(hex) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+    return lum > 0.6 ? '#0b0b0b' : '#ffffff';
+  }
+
+  function drawWheel() {
+    const size = canvas.width;
+    const cx = size / 2, cy = size / 2, r = size / 2 - 6;
+    ctx.clearRect(0, 0, size, size);
+
+    const valid = options.map((o, i) => ({ text: o.trim(), i })).filter(o => o.text.length > 0);
+    if (valid.length === 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card2') || '#222';
+      ctx.fill();
+      return;
+    }
+
+    const seg = (Math.PI * 2) / valid.length;
+    valid.forEach((o, idx) => {
+      const start = -Math.PI / 2 + idx * seg;
+      const end = start + seg;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end);
+      ctx.closePath();
+      const fill = colorFor(o.i);
+      ctx.fillStyle = fill;
+      ctx.fill();
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(start + seg / 2);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = getTextColor(fill);
+      const fontSize = valid.length > 14 ? 15 : valid.length > 8 ? 19 : 24;
+      ctx.font = '700 ' + fontSize + 'px "Plus Jakarta Sans", system-ui, sans-serif';
+      let label = o.text;
+      const maxChars = valid.length > 12 ? 12 : 18;
+      if (label.length > maxChars) label = label.slice(0, maxChars - 1) + '…';
+      ctx.fillText(label, r - 18, 0);
+      ctx.restore();
+    });
+  }
+
+  function ensureAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    }
+    return audioCtx;
+  }
+  function tick() {
+    if (!soundToggle.checked) return;
+    const ac = ensureAudio();
+    if (!ac) return;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.frequency.value = 900;
+    osc.type = 'square';
+    gain.gain.setValueAtTime(0.06, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.05);
+    osc.connect(gain).connect(ac.destination);
+    osc.start();
+    osc.stop(ac.currentTime + 0.05);
+  }
+
+  function spin() {
+    const valid = options.map((o, i) => ({ text: o.trim(), i })).filter(o => o.text.length > 0);
+    if (valid.length < 2 || spinning) return;
+    spinning = true;
+    updateSpinAvailability();
+    resultBanner.classList.add('empty');
+    resultBanner.textContent = 'Spinning…';
+
+    const seg = 360 / valid.length;
+    const extraSpins = 6 + Math.floor(Math.random() * 3);
+    const randomOffset = Math.random() * 360;
+    const targetRotation = rotation - (rotation % 360) + extraSpins * 360 + randomOffset;
+
+    canvas.style.transform = 'rotate(' + targetRotation + 'deg)';
+
+    let lastSegIndex = -1;
+    const startTime = performance.now();
+    const duration = 4200;
+    function animateTick(now) {
+      const elapsed = now - startTime;
+      if (elapsed >= duration) return;
+      const progress = elapsed / duration;
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const currentRotation = rotation + eased * (targetRotation - rotation);
+      const localAngle = ((-currentRotation % 360) + 360) % 360;
+      const segIndex = Math.floor(localAngle / seg);
+      if (segIndex !== lastSegIndex) {
+        lastSegIndex = segIndex;
+        tick();
+      }
+      requestAnimationFrame(animateTick);
+    }
+    requestAnimationFrame(animateTick);
+
+    setTimeout(() => {
+      rotation = targetRotation;
+      const localAngle = ((-rotation % 360) + 360) % 360;
+      const winnerIdx = Math.floor(localAngle / seg) % valid.length;
+      const winner = valid[winnerIdx];
+      finishSpin(winner.text, winner.i);
+    }, duration + 80);
+  }
+
+  function finishSpin(winnerText, winnerIndex) {
+    spinning = false;
+    resultBanner.classList.remove('empty');
+    resultBanner.textContent = '🎉 ' + winnerText;
+    launchConfetti();
+
+    history.unshift({ text: winnerText, ts: Date.now() });
+    history = history.slice(0, 10);
+    saveHistory();
+    renderHistory();
+
+    if (removeAfterSpin.checked) {
+      options.splice(winnerIndex, 1);
+      saveOptions();
+      renderOptionList();
+      drawWheel();
+    }
+    updateSpinAvailability();
+  }
+
+  function renderHistory() {
+    if (!history.length) {
+      historyList.innerHTML = '<li class="history-empty" style="background:none;padding:0">No spins yet</li>';
+      return;
+    }
+    historyList.innerHTML = '';
+    history.forEach((h) => {
+      const li = document.createElement('li');
+      const label = document.createElement('span');
+      label.textContent = h.text;
+      const time = document.createElement('span');
+      time.className = 'n';
+      time.textContent = timeAgo(h.ts);
+      li.appendChild(label);
+      li.appendChild(time);
+      historyList.appendChild(li);
+    });
+  }
+  function timeAgo(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    const m = Math.floor(s / 60);
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    return Math.floor(h / 24) + 'd ago';
+  }
+
+  spinBtn.addEventListener('click', spin);
+  hub.addEventListener('click', () => { if (!spinBtn.disabled) spin(); });
+
+  renderOptionList();
+  renderHistory();
+  drawWheel();
+})();
+
+/* Lightweight confetti burst */
+(function () {
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  const colors = ['#2a78d6','#1baf7a','#eda100','#4a3aa7','#e34948','#e87ba4','#eb6834'];
+  let particles = [];
+  let raf = null;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  window.launchConfetti = function () {
+    const count = 90;
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 120,
+        y: canvas.height * 0.35,
+        vx: (Math.random() - 0.5) * 9,
+        vy: Math.random() * -9 - 3,
+        size: 4 + Math.random() * 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * Math.PI * 2,
+        vr: (Math.random() - 0.5) * 0.3,
+        life: 0
+      });
+    }
+    if (!raf) raf = requestAnimationFrame(step);
+  };
+
+  function step() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.vy += 0.22;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vr;
+      p.life++;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      ctx.restore();
+    });
+    particles = particles.filter(p => p.life < 140 && p.y < canvas.height + 40);
+    if (particles.length) {
+      raf = requestAnimationFrame(step);
+    } else {
+      raf = null;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+})();
+</script>
+</body>
+</html>
