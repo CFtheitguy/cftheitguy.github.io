@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roast My Setup — Linear Tech</title>
+  <meta name="description" content="Upload a pic of your desk, room, car, pet, or dinner and let AI roast it. Free, instant, and (mostly) harmless.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes flicker { 0%,100%{ opacity:1 } 50%{ opacity:.75 } }
+    .flame { animation: flicker 1.2s ease-in-out infinite; }
+    @keyframes pop { 0%{ transform:scale(.9); opacity:0 } 100%{ transform:scale(1); opacity:1 } }
+    .pop-in { animation: pop .25s ease-out; }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-orange-50 to-white min-h-screen text-gray-900 font-sans">
+
+  <header class="max-w-2xl mx-auto px-4 pt-8 pb-2 flex items-center justify-between">
+    <a href="https://cftheitguy.github.io/" class="flex items-center gap-2">
+      <img src="https://cftheitguy.github.io/assets/logo.png" alt="Linear Tech" class="h-7" onerror="this.style.display='none'">
+    </a>
+    <a href="https://cftheitguy.github.io/" class="text-xs text-gray-400 hover:text-gray-600 underline">linearit.co</a>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 pb-16">
+    <div class="text-center mt-4 mb-8">
+      <h1 class="text-4xl font-extrabold tracking-tight">🔥 Roast My Setup</h1>
+      <p class="text-gray-500 mt-2">
+        Upload a pic of your desk, room, car, pet, or dinner — AI will drag it. Free, instant, no login.
+      </p>
+      <p class="text-xs text-gray-400 mt-2">
+        Keep faces out of frame — this roasts stuff and vibes, not people. Photos aren't stored.
+      </p>
+    </div>
+
+    <!-- Upload card -->
+    <div id="uploadCard" class="bg-white border rounded-2xl shadow-sm p-6">
+      <div id="dropZone"
+           class="border-2 border-dashed border-orange-300 rounded-2xl p-10 text-center hover:border-orange-500 transition cursor-pointer bg-orange-50/40"
+           onclick="document.getElementById('fileInput').click()">
+        <div class="text-5xl mb-3">📸</div>
+        <p class="font-semibold">Click, drag a photo, or use your camera</p>
+        <p class="text-sm text-gray-400 mt-1">JPG or PNG, any size — we'll shrink it for you</p>
+        <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden" onchange="onFile(this.files[0])">
+      </div>
+
+      <div id="previewWrap" class="hidden mt-5">
+        <img id="previewImg" class="w-full max-h-80 object-contain rounded-xl border" />
+        <div class="flex gap-3 mt-4">
+          <button onclick="roastIt()" id="roastBtn"
+                  class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl py-3 transition">
+            🔥 Roast Me
+          </button>
+          <button onclick="reset()"
+                  class="px-4 rounded-xl border text-gray-500 hover:text-gray-800 hover:border-gray-400 transition">
+            Change Photo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingCard" class="hidden text-center mt-8">
+      <div class="text-5xl flame">🔥</div>
+      <p id="loadingText" class="text-gray-500 mt-3 font-medium">Judging your life choices…</p>
+    </div>
+
+    <!-- Result -->
+    <div id="resultCard" class="hidden bg-white border rounded-2xl shadow-sm p-6 mt-8 pop-in">
+      <div id="flames" class="text-2xl mb-3 text-center"></div>
+      <p id="roastText" class="text-lg leading-relaxed text-gray-800"></p>
+      <div class="flex gap-3 mt-6">
+        <button onclick="shareRoast()"
+                class="flex-1 bg-black text-white font-bold rounded-xl py-3 hover:bg-gray-800 transition">
+          Share the Burn
+        </button>
+        <button onclick="reset()"
+                class="px-4 rounded-xl border text-gray-500 hover:text-gray-800 hover:border-gray-400 transition">
+          Roast Another
+        </button>
+      </div>
+      <p id="shareHint" class="hidden text-xs text-center text-gray-400 mt-3">Copied to clipboard!</p>
+    </div>
+
+    <div id="errorCard" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-4 mt-6 text-center"></div>
+
+    <footer class="text-center text-xs text-gray-400 mt-16">
+      Powered by <a href="https://cftheitguy.github.io/" class="underline hover:text-gray-600">Linear Tech</a> ·
+      AI can be wrong (or too nice). Nothing you upload is saved.
+    </footer>
+  </main>
+
+  <script>
+    const API = "https://roast-api.friedmanchaimhersh.workers.dev";
+    const LOADING_LINES = [
+      "Judging your life choices…",
+      "Calculating chaos levels…",
+      "Consulting the roast gods…",
+      "Zooming in on the mess…",
+      "Sharpening the one-liners…",
+      "This might sting a little…",
+    ];
+
+    let resizedBlob = null;
+
+    const dropZone = document.getElementById("dropZone");
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("border-orange-500"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("border-orange-500"));
+    dropZone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropZone.classList.remove("border-orange-500");
+      if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]);
+    });
+
+    async function onFile(file) {
+      if (!file || !file.type.startsWith("image/")) return;
+      resizedBlob = await resizeImage(file, 1024, 0.85);
+      document.getElementById("previewImg").src = URL.createObjectURL(resizedBlob);
+      document.getElementById("previewWrap").classList.remove("hidden");
+      document.getElementById("errorCard").classList.add("hidden");
+    }
+
+    function resizeImage(file, maxDim, quality) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+          const canvas = document.createElement("canvas");
+          canvas.width = width; canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("resize failed")), "image/jpeg", quality);
+          URL.revokeObjectURL(img.src);
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    async function roastIt() {
+      if (!resizedBlob) return;
+      document.getElementById("uploadCard").classList.add("hidden");
+      document.getElementById("resultCard").classList.add("hidden");
+      document.getElementById("errorCard").classList.add("hidden");
+      document.getElementById("loadingCard").classList.remove("hidden");
+
+      let i = 0;
+      const loadingText = document.getElementById("loadingText");
+      const spin = setInterval(() => { loadingText.textContent = LOADING_LINES[i++ % LOADING_LINES.length]; }, 1400);
+
+      try {
+        const fd = new FormData();
+        fd.append("image", resizedBlob, "photo.jpg");
+        const res = await fetch(`${API}/roast`, { method: "POST", body: fd });
+        const data = await res.json();
+        clearInterval(spin);
+        document.getElementById("loadingCard").classList.add("hidden");
+
+        if (!res.ok) throw new Error(data.error || "Something went wrong.");
+
+        showResult(data.roast);
+      } catch (err) {
+        clearInterval(spin);
+        document.getElementById("loadingCard").classList.add("hidden");
+        document.getElementById("uploadCard").classList.remove("hidden");
+        const errEl = document.getElementById("errorCard");
+        errEl.textContent = err.message || "Something went wrong. Try again.";
+        errEl.classList.remove("hidden");
+      }
+    }
+
+    function showResult(roast) {
+      document.getElementById("roastText").textContent = roast;
+      const heat = Math.min(5, Math.max(2, Math.round(roast.length / 60)));
+      document.getElementById("flames").textContent = "🔥".repeat(heat);
+      document.getElementById("resultCard").classList.remove("hidden");
+      document.getElementById("resultCard").dataset.roast = roast;
+    }
+
+    async function shareRoast() {
+      const roast = document.getElementById("roastText").textContent;
+      const text = `🔥 I just got roasted: "${roast}"\n\nGet roasted too: https://cftheitguy.github.io/roast/`;
+      if (navigator.share) {
+        try { await navigator.share({ text }); return; } catch { /* user cancelled */ }
+      }
+      await navigator.clipboard.writeText(text);
+      const hint = document.getElementById("shareHint");
+      hint.classList.remove("hidden");
+      setTimeout(() => hint.classList.add("hidden"), 2000);
+    }
+
+    function reset() {
+      resizedBlob = null;
+      document.getElementById("fileInput").value = "";
+      document.getElementById("previewWrap").classList.add("hidden");
+      document.getElementById("resultCard").classList.add("hidden");
+      document.getElementById("errorCard").classList.add("hidden");
+      document.getElementById("uploadCard").classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
