@@ -6,89 +6,159 @@
 
 <title>AI Computer Doctor - Linear Tech</title>
 
-<link rel="stylesheet" href="../css/style.css">
+../css/style.css
 
 <style>
 
-.container{
-max-width:900px;
-margin:auto;
-padding:40px 20px;
+/* =======================
+   THEME VARIABLES
+======================= */
+:root {
+  --bg: #ffffff;
+  --text: #111;
+  --card-bg: #f7f7f7;
+  --border-color: #e5e5e5;
+  --input-bg: #f0f0f0;
+  --primary: #4f7cff;
 }
 
-.card{
-background:var(--card-bg);
-border:1px solid var(--border-color);
-border-radius:24px;
-padding:35px;
+body.dark {
+  --bg: #0f0f12;
+  --text: #eaeaea;
+  --card-bg: #1a1a1f;
+  --border-color: #2a2a2f;
+  --input-bg: #22222a;
 }
 
-h1{
-margin-top:0;
-font-size:42px;
+/* =======================
+   BASE
+======================= */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.35s ease, color 0.35s ease;
 }
 
-.subtitle{
-opacity:.75;
-margin-bottom:30px;
-line-height:1.6;
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 40px 20px;
 }
 
-textarea{
-width:100%;
-height:170px;
-background:var(--input-bg);
-border:1px solid var(--border-color);
-border-radius:15px;
-padding:18px;
-font-size:18px;
-color:inherit;
-resize:vertical;
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  padding: 35px;
+  transition: all 0.35s ease;
 }
 
-textarea:focus{
-outline:none;
-border-color:#4f7cff;
+h1 {
+  margin-top: 0;
+  font-size: 42px;
 }
 
-button{
-width:100%;
-margin-top:20px;
-padding:18px;
-border:none;
-border-radius:14px;
-background:#4f7cff;
-color:white;
-font-size:18px;
-font-weight:600;
-cursor:pointer;
+.subtitle {
+  opacity: .75;
+  margin-bottom: 30px;
+  line-height: 1.6;
 }
 
-button:hover{
-opacity:.92;
+/* =======================
+   INPUT
+======================= */
+textarea {
+  width: 100%;
+  height: 170px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 15px;
+  padding: 18px;
+  font-size: 18px;
+  color: inherit;
+  resize: vertical;
+  transition: border-color 0.3s ease;
 }
 
-.response{
-margin-top:30px;
-padding:25px;
-border-radius:15px;
-background:var(--input-bg);
-display:none;
-line-height:1.8;
+textarea:focus {
+  outline: none;
+  border-color: var(--primary);
 }
 
-.loading{
-display:none;
-text-align:center;
-margin-top:20px;
+/* =======================
+   BUTTONS
+======================= */
+button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 18px;
+  border: none;
+  border-radius: 14px;
+  background: var(--primary);
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.step{
-margin:12px 0;
-padding:12px;
-background:rgba(79,124,255,.08);
-border-left:4px solid #4f7cff;
-border-radius:8px;
+button:hover {
+  opacity: .92;
+  transform: translateY(-1px);
+}
+
+/* =======================
+   RESPONSE
+======================= */
+.response {
+  margin-top: 30px;
+  padding: 25px;
+  border-radius: 15px;
+  background: var(--input-bg);
+  display: none;
+  line-height: 1.8;
+}
+
+.loading {
+  display: none;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.step {
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(79,124,255,.08);
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+}
+
+/* =======================
+   THEME TOGGLE
+======================= */
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.05);
 }
 
 </style>
@@ -97,118 +167,136 @@ border-radius:8px;
 <body>
 
 <header>
-<!-- Use the exact same header/navbar from your password page -->
+<!-- Your existing navbar here -->
 </header>
 
 <div class="container">
+  <div class="card">
 
-<div class="card">
+    <h1>🩺 AI Computer Doctor</h1>
 
-<h1>🩺 AI Computer Doctor</h1>
+    <div class="subtitle">
+      Describe your computer problem in as much detail as possible.<br><br>
 
-<div class="subtitle">
-Describe your computer problem in as much detail as possible.
+      Examples:
+      <br><br>
+      • My printer won't print<br>
+      • Outlook keeps crashing<br>
+      • My Wi-Fi disconnects every few minutes<br>
+      • My PC is extremely slow<br>
+      • Windows won't boot
+    </div>
 
-Examples:
+    <textarea id="problem" placeholder="Describe your issue..."></textarea>
 
-• My printer won't print
+    <button onclick="diagnose()">Diagnose Problem</button>
 
-• Outlook keeps crashing
+    <div class="loading" id="loading">
+      Analyzing your computer...
+    </div>
 
-• My Wi-Fi disconnects every few minutes
+    <div class="response" id="response"></div>
 
-• My PC is extremely slow
-
-• Windows won't boot
+  </div>
 </div>
 
-<textarea id="problem"
-placeholder="Describe your issue..."></textarea>
-
-<button onclick="diagnose()">
-Diagnose Problem
+<!-- THEME TOGGLE BUTTON -->
+<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">
+  🌙
 </button>
-
-<div class="loading" id="loading">
-Analyzing your computer...
-</div>
-
-<div class="response" id="response"></div>
-
-</div>
-
-</div>
 
 <script>
 
-async function diagnose(){
+/* =======================
+   THEME LOGIC
+======================= */
+function applyTheme(theme) {
+  const body = document.body;
+  const btn = document.getElementById("themeToggle");
 
-const problem=document.getElementById("problem").value.trim();
-
-if(problem==""){
-alert("Please describe the problem.");
-return;
+  if (theme === "dark") {
+    body.classList.add("dark");
+    btn.textContent = "☀️";
+  } else {
+    body.classList.remove("dark");
+    btn.textContent = "🌙";
+  }
 }
 
-document.getElementById("loading").style.display="block";
-document.getElementById("response").style.display="none";
+function toggleTheme() {
+  const isDark = document.body.classList.contains("dark");
+  const newTheme = isDark ? "light" : "dark";
 
-/*
-Replace this section with your OpenAI API call later.
-*/
+  applyTheme(newTheme);
+  localStorage.setItem("theme", newTheme);
+}
 
-setTimeout(()=>{
+/* Auto theme (system + saved) */
+(function initTheme() {
+  const saved = localStorage.getItem("theme");
 
-document.getElementById("loading").style.display="none";
+  if (saved) {
+    applyTheme(saved);
+  } else {
+    const prefersDark = window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-document.getElementById("response").style.display="block";
+    applyTheme(prefersDark ? "dark" : "light");
+  }
+})();
 
-document.getElementById("response").innerHTML=`
+/* =======================
+   AI DIAGNOSIS (READY FOR OPENAI)
+======================= */
+async function diagnose() {
+  const problem = document.getElementById("problem").value.trim();
 
-<h2>Possible Cause</h2>
+  if (!problem) {
+    alert("Please describe the problem.");
+    return;
+  }
 
-<p>
-Based on what you entered, this appears to be a common Windows issue.
-</p>
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("response").style.display = "none";
 
-<h2>Recommended Steps</h2>
+  try {
 
-<div class="step">
-1. Restart the computer.
-</div>
+    /* ✅ PLACEHOLDER (replace with OpenAI API later) */
+    const fakeResponse = await new Promise(resolve => {
+      setTimeout(() => {
+        resolve(`
+          <h2>Possible Cause</h2>
+          <p>This looks like a common system or configuration issue.</p>
 
-<div class="step">
-2. Check for Windows Updates.
-</div>
+          <h2>Recommended Steps</h2>
 
-<div class="step">
-3. Verify all cables are connected.
-</div>
+          <div class="step">1. Restart your computer.</div>
+          <div class="step">2. Check for Windows updates.</div>
+          <div class="step">3. Run built-in troubleshooter.</div>
+          <div class="step">4. Check hardware connections.</div>
+          <div class="step">5. Update drivers.</div>
 
-<div class="step">
-4. Open Device Manager and look for warning icons.
-</div>
+          <hr>
 
-<div class="step">
-5. Run Windows Troubleshooter.
-</div>
+          <h2>Still having trouble?</h2>
+          <p>If the issue persists, we can help you directly.</p>
 
-<hr>
+          https://www.linearit.co/#contact
+            Contact Support
+          </button>
+        `);
+      }, 1500);
+    });
 
-<h2>Still having trouble?</h2>
+    document.getElementById("loading").style.display = "none";
+    document.getElementById("response").style.display = "block";
+    document.getElementById("response").innerHTML = fakeResponse;
 
-<p>
-Open a support ticket with Linear Tech and we'll help you solve it.
-</p>
-
-<button onclick="location.href='/support'">
-Open Support Ticket
-</button>
-
-`;
-
-},1800);
-
+  } catch (err) {
+    document.getElementById("loading").style.display = "none";
+    alert("Something went wrong. Please try again.");
+    console.error(err);
+  }
 }
 
 </script>
