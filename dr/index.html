@@ -1,304 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<title>AI Computer Doctor - Linear Tech</title>
-
-../css/style.css
+<title>AI Computer Doctor</title>
 
 <style>
-
-/* =======================
-   THEME VARIABLES
-======================= */
 :root {
-  --bg: #ffffff;
-  --text: #111;
-  --card-bg: #f7f7f7;
-  --border-color: #e5e5e5;
-  --input-bg: #f0f0f0;
-  --primary: #4f7cff;
+  --bg:#fff;
+  --text:#111;
+  --card:#f7f7f7;
+  --border:#e5e5e5;
+  --input:#f0f0f0;
+  --primary:#4f7cff;
 }
 
 body.dark {
-  --bg: #0f0f12;
-  --text: #eaeaea;
-  --card-bg: #1a1a1f;
-  --border-color: #2a2a2f;
-  --input-bg: #22222a;
+  --bg:#0f0f12;
+  --text:#eaeaea;
+  --card:#1a1a1f;
+  --border:#2a2a2f;
+  --input:#22222a;
 }
 
-/* =======================
-   BASE
-======================= */
 body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  transition: background 0.35s ease, color 0.35s ease;
+  margin:0;
+  font-family:Arial;
+  background:var(--bg);
+  color:var(--text);
+  transition:.3s;
 }
 
-.container {
-  max-width: 900px;
-  margin: auto;
-  padding: 40px 20px;
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:30px;
 }
 
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-  padding: 35px;
-  transition: all 0.35s ease;
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:20px;
 }
 
-h1 {
-  margin-top: 0;
-  font-size: 42px;
+h1{margin:0 0 10px;}
+
+.chat-box{
+  height:420px;
+  overflow-y:auto;
+  background:var(--input);
+  border-radius:15px;
+  padding:12px;
+  margin-bottom:10px;
 }
 
-.subtitle {
-  opacity: .75;
-  margin-bottom: 30px;
-  line-height: 1.6;
+.msg{
+  padding:10px;
+  margin:8px 0;
+  border-radius:12px;
+  max-width:80%;
 }
 
-/* =======================
-   INPUT
-======================= */
-textarea {
-  width: 100%;
-  height: 170px;
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 15px;
-  padding: 18px;
-  font-size: 18px;
-  color: inherit;
-  resize: vertical;
-  transition: border-color 0.3s ease;
+.user{
+  background:var(--primary);
+  color:white;
+  margin-left:auto;
 }
 
-textarea:focus {
-  outline: none;
-  border-color: var(--primary);
+.ai{
+  background:rgba(79,124,255,.12);
 }
 
-/* =======================
-   BUTTONS
-======================= */
-button {
-  width: 100%;
-  margin-top: 20px;
-  padding: 18px;
-  border: none;
-  border-radius: 14px;
-  background: var(--primary);
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+textarea{
+  width:100%;
+  height:80px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  padding:10px;
+  font-size:16px;
 }
 
-button:hover {
-  opacity: .92;
-  transform: translateY(-1px);
+.controls{
+  display:flex;
+  gap:10px;
+  margin-top:8px;
 }
 
-/* =======================
-   RESPONSE
-======================= */
-.response {
-  margin-top: 30px;
-  padding: 25px;
-  border-radius: 15px;
-  background: var(--input-bg);
-  display: none;
-  line-height: 1.8;
+button{
+  flex:1;
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  background:var(--primary);
+  color:white;
 }
 
-.loading {
-  display: none;
-  text-align: center;
-  margin-top: 20px;
+input[type=file]{
+  flex:1;
 }
 
-.step {
-  margin: 12px 0;
-  padding: 12px;
-  background: rgba(79,124,255,.08);
-  border-left: 4px solid var(--primary);
-  border-radius: 8px;
+.theme-toggle{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:55px;
+  height:55px;
+  border-radius:50%;
+  background:var(--primary);
+  color:white;
+  font-size:20px;
+  border:none;
 }
-
-/* =======================
-   THEME TOGGLE
-======================= */
-.theme-toggle {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  border: none;
-  background: var(--primary);
-  color: white;
-  font-size: 22px;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0,0,0,.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
+.step{
+  margin-top:10px;
+  padding:10px;
+  border-left:4px solid var(--primary);
 }
-
-.theme-toggle:hover {
-  transform: scale(1.05);
-}
-
 </style>
 </head>
 
 <body>
-
-<header>
-<!-- Your existing navbar here -->
-</header>
 
 <div class="container">
   <div class="card">
 
     <h1>🩺 AI Computer Doctor</h1>
 
-    <div class="subtitle">
-      Describe your computer problem in as much detail as possible.<br><br>
+    <div id="chatBox" class="chat-box"></div>
 
-      Examples:
-      <br><br>
-      • My printer won't print<br>
-      • Outlook keeps crashing<br>
-      • My Wi-Fi disconnects every few minutes<br>
-      • My PC is extremely slow<br>
-      • Windows won't boot
+    <textarea id="input" placeholder="Describe your issue..."></textarea>
+
+    <div class="controls">
+      <input type="file" id="file" accept="image/*"/>
+      <button onclick="send()">Send</button>
     </div>
-
-    <textarea id="problem" placeholder="Describe your issue..."></textarea>
-
-    <button onclick="diagnose()">Diagnose Problem</button>
-
-    <div class="loading" id="loading">
-      Analyzing your computer...
-    </div>
-
-    <div class="response" id="response"></div>
 
   </div>
 </div>
 
-<!-- THEME TOGGLE BUTTON -->
-<button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">
-  🌙
-</button>
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
 
 <script>
+let history=[];
+let steps=[];
+let stepIndex=0;
 
-/* =======================
-   THEME LOGIC
-======================= */
-function applyTheme(theme) {
-  const body = document.body;
-  const btn = document.getElementById("themeToggle");
-
-  if (theme === "dark") {
-    body.classList.add("dark");
-    btn.textContent = "☀️";
-  } else {
-    body.classList.remove("dark");
-    btn.textContent = "🌙";
-  }
+/* theme */
+function toggleTheme(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem("theme", document.body.classList.contains("dark")?"dark":"light");
 }
-
-function toggleTheme() {
-  const isDark = document.body.classList.contains("dark");
-  const newTheme = isDark ? "light" : "dark";
-
-  applyTheme(newTheme);
-  localStorage.setItem("theme", newTheme);
-}
-
-/* Auto theme (system + saved) */
-(function initTheme() {
-  const saved = localStorage.getItem("theme");
-
-  if (saved) {
-    applyTheme(saved);
-  } else {
-    const prefersDark = window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-    applyTheme(prefersDark ? "dark" : "light");
-  }
+(function(){
+  const t=localStorage.getItem("theme");
+  if(t==="dark") document.body.classList.add("dark");
 })();
 
-/* =======================
-   AI DIAGNOSIS (READY FOR OPENAI)
-======================= */
-async function diagnose() {
-  const problem = document.getElementById("problem").value.trim();
+/* chat */
+function add(role,text){
+  const div=document.createElement("div");
+  div.className=`msg ${role}`;
+  div.innerText=text;
+  document.getElementById("chatBox").appendChild(div);
+  document.getElementById("chatBox").scrollTop=999999;
+}
 
-  if (!problem) {
-    alert("Please describe the problem.");
+async function toBase64(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(",")[1]);
+    r.readAsDataURL(file);
+  });
+}
+
+async function send(){
+  const text=document.getElementById("input").value;
+  const file=document.getElementById("file").files[0];
+  if(!text && !file) return;
+
+  add("user", text||"[image]");
+  document.getElementById("input").value="";
+  document.getElementById("file").value="";
+
+  let image=null;
+  if(file) image=await toBase64(file);
+
+  const res=await fetch("/api/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message:text,image,history})
+  });
+
+  const data=await res.json();
+
+  add("ai",data.reply);
+
+  history.push({role:"user",content:text});
+  history.push({role:"assistant",content:data.reply});
+
+  if(data.steps?.length){
+    steps=data.steps;
+    stepIndex=0;
+    const box=document.createElement("div");
+    box.className="msg ai";
+    box.innerHTML=`
+      <strong>Guided Steps</strong>
+      <div id="stepText" class="step">${steps[0]}</div>
+      <button onclick="nextStep()">Next Step</button>
+    `;
+    document.getElementById("chatBox").appendChild(box);
+  }
+}
+
+function nextStep(){
+  stepIndex++;
+  const el=document.getElementById("stepText");
+
+  if(stepIndex>=steps.length){
+    el.innerText="✅ Done. If still broken, contact support.";
     return;
   }
 
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("response").style.display = "none";
-
-  try {
-
-    /* ✅ PLACEHOLDER (replace with OpenAI API later) */
-    const fakeResponse = await new Promise(resolve => {
-      setTimeout(() => {
-        resolve(`
-          <h2>Possible Cause</h2>
-          <p>This looks like a common system or configuration issue.</p>
-
-          <h2>Recommended Steps</h2>
-
-          <div class="step">1. Restart your computer.</div>
-          <div class="step">2. Check for Windows updates.</div>
-          <div class="step">3. Run built-in troubleshooter.</div>
-          <div class="step">4. Check hardware connections.</div>
-          <div class="step">5. Update drivers.</div>
-
-          <hr>
-
-          <h2>Still having trouble?</h2>
-          <p>If the issue persists, we can help you directly.</p>
-
-          https://www.linearit.co/#contact
-            Contact Support
-          </button>
-        `);
-      }, 1500);
-    });
-
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("response").style.display = "block";
-    document.getElementById("response").innerHTML = fakeResponse;
-
-  } catch (err) {
-    document.getElementById("loading").style.display = "none";
-    alert("Something went wrong. Please try again.");
-    console.error(err);
-  }
+  el.innerText=steps[stepIndex];
 }
-
 </script>
 
 </body>
