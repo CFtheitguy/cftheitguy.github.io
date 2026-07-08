@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remote Support · Ben Stern · Linear Tech</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="https://www.linearit.co/assets/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f0f6fc; --surface:#ffffff; --surface-tint:#f7fbff;
+    --blue-deep:#0b2643; --blue-dark:#155abd; --blue:#1f6feb;
+    --ink:#0d1f33; --ink-soft:#4a6a87; --ink-muted:#7a9ab5;
+    --orange:#ff7a00; --orange-hover:#e86e00;
+    --border:#d0e3f5; --border-light:#e5f0fa;
+    --radius-md:12px; --radius-lg:18px; --radius-xl:24px;
+    --shadow-lg:0 16px 48px rgba(13,31,51,.12),0 6px 16px rgba(13,31,51,.07);
+    --shadow-sm:0 4px 12px rgba(13,31,51,.08),0 2px 4px rgba(13,31,51,.05);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'DM Sans',system-ui,-apple-system,sans-serif;
+    color:var(--ink); background:var(--bg);
+    background-image:radial-gradient(var(--border) 1.1px,transparent 1.1px);
+    background-size:22px 22px;
+    min-height:100dvh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:28px 18px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .card{
+    background:var(--surface); border:1px solid var(--border-light);
+    border-radius:var(--radius-xl); box-shadow:var(--shadow-lg);
+    width:100%; max-width:440px; padding:40px 34px 30px; text-align:center;
+    position:relative; overflow:hidden;
+  }
+  .card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg,var(--blue-deep),var(--blue),var(--orange))}
+  .logo{height:40px;width:auto;margin:0 auto 22px;display:block}
+  .eyebrow{
+    font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--orange);margin-bottom:10px;
+  }
+  h1{font-family:'DM Serif Display',Georgia,serif;font-weight:400;
+    font-size:38px;line-height:1.05;color:var(--ink);margin-bottom:12px}
+  .lead{color:var(--ink-soft);font-size:15.5px;line-height:1.55;
+    max-width:340px;margin:0 auto 26px}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    width:100%;padding:16px 22px;border-radius:var(--radius-md);
+    background:linear-gradient(180deg,var(--blue),var(--blue-dark));
+    color:#fff;font-family:inherit;font-size:16px;font-weight:600;
+    text-decoration:none;box-shadow:var(--shadow-sm);
+    transition:transform .12s ease,box-shadow .12s ease,filter .12s ease;
+  }
+  .btn:hover{transform:translateY(-1px);filter:brightness(1.05);
+    box-shadow:0 10px 26px rgba(31,111,235,.28)}
+  .btn:active{transform:translateY(0)}
+  .btn svg{width:19px;height:19px}
+  .steps{
+    list-style:none;text-align:left;margin:24px auto 0;max-width:320px;
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .steps li{display:flex;align-items:flex-start;gap:12px;
+    font-size:14px;color:var(--ink-soft);line-height:1.45}
+  .num{flex:0 0 auto;width:24px;height:24px;border-radius:50%;
+    background:var(--surface-tint);border:1px solid var(--border);
+    color:var(--blue-dark);font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .note{margin-top:22px;padding-top:18px;border-top:1px solid var(--border-light);
+    font-size:12.5px;color:var(--ink-muted);line-height:1.5}
+  .foot{margin-top:22px;font-size:12px;color:var(--ink-muted);text-align:center}
+  .foot a{color:var(--ink-soft);text-decoration:none;font-weight:600}
+  .foot a:hover{color:var(--blue-dark)}
+  .sep{margin:0 7px;color:var(--border)}
+  @media(max-width:420px){.card{padding:34px 24px 26px}h1{font-size:32px}}
+</style>
+</head>
+<body>
+  <main class="card">
+    <img class="logo" src="https://www.linearit.co/assets/logo.png" alt="Linear Tech">
+    <div class="eyebrow">Remote Support Agent</div>
+    <h1>Ben Stern</h1>
+    <p class="lead">Install the Linear Tech support agent so we can connect to this computer whenever you need help.</p>
+
+    <a class="btn" href="https://assist.zoho.com/unattended-installer?encapiKey=wSsVRa1%2F%2FhbyCqx8mjyscrw5nA4HAgzxEx8o2Ab14iT6GPDD88dqwhbOBwauFaJNFGc%2FETQV8el%2FkBoJ0GcHhtUpmFBRCSiF9mqRe1U4J3x1prntnzDOXG1dkxOILIoOxAxunQ%3D%3D&amp;x-com-zoho-assist-orgid=930580135" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      Download Support Agent
+    </a>
+
+    <ol class="steps">
+      <li><span class="num">1</span><span>Click the button above and save the installer.</span></li>
+      <li><span class="num">2</span><span>Open the downloaded file and follow the prompts.</span></li>
+      <li><span class="num">3</span><span>That's it — the agent runs quietly in the background.</span></li>
+    </ol>
+
+    <p class="note">Only Linear Tech can connect through this agent, and only when providing support. Questions? Call us anytime.</p>
+
+    <div class="foot">
+      © 2026 <strong>Linear Tech</strong> · Monroe, NY
+      <br>
+      <a href="tel:+18456041462">(845) 604-1462</a><span class="sep">·</span><a href="https://www.linearit.co">linearit.co</a>
+    </div>
+  </main>
+</body>
+</html>
