@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Computer Doctor - Linear Tech</title>
+
+<link rel="stylesheet" href="../css/style.css">
+
+<style>
+
+.container{
+max-width:900px;
+margin:auto;
+padding:40px 20px;
+}
+
+.card{
+background:var(--card-bg);
+border:1px solid var(--border-color);
+border-radius:24px;
+padding:35px;
+}
+
+h1{
+margin-top:0;
+font-size:42px;
+}
+
+.subtitle{
+opacity:.75;
+margin-bottom:30px;
+line-height:1.6;
+}
+
+textarea{
+width:100%;
+height:170px;
+background:var(--input-bg);
+border:1px solid var(--border-color);
+border-radius:15px;
+padding:18px;
+font-size:18px;
+color:inherit;
+resize:vertical;
+}
+
+textarea:focus{
+outline:none;
+border-color:#4f7cff;
+}
+
+button{
+width:100%;
+margin-top:20px;
+padding:18px;
+border:none;
+border-radius:14px;
+background:#4f7cff;
+color:white;
+font-size:18px;
+font-weight:600;
+cursor:pointer;
+}
+
+button:hover{
+opacity:.92;
+}
+
+.response{
+margin-top:30px;
+padding:25px;
+border-radius:15px;
+background:var(--input-bg);
+display:none;
+line-height:1.8;
+}
+
+.loading{
+display:none;
+text-align:center;
+margin-top:20px;
+}
+
+.step{
+margin:12px 0;
+padding:12px;
+background:rgba(79,124,255,.08);
+border-left:4px solid #4f7cff;
+border-radius:8px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<!-- Use the exact same header/navbar from your password page -->
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<h1>🩺 AI Computer Doctor</h1>
+
+<div class="subtitle">
+Describe your computer problem in as much detail as possible.
+
+Examples:
+
+• My printer won't print
+
+• Outlook keeps crashing
+
+• My Wi-Fi disconnects every few minutes
+
+• My PC is extremely slow
+
+• Windows won't boot
+</div>
+
+<textarea id="problem"
+placeholder="Describe your issue..."></textarea>
+
+<button onclick="diagnose()">
+Diagnose Problem
+</button>
+
+<div class="loading" id="loading">
+Analyzing your computer...
+</div>
+
+<div class="response" id="response"></div>
+
+</div>
+
+</div>
+
+<script>
+
+async function diagnose(){
+
+const problem=document.getElementById("problem").value.trim();
+
+if(problem==""){
+alert("Please describe the problem.");
+return;
+}
+
+document.getElementById("loading").style.display="block";
+document.getElementById("response").style.display="none";
+
+/*
+Replace this section with your OpenAI API call later.
+*/
+
+setTimeout(()=>{
+
+document.getElementById("loading").style.display="none";
+
+document.getElementById("response").style.display="block";
+
+document.getElementById("response").innerHTML=`
+
+<h2>Possible Cause</h2>
+
+<p>
+Based on what you entered, this appears to be a common Windows issue.
+</p>
+
+<h2>Recommended Steps</h2>
+
+<div class="step">
+1. Restart the computer.
+</div>
+
+<div class="step">
+2. Check for Windows Updates.
+</div>
+
+<div class="step">
+3. Verify all cables are connected.
+</div>
+
+<div class="step">
+4. Open Device Manager and look for warning icons.
+</div>
+
+<div class="step">
+5. Run Windows Troubleshooter.
+</div>
+
+<hr>
+
+<h2>Still having trouble?</h2>
+
+<p>
+Open a support ticket with Linear Tech and we'll help you solve it.
+</p>
+
+<button onclick="location.href='/support'">
+Open Support Ticket
+</button>
+
+`;
+
+},1800);
+
+}
+
+</script>
+
+</body>
+</html>
