@@ -55,17 +55,6 @@ export default {
       return new Response("Linear Roast Online", { headers: cors });
     }
 
-    // TEMPORARY — one-time license acceptance for the gated Llama vision
-    // model. Hit this once, then delete this route.
-    if (url.pathname === "/agree" && request.method === "GET") {
-      try {
-        const result = await env.AI.run(MODEL, { prompt: "agree", max_tokens: 10 });
-        return json({ result }, 200, cors);
-      } catch (err) {
-        return json({ error: String(err && err.message || err) }, 500, cors);
-      }
-    }
-
     if (url.pathname === "/roast" && request.method === "POST") {
       let form;
       try {
@@ -105,7 +94,7 @@ export default {
 
         return json({ roast: roast.trim() }, 200, cors);
       } catch (err) {
-        return json({ error: "Something broke while roasting that.", detail: String(err && err.message || err) }, 500, cors);
+        return json({ error: "Something broke while roasting that. Try again." }, 500, cors);
       }
     }
 
