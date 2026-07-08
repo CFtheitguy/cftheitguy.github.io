@@ -94,7 +94,7 @@ export default {
 
         return json({ roast: roast.trim() }, 200, cors);
       } catch (err) {
-        return json({ error: "Something broke while roasting that. Try again." }, 500, cors);
+        return json({ error: "Something broke while roasting that.", detail: String(err && err.message || err) }, 500, cors);
       }
     }
 
