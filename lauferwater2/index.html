@@ -147,9 +147,16 @@
   .step h3{font-size:1.2rem;font-weight:600;margin-bottom:.35rem}
   .step p{color:var(--ink-soft);font-size:.95rem}
 
-  /* Gallery */
-  .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
-  .gtile{position:relative;aspect-ratio:4/3;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--paper-2);cursor:pointer}
+  /* Gallery carousel */
+  .carousel{position:relative}
+  .track{display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:6px 2px;scrollbar-width:none;-ms-overflow-style:none}
+  .track::-webkit-scrollbar{display:none}
+  .gtile{position:relative;flex:0 0 300px;aspect-ratio:4/3;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--paper-2);cursor:pointer;scroll-snap-align:start}
+  .arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:6;width:46px;height:46px;border-radius:50%;border:0;background:#fff;box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center;transition:background .2s,transform .15s}
+  .arrow:hover{background:var(--mint-soft);transform:translateY(-50%) scale(1.08)}
+  .arrow:active{transform:translateY(-50%) scale(.96)}
+  .arrow svg{stroke:var(--blue-deep);fill:none;stroke-width:2}
+  .arrow.left{left:-12px}.arrow.right{right:-12px}
   .gtile img{width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
   .gtile:hover img{transform:scale(1.06)}
   .gtile.add{display:grid;place-items:center;cursor:default;border-style:dashed;background:#fff}
@@ -233,6 +240,10 @@
     .card{padding:1.6rem 1.35rem}
     .call-card{padding:1.75rem}
     .phone-pill{font-size:1.4rem;padding:.45rem .9rem}
+    .gtile{flex-basis:240px}
+    .arrow{width:40px;height:40px}
+    .arrow.left{left:0}
+    .arrow.right{right:0}
     form{padding:1.5rem}
     .split{gap:1.25rem}
     .foot{justify-content:center;text-align:center}
@@ -369,7 +380,9 @@
       <h2>Gallery</h2>
       <p>Real systems, real installs — a look at the water we make better every day.</p>
     </div>
-    <div class="gallery-grid" id="galleryGrid">
+    <div class="carousel">
+      <button class="arrow left" id="galLeft" aria-label="Previous photos"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="track" id="galleryTrack">
       <div class="gtile" data-full="softener.jpg"><img src="softener.jpg" alt="Water Wonders water softener install"></div>
       <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGemV6r2BLNmVhiOg3hNPxTmaTJT3Esod4it5vkBLlUDJL8DrhU2Ru6VDAEJa2WpKTRpsspaKdzikjbuVgHJxaOq0fdxEycQqxfv8LhjZ5PHvwQ8Y0_4XogPBDE5xBLKPeETG4D2IuZ5WE=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAGemV6r2BLNmVhiOg3hNPxTmaTJT3Esod4it5vkBLlUDJL8DrhU2Ru6VDAEJa2WpKTRpsspaKdzikjbuVgHJxaOq0fdxEycQqxfv8LhjZ5PHvwQ8Y0_4XogPBDE5xBLKPeETG4D2IuZ5WE=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
       <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHkXRXA1xEf99u7jO8EXrdgNDwR4iFQaKnzd29Q-HupfuNDQcBxKLlQOMhxqZxN3P2KPrGns381lj2VKKyHbZx6raNqc117uSxeEZBfgnikH2BPcklfOPE7TUMYricGorkja3wusU2x1TvB=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAHkXRXA1xEf99u7jO8EXrdgNDwR4iFQaKnzd29Q-HupfuNDQcBxKLlQOMhxqZxN3P2KPrGns381lj2VKKyHbZx6raNqc117uSxeEZBfgnikH2BPcklfOPE7TUMYricGorkja3wusU2x1TvB=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
@@ -383,6 +396,8 @@
       <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAE7DaaiNqgYUqCE3-d2LwsOEl0b6Ewji_m33pwWKYGzLVWSLMqcr9D8tlXoeDrqnZU5Rh_go7GSrlKQ3bUzX52DWlR7n2uhfpKXLZUHQetcP14D6sfAbESBl1pTfICsi8PTLLsmojdObnPO=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAE7DaaiNqgYUqCE3-d2LwsOEl0b6Ewji_m33pwWKYGzLVWSLMqcr9D8tlXoeDrqnZU5Rh_go7GSrlKQ3bUzX52DWlR7n2uhfpKXLZUHQetcP14D6sfAbESBl1pTfICsi8PTLLsmojdObnPO=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
       <div class="gtile" data-full="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEa6iTjEX9bRElmkaJSFuBFl6RYsgCZgbie0mydhqv9tDLUBgtJza-tEdswf4L1wZyqYWnJisJx-vs4vJJugpdmuf5epQ4bS1g1_E3FBdzwUh8sQhB_rROO-FCMA7zper_x6QSXaqKyp12R=w1600-h1200-k-no"><img src="https://lh3.googleusercontent.com/gps-cs-s/APNQkAEa6iTjEX9bRElmkaJSFuBFl6RYsgCZgbie0mydhqv9tDLUBgtJza-tEdswf4L1wZyqYWnJisJx-vs4vJJugpdmuf5epQ4bS1g1_E3FBdzwUh8sQhB_rROO-FCMA7zper_x6QSXaqKyp12R=w800-h600-k-no" alt="Water Wonders — Google photo" loading="lazy" onerror="this.closest('.gtile').style.display='none'"></div>
     
+      </div>
+      <button class="arrow right" id="galRight" aria-label="Next photos"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6"/></svg></button>
     </div>
   </div>
 </section>
@@ -392,17 +407,17 @@
     <div class="section-head">
       <div class="eyebrow">What customers say</div>
       <h2>Reviews</h2>
-      <p>Rated 5.0 on Google — and we're just getting started.</p>
+      <p>Real reviews, straight from Google.</p>
     </div>
     <div class="reviews-wrap">
       <div class="rating-card">
-        <div class="rating-num">5.0</div>
+        <div class="rating-num" id="ratingNum">5.0</div>
         <div class="stars">★★★★★</div>
-        <p>Based on Google reviews</p>
+        <p id="ratingCount">Based on Google reviews</p>
         <a href="https://search.google.com/local/writereview?placeid=ChIJPZ2Rb_jXwokRADh96uQm4o0" target="_blank" rel="noopener" class="btn btn-yellow">Leave a review</a>
         <a href="https://search.google.com/local/reviews?placeid=ChIJPZ2Rb_jXwokRADh96uQm4o0" target="_blank" rel="noopener" class="btn btn-ghost">Read on Google</a>
       </div>
-      <div class="review-list">
+      <div class="review-list" id="reviewList">
         <div class="review">
           <span class="stars">★★★★★</span>
           <p>"Best company."</p>
@@ -410,7 +425,6 @@
             <span class="gsrc"><svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0012 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 010-4.2V7.06H2.18a11 11 0 000 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/></svg>Google</span>
           </div>
         </div>
-        <!-- To add more reviews, copy the block above and edit the stars, text, and initial. -->
       </div>
     </div>
   </div>
@@ -484,15 +498,54 @@
   const mb=document.getElementById('menuBtn'),nl=document.getElementById('navLinks');
   mb.addEventListener('click',()=>nl.classList.toggle('open'));
   nl.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>nl.classList.remove('open')));
-  // gallery lightbox
+  // gallery: carousel arrows + lightbox + live Google data
+  const track=document.getElementById('galleryTrack');
   const lb=document.getElementById('lightbox'),lbImg=document.getElementById('lbImg');
-  document.querySelectorAll('.gtile[data-full]').forEach(t=>{
-    t.addEventListener('click',()=>{lbImg.src=t.getAttribute('data-full');lb.classList.add('open')});
-  });
+  track.addEventListener('click',e=>{const t=e.target.closest('.gtile[data-full]');if(!t)return;lbImg.src=t.getAttribute('data-full');lb.classList.add('open');});
   function closeLb(){lb.classList.remove('open');lbImg.src='';}
   document.getElementById('lbClose').addEventListener('click',closeLb);
-  lb.addEventListener('click',e=>{if(e.target===lb)closeLb()});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
+  lb.addEventListener('click',e=>{if(e.target===lb)closeLb();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
+  const galBy=()=>Math.max(track.clientWidth*0.85,260);
+  document.getElementById('galLeft').addEventListener('click',()=>track.scrollBy({left:-galBy(),behavior:'smooth'}));
+  document.getElementById('galRight').addEventListener('click',()=>track.scrollBy({left:galBy(),behavior:'smooth'}));
+
+  // AUTO-PULL reviews + photos straight from Google — 100% client-side, no backend (portable to any host).
+  // SETUP: 1) Google Cloud: enable "Places API (New)" + "Maps JavaScript API", create an API key.
+  //        2) Restrict the key to the site's final domain (HTTP referrer).  3) Paste it below.
+  // Leave "" to keep the built-in fallback photos/review.
+  const GMAPS_KEY="";
+  const PLACE_ID="ChIJPZ2Rb_jXwokRADh96uQm4o0";
+  const starStr=n=>{n=Math.max(0,Math.min(5,Math.round(n||5)));return "★★★★★☆☆☆☆☆".slice(5-n,10-n);};
+  async function loadGoogleReviews(){
+    if(!GMAPS_KEY)return;
+    ((g)=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await(a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));m.head.append(a);}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n));})({key:GMAPS_KEY,v:"weekly"});
+    try{
+      const {Place}=await google.maps.importLibrary("places");
+      const place=new Place({id:PLACE_ID});
+      await place.fetchFields({fields:["rating","userRatingCount","reviews","photos"]});
+      const photos=place.photos||[];
+      if(photos.length){
+        track.innerHTML=photos.slice(0,12).map(ph=>{
+          const full=(ph.getURI?ph.getURI({maxWidth:1600}):ph.getUrl({maxWidth:1600}));
+          const thumb=(ph.getURI?ph.getURI({maxWidth:800}):ph.getUrl({maxWidth:800}));
+          return `<div class="gtile" data-full="${full}"><img src="${thumb}" alt="Water Wonders — Google photo" loading="lazy"></div>`;
+        }).join("");
+      }
+      const revs=place.reviews||[];
+      if(revs.length){
+        document.getElementById("reviewList").innerHTML=revs.map(v=>{
+          const txt=(typeof v.text==="string"?v.text:(v.text&&v.text.text)||"").trim();
+          const author=(v.authorAttribution&&v.authorAttribution.displayName)||"Google review";
+          const init=(author.trim().charAt(0)||"G").toUpperCase();
+          return `<div class="review"><span class="stars">${starStr(v.rating)}</span><p>${txt?('"'+txt.replace(/</g,"&lt;")+'"'):""}</p><div class="who"><span class="av">${init}</span>${author}<span class="gsrc">Google</span></div></div>`;
+        }).join("");
+      }
+      if(place.rating)document.getElementById("ratingNum").textContent=Number(place.rating).toFixed(1);
+      if(place.userRatingCount!=null)document.getElementById("ratingCount").textContent="Based on "+place.userRatingCount+" Google review"+(place.userRatingCount===1?"":"s");
+    }catch(err){console.warn("Google reviews load failed:",err);}
+  }
+  loadGoogleReviews();
 
   form.addEventListener('submit',async(e)=>{
     if(form.action.includes('YOUR_FORM_ID'))return;
