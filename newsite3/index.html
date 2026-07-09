@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LINEAR — Friendly IT Support for Your Business</title>
+<meta name="description" content="LINEAR — friendly, jargon-free IT support for businesses. We keep your computers, email, Wi-Fi, and backups running smoothly so you can focus on your work.">
+<link rel="icon" type="image/png" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// apply saved theme before first paint to avoid a flash
+(function(){try{if(localStorage.getItem('linear3-theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}})();
+</script>
+
+<style>
+/* ═══════════════════════ TOKENS — clean blue & warm orange ═══════════════════════ */
+:root{
+  --bg:#f6f8fc;
+  --bg-2:#edf1f9;
+  --card:#ffffff;
+  --line:#e0e7f2;
+  --line-strong:#ccd8ea;
+
+  --ink:#16233c;
+  --ink-2:#45566f;
+  --ink-3:#7c8aa5;
+
+  --blue:#2f62e9;
+  --blue-deep:#1e4bd1;
+  --blue-soft:#e8efff;
+  --orange:#ff8a3c;
+  --orange-deep:#f0741f;
+  --orange-soft:#fff0e3;
+  --sun:#ffc44d;
+  --sun-soft:#fff6e0;
+
+  --font-d:'Fraunces',Georgia,serif;
+  --font-b:'Plus Jakarta Sans',system-ui,sans-serif;
+
+  --r-md:20px; --r-lg:28px; --r-xl:36px;
+  --shadow-sm:0 2px 8px rgba(22,35,60,.06),0 1px 3px rgba(22,35,60,.05);
+  --shadow-md:0 6px 18px rgba(22,35,60,.09),0 2px 6px rgba(22,35,60,.05);
+  --shadow-lg:0 20px 55px rgba(22,35,60,.13),0 8px 20px rgba(22,35,60,.07);
+  --ease:cubic-bezier(.22,.85,.3,1);
+}
+
+/* calm navy dark mode */
+[data-theme="dark"]{
+  --bg:#111a2b;
+  --bg-2:#0c1422;
+  --card:#1a2539;
+  --line:#2c3a55;
+  --line-strong:#3b4d6f;
+
+  --ink:#eef3fc;
+  --ink-2:#c2cee2;
+  --ink-3:#8d9cb8;
+
+  --blue:#7099ff;
+  --blue-deep:#8fadff;
+  --blue-soft:#1e2c4e;
+  --orange:#ff9b57;
+  --orange-deep:#ffab73;
+  --orange-soft:#3b2a1b;
+  --sun:#ffc44d;
+  --sun-soft:#3a3120;
+
+  --shadow-sm:0 2px 8px rgba(0,0,0,.25);
+  --shadow-md:0 6px 18px rgba(0,0,0,.3);
+  --shadow-lg:0 20px 55px rgba(0,0,0,.4);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;overflow-x:clip}
+body{
+  font-family:var(--font-b);
+  font-size:16.5px;line-height:1.75;
+  color:var(--ink);
+  background:var(--bg);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  transition:background .35s,color .35s;
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{font:inherit;cursor:pointer;color:inherit}
+section{scroll-margin-top:92px;position:relative}
+::selection{background:rgba(255,138,60,.28)}
+
+h1,h2,h3,h4{font-family:var(--font-d);line-height:1.15;letter-spacing:-.01em;font-weight:600}
+.wrap{max-width:1150px;margin:0 auto;padding:0 clamp(20px,4vw,36px)}
+
+.kicker{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--orange-deep);margin-bottom:16px;
+}
+.kicker::before{content:"~";font-size:19px;line-height:0;color:var(--blue)}
+
+.sec-title{font-size:clamp(30px,4.3vw,46px);margin-bottom:18px}
+.sec-lede{font-size:clamp(16.5px,1.6vw,19px);color:var(--ink-2);max-width:620px}
+
+/* squiggle underline */
+.squig{position:relative;display:inline-block;white-space:nowrap}
+.squig svg{position:absolute;left:2%;bottom:-.18em;width:96%;height:.32em;overflow:visible}
+.squig svg path{fill:none;stroke:var(--orange);stroke-width:7;stroke-linecap:round}
+
+/* ═══════════════════════ SLIDE-IN REVEALS (slow & gentle) ═══════════════════════ */
+.sl{opacity:0;transition:opacity 1.5s var(--ease),transform 1.5s var(--ease);will-change:opacity,transform}
+.sl-l{transform:translateX(-120px)}
+.sl-r{transform:translateX(120px)}
+.sl-u{transform:translateY(70px)}
+.sl.in{opacity:1;transform:none}
+.d1{transition-delay:.18s}.d2{transition-delay:.36s}.d3{transition-delay:.54s}.d4{transition-delay:.72s}
+
+/* ═══════════════════════ BUTTONS ═══════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  font-weight:700;font-size:15px;
+  padding:13px 28px;border-radius:999px;border:0;
+  transition:transform .22s var(--ease),box-shadow .25s,background .2s,border-color .2s;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.97)}
+.btn-orange{
+  background:linear-gradient(135deg,var(--orange),var(--orange-deep));
+  color:#fff!important;
+  box-shadow:0 10px 26px rgba(240,116,31,.32);
+}
+.btn-orange:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(240,116,31,.4)}
+.btn-blue{
+  background:linear-gradient(135deg,var(--blue),#1c46c8);
+  color:#fff!important;
+  box-shadow:0 10px 26px rgba(47,98,233,.3);
+}
+.btn-blue:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(47,98,233,.38)}
+.btn-soft{
+  color:var(--ink)!important;
+  background:var(--card);
+  border:1.5px solid var(--line-strong);
+  box-shadow:var(--shadow-sm);
+}
+.btn-soft:hover{border-color:var(--blue);color:var(--blue-deep)!important;transform:translateY(-2px);box-shadow:var(--shadow-md)}
+
+/* ═══════════════════════ NAV ═══════════════════════ */
+.nav{
+  position:fixed;inset:0 0 auto 0;z-index:1000;
+  height:78px;display:flex;align-items:center;
+  padding:0 clamp(16px,3vw,32px);
+  transition:background .3s,border-color .3s,box-shadow .3s;
+  border-bottom:1px solid transparent;
+}
+.nav.scrolled{
+  background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 8px 30px rgba(22,35,60,.08);
+}
+.nav-inner{max-width:1150px;margin:0 auto;width:100%;display:flex;align-items:center;gap:10px}
+
+.wordmark{display:inline-flex;align-items:center;gap:11px;flex-shrink:0}
+.wordmark .tile{
+  width:42px;height:42px;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--blue),#1c46c8);
+  font-family:var(--font-d);font-weight:700;font-size:22px;color:#fff;
+  box-shadow:0 6px 16px rgba(47,98,233,.32);
+  transition:transform .25s var(--ease);
+}
+.wordmark:hover .tile{transform:rotate(-8deg) scale(1.06)}
+.wordmark .name{font-family:var(--font-d);font-weight:700;font-size:23px;letter-spacing:.1em;color:var(--ink)}
+.wordmark .name em{font-style:normal;color:var(--orange-deep)}
+
+.menu{margin-left:auto;display:flex;align-items:center;gap:2px;min-width:0}
+.menu>a{
+  color:var(--ink-2);font-size:15px;font-weight:600;
+  padding:8px 15px;border-radius:999px;
+  transition:color .18s,background .18s;
+}
+.menu>a:not(.btn):hover{color:var(--blue-deep);background:var(--blue-soft)}
+.menu .btn{padding:10px 21px;font-size:14px;margin-left:6px}
+
+.theme-btn{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;margin-left:8px;
+  display:grid;place-items:center;font-size:19px;line-height:1;
+  background:var(--card);
+  border:1.5px solid var(--line-strong);
+  box-shadow:var(--shadow-sm);
+  transition:border-color .2s,box-shadow .25s,background .2s;
+}
+.theme-btn:hover{border-color:var(--sun);box-shadow:0 0 0 5px var(--sun-soft)}
+.theme-btn.spin{animation:themeSpin .6s var(--ease)}
+@keyframes themeSpin{from{transform:rotate(-360deg) scale(.5)}to{transform:rotate(0) scale(1)}}
+
+.hamburger{
+  display:none;margin-left:auto;
+  background:var(--card);border:1.5px solid var(--line-strong);
+  border-radius:14px;padding:9px 12px;font-size:17px;
+  box-shadow:var(--shadow-sm);
+}
+@media (max-width:1180px){
+  .hamburger{display:inline-flex}
+  .menu{
+    position:fixed;top:78px;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:4px;
+    padding:0 18px;
+    background:var(--bg);
+    border-bottom:1px solid var(--line);
+    box-shadow:0 24px 40px rgba(22,35,60,.12);
+    max-height:0;overflow:hidden;
+    transition:max-height .32s var(--ease),padding .32s var(--ease);
+  }
+  .menu.open{max-height:480px;padding:14px 18px 20px}
+  .menu>a{padding:12px 16px;border-radius:14px}
+  .menu .btn{margin:6px 0 0;justify-content:center}
+}
+
+/* ═══════════════════════ HERO ═══════════════════════ */
+.hero{
+  position:relative;isolation:isolate;overflow:hidden;
+  min-height:100svh;
+  display:grid;place-items:center;
+  padding:150px 0 110px;
+  text-align:center;
+}
+.hero .blob{
+  position:absolute;z-index:-1;border-radius:50%;filter:blur(60px);pointer-events:none;
+  animation:drift 18s ease-in-out infinite alternate;
+}
+.blob-1{width:560px;height:560px;left:-160px;top:-120px;background:var(--blue-soft)}
+.blob-2{width:480px;height:480px;right:-140px;top:10%;background:var(--orange-soft);animation-delay:-6s}
+.blob-3{width:440px;height:440px;left:30%;bottom:-200px;background:var(--sun-soft);animation-delay:-12s}
+@keyframes drift{
+  0%{transform:translate(0,0) scale(1)}
+  100%{transform:translate(46px,30px) scale(1.1)}
+}
+
+.hero-inner{position:relative;max-width:950px;padding:0 22px}
+.hero-pill{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:14px;font-weight:700;
+  color:var(--blue-deep);
+  background:var(--blue-soft);
+  border:1.5px solid color-mix(in srgb,var(--blue) 35%,transparent);
+  padding:9px 20px;border-radius:999px;
+  margin-bottom:32px;
+}
+.hero-pill .dot{width:9px;height:9px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 0 rgba(47,98,233,.5);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,98,233,.45)}70%{box-shadow:0 0 0 10px rgba(47,98,233,0)}100%{box-shadow:0 0 0 0 rgba(47,98,233,0)}}
+
+.hero h1{font-size:clamp(38px,5.6vw,66px);margin-bottom:26px;color:var(--ink)}
+.hero p.lede{font-size:clamp(17.5px,2vw,21px);color:var(--ink-2);max-width:640px;margin:0 auto 42px}
+.hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:56px}
+.hero-ctas .btn{padding:16px 34px;font-size:16.5px}
+
+.hero-chips{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.hero-chips span{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:14px;font-weight:600;color:var(--ink-2);
+  background:var(--card);
+  border:1.5px solid var(--line);
+  padding:9px 18px;border-radius:999px;
+  box-shadow:var(--shadow-sm);
+}
+.hero-chips span::before{content:"✓";color:var(--blue);font-weight:800}
+
+.hero-scroll{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:var(--ink-3);font-size:20px;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+
+/* ═══════════════════════ STATS + PLATE ═══════════════════════ */
+.stats{margin-top:-64px;position:relative;z-index:5}
+.stats-card{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--card);
+  border:1.5px solid var(--line);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow-lg);
+  overflow:hidden;
+}
+.stat{padding:34px 20px;text-align:center;border-left:1.5px solid var(--line)}
+.stat:first-child{border-left:0}
+.stat b{
+  display:block;font-family:var(--font-d);
+  font-size:clamp(27px,3vw,38px);font-weight:700;
+  color:var(--blue-deep);
+  margin-bottom:4px;
+}
+.stat small{font-size:13.5px;font-weight:600;color:var(--ink-3)}
+@media (max-width:760px){
+  .stats-card{grid-template-columns:1fr 1fr}
+  .stat:nth-child(3){border-left:0}
+  .stat:nth-child(n+3){border-top:1.5px solid var(--line)}
+}
+
+/* "off your plate" ticker */
+.plate{margin-top:32px;text-align:center}
+.plate-label{font-size:14px;font-weight:700;color:var(--ink-3);margin-bottom:16px}
+.ticker{
+  overflow:hidden;
+  mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+}
+.ticker-track{display:flex;width:max-content;animation:tick 40s linear infinite}
+.ticker-track span{
+  flex-shrink:0;margin-right:12px;
+  font-size:14.5px;font-weight:600;color:var(--ink-2);
+  background:var(--card);
+  border:1.5px solid var(--line);
+  padding:9px 20px;border-radius:999px;
+  box-shadow:var(--shadow-sm);
+}
+@keyframes tick{to{transform:translateX(-50%)}}
+.ticker:hover .ticker-track{animation-play-state:paused}
+
+/* ═══════════════════════ ABOUT — headache text + frustrated man picture ═══════════════════════ */
+.about{padding:120px 0 30px}
+.about-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:clamp(36px,5vw,72px);align-items:center}
+.about-copy p{color:var(--ink-2);font-size:17.5px;margin-bottom:30px}
+
+.promise{
+  margin-top:34px;
+  background:var(--sun-soft);
+  border:1.5px solid color-mix(in srgb,var(--sun) 45%,transparent);
+  border-radius:var(--r-md);
+  padding:22px 26px;
+  font-size:15.5px;color:var(--ink-2);
+}
+.promise b{font-family:var(--font-d);font-size:17px;color:var(--ink);display:block;margin-bottom:4px}
+
+.pic{width:100%}
+.pic svg{width:100%;height:auto;display:block}
+
+@media (max-width:920px){
+  .about-grid{grid-template-columns:1fr}
+  .about-grid .pic{order:-1;max-width:480px;margin:0 auto}
+}
+
+/* ═══════════════════════ FEATURE ROWS — picture next to each paragraph ═══════════════════════ */
+.rows{padding:30px 0 60px}
+.row{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:clamp(32px,5vw,76px);
+  align-items:center;
+  padding:44px 0;
+}
+.row .pic{max-width:440px;justify-self:center}
+.row-copy h3{font-size:clamp(23px,2.6vw,30px);margin-bottom:12px}
+.row-copy p{color:var(--ink-2);font-size:16.5px;max-width:480px}
+.row-copy .mini{
+  display:inline-flex;align-items:center;gap:8px;
+  margin-top:18px;
+  font-size:14px;font-weight:700;color:var(--blue-deep);
+}
+.row-copy .mini::before{content:"✓";width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;color:#fff;background:var(--blue)}
+@media (max-width:880px){
+  .row{grid-template-columns:1fr;padding:34px 0;gap:26px}
+  .row .pic{order:-1;max-width:400px}
+}
+
+/* ═══════════════════════ SERVICES — FLIP CARDS ═══════════════════════ */
+.services{padding:90px 0}
+.services-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:14px;flex-wrap:wrap}
+.flip-hint{font-size:15px;color:var(--ink-3);margin-bottom:40px}
+.flip-hint b{color:var(--orange-deep)}
+
+.svc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.flip{
+  perspective:1200px;
+  min-height:255px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  border:0;background:none;padding:0;text-align:left;
+  border-radius:var(--r-md);
+  outline-offset:4px;
+}
+.flip:focus-visible{outline:2.5px solid var(--blue)}
+.flip-in{
+  position:relative;width:100%;height:100%;min-height:255px;
+  transform-style:preserve-3d;
+  transition:transform .8s var(--ease);
+}
+.flip.flipped .flip-in{transform:rotateY(180deg)}
+.flip-face{
+  position:absolute;inset:0;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:var(--r-md);
+  padding:28px 25px;
+  display:flex;flex-direction:column;
+}
+.flip-front{
+  background:var(--card);
+  border:1.5px solid var(--line);
+  box-shadow:var(--shadow-sm);
+  transition:border-color .3s,box-shadow .3s;
+}
+.flip:hover .flip-front{border-color:var(--orange);box-shadow:var(--shadow-md)}
+.flip-front .svc-ico{
+  width:56px;height:56px;border-radius:50%;
+  display:grid;place-items:center;font-size:25px;
+  background:var(--blue-soft);
+  margin-bottom:auto;
+}
+.flip:nth-child(4n+2) .flip-front .svc-ico{background:var(--orange-soft)}
+.flip:nth-child(4n+3) .flip-front .svc-ico{background:var(--sun-soft)}
+.flip-front h3{font-size:18.5px;margin:18px 0 8px}
+.flip-front .peek{
+  font-size:13.5px;font-weight:700;color:var(--orange-deep);
+  display:inline-flex;align-items:center;gap:6px;
+  transition:gap .25s;
+}
+.flip-front .peek::after{content:"→"}
+.flip:hover .flip-front .peek{gap:11px}
+.flip-back{
+  transform:rotateY(180deg);
+  background:linear-gradient(150deg,var(--blue),#1c46c8);
+  justify-content:center;gap:12px;
+  box-shadow:var(--shadow-md);
+}
+.flip-back h3{font-size:17.5px;color:#fff}
+.flip-back p{font-size:14.5px;line-height:1.65;color:rgba(244,248,255,.95)}
+.flip-back .back-link{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:14px;font-weight:700;color:#fff;margin-top:2px;
+}
+.flip-back .back-link:hover{text-decoration:underline}
+@media (max-width:1020px){.svc-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.svc-grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════ HOW WE WORK ═══════════════════════ */
+.process{padding:0 0 110px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:52px}
+.step{
+  background:var(--card);
+  border:1.5px solid var(--line);
+  border-radius:var(--r-md);
+  padding:30px 26px;
+  box-shadow:var(--shadow-sm);
+  transition:transform .3s var(--ease),border-color .3s,box-shadow .3s;
+}
+.step:hover{transform:translateY(-5px);border-color:var(--blue);box-shadow:var(--shadow-md)}
+.step .num{
+  width:46px;height:46px;border-radius:50%;
+  display:grid;place-items:center;
+  font-family:var(--font-d);font-size:20px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--orange),var(--orange-deep));
+  box-shadow:0 6px 16px rgba(240,116,31,.32);
+  margin-bottom:18px;
+}
+.step:nth-child(even) .num{background:linear-gradient(135deg,var(--blue),#1c46c8);box-shadow:0 6px 16px rgba(47,98,233,.3)}
+.step h3{font-size:18.5px;margin-bottom:8px}
+.step p{font-size:14.5px;color:var(--ink-3);line-height:1.65}
+@media (max-width:1020px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
+
+/* ═══════════════════════ TESTIMONIALS + CTA ═══════════════════════ */
+.social{
+  padding:110px 0;
+  background:var(--bg-2);
+  border-top:1.5px solid var(--line);
+  border-bottom:1.5px solid var(--line);
+}
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:52px}
+.quote{
+  display:flex;flex-direction:column;gap:16px;
+  background:var(--card);
+  border:1.5px solid var(--line);
+  border-radius:var(--r-md);
+  padding:34px 30px;
+  box-shadow:var(--shadow-sm);
+  transition:transform .3s var(--ease),box-shadow .3s;
+}
+.quote:hover{transform:translateY(-5px);box-shadow:var(--shadow-md)}
+.quote .stars{color:var(--sun);font-size:16px;letter-spacing:3px}
+.quote p{font-family:var(--font-d);font-size:17px;line-height:1.65;color:var(--ink);flex:1}
+.quote footer{font-size:14px;font-weight:600;color:var(--ink-3)}
+@media (max-width:880px){.quotes{grid-template-columns:1fr}}
+
+.cta-banner{
+  margin-top:74px;
+  border-radius:var(--r-xl);
+  padding:clamp(38px,5vw,60px);
+  background:linear-gradient(135deg,var(--blue),#1c46c8);
+  box-shadow:0 24px 60px rgba(47,98,233,.3);
+  display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap;
+  position:relative;overflow:hidden;
+}
+.cta-banner::before{
+  content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+  background:rgba(255,255,255,.09);
+}
+.cta-banner::after{
+  content:"";position:absolute;right:60px;bottom:-90px;width:190px;height:190px;border-radius:50%;
+  background:rgba(255,255,255,.07);
+}
+.cta-banner h3{font-size:clamp(25px,3vw,36px);color:#fff;margin-bottom:8px}
+.cta-banner p{color:rgba(240,246,255,.9);font-size:17px}
+.cta-banner .btn{position:relative;z-index:1;padding:16px 32px;font-size:16px;background:#fff;color:var(--blue-deep)!important;box-shadow:0 10px 26px rgba(0,0,0,.18)}
+.cta-banner .btn:hover{transform:translateY(-2px)}
+[data-theme="dark"] .cta-banner{background:linear-gradient(135deg,#2f62e9,#1c46c8)}
+[data-theme="dark"] .cta-banner .btn{color:#1e4bd1!important}
+
+/* ═══════════════════════ FAQ ═══════════════════════ */
+.faq{padding:110px 0}
+.faq-list{max-width:830px;margin:52px auto 0;display:grid;gap:14px}
+.faq-item{
+  background:var(--card);
+  border:1.5px solid var(--line);
+  border-radius:var(--r-md);
+  box-shadow:var(--shadow-sm);
+  overflow:hidden;
+  transition:border-color .25s,box-shadow .25s;
+}
+.faq-item[open]{border-color:var(--blue);box-shadow:var(--shadow-md)}
+.faq-item summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;gap:16px;
+  padding:23px 27px;
+  font-family:var(--font-d);font-size:17.5px;font-weight:600;
+  transition:color .2s;
+}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary:hover{color:var(--blue-deep)}
+.faq-item summary::after{
+  content:"+";margin-left:auto;flex-shrink:0;
+  width:32px;height:32px;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:20px;font-weight:400;font-family:var(--font-b);
+  color:var(--blue-deep);background:var(--blue-soft);
+  transition:transform .3s var(--ease),background .25s,color .25s;
+}
+.faq-item[open] summary::after{transform:rotate(45deg);background:var(--blue);color:#fff}
+.faq-body{padding:0 27px 25px;color:var(--ink-2);font-size:15.5px;line-height:1.75}
+
+/* ═══════════════════════ CONTACT ═══════════════════════ */
+.contact{padding:20px 0 120px}
+.contact-shell{
+  border-radius:var(--r-xl);
+  border:1.5px solid var(--line);
+  overflow:hidden;
+  display:grid;grid-template-columns:1.15fr .85fr;
+  box-shadow:var(--shadow-lg);
+}
+.contact-form{background:var(--card);padding:clamp(34px,4.5vw,56px)}
+.contact-form .sec-title{font-size:clamp(27px,3vw,38px)}
+.contact-form>p{color:var(--ink-2);margin-bottom:34px;font-size:16.5px}
+
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.f-field{margin-bottom:16px}
+.f-field label{
+  display:block;font-size:13.5px;font-weight:700;
+  color:var(--ink-2);margin-bottom:7px;
+}
+.f-field input,.f-field textarea{
+  width:100%;font:inherit;font-size:15.5px;color:var(--ink);
+  background:var(--bg);
+  border:1.5px solid var(--line);
+  border-radius:15px;
+  padding:14px 17px;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.f-field input::placeholder,.f-field textarea::placeholder{color:var(--ink-3)}
+.f-field textarea{resize:vertical;min-height:130px}
+.f-field input:focus,.f-field textarea:focus{
+  outline:none;background:var(--card);
+  border-color:var(--blue);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--blue) 15%,transparent);
+}
+.contact-form .btn{margin-top:8px;width:100%;padding:16px}
+.form-note{margin-top:14px;text-align:center;font-size:14px;color:var(--ink-3)}
+.form-note b{color:var(--blue-deep)}
+
+.contact-side{
+  background:linear-gradient(160deg,var(--blue),#1c46c8);
+  color:#fff;
+  padding:clamp(34px,4.5vw,52px);
+  display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+}
+[data-theme="dark"] .contact-side{background:linear-gradient(160deg,#2f62e9,#1c46c8)}
+.contact-side::before{
+  content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+}
+.contact-side h3{font-size:24px;margin-bottom:8px;position:relative}
+.contact-side .sub{font-size:15px;color:rgba(240,246,255,.85);margin-bottom:22px;position:relative}
+.c-item{display:flex;gap:16px;align-items:flex-start;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.18);position:relative}
+.c-item:last-of-type{border-bottom:0}
+.c-ico{
+  flex-shrink:0;width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;font-size:18px;
+  background:rgba(255,255,255,.14);
+}
+.c-item small{display:block;font-size:12.5px;font-weight:700;color:rgba(240,246,255,.7);margin-bottom:2px}
+.c-item a,.c-item span{font-size:16.5px;font-weight:700;color:#fff}
+.c-item a:hover{text-decoration:underline}
+.contact-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:26px;position:relative}
+.contact-links .btn{
+  font-size:13.5px;padding:10px 18px;
+  background:rgba(255,255,255,.14);color:#fff!important;
+  border:1.5px solid rgba(255,255,255,.3);box-shadow:none;
+}
+.contact-links .btn:hover{background:rgba(255,255,255,.24);transform:translateY(-2px)}
+@media (max-width:880px){.contact-shell{grid-template-columns:1fr}.f-row{grid-template-columns:1fr}}
+
+/* ═══════════════════════ FOOTER ═══════════════════════ */
+.footer{
+  background:var(--bg-2);color:var(--ink-3);
+  padding:54px 0 108px;
+  border-top:1.5px solid var(--line);
+}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap}
+.footer .name{font-family:var(--font-d);font-weight:700;font-size:20px;letter-spacing:.1em;color:var(--ink)}
+.footer .name em{font-style:normal;color:var(--orange-deep)}
+.footer p{font-size:14px}
+.footer nav{display:flex;gap:22px;flex-wrap:wrap}
+.footer nav a{font-size:14px;font-weight:600;transition:color .2s}
+.footer nav a:hover{color:var(--blue-deep)}
+
+/* ═══════════════════════ MOBILE BAR + TO TOP ═══════════════════════ */
+.mobile-bar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:900;
+  background:color-mix(in srgb,var(--bg) 94%,transparent);
+  backdrop-filter:blur(16px);
+  border-top:1.5px solid var(--line);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  gap:10px;
+}
+.mobile-bar a{
+  flex:1;text-align:center;
+  font-size:13.5px;font-weight:700;color:var(--ink);
+  padding:12px 6px;border-radius:14px;
+  background:var(--card);
+  border:1.5px solid var(--line-strong);
+}
+.mobile-bar a.hot{background:linear-gradient(135deg,var(--orange),var(--orange-deep));color:#fff;border:0}
+@media (max-width:760px){.mobile-bar{display:flex}}
+
+.to-top{
+  position:fixed;right:22px;bottom:22px;z-index:800;
+  width:48px;height:48px;border-radius:50%;
+  display:grid;place-items:center;font-size:18px;
+  background:var(--card);color:var(--blue-deep);
+  border:1.5px solid var(--line-strong);
+  box-shadow:var(--shadow-md);
+  opacity:0;pointer-events:none;transform:translateY(10px);
+  transition:opacity .3s,transform .3s;
+}
+.to-top.show{opacity:1;pointer-events:auto;transform:none}
+@media (max-width:760px){.to-top{bottom:82px}}
+
+@media (prefers-reduced-motion:reduce){
+  .sl{opacity:1;transform:none;transition:none}
+  .blob,.hero-pill .dot,.hero-scroll,.ticker-track{animation:none}
+  .flip-in{transition:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="wordmark" href="#top" aria-label="LINEAR home">
+      <span class="tile">L</span>
+      <span class="name">LINE<em>AR</em></span>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">☰</button>
+    <nav class="menu" id="menu">
+      <a href="#about">About</a>
+      <a href="#services">Services</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Contact</a>
+      <a class="btn btn-soft" href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&amp;y=Guest">🛠 Remote Support</a>
+      <a class="btn btn-soft" href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">Client Login</a>
+      <a class="btn btn-orange" href="#contact">Book a Consult</a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" aria-label="Switch between light and dark mode" title="Switch between light and dark mode">🌙</button>
+  </div>
+</header>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero" id="top">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="hero-inner">
+    <div class="hero-pill sl sl-u in-load"><span class="dot"></span> Friendly IT help for businesses in New York</div>
+    <h1 class="sl sl-l in-load d1">We Keep Your Business<br>Running <span class="squig">Smoothly<svg viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M3 10 Q 25 3, 50 8 T 100 8 T 150 8 T 197 6"/></svg></span></h1>
+    <p class="lede sl sl-r in-load d2">No jargon. No waiting on hold. Just fast, friendly help with your computers, email, Wi-Fi, and backups — so you can focus on running your business.</p>
+    <div class="hero-ctas sl sl-u in-load d3">
+      <a class="btn btn-orange" href="#contact">Book a Free Consult</a>
+      <a class="btn btn-soft" href="tel:+18456041462">📞 (845) 604-1462</a>
+    </div>
+    <div class="hero-chips sl sl-u in-load d4">
+      <span>Same-day response</span>
+      <span>Plain English, always</span>
+      <span>Local Monroe, NY team</span>
+      <span>One number to call</span>
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true">▾</div>
+</section>
+
+<!-- ═══════════ STATS ═══════════ -->
+<div class="stats wrap">
+  <div class="stats-card sl sl-u">
+    <div class="stat"><b>99.9%</b><small>Systems up &amp; running</small></div>
+    <div class="stat"><b>15 min</b><small>Average time to hear back</small></div>
+    <div class="stat"><b>24/7</b><small>We keep watch, even at night</small></div>
+    <div class="stat"><b>0</b><small>Jargon-filled lectures</small></div>
+  </div>
+  <div class="plate sl sl-u d1" aria-hidden="true">
+    <div class="plate-label">Things we take off your plate:</div>
+    <div class="ticker">
+      <div class="ticker-track">
+        <span>📧 Email trouble</span><span>📶 Spotty Wi-Fi</span><span>💾 Backups</span><span>🖨️ Printer drama</span><span>🔑 Forgotten passwords</span><span>🐌 Slow computers</span><span>🚫 Scam emails</span><span>👋 New employee setup</span><span>📱 Phones &amp; tablets</span><span>🔄 Updates</span>
+        <span>📧 Email trouble</span><span>📶 Spotty Wi-Fi</span><span>💾 Backups</span><span>🖨️ Printer drama</span><span>🔑 Forgotten passwords</span><span>🐌 Slow computers</span><span>🚫 Scam emails</span><span>👋 New employee setup</span><span>📱 Phones &amp; tablets</span><span>🔄 Updates</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ ABOUT — headache copy + frustrated man picture ═══════════ -->
+<section class="about" id="about">
+  <div class="wrap about-grid">
+    <div class="about-copy sl sl-l">
+      <span class="kicker">About Us</span>
+      <h2 class="sec-title">Technology headaches? Consider them handled.</h2>
+      <p>LINEAR is a New York–based team that looks after technology for businesses like yours. We believe good IT support means you barely have to think about it — things just work, and when you call, a friendly person picks up and actually helps.</p>
+      <a class="btn btn-blue" href="#services">See What We Do</a>
+      <div class="promise sl sl-l d2">
+        <b>Our plain-English promise 🤝</b>
+        We'll never bury you in technical terms or talk down to you. If we can't explain it simply, that's our homework — not yours.
+      </div>
+    </div>
+    <div class="pic sl sl-r" role="img" aria-label="Illustration of a frustrated man at his desk with a computer showing errors">
+      <svg viewBox="0 0 520 420" xmlns="http://www.w3.org/2000/svg">
+        <!-- background blob -->
+        <ellipse cx="265" cy="225" rx="240" ry="185" fill="var(--blue-soft)"/>
+        <!-- floating error popups -->
+        <g>
+          <rect x="60" y="60" width="86" height="58" rx="10" fill="var(--card)" stroke="var(--line-strong)" stroke-width="2.5"/>
+          <circle cx="82" cy="82" r="11" fill="#e8574b"/>
+          <path d="M77.5 77.5 L86.5 86.5 M86.5 77.5 L77.5 86.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+          <rect x="100" y="74" width="34" height="6" rx="3" fill="var(--line-strong)"/>
+          <rect x="100" y="86" width="24" height="6" rx="3" fill="var(--line)"/>
+        </g>
+        <g>
+          <rect x="392" y="84" width="76" height="52" rx="10" fill="var(--card)" stroke="var(--line-strong)" stroke-width="2.5"/>
+          <path d="M414 122 L422 100 L430 122 Z" fill="#f0a11f"/>
+          <rect x="420" y="106" width="4" height="8" rx="2" fill="#fff"/>
+          <circle cx="422" cy="118" r="2" fill="#fff"/>
+          <rect x="438" y="98" width="22" height="6" rx="3" fill="var(--line-strong)"/>
+          <rect x="438" y="110" width="16" height="6" rx="3" fill="var(--line)"/>
+        </g>
+        <!-- stress marks over head -->
+        <g stroke="#e8574b" stroke-width="4.5" stroke-linecap="round" fill="none">
+          <path d="M232 96 l10 -16"/>
+          <path d="M258 90 l0 -18"/>
+          <path d="M284 96 l-10 -16"/>
+        </g>
+        <!-- head -->
+        <circle cx="258" cy="140" r="34" fill="#f2c29a"/>
+        <path d="M224 132 a34 34 0 0 1 68 0 l0 -8 a36 30 0 0 0 -68 0 Z" fill="#4a3628"/>
+        <!-- frowning brows + eyes -->
+        <path d="M240 141 l11 4 -11 4 M276 141 l-11 4 11 4" stroke="#4a3628" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M249 166 q9 -8 18 0" stroke="#4a3628" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+        <!-- torso -->
+        <path d="M204 250 q6 -62 54 -62 q48 0 54 62 Z" fill="var(--blue)"/>
+        <!-- arms up to head -->
+        <path d="M216 210 q-14 -46 26 -62" stroke="var(--blue)" stroke-width="21" stroke-linecap="round" fill="none"/>
+        <path d="M300 210 q14 -46 -26 -62" stroke="var(--blue)" stroke-width="21" stroke-linecap="round" fill="none"/>
+        <circle cx="240" cy="146" r="12" fill="#f2c29a"/>
+        <circle cx="276" cy="146" r="12" fill="#f2c29a"/>
+        <!-- desk -->
+        <rect x="96" y="250" width="330" height="18" rx="9" fill="var(--ink-3)"/>
+        <rect x="118" y="268" width="16" height="96" rx="7" fill="var(--ink-3)" opacity=".75"/>
+        <rect x="388" y="268" width="16" height="96" rx="7" fill="var(--ink-3)" opacity=".75"/>
+        <!-- monitor with error -->
+        <g>
+          <rect x="316" y="152" width="110" height="82" rx="10" fill="#2a3b5e"/>
+          <rect x="324" y="160" width="94" height="66" rx="6" fill="#43598a"/>
+          <path d="M356 206 L371 178 L386 206 Z" fill="#f0a11f"/>
+          <rect x="369" y="188" width="4" height="9" rx="2" fill="#fff"/>
+          <circle cx="371" cy="202" r="2.2" fill="#fff"/>
+          <rect x="352" y="212" width="40" height="5" rx="2.5" fill="#8fa3cc"/>
+          <rect x="360" y="234" width="22" height="10" fill="#22314f"/>
+          <rect x="344" y="244" width="54" height="7" rx="3.5" fill="#22314f"/>
+        </g>
+        <!-- papers on desk -->
+        <g transform="rotate(-8 160 240)">
+          <rect x="138" y="228" width="46" height="30" rx="4" fill="var(--card)" stroke="var(--line-strong)" stroke-width="2"/>
+          <rect x="145" y="235" width="30" height="4" rx="2" fill="var(--line-strong)"/>
+          <rect x="145" y="243" width="22" height="4" rx="2" fill="var(--line)"/>
+        </g>
+        <!-- coffee mug with steam -->
+        <g>
+          <rect x="198" y="226" width="26" height="26" rx="5" fill="var(--orange)"/>
+          <path d="M224 232 q10 2 0 14" stroke="var(--orange)" stroke-width="5" fill="none"/>
+          <path d="M206 218 q3 -6 0 -10 M216 218 q-3 -6 0 -10" stroke="var(--ink-3)" stroke-width="2.6" stroke-linecap="round" fill="none"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FEATURE ROWS — a picture next to each paragraph ═══════════ -->
+<section class="rows">
+  <div class="wrap">
+
+    <!-- Row 1: text LEFT, picture RIGHT -->
+    <div class="row">
+      <div class="row-copy sl sl-l">
+        <h3>We Watch Over Everything</h3>
+        <p>We keep an eye on your systems around the clock — and usually fix little problems before you ever notice them. While you're home having dinner, we're making sure tomorrow morning starts smoothly.</p>
+        <span class="mini">Problems fixed before you feel them</span>
+      </div>
+      <div class="pic sl sl-r" role="img" aria-label="Illustration of a healthy computer being monitored with a checkmark">
+        <svg viewBox="0 0 440 320" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="220" cy="165" rx="195" ry="135" fill="var(--blue-soft)"/>
+          <rect x="120" y="82" width="200" height="136" rx="14" fill="#2a3b5e"/>
+          <rect x="132" y="94" width="176" height="112" rx="8" fill="#43598a"/>
+          <path d="M148 160 l24 0 8 -22 12 40 10 -28 8 10 30 0" stroke="#7ef0c0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <rect x="200" y="218" width="40" height="14" fill="#22314f"/>
+          <rect x="176" y="232" width="88" height="10" rx="5" fill="#22314f"/>
+          <circle cx="320" cy="94" r="34" fill="#35b877"/>
+          <path d="M305 94 l10 11 20 -22" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <g stroke="var(--ink-3)" stroke-width="3" stroke-linecap="round" opacity=".55">
+            <circle cx="104" cy="220" r="7" fill="none"/>
+            <circle cx="352" cy="196" r="9" fill="none"/>
+            <circle cx="92" cy="120" r="5" fill="none"/>
+          </g>
+          <path d="M120 260 q100 26 200 0" stroke="var(--line-strong)" stroke-width="5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Row 2: picture LEFT, text RIGHT -->
+    <div class="row">
+      <div class="pic sl sl-l" role="img" aria-label="Illustration of a shield blocking a scam email">
+        <svg viewBox="0 0 440 320" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="220" cy="165" rx="195" ry="135" fill="var(--orange-soft)"/>
+          <path d="M220 62 l84 26 q4 84 -84 152 q-88 -68 -84 -152 Z" fill="var(--blue)"/>
+          <path d="M220 78 l66 21 q3 68 -66 124 q-69 -56 -66 -124 Z" fill="#5b84f2"/>
+          <path d="M196 168 l16 17 34 -40" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <g transform="rotate(-10 112 116)">
+            <rect x="76" y="92" width="72" height="48" rx="8" fill="var(--card)" stroke="var(--line-strong)" stroke-width="2.5"/>
+            <path d="M78 96 l34 24 34 -24" stroke="var(--line-strong)" stroke-width="2.5" fill="none"/>
+            <circle cx="148" cy="92" r="17" fill="#e8574b"/>
+            <path d="M141 85 l14 14 M155 85 l-14 14" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/>
+          </g>
+          <g stroke="var(--sun)" stroke-width="4" stroke-linecap="round">
+            <path d="M330 96 l12 0 M336 90 l0 12"/>
+            <path d="M340 210 l10 0 M345 205 l0 10"/>
+          </g>
+        </svg>
+      </div>
+      <div class="row-copy sl sl-r">
+        <h3>You're Protected From Scams</h3>
+        <p>We block dangerous emails before they reach your team, put an extra lock on your accounts, and keep watch 24/7 — so one wrong click doesn't turn into a very bad week.</p>
+        <span class="mini">Scam emails stopped at the door</span>
+      </div>
+    </div>
+
+    <!-- Row 3: text LEFT, picture RIGHT -->
+    <div class="row">
+      <div class="row-copy sl sl-l">
+        <h3>Nothing Ever Gets Lost</h3>
+        <p>Your files are backed up automatically every night, and we regularly test those backups to make sure they actually work. Spilled coffee, stolen laptop, or worse — your work is safe.</p>
+        <span class="mini">Backed up nightly, tested regularly</span>
+      </div>
+      <div class="pic sl sl-r" role="img" aria-label="Illustration of files being backed up safely to the cloud">
+        <svg viewBox="0 0 440 320" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="220" cy="165" rx="195" ry="135" fill="var(--sun-soft)"/>
+          <path d="M150 150 a44 44 0 0 1 86 -12 a34 34 0 0 1 24 62 l-104 0 a36 36 0 0 1 -6 -50 Z" fill="var(--blue)"/>
+          <path d="M196 174 l0 -44 M180 148 l16 -18 16 18" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <g>
+            <rect x="146" y="222" width="64" height="48" rx="8" fill="var(--orange)"/>
+            <path d="M146 234 l0 -8 a8 8 0 0 1 8 -8 l18 0 6 8 32 0" fill="none" stroke="var(--orange-deep)" stroke-width="4"/>
+            <rect x="222" y="230" width="58" height="40" rx="8" fill="#5b84f2"/>
+          </g>
+          <circle cx="316" cy="120" r="32" fill="var(--card)" stroke="var(--line-strong)" stroke-width="3"/>
+          <path d="M316 102 l0 18 12 8" stroke="var(--blue)" stroke-width="5" stroke-linecap="round" fill="none"/>
+          <circle cx="308" cy="236" r="24" fill="#35b877"/>
+          <path d="M297 236 l8 9 15 -17" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Row 4: picture LEFT, text RIGHT -->
+    <div class="row">
+      <div class="pic sl sl-l" role="img" aria-label="Illustration of strong Wi-Fi reaching a laptop and phone">
+        <svg viewBox="0 0 440 320" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="220" cy="165" rx="195" ry="135" fill="var(--blue-soft)"/>
+          <rect x="164" y="196" width="112" height="34" rx="10" fill="#2a3b5e"/>
+          <circle cx="188" cy="213" r="5" fill="#7ef0c0"/>
+          <circle cx="206" cy="213" r="5" fill="#5b84f2"/>
+          <path d="M196 196 l-10 -26 M244 196 l10 -26" stroke="#2a3b5e" stroke-width="6" stroke-linecap="round"/>
+          <g stroke="var(--blue)" stroke-linecap="round" fill="none">
+            <path d="M186 132 a48 48 0 0 1 68 0" stroke-width="9"/>
+            <path d="M170 108 a70 70 0 0 1 100 0" stroke-width="9" opacity=".65"/>
+            <path d="M154 84 a92 92 0 0 1 132 0" stroke-width="9" opacity=".38"/>
+          </g>
+          <circle cx="220" cy="162" r="10" fill="var(--blue)"/>
+          <g>
+            <rect x="82" y="234" width="84" height="52" rx="8" fill="#43598a"/>
+            <rect x="70" y="286" width="108" height="10" rx="5" fill="#2a3b5e"/>
+            <path d="M112 260 l8 9 16 -18" stroke="#7ef0c0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+          <g>
+            <rect x="304" y="222" width="44" height="74" rx="10" fill="#43598a"/>
+            <rect x="318" y="228" width="16" height="4" rx="2" fill="#2a3b5e"/>
+            <path d="M316 258 l7 8 14 -16" stroke="#7ef0c0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </g>
+        </svg>
+      </div>
+      <div class="row-copy sl sl-r">
+        <h3>Wi-Fi That Just Works</h3>
+        <p>Strong, dependable internet in every room of every office — no more dead zones, dropped video calls, or "sorry, you cut out." Your whole team stays connected, wherever they sit.</p>
+        <span class="mini">Every corner covered</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════ SERVICES — FLIP CARDS ═══════════ -->
+<section class="services" id="services">
+  <div class="wrap">
+    <div class="services-head sl sl-l">
+      <div>
+        <span class="kicker">What We Do</span>
+        <h2 class="sec-title">Everything Your Business Needs</h2>
+        <p class="sec-lede">From everyday help to big-picture planning — take exactly what you need, and leave the rest to us.</p>
+      </div>
+      <a class="btn btn-orange" href="#contact">Get a Quote</a>
+    </div>
+    <p class="flip-hint sl sl-r"><b>Click any card</b> to see what's included — no tech talk, promise.</p>
+    <div class="svc-grid">
+
+      <button class="flip sl sl-l" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">💻</div>
+            <h3>Computer Care</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Computer Care</h3>
+            <p>We keep every computer updated, protected, and running fast — Windows or Mac, desktop or laptop.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-l d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">📧</div>
+            <h3>Email &amp; Office Apps</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Email &amp; Office Apps</h3>
+            <p>Your email, calendars, and shared files set up right — synced on every device and protected from spam.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">💾</div>
+            <h3>Backups That Work</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Backups That Work</h3>
+            <p>Automatic nightly backups of your files and systems — tested regularly, so a bad day never becomes a disaster.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">📶</div>
+            <h3>Wi-Fi &amp; Internet</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Wi-Fi &amp; Internet</h3>
+            <p>Strong Wi-Fi in every corner, stable internet, and safe connections between your offices and remote staff.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-l" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🎧</div>
+            <h3>Friendly Help Desk</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Friendly Help Desk</h3>
+            <p>Real people who answer the phone, fix things fast, and explain everything in plain English.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-l d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🗺️</div>
+            <h3>Planning &amp; Budgets</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Planning &amp; Budgets</h3>
+            <p>A simple technology plan and a predictable monthly budget — no surprise bills, no confusing invoices.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🔒</div>
+            <h3>Scam &amp; Hacker Protection</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Scam &amp; Hacker Protection</h3>
+            <p>We block phishing emails, lock down your accounts, and keep watch 24/7 — so one wrong click doesn't become a crisis.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🗄️</div>
+            <h3>Servers &amp; Cloud</h3>
+            <span class="peek">See what's included</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Servers &amp; Cloud</h3>
+            <p>Whether your systems live in your office or in the cloud, we keep the behind-the-scenes machinery humming.</p>
+            <a class="back-link" href="#contact">Sounds good →</a>
+          </div>
+        </div>
+      </button>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ HOW WE WORK ═══════════ -->
+<section class="process">
+  <div class="wrap">
+    <div class="sl sl-l">
+      <span class="kicker">How It Works</span>
+      <h2 class="sec-title">Getting Started Is Easy</h2>
+      <p class="sec-lede">Four simple steps — and most clients are fully up and running within a few weeks.</p>
+    </div>
+    <div class="steps">
+      <div class="step sl sl-l">
+        <div class="num">1</div>
+        <h3>We Listen</h3>
+        <p>Tell us what's been frustrating you. We'll take a friendly look at your setup — free, no strings attached.</p>
+      </div>
+      <div class="step sl sl-r d1">
+        <div class="num">2</div>
+        <h3>We Set You Up</h3>
+        <p>We fix the annoying stuff first, then get everything organized and protected — usually within 2–4 weeks.</p>
+      </div>
+      <div class="step sl sl-l d2">
+        <div class="num">3</div>
+        <h3>We Keep Watch</h3>
+        <p>Updates, backups, and security all happen quietly in the background while you go about your day.</p>
+      </div>
+      <div class="step sl sl-r d3">
+        <div class="num">4</div>
+        <h3>We Stay in Touch</h3>
+        <p>Regular check-ins, easy-to-read updates, and one friendly number to call whenever you need us.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TESTIMONIALS + CTA ═══════════ -->
+<section class="social">
+  <div class="wrap">
+    <div class="sl sl-u" style="text-align:center">
+      <span class="kicker" style="justify-content:center;display:inline-flex">Kind Words</span>
+      <h2 class="sec-title">People Like Working With Us</h2>
+    </div>
+    <div class="quotes">
+      <blockquote class="quote sl sl-l">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p>"LINEAR stabilized our Wi-Fi and printers in one visit. Our staff stopped losing time."</p>
+        <footer>— Office Manager, Healthcare</footer>
+      </blockquote>
+      <blockquote class="quote sl sl-u d1">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p>"Clear communication, fast turnarounds, and they explain things in plain English."</p>
+        <footer>— Operations Lead, Retail</footer>
+      </blockquote>
+      <blockquote class="quote sl sl-r d2">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p>"They moved us to new email and set up our computers. Onboarding new hires is now painless."</p>
+        <footer>— HR Lead, Manufacturing</footer>
+      </blockquote>
+    </div>
+    <div class="cta-banner sl sl-u">
+      <div>
+        <h3>Tired of tech headaches?</h3>
+        <p>Let's make them our problem instead. The first chat is free.</p>
+      </div>
+      <a class="btn" href="#contact">Book a friendly chat →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FAQ ═══════════ -->
+<section class="faq" id="faq">
+  <div class="wrap">
+    <div class="sl sl-u" style="text-align:center">
+      <span class="kicker" style="justify-content:center;display:inline-flex">Common Questions</span>
+      <h2 class="sec-title">You Might Be Wondering…</h2>
+      <p class="sec-lede" style="margin:0 auto">Quick, honest answers about getting started, pricing, and support.</p>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item sl sl-l">
+        <summary>What happens when we first sign up?</summary>
+        <div class="faq-body">We start with a friendly conversation and a quick look at your computers, network, and email. Then we set up our tools, write down how everything works, and start fixing the most annoying problems first — most clients feel the difference within the first couple of weeks.</div>
+      </details>
+      <details class="faq-item sl sl-r">
+        <summary>How much does it cost?</summary>
+        <div class="faq-body">Most clients pay a simple, predictable monthly amount based on how many people or computers they have. That covers the watching, protecting, and helping. Bigger one-time projects (like moving offices) get their own clear quote first — no surprise bills, ever.</div>
+      </details>
+      <details class="faq-item sl sl-l">
+        <summary>Our team works from home sometimes. Is that okay?</summary>
+        <div class="faq-body">Absolutely. We make sure everyone can work safely from home, the office, or on the road — and we're just as easy to reach no matter where your team is that day.</div>
+      </details>
+      <details class="faq-item sl sl-r">
+        <summary>How do you keep us safe from scams and hackers?</summary>
+        <div class="faq-body">We add an extra lock to your accounts (so a stolen password isn't enough), filter out dangerous emails before they reach you, keep your computers updated, and back everything up nightly. If something ever does go wrong, we have a plan ready and tested.</div>
+      </details>
+      <details class="faq-item sl sl-l">
+        <summary>We already have an IT person. Can you still help?</summary>
+        <div class="faq-body">Of course. We're happy to be the full IT department or just pitch in — handling the day-to-day calls, the updates, or a big project — while your person focuses on what they do best.</div>
+      </details>
+      <details class="faq-item sl sl-r">
+        <summary>How fast can we start?</summary>
+        <div class="faq-body">We can usually chat this week and start right away. Getting fully set up typically takes two to four weeks, but you'll feel the difference much sooner.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONTACT ═══════════ -->
+<section class="contact" id="contact">
+  <div class="wrap">
+    <div class="contact-shell">
+      <div class="contact-form sl sl-l">
+        <span class="kicker">Say Hello</span>
+        <h2 class="sec-title">Let's Talk</h2>
+        <p>Tell us what's been bugging you — even if you're not sure how to describe it. We'll get back to you the same day.</p>
+        <form action="https://formspree.io/f/mjgzyppb" method="POST">
+          <div class="f-row">
+            <div class="f-field">
+              <label for="cf-name">Your name</label>
+              <input id="cf-name" type="text" name="name" required autocomplete="name" placeholder="Jane Smith">
+            </div>
+            <div class="f-field">
+              <label for="cf-email">Your email</label>
+              <input id="cf-email" type="email" name="email" required autocomplete="email" placeholder="you@company.com">
+            </div>
+          </div>
+          <div class="f-field">
+            <label for="cf-company">Company (optional)</label>
+            <input id="cf-company" type="text" name="company" autocomplete="organization" placeholder="Your business name">
+          </div>
+          <div class="f-field">
+            <label for="cf-msg">What's going on?</label>
+            <textarea id="cf-msg" name="message" required placeholder="e.g. Our Wi-Fi keeps dropping, email is a mess, and we're not sure our files are backed up…"></textarea>
+          </div>
+          <button class="btn btn-orange" type="submit">Send Message →</button>
+          <div class="form-note">We typically reply <b>the same day</b> 😊</div>
+        </form>
+      </div>
+      <aside class="contact-side sl sl-r">
+        <h3>Prefer to just call?</h3>
+        <p class="sub">We'd love to hear from you — a real person answers.</p>
+        <div class="c-item">
+          <div class="c-ico">📞</div>
+          <div><small>Phone</small><a href="tel:+18456041462">(845) 604-1462</a></div>
+        </div>
+        <div class="c-item">
+          <div class="c-ico">✉️</div>
+          <div><small>Email</small><a href="mailto:support@linearit.co">support@linearit.co</a></div>
+        </div>
+        <div class="c-item">
+          <div class="c-ico">📍</div>
+          <div><small>Where we are</small><span>Monroe, NY · United States</span></div>
+        </div>
+        <div class="contact-links">
+          <a class="btn" href="https://www.linearit.co/assets/LinearTech.vcf">📇 Save our contact</a>
+          <a class="btn" href="https://speed.cloudflare.com/" target="_blank" rel="noopener">⚡ Test your internet</a>
+          <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=Linear%20Tech%20Monroe%20NY" target="_blank" rel="noopener">🧭 Directions</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span class="name">LINE<em>AR</em></span>
+    <p>© <span id="year"></span> LINEAR · Friendly IT for Your Business · Monroe, NY</p>
+    <nav>
+      <a href="#top">Home</a>
+      <a href="#services">Services</a>
+      <a href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">Client Login</a>
+      <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&amp;y=Guest">Remote Support</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- ═══════════ MOBILE BAR ═══════════ -->
+<div class="mobile-bar">
+  <a href="tel:+18456041462">📞 Call</a>
+  <a href="mailto:support@linearit.co">✉️ Email</a>
+  <a class="hot" href="#contact">Book a Chat</a>
+</div>
+
+<a class="to-top" id="toTop" href="#top" aria-label="Back to top">↑</a>
+
+<script>
+// nav scroll state + back-to-top
+const nav = document.getElementById('nav');
+const toTop = document.getElementById('toTop');
+const onScroll = () => {
+  nav.classList.toggle('scrolled', scrollY > 24);
+  toTop.classList.toggle('show', scrollY > 700);
+};
+addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+
+// mobile menu
+const burger = document.getElementById('hamburger');
+const menu = document.getElementById('menu');
+burger.addEventListener('click', () => {
+  const open = menu.classList.toggle('open');
+  burger.setAttribute('aria-expanded', open);
+});
+menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  menu.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+}));
+
+// hero elements animate in on load
+requestAnimationFrame(() => {
+  document.querySelectorAll('.in-load').forEach(el => el.classList.add('in'));
+});
+
+// slide-in reveals from left/right on scroll
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  });
+}, {threshold:.12, rootMargin:'0px 0px -50px'});
+document.querySelectorAll('.sl:not(.in-load)').forEach(el => io.observe(el));
+
+// flip cards — click/tap or Enter/Space toggles
+document.querySelectorAll('.flip').forEach(card => {
+  card.addEventListener('click', e => {
+    if (e.target.closest('a')) return; // let "Sounds good" link work
+    const flipped = card.classList.toggle('flipped');
+    card.setAttribute('aria-expanded', flipped);
+  });
+});
+
+// sun/moon theme toggle (light by default; moon switches to calm dark)
+const themeBtn = document.getElementById('themeBtn');
+const root = document.documentElement;
+const setThemeIcon = () => { themeBtn.textContent = root.dataset.theme === 'dark' ? '☀️' : '🌙'; };
+setThemeIcon();
+themeBtn.addEventListener('click', () => {
+  const toDark = root.dataset.theme !== 'dark';
+  if (toDark) root.dataset.theme = 'dark'; else root.removeAttribute('data-theme');
+  try { localStorage.setItem('linear3-theme', toDark ? 'dark' : 'light'); } catch (e) {}
+  setThemeIcon();
+  themeBtn.classList.remove('spin');
+  void themeBtn.offsetWidth;
+  themeBtn.classList.add('spin');
+});
+
+// year
+document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+<!-- Tawk.to live chat -->
+<script>
+var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+(function(){
+  var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+  s1.async = true;
+  s1.src = 'https://embed.tawk.to/6967d3f1cd894f197b19d503/1jeup7pqb';
+  s1.charset = 'UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+
+</body>
+</html>
