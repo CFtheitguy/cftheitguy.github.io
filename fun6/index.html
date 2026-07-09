@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jewish Date Converter — Linear Tech</title>
+  <meta name="description" content="Type in any date and instantly get the Jewish (Hebrew) calendar date — with holidays, Hebrew lettering, and an after-sunset toggle.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes twinkle { 0%,100%{ opacity:.9 } 50%{ opacity:.25 } }
+    .star { position:absolute; background:#fff; border-radius:9999px; animation: twinkle 3s ease-in-out infinite; }
+    @keyframes pop { 0%{ transform:scale(.95) translateY(6px); opacity:0 } 100%{ transform:scale(1) translateY(0); opacity:1 } }
+    .pop-in { animation: pop .3s ease-out; }
+    .hebrew { font-family: "SBL Hebrew", "Times New Roman", serif; direction: rtl; }
+    input[type="date"]{ color-scheme: dark; }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-900 min-h-screen text-slate-100 font-sans relative overflow-x-hidden">
+
+  <!-- starfield -->
+  <div id="sky" class="pointer-events-none fixed inset-0 z-0"></div>
+
+  <header class="relative z-10 max-w-2xl mx-auto px-4 pt-8 pb-2 flex items-center justify-between">
+    <a href="https://cftheitguy.github.io/" class="flex items-center gap-2">
+      <img src="https://cftheitguy.github.io/assets/logo.png" alt="Linear Tech" class="h-7" onerror="this.style.display='none'">
+    </a>
+    <a href="https://cftheitguy.github.io/" class="text-xs text-slate-400 hover:text-slate-200 underline">linearit.co</a>
+  </header>
+
+  <main class="relative z-10 max-w-2xl mx-auto px-4 pb-16">
+    <div class="text-center mt-4 mb-8">
+      <h1 class="text-4xl font-extrabold tracking-tight">🌙 Jewish Date Converter</h1>
+      <p class="text-slate-400 mt-2">
+        Pick any date on the regular calendar and see it on the Jewish calendar — instantly, right in your browser.
+      </p>
+    </div>
+
+    <!-- Input card -->
+    <div class="bg-slate-900/70 backdrop-blur border border-slate-700 rounded-2xl shadow-lg p-6">
+      <label for="gdate" class="block text-sm font-semibold text-slate-300 mb-2">English (Gregorian) date</label>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <input type="date" id="gdate"
+               class="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+        <button onclick="setToday()"
+                class="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-5 py-3 font-semibold transition">
+          Today
+        </button>
+      </div>
+
+      <label class="flex items-center gap-3 mt-5 cursor-pointer select-none">
+        <input type="checkbox" id="afterSunset" class="w-5 h-5 accent-indigo-500" onchange="convert()">
+        <span class="text-sm text-slate-300">
+          It's <span class="font-semibold">after sunset</span> 🌇
+          <span class="text-slate-500 block text-xs">The Jewish day begins at nightfall, so evenings already count as the next date.</span>
+        </span>
+      </label>
+    </div>
+
+    <!-- Result card -->
+    <div id="result" class="hidden mt-6"></div>
+
+    <p class="text-center text-xs text-slate-500 mt-10">
+      Conversions use your browser's built-in Hebrew calendar. Holidays shown follow diaspora observance.
+      For halachic times (zmanim), check a luach — sunset depends on where you are.
+    </p>
+  </main>
+
+<script>
+// ---------- starfield ----------
+(function(){
+  const sky = document.getElementById('sky');
+  for (let i = 0; i < 60; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2 + 1;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (Math.random() * 3) + 's';
+    s.style.animationDuration = (2 + Math.random() * 3) + 's';
+    sky.appendChild(s);
+  }
+})();
+
+// ---------- Hebrew calendar helpers ----------
+const enFmt = new Intl.DateTimeFormat('en-u-ca-hebrew', { day: 'numeric', month: 'long', year: 'numeric' });
+const heMonthFmt = new Intl.DateTimeFormat('he-u-ca-hebrew', { month: 'long' });
+const weekdayFmt = new Intl.DateTimeFormat('en-US', { weekday: 'long' });
+const gregFmt = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+function hebrewParts(date) {
+  const parts = {};
+  for (const p of enFmt.formatToParts(date)) parts[p.type] = p.value;
+  return { day: parseInt(parts.day, 10), month: parts.month, year: parseInt(parts.year, 10) };
+}
+
+// Traditional Hebrew numerals (gematria), e.g. 24 -> כ״ד, 5786 -> תשפ״ו
+function hebrewNumeral(n) {
+  const vals = [[400,'ת'],[300,'ש'],[200,'ר'],[100,'ק'],[90,'צ'],[80,'פ'],[70,'ע'],[60,'ס'],
+                [50,'נ'],[40,'מ'],[30,'ל'],[20,'כ'],[10,'י'],[9,'ט'],[8,'ח'],[7,'ז'],
+                [6,'ו'],[5,'ה'],[4,'ד'],[3,'ג'],[2,'ב'],[1,'א']];
+  let s = '';
+  while (n > 0) {
+    if (n === 15) { s += 'טו'; break; }   // avoid spelling out the Divine name
+    if (n === 16) { s += 'טז'; break; }
+    for (const [v, l] of vals) { if (n >= v) { s += l; n -= v; break; } }
+  }
+  if (s.length === 1) return s + '׳';
+  return s.slice(0, -1) + '״' + s.slice(-1);
+}
+
+function hebrewYearNumeral(y) { return hebrewNumeral(y % 1000); }
+
+// Preferred transliterations (Intl says "Tamuz"/"Tishri"; these read more naturally)
+const monthNames = {
+  'Tishri': 'Tishrei', 'Heshvan': 'Cheshvan', 'Kislev': 'Kislev', 'Tevet': 'Teves',
+  'Shevat': 'Shevat', 'Adar I': 'Adar I', 'Adar': 'Adar', 'Adar II': 'Adar II',
+  'Nisan': 'Nissan', 'Iyar': 'Iyar', 'Sivan': 'Sivan', 'Tamuz': 'Tammuz',
+  'Av': 'Av', 'Elul': 'Elul'
+};
+
+// ---------- Holidays (diaspora) ----------
+const holidayTable = {
+  'Tishri': { 1:'Rosh Hashanah 🍎🍯', 2:'Rosh Hashanah (Day 2) 🍎🍯', 3:'Tzom Gedaliah (fast day)',
+              10:'Yom Kippur 🕊️', 15:'Sukkos 🌿', 16:'Sukkos (Day 2) 🌿', 17:'Chol HaMoed Sukkos',
+              18:'Chol HaMoed Sukkos', 19:'Chol HaMoed Sukkos', 20:'Chol HaMoed Sukkos',
+              21:'Hoshanah Rabbah', 22:'Shemini Atzeres', 23:'Simchas Torah 📜' },
+  'Tevet': { 10:'Asarah B\'Teves (fast day)' },
+  'Shevat': { 15:'Tu BiShvat 🌳' },
+  'Adar': { 13:'Ta\'anis Esther (fast day)', 14:'Purim 🎭', 15:'Shushan Purim' },
+  'Adar II': { 13:'Ta\'anis Esther (fast day)', 14:'Purim 🎭', 15:'Shushan Purim' },
+  'Adar I': { 14:'Purim Katan' },
+  'Nisan': { 15:'Pesach 🍷', 16:'Pesach (Day 2) 🍷', 17:'Chol HaMoed Pesach', 18:'Chol HaMoed Pesach',
+             19:'Chol HaMoed Pesach', 20:'Chol HaMoed Pesach', 21:'Pesach (Day 7)', 22:'Pesach (Day 8)' },
+  'Iyar': { 14:'Pesach Sheni', 18:'Lag BaOmer 🔥' },
+  'Sivan': { 6:'Shavuos 🌸', 7:'Shavuos (Day 2) 🌸' },
+  'Tamuz': { 17:'Shiva Asar B\'Tammuz (fast day)' },
+  'Av': { 9:'Tisha B\'Av (fast day)', 15:'Tu B\'Av 💛' }
+};
+
+function findHolidays(date, h) {
+  const found = [];
+  const t = holidayTable[h.month];
+  if (t && t[h.day]) found.push(t[h.day]);
+
+  // Chanukah: check if any of the previous 8 days was 25 Kislev
+  for (let n = 0; n < 8; n++) {
+    const back = new Date(date);
+    back.setDate(back.getDate() - n);
+    const bh = hebrewParts(back);
+    if (bh.month === 'Kislev' && bh.day === 25) {
+      found.push('Chanukah — night/day ' + (n + 1) + ' 🕎');
+      break;
+    }
+  }
+
+  // Rosh Chodesh: 1st of any month (except Tishrei = Rosh Hashanah), and 30th of the previous month
+  if (h.day === 1 && h.month !== 'Tishri') found.push('Rosh Chodesh ' + (monthNames[h.month] || h.month));
+  if (h.day === 30) {
+    const next = new Date(date);
+    next.setDate(next.getDate() + 1);
+    const nh = hebrewParts(next);
+    found.push('Rosh Chodesh ' + (monthNames[nh.month] || nh.month) + ' (Day 1)');
+  }
+  return found;
+}
+
+// ---------- UI ----------
+function setToday() {
+  const now = new Date();
+  const el = document.getElementById('gdate');
+  el.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  convert();
+}
+
+function convert() {
+  const val = document.getElementById('gdate').value;
+  const box = document.getElementById('result');
+  if (!val) { box.classList.add('hidden'); return; }
+
+  const [y, m, d] = val.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  if (document.getElementById('afterSunset').checked) date.setDate(date.getDate() + 1);
+
+  const h = hebrewParts(date);
+  const monthEn = monthNames[h.month] || h.month;
+  const monthHe = heMonthFmt.format(date);
+  const english = h.day + ' ' + monthEn + ' ' + h.year;
+  const hebrew = hebrewNumeral(h.day) + ' ' + monthHe + ' ' + hebrewYearNumeral(h.year);
+  const weekday = weekdayFmt.format(date);
+  const isShabbos = date.getDay() === 6;
+  const holidays = findHolidays(date, h);
+
+  let badges = '';
+  if (isShabbos) badges += '<span class="inline-block bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full px-3 py-1 text-sm font-semibold mr-2 mb-2">🕯️🕯️ Shabbos</span>';
+  for (const hol of holidays) {
+    badges += '<span class="inline-block bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded-full px-3 py-1 text-sm font-semibold mr-2 mb-2">' + hol + '</span>';
+  }
+
+  box.innerHTML =
+    '<div class="pop-in bg-slate-900/70 backdrop-blur border border-indigo-500/40 rounded-2xl shadow-lg p-6 text-center">' +
+      '<p class="text-sm text-slate-400 mb-1">' + gregFmt.format(date) +
+        (document.getElementById('afterSunset').checked ? ' <span class="text-slate-500">(evening counts as the next Jewish day)</span>' : '') + '</p>' +
+      '<p class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2">' + english + '</p>' +
+      '<p class="hebrew text-4xl sm:text-5xl mt-3 text-indigo-200">' + hebrew + '</p>' +
+      '<p class="text-slate-400 mt-3">' + weekday + '</p>' +
+      (badges ? '<div class="mt-4">' + badges + '</div>' : '') +
+      '<button onclick="copyResult()" id="copyBtn" class="mt-5 text-sm text-slate-400 hover:text-slate-200 underline">Copy result</button>' +
+    '</div>';
+  box.classList.remove('hidden');
+  box.dataset.copy = english + ' / ' + hebrew;
+}
+
+function copyResult() {
+  const box = document.getElementById('result');
+  navigator.clipboard.writeText(box.dataset.copy || '').then(() => {
+    const btn = document.getElementById('copyBtn');
+    if (btn) { btn.textContent = 'Copied! ✓'; setTimeout(() => btn.textContent = 'Copy result', 1500); }
+  });
+}
+
+document.getElementById('gdate').addEventListener('change', convert);
+setToday();
+</script>
+</body>
+</html>
