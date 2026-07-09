@@ -9,6 +9,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// apply saved theme before first paint to avoid a flash
+(function(){try{if(localStorage.getItem('linear-theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}})();
+</script>
 
 <style>
 /* ═══════════════════════ TOKENS ═══════════════════════ */
@@ -145,6 +149,22 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
 .menu>a:not(.btn):hover{color:#fff;background:rgba(255,255,255,.07)}
 .menu .btn{padding:9px 21px;font-size:14px;margin-left:6px}
 
+/* sun/moon theme toggle */
+.theme-btn{
+  width:42px;height:42px;border-radius:50%;flex-shrink:0;margin-left:8px;
+  display:grid;place-items:center;font-size:18px;line-height:1;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line-strong);
+  transition:background .2s,border-color .2s,box-shadow .25s;
+}
+.theme-btn:hover{
+  background:rgba(139,92,246,.16);
+  border-color:rgba(139,92,246,.55);
+  box-shadow:0 0 20px rgba(139,92,246,.4);
+}
+.theme-btn.spin{animation:themeSpin .6s var(--ease)}
+@keyframes themeSpin{from{transform:rotate(-360deg) scale(.5)}to{transform:rotate(0) scale(1)}}
+
 .hamburger{
   display:none;margin-left:auto;
   background:rgba(255,255,255,.05);border:1px solid var(--line-strong);
@@ -262,6 +282,82 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
   .stat:nth-child(n+3){border-top:1px solid var(--line)}
 }
 
+/* ═══════════════════════ TECH TICKER ═══════════════════════ */
+.ticker-wrap{margin-top:30px;text-align:center}
+.ticker-label{
+  font-size:11.5px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--txt-3);margin-bottom:14px;
+}
+.ticker{
+  overflow:hidden;
+  mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+}
+.ticker-track{display:flex;width:max-content;animation:tick 38s linear infinite}
+.ticker-track span{
+  flex-shrink:0;margin-right:12px;
+  font-family:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+  font-size:13px;color:var(--txt-2);
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  padding:8px 18px;border-radius:999px;
+}
+@keyframes tick{to{transform:translateX(-50%)}}
+.ticker:hover .ticker-track{animation-play-state:paused}
+
+/* ═══════════════════════ TERMINAL ═══════════════════════ */
+.term{
+  margin-top:36px;
+  border-radius:15px;overflow:hidden;
+  border:1px solid rgba(148,180,255,.24);
+  background:#070c18;
+  box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
+  font-family:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+  font-size:13px;
+  text-align:left;
+}
+.term-bar{
+  display:flex;align-items:center;gap:7px;
+  padding:11px 15px;
+  background:rgba(255,255,255,.045);
+  border-bottom:1px solid rgba(148,180,255,.14);
+}
+.term-bar i{width:11px;height:11px;border-radius:50%}
+.term-bar i:nth-child(1){background:#ff5f57}
+.term-bar i:nth-child(2){background:#febc2e}
+.term-bar i:nth-child(3){background:#28c840}
+.term-bar span{margin-left:8px;font-size:11.5px;color:#5f7396;letter-spacing:.05em}
+.term-body{padding:17px 19px;line-height:2;color:#9fb3d1;overflow-x:auto;white-space:nowrap}
+.term .p{color:var(--cyan)}
+.term .ok{color:var(--green)}
+.term .cursor{
+  display:inline-block;width:8px;height:14px;
+  background:var(--cyan);vertical-align:-2px;
+  animation:blink 1.1s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* ═══════════════════════ PROCESS ═══════════════════════ */
+.process{padding:0 0 110px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:52px}
+.step{
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:30px 26px;
+  transition:transform .3s var(--ease),border-color .3s,box-shadow .3s;
+}
+.step:hover{transform:translateY(-5px);border-color:rgba(34,211,238,.45);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+.step .num{
+  font-family:var(--font-d);font-size:44px;font-weight:700;line-height:1;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:18px;
+}
+.step h3{font-size:17.5px;font-weight:600;margin-bottom:8px}
+.step p{font-size:14.5px;color:var(--txt-3);line-height:1.62}
+@media (max-width:1020px){.steps{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
+
 /* ═══════════════════════ ABOUT (text left / cards right) ═══════════════════════ */
 .about{padding:120px 0 60px}
 .about-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:clamp(36px,5vw,72px);align-items:center}
@@ -295,7 +391,13 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
 .services{padding:110px 0}
 .services-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:14px;flex-wrap:wrap}
 .flip-hint{font-size:14px;color:var(--txt-3);margin-bottom:40px}
-.flip-hint b{color:var(--cyan);font-weight:600}
+.flip-hint code{
+  font-family:ui-monospace,'Cascadia Code','SF Mono',Menlo,Consolas,monospace;
+  font-size:13px;color:var(--cyan);
+  background:rgba(34,211,238,.08);
+  border:1px solid rgba(34,211,238,.28);
+  padding:3px 10px;border-radius:8px;
+}
 
 .svc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
 .flip{
@@ -336,11 +438,11 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
 }
 .flip-front h3{font-size:18px;font-weight:600;margin:18px 0 6px}
 .flip-front .tap{
-  display:inline-flex;align-items:center;gap:7px;
-  font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--txt-3);
+  position:absolute;top:22px;right:20px;
+  font-size:18px;color:var(--txt-3);
+  transition:transform .5s var(--ease),color .3s;
 }
-.flip-front .tap::after{content:"↻";font-size:15px;color:var(--cyan)}
+.flip:hover .flip-front .tap{transform:rotate(180deg);color:var(--cyan)}
 .flip-back{
   transform:rotateY(180deg);
   background:linear-gradient(140deg,rgba(109,62,242,.92),rgba(37,99,235,.9) 55%,rgba(14,165,233,.88));
@@ -547,10 +649,70 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
 
 @media (prefers-reduced-motion:reduce){
   .sl{opacity:1;transform:none;transition:none}
-  .blob,.hero-pill .dot,.hero-scroll{animation:none}
+  .blob,.hero-pill .dot,.hero-scroll,.ticker-track,.term .cursor{animation:none}
   .flip-in{transition:none}
   html{scroll-behavior:auto}
 }
+
+/* ═══════════════════════ LIGHT THEME (☀️) ═══════════════════════ */
+[data-theme="light"]{
+  --bg:#eef2fa;
+  --bg-2:#e7edf8;
+  --bg-3:#dfe7f5;
+  --card:#ffffff;
+  --card-2:#f8fbff;
+  --line:rgba(23,43,96,.12);
+  --line-strong:rgba(23,43,96,.22);
+  --txt:#0e1626;
+  --txt-2:#3c4d68;
+  --txt-3:#67788f;
+  --shadow-glow:0 12px 40px rgba(109,62,242,.28);
+}
+[data-theme="light"] .nav.scrolled{
+  background:rgba(238,242,250,.86);
+  box-shadow:0 10px 40px rgba(23,43,96,.12);
+}
+[data-theme="light"] .menu>a:not(.btn):hover{color:var(--txt);background:rgba(23,43,96,.06)}
+[data-theme="light"] .hamburger,
+[data-theme="light"] .theme-btn{background:rgba(23,43,96,.05)}
+[data-theme="light"] .hamburger:hover{background:rgba(23,43,96,.1)}
+[data-theme="light"] .btn-line{color:var(--txt)!important;background:rgba(23,43,96,.04)}
+[data-theme="light"] .btn-line:hover{background:rgba(23,43,96,.09)}
+[data-theme="light"] .hero{
+  background:
+    radial-gradient(1000px 620px at 18% -10%, rgba(139,92,246,.17), transparent 60%),
+    radial-gradient(900px 560px at 88% 8%, rgba(34,211,238,.13), transparent 58%),
+    radial-gradient(760px 520px at 60% 105%, rgba(59,130,246,.11), transparent 55%),
+    var(--bg);
+}
+[data-theme="light"] .hero::before{
+  background-image:
+    linear-gradient(rgba(23,43,96,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(23,43,96,.06) 1px,transparent 1px);
+}
+[data-theme="light"] .blob-1{background:rgba(139,92,246,.18)}
+[data-theme="light"] .blob-2{background:rgba(34,211,238,.14)}
+[data-theme="light"] .blob-3{background:rgba(59,130,246,.13)}
+[data-theme="light"] .hero-pill{color:var(--violet-deep);background:rgba(139,92,246,.09)}
+[data-theme="light"] .hero-chips span{background:rgba(23,43,96,.04)}
+[data-theme="light"] .stats-card{box-shadow:0 26px 70px rgba(23,43,96,.16),inset 0 1px 0 #fff}
+[data-theme="light"] .ticker-track span{background:rgba(23,43,96,.04)}
+[data-theme="light"] .feat-ico{background:rgba(139,92,246,.1)}
+[data-theme="light"] .feat:hover,
+[data-theme="light"] .step:hover{box-shadow:0 18px 44px rgba(23,43,96,.14)}
+[data-theme="light"] .flip:hover .flip-front{box-shadow:0 18px 44px rgba(23,43,96,.14)}
+[data-theme="light"] .quote{background:#fff}
+[data-theme="light"] .f-field input,
+[data-theme="light"] .f-field textarea{background:rgba(23,43,96,.04)}
+[data-theme="light"] .f-field input:focus,
+[data-theme="light"] .f-field textarea:focus{background:#fff}
+[data-theme="light"] .c-ico{background:rgba(23,43,96,.04)}
+[data-theme="light"] .contact-shell{box-shadow:0 30px 80px rgba(23,43,96,.2)}
+[data-theme="light"] .footer{background:#e2e9f6}
+[data-theme="light"] .mobile-bar{background:rgba(238,242,250,.95)}
+[data-theme="light"] .mobile-bar a{color:var(--txt);background:rgba(23,43,96,.05)}
+[data-theme="light"] .mobile-bar a.hot{color:#fff}
+[data-theme="light"] .to-top{background:#fff;box-shadow:0 14px 36px rgba(23,43,96,.22)}
 </style>
 </head>
 <body>
@@ -571,6 +733,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
       <a class="btn btn-line" href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">Client Login</a>
       <a class="btn btn-grad" href="#contact">Book a Consult</a>
     </nav>
+    <button class="theme-btn" id="themeBtn" aria-label="Toggle light / dark theme" title="Toggle light / dark theme">☀️</button>
   </div>
 </header>
 
@@ -606,6 +769,15 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
     <div class="stat"><b data-count="365">365</b><small>Days Monitored</small></div>
     <div class="stat"><b>24/7</b><small>Alerting &amp; Support</small></div>
   </div>
+  <div class="ticker-wrap sl sl-u d1" aria-hidden="true">
+    <div class="ticker-label">// tech we manage daily</div>
+    <div class="ticker">
+      <div class="ticker-track">
+        <span>Microsoft 365</span><span>Entra ID</span><span>Intune</span><span>Azure</span><span>Windows 11</span><span>macOS</span><span>SonicWall</span><span>UniFi</span><span>Hyper-V</span><span>VMware</span><span>Zero Trust</span><span>EDR / XDR</span><span>Cloudflare</span><span>Wi-Fi 6E</span>
+        <span>Microsoft 365</span><span>Entra ID</span><span>Intune</span><span>Azure</span><span>Windows 11</span><span>macOS</span><span>SonicWall</span><span>UniFi</span><span>Hyper-V</span><span>VMware</span><span>Zero Trust</span><span>EDR / XDR</span><span>Cloudflare</span><span>Wi-Fi 6E</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════ ABOUT — copy slides from LEFT, cards from RIGHT ═══════════ -->
@@ -616,6 +788,17 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
       <h2 class="sec-title">Empower Your Business <span class="g">in the Digital Age</span></h2>
       <p>LINEAR is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response. We streamline operations through proactive monitoring, strong security, and networks that scale.</p>
       <a class="btn btn-grad" href="#services">Explore Services</a>
+      <div class="term sl sl-l d2" aria-hidden="true">
+        <div class="term-bar"><i></i><i></i><i></i><span>linear@msp — zsh</span></div>
+        <div class="term-body">
+          <span class="p">linear@msp:~$</span> systemctl status your-business<br>
+          <span class="ok">●</span> monitoring.service&nbsp;&nbsp;— active (running 24/7)<br>
+          <span class="ok">●</span> security.service&nbsp;&nbsp;&nbsp;&nbsp;— active (hardened, MFA on)<br>
+          <span class="ok">●</span> backup.service&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;— active (verified nightly)<br>
+          <span class="ok">●</span> helpdesk.service&nbsp;&nbsp;&nbsp;&nbsp;— active (15 min response)<br>
+          <span class="p">linear@msp:~$</span> <span class="cursor"></span>
+        </div>
+      </div>
     </div>
     <div class="feat-grid">
       <div class="feat sl sl-r">
@@ -653,7 +836,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
       </div>
       <a class="btn btn-grad" href="#contact">Get a Quote</a>
     </div>
-    <p class="flip-hint sl sl-r"><b>Tap any card</b> to flip it and see what's included ↻</p>
+    <p class="flip-hint sl sl-r"><code>$ click --card</code> &nbsp;to flip it and see what's included</p>
     <div class="svc-grid">
 
       <button class="flip sl sl-l" type="button" aria-expanded="false">
@@ -661,7 +844,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">💻</div>
             <h3>Managed Endpoint</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Managed Endpoint</h3>
@@ -676,7 +859,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">📧</div>
             <h3>Microsoft 365</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Microsoft 365</h3>
@@ -691,7 +874,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">💾</div>
             <h3>Backup &amp; DR</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Backup &amp; DR</h3>
@@ -706,7 +889,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">🌐</div>
             <h3>Networking</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Networking</h3>
@@ -721,7 +904,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">🎧</div>
             <h3>Support Desk</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Support Desk</h3>
@@ -736,7 +919,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">🧭</div>
             <h3>Advisory</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Advisory</h3>
@@ -751,7 +934,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">🔐</div>
             <h3>Security</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Security</h3>
@@ -766,7 +949,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
           <div class="flip-face flip-front">
             <div class="svc-ico">🗄️</div>
             <h3>Cloud &amp; Servers</h3>
-            <span class="tap">Tap to flip</span>
+            <span class="tap" aria-hidden="true">↻</span>
           </div>
           <div class="flip-face flip-back">
             <h3>Cloud &amp; Servers</h3>
@@ -776,6 +959,39 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
         </div>
       </button>
 
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PROCESS — steps alternate left/right ═══════════ -->
+<section class="process">
+  <div class="wrap">
+    <div class="sl sl-l">
+      <span class="kicker">How We Work</span>
+      <h2 class="sec-title">From Chaos to <span class="g">Predictable IT</span></h2>
+      <p class="sec-lede">A simple four-step playbook we run for every client — no jargon, no surprises.</p>
+    </div>
+    <div class="steps">
+      <div class="step sl sl-l">
+        <div class="num">01</div>
+        <h3>Discover</h3>
+        <p>We audit your endpoints, network, and cloud, document everything, and map the quick wins.</p>
+      </div>
+      <div class="step sl sl-r d1">
+        <div class="num">02</div>
+        <h3>Deploy</h3>
+        <p>Agents, monitoring, and security baselines rolled out within days — not months.</p>
+      </div>
+      <div class="step sl sl-l d2">
+        <div class="num">03</div>
+        <h3>Defend</h3>
+        <p>MFA, EDR, patching, and tested backups running on autopilot, aligned to CIS controls.</p>
+      </div>
+      <div class="step sl sl-r d3">
+        <div class="num">04</div>
+        <h3>Drive</h3>
+        <p>Quarterly roadmaps, budgets, and reporting that keep IT boring — in a good way.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -994,6 +1210,21 @@ const statIO = new IntersectionObserver(entries => {
   });
 }, {threshold:.5});
 document.querySelectorAll('[data-count]').forEach(el => statIO.observe(el));
+
+// sun/moon theme toggle
+const themeBtn = document.getElementById('themeBtn');
+const root = document.documentElement;
+const setThemeIcon = () => { themeBtn.textContent = root.dataset.theme === 'light' ? '🌙' : '☀️'; };
+setThemeIcon();
+themeBtn.addEventListener('click', () => {
+  const toLight = root.dataset.theme !== 'light';
+  if (toLight) root.dataset.theme = 'light'; else root.removeAttribute('data-theme');
+  try { localStorage.setItem('linear-theme', toLight ? 'light' : 'dark'); } catch (e) {}
+  setThemeIcon();
+  themeBtn.classList.remove('spin');
+  void themeBtn.offsetWidth;
+  themeBtn.classList.add('spin');
+});
 
 // year
 document.getElementById('year').textContent = new Date().getFullYear();
