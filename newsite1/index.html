@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LINEAR — Straightforward IT Excellence</title>
+<meta name="description" content="LINEAR — Fast, secure, and hassle-free technology solutions. Proactive IT, security, backups, and networks that scale.">
+<link rel="icon" type="image/png" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════ TOKENS ═══════════════════════ */
+:root{
+  --bg:#05080f;
+  --bg-2:#080d1a;
+  --bg-3:#0b1222;
+  --card:#0d1526;
+  --card-2:#111b31;
+  --line:rgba(148,180,255,.13);
+  --line-strong:rgba(148,180,255,.22);
+
+  --txt:#eef3fb;
+  --txt-2:#aebdd6;
+  --txt-3:#7688a6;
+
+  --violet:#8b5cf6;
+  --violet-deep:#6d3ef2;
+  --cyan:#22d3ee;
+  --blue:#3b82f6;
+  --amber:#fbbf24;
+  --green:#34d399;
+
+  --grad:linear-gradient(100deg,var(--violet) 0%,var(--blue) 50%,var(--cyan) 100%);
+
+  --font-d:'Space Grotesk',system-ui,sans-serif;
+  --font-b:'Inter',system-ui,sans-serif;
+
+  --r-md:18px; --r-lg:26px;
+  --ease:cubic-bezier(.22,.85,.3,1);
+  --shadow-glow:0 12px 44px rgba(109,62,242,.32);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-b);
+  font-size:16.5px;line-height:1.7;
+  color:var(--txt);
+  background:var(--bg);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{font:inherit;cursor:pointer;color:inherit}
+section{scroll-margin-top:92px;position:relative}
+::selection{background:rgba(139,92,246,.35)}
+
+h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(20px,4vw,36px)}
+
+.kicker{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:12.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:18px;
+}
+.kicker::before{content:"";width:30px;height:2px;background:var(--grad);border-radius:2px}
+
+.sec-title{font-size:clamp(30px,4.4vw,48px);font-weight:700;margin-bottom:18px}
+.sec-title .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sec-lede{font-size:clamp(16.5px,1.6vw,19px);color:var(--txt-2);max-width:620px}
+
+/* ═══════════════════════ SLIDE-IN REVEALS ═══════════════════════ */
+.sl{opacity:0;transition:opacity .85s var(--ease),transform .85s var(--ease);will-change:opacity,transform}
+.sl-l{transform:translateX(-72px)}
+.sl-r{transform:translateX(72px)}
+.sl-u{transform:translateY(46px)}
+.sl.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+
+/* ═══════════════════════ BUTTONS ═══════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  font-weight:600;font-size:15px;
+  padding:13px 28px;border-radius:999px;border:0;
+  transition:transform .22s var(--ease),box-shadow .25s,background .2s,border-color .2s;
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.97)}
+.btn-grad{
+  position:relative;color:#fff!important;
+  background:var(--grad);background-size:150% 100%;background-position:0 0;
+  box-shadow:var(--shadow-glow);
+}
+.btn-grad:hover{transform:translateY(-2px);background-position:100% 0;box-shadow:0 16px 52px rgba(34,211,238,.34)}
+.btn-line{
+  color:var(--txt)!important;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line-strong);
+  backdrop-filter:blur(8px);
+}
+.btn-line:hover{background:rgba(255,255,255,.09);border-color:rgba(148,180,255,.45);transform:translateY(-2px)}
+
+/* ═══════════════════════ NAV ═══════════════════════ */
+.nav{
+  position:fixed;inset:0 0 auto 0;z-index:1000;
+  height:76px;display:flex;align-items:center;
+  padding:0 clamp(16px,3vw,32px);
+  transition:background .3s,border-color .3s,box-shadow .3s;
+  border-bottom:1px solid transparent;
+}
+.nav.scrolled{
+  background:rgba(5,8,15,.82);
+  backdrop-filter:blur(20px) saturate(160%);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);
+  border-bottom:1px solid var(--line);
+  box-shadow:0 10px 40px rgba(0,0,0,.45);
+}
+.nav-inner{max-width:1180px;margin:0 auto;width:100%;display:flex;align-items:center;gap:10px}
+
+.wordmark{display:inline-flex;align-items:center;gap:12px;flex-shrink:0}
+.wordmark .tile{
+  width:40px;height:40px;border-radius:12px;
+  display:grid;place-items:center;
+  background:var(--grad);
+  font-family:var(--font-d);font-weight:700;font-size:21px;color:#fff;
+  box-shadow:0 6px 20px rgba(109,62,242,.4);
+  transition:transform .25s var(--ease);
+}
+.wordmark:hover .tile{transform:rotate(-6deg) scale(1.06)}
+.wordmark .name{
+  font-family:var(--font-d);font-weight:700;font-size:21px;letter-spacing:.24em;
+  color:var(--txt);
+}
+.wordmark .name em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.menu{margin-left:auto;display:flex;align-items:center;gap:2px}
+.menu>a{
+  color:var(--txt-2);font-size:14.5px;font-weight:500;
+  padding:8px 15px;border-radius:999px;
+  transition:color .18s,background .18s;
+}
+.menu>a:not(.btn):hover{color:#fff;background:rgba(255,255,255,.07)}
+.menu .btn{padding:9px 21px;font-size:14px;margin-left:6px}
+
+.hamburger{
+  display:none;margin-left:auto;
+  background:rgba(255,255,255,.05);border:1px solid var(--line-strong);
+  border-radius:12px;padding:9px 12px;font-size:17px;
+}
+.hamburger:hover{background:rgba(255,255,255,.12)}
+@media (max-width:980px){
+  .hamburger{display:inline-flex}
+  .menu{
+    position:fixed;top:76px;left:0;right:0;
+    flex-direction:column;align-items:stretch;gap:4px;
+    padding:0 18px;
+    background:rgba(5,8,15,.97);
+    backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--line);
+    max-height:0;overflow:hidden;
+    transition:max-height .32s var(--ease),padding .32s var(--ease);
+  }
+  .menu.open{max-height:480px;padding:14px 18px 20px}
+  .menu>a{padding:12px 16px;border-radius:12px}
+  .menu .btn{margin:6px 0 0;justify-content:center}
+}
+
+/* ═══════════════════════ HERO ═══════════════════════ */
+.hero{
+  position:relative;isolation:isolate;overflow:hidden;
+  min-height:100svh;
+  display:grid;place-items:center;
+  padding:140px 0 110px;
+  background:
+    radial-gradient(1000px 620px at 18% -10%, rgba(139,92,246,.28), transparent 60%),
+    radial-gradient(900px 560px at 88% 8%, rgba(34,211,238,.16), transparent 58%),
+    radial-gradient(760px 520px at 60% 105%, rgba(59,130,246,.16), transparent 55%),
+    var(--bg);
+}
+.hero::before{ /* grid lines */
+  content:"";position:absolute;inset:0;z-index:-1;
+  background-image:
+    linear-gradient(rgba(148,180,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(148,180,255,.05) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(ellipse 82% 66% at 50% 40%,#000 30%,transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse 82% 66% at 50% 40%,#000 30%,transparent 80%);
+}
+.hero .blob{
+  position:absolute;z-index:-2;border-radius:50%;filter:blur(70px);pointer-events:none;
+  animation:drift 16s ease-in-out infinite alternate;
+}
+.blob-1{width:520px;height:520px;left:-140px;top:-80px;background:rgba(139,92,246,.3)}
+.blob-2{width:460px;height:460px;right:-120px;top:16%;background:rgba(34,211,238,.16);animation-delay:-6s}
+.blob-3{width:420px;height:420px;left:32%;bottom:-180px;background:rgba(59,130,246,.18);animation-delay:-11s}
+@keyframes drift{
+  0%{transform:translate(0,0) scale(1)}
+  100%{transform:translate(46px,30px) scale(1.12)}
+}
+
+.hero-inner{position:relative;max-width:980px;padding:0 22px;text-align:center}
+.hero-pill{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:13.5px;font-weight:600;letter-spacing:.04em;
+  color:#d6e4ff;
+  background:rgba(139,92,246,.1);
+  border:1px solid rgba(139,92,246,.36);
+  padding:8px 19px;border-radius:999px;
+  margin-bottom:32px;
+  backdrop-filter:blur(8px);
+}
+.hero-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(52,211,153,.6);animation:pulse 2.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.55)}70%{box-shadow:0 0 0 9px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+
+.hero h1{font-size:clamp(38px,5.7vw,68px);font-weight:700;letter-spacing:-.03em;margin-bottom:24px}
+.hero h1 .g{
+  background:var(--grad);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p.lede{font-size:clamp(17px,2vw,20px);color:var(--txt-2);max-width:640px;margin:0 auto 42px}
+.hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:58px}
+.hero-ctas .btn{padding:15px 33px;font-size:16px}
+
+.hero-chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.hero-chips span{
+  font-size:13.5px;font-weight:500;color:var(--txt-3);
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  padding:7px 16px;border-radius:999px;
+  transition:border-color .2s,color .2s;
+}
+.hero-chips span:hover{border-color:rgba(34,211,238,.55);color:var(--cyan)}
+
+.hero-scroll{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:var(--txt-3);font-size:20px;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+
+/* ═══════════════════════ STATS ═══════════════════════ */
+.stats{margin-top:-64px;position:relative;z-index:5}
+.stats-card{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line-strong);
+  border-radius:var(--r-lg);
+  box-shadow:0 26px 70px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);
+  overflow:hidden;
+}
+.stat{padding:34px 20px;text-align:center;border-left:1px solid var(--line)}
+.stat:first-child{border-left:0}
+.stat b{
+  display:block;font-family:var(--font-d);
+  font-size:clamp(27px,3vw,38px);font-weight:700;letter-spacing:-.02em;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:4px;
+}
+.stat small{font-size:13px;font-weight:600;color:var(--txt-3);letter-spacing:.08em;text-transform:uppercase}
+@media (max-width:760px){
+  .stats-card{grid-template-columns:1fr 1fr}
+  .stat:nth-child(3){border-left:0}
+  .stat:nth-child(n+3){border-top:1px solid var(--line)}
+}
+
+/* ═══════════════════════ ABOUT (text left / cards right) ═══════════════════════ */
+.about{padding:120px 0 60px}
+.about-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:clamp(36px,5vw,72px);align-items:center}
+.about-copy p{color:var(--txt-2);font-size:17px;margin-bottom:30px}
+
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.feat{
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:26px 24px;
+  transition:transform .3s var(--ease),border-color .3s,box-shadow .3s;
+}
+.feat:hover{transform:translateY(-5px);border-color:rgba(139,92,246,.5);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+.feat-ico{
+  width:48px;height:48px;border-radius:14px;
+  display:grid;place-items:center;font-size:21px;
+  background:rgba(139,92,246,.14);
+  border:1px solid rgba(139,92,246,.32);
+  margin-bottom:16px;
+}
+.feat h3{font-size:16.5px;font-weight:600;margin-bottom:7px}
+.feat p{font-size:14px;color:var(--txt-3);line-height:1.6}
+@media (max-width:920px){
+  .about-grid{grid-template-columns:1fr}
+  .feat-grid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:560px){.feat-grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════ SERVICES — FLIP CARDS ═══════════════════════ */
+.services{padding:110px 0}
+.services-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:14px;flex-wrap:wrap}
+.flip-hint{font-size:14px;color:var(--txt-3);margin-bottom:40px}
+.flip-hint b{color:var(--cyan);font-weight:600}
+
+.svc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.flip{
+  perspective:1200px;
+  min-height:250px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  border:0;background:none;padding:0;text-align:left;
+  border-radius:var(--r-md);
+  outline-offset:4px;
+}
+.flip:focus-visible{outline:2px solid var(--cyan)}
+.flip-in{
+  position:relative;width:100%;height:100%;min-height:250px;
+  transform-style:preserve-3d;
+  transition:transform .75s var(--ease);
+}
+.flip.flipped .flip-in{transform:rotateY(180deg)}
+.flip-face{
+  position:absolute;inset:0;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  border-radius:var(--r-md);
+  padding:28px 24px;
+  display:flex;flex-direction:column;
+}
+.flip-front{
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line);
+  transition:border-color .3s,box-shadow .3s;
+}
+.flip:hover .flip-front{border-color:rgba(34,211,238,.45);box-shadow:0 18px 44px rgba(0,0,0,.4)}
+.flip-front .svc-ico{
+  width:54px;height:54px;border-radius:16px;
+  display:grid;place-items:center;font-size:24px;
+  background:var(--grad);
+  box-shadow:0 8px 22px rgba(109,62,242,.35);
+  margin-bottom:auto;
+}
+.flip-front h3{font-size:18px;font-weight:600;margin:18px 0 6px}
+.flip-front .tap{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--txt-3);
+}
+.flip-front .tap::after{content:"↻";font-size:15px;color:var(--cyan)}
+.flip-back{
+  transform:rotateY(180deg);
+  background:linear-gradient(140deg,rgba(109,62,242,.92),rgba(37,99,235,.9) 55%,rgba(14,165,233,.88));
+  border:1px solid rgba(148,180,255,.4);
+  justify-content:center;gap:12px;
+}
+.flip-back h3{font-size:17px;font-weight:600;color:#fff}
+.flip-back p{font-size:14.5px;line-height:1.62;color:rgba(238,244,255,.94)}
+.flip-back .back-link{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:13.5px;font-weight:700;color:#fff;
+  margin-top:2px;
+}
+.flip-back .back-link:hover{text-decoration:underline}
+@media (max-width:1020px){.svc-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.svc-grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════ TESTIMONIALS ═══════════════════════ */
+.social{padding:110px 0;background:
+  radial-gradient(800px 460px at 85% 0%, rgba(139,92,246,.12), transparent 58%),
+  radial-gradient(700px 420px at 10% 100%, rgba(34,211,238,.08), transparent 55%),
+  var(--bg-2);
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+}
+.quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:52px}
+.quote{
+  display:flex;flex-direction:column;gap:16px;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:32px 28px;
+  transition:transform .3s var(--ease),border-color .3s;
+}
+.quote:hover{transform:translateY(-5px);border-color:rgba(139,92,246,.5)}
+.quote .stars{color:var(--amber);font-size:15px;letter-spacing:3px}
+.quote p{font-size:15.5px;line-height:1.7;color:var(--txt-2);flex:1}
+.quote footer{font-size:13.5px;font-weight:600;color:var(--txt-3)}
+@media (max-width:880px){.quotes{grid-template-columns:1fr}}
+
+.cta-banner{
+  margin-top:74px;
+  border-radius:var(--r-lg);
+  padding:clamp(36px,5vw,58px);
+  position:relative;overflow:hidden;
+  background:linear-gradient(120deg,rgba(109,62,242,.3),rgba(37,99,235,.18) 55%,rgba(34,211,238,.14));
+  border:1px solid rgba(139,92,246,.4);
+  display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap;
+}
+.cta-banner::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(148,180,255,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(148,180,255,.06) 1px,transparent 1px);
+  background-size:44px 44px;
+  mask-image:linear-gradient(120deg,#000,transparent 70%);
+  -webkit-mask-image:linear-gradient(120deg,#000,transparent 70%);
+}
+.cta-banner h3{font-size:clamp(24px,3vw,34px);font-weight:700;margin-bottom:8px}
+.cta-banner p{color:var(--txt-2);font-size:16.5px}
+.cta-banner .btn{padding:15px 32px;font-size:16px;position:relative}
+
+/* ═══════════════════════ FAQ ═══════════════════════ */
+.faq{padding:110px 0}
+.faq-list{max-width:830px;margin:52px auto 0;display:grid;gap:14px}
+.faq-item{
+  background:linear-gradient(180deg,var(--card-2),var(--card));
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  overflow:hidden;
+  transition:border-color .25s;
+}
+.faq-item[open]{border-color:rgba(139,92,246,.5)}
+.faq-item summary{
+  list-style:none;cursor:pointer;
+  display:flex;align-items:center;gap:16px;
+  padding:22px 26px;
+  font-family:var(--font-d);font-size:16.5px;font-weight:600;
+  transition:color .2s;
+}
+.faq-item summary::-webkit-details-marker{display:none}
+.faq-item summary:hover{color:var(--cyan)}
+.faq-item summary::after{
+  content:"+";margin-left:auto;flex-shrink:0;
+  width:30px;height:30px;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:19px;font-weight:400;font-family:var(--font-b);
+  color:var(--cyan);background:rgba(34,211,238,.1);
+  border:1px solid rgba(34,211,238,.3);
+  transition:transform .3s var(--ease),background .25s,color .25s;
+}
+.faq-item[open] summary::after{transform:rotate(45deg);background:var(--grad);color:#fff;border-color:transparent}
+.faq-body{padding:0 26px 24px;color:var(--txt-2);font-size:15.5px;line-height:1.72}
+
+/* ═══════════════════════ CONTACT ═══════════════════════ */
+.contact{padding:20px 0 120px}
+.contact-shell{
+  border-radius:var(--r-lg);
+  border:1px solid var(--line-strong);
+  overflow:hidden;
+  display:grid;grid-template-columns:1.15fr .85fr;
+  box-shadow:0 30px 80px rgba(0,0,0,.5);
+}
+.contact-form{background:linear-gradient(180deg,var(--card-2),var(--card));padding:clamp(34px,4.5vw,56px)}
+.contact-form .sec-title{font-size:clamp(26px,3vw,36px)}
+.contact-form>p{color:var(--txt-2);margin-bottom:34px;font-size:16px}
+
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.f-field{margin-bottom:16px}
+.f-field label{
+  display:block;font-size:12.5px;font-weight:600;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--txt-3);margin-bottom:7px;
+}
+.f-field input,.f-field textarea{
+  width:100%;font:inherit;font-size:15.5px;color:var(--txt);
+  background:rgba(255,255,255,.04);
+  border:1.5px solid var(--line);
+  border-radius:13px;
+  padding:13px 16px;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.f-field input::placeholder,.f-field textarea::placeholder{color:var(--txt-3)}
+.f-field textarea{resize:vertical;min-height:130px}
+.f-field input:focus,.f-field textarea:focus{
+  outline:none;background:rgba(255,255,255,.06);
+  border-color:var(--violet);
+  box-shadow:0 0 0 4px rgba(139,92,246,.18);
+}
+.contact-form .btn{margin-top:8px;width:100%;padding:15px}
+.form-note{margin-top:14px;text-align:center;font-size:13.5px;color:var(--txt-3)}
+.form-note b{color:var(--cyan)}
+
+.contact-side{
+  position:relative;
+  background:
+    radial-gradient(480px 340px at 85% 0%, rgba(139,92,246,.35), transparent 60%),
+    radial-gradient(400px 300px at 10% 100%, rgba(34,211,238,.16), transparent 55%),
+    var(--bg-3);
+  padding:clamp(34px,4.5vw,52px);
+  display:flex;flex-direction:column;
+}
+.contact-side h3{font-family:var(--font-d);font-size:22px;letter-spacing:.2em;margin-bottom:24px}
+.contact-side h3 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.c-item{display:flex;gap:16px;align-items:flex-start;padding:15px 0;border-bottom:1px solid var(--line)}
+.c-item:last-of-type{border-bottom:0}
+.c-ico{
+  flex-shrink:0;width:42px;height:42px;border-radius:12px;
+  display:grid;place-items:center;font-size:18px;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line-strong);
+}
+.c-item small{display:block;font-size:11.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--txt-3);margin-bottom:2px}
+.c-item a,.c-item span{font-size:16px;font-weight:600;color:var(--txt)}
+.c-item a:hover{color:var(--cyan)}
+.contact-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:26px}
+.contact-links .btn{font-size:13.5px;padding:10px 18px}
+@media (max-width:880px){.contact-shell{grid-template-columns:1fr}.f-row{grid-template-columns:1fr}}
+
+/* ═══════════════════════ FOOTER ═══════════════════════ */
+.footer{
+  background:#03050b;color:var(--txt-3);
+  padding:54px 0 104px;
+  border-top:1px solid var(--line);
+}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;gap:26px;flex-wrap:wrap}
+.footer .name{font-family:var(--font-d);font-weight:700;font-size:19px;letter-spacing:.24em;color:var(--txt)}
+.footer .name em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.footer p{font-size:14px}
+.footer nav{display:flex;gap:22px;flex-wrap:wrap}
+.footer nav a{font-size:14px;font-weight:500;transition:color .2s}
+.footer nav a:hover{color:#fff}
+
+/* ═══════════════════════ MOBILE BAR + TO TOP ═══════════════════════ */
+.mobile-bar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:900;
+  background:rgba(5,8,15,.94);
+  backdrop-filter:blur(18px);
+  border-top:1px solid var(--line);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  gap:10px;
+}
+.mobile-bar a{
+  flex:1;text-align:center;
+  font-size:13.5px;font-weight:600;color:#fff;
+  padding:11px 6px;border-radius:12px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--line-strong);
+}
+.mobile-bar a.hot{background:var(--grad);border:0}
+@media (max-width:760px){.mobile-bar{display:flex}}
+
+.to-top{
+  position:fixed;right:22px;bottom:22px;z-index:800;
+  width:46px;height:46px;border-radius:50%;
+  display:grid;place-items:center;font-size:18px;
+  background:var(--card-2);color:var(--cyan);
+  border:1px solid var(--line-strong);
+  box-shadow:0 14px 36px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;transform:translateY(10px);
+  transition:opacity .3s,transform .3s;
+}
+.to-top.show{opacity:1;pointer-events:auto;transform:none}
+@media (max-width:760px){.to-top{bottom:80px}}
+
+@media (prefers-reduced-motion:reduce){
+  .sl{opacity:1;transform:none;transition:none}
+  .blob,.hero-pill .dot,.hero-scroll{animation:none}
+  .flip-in{transition:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="wordmark" href="#top" aria-label="LINEAR home">
+      <span class="tile">L</span>
+      <span class="name">LINE<em>AR</em></span>
+    </a>
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">☰</button>
+    <nav class="menu" id="menu">
+      <a href="#about">About</a>
+      <a href="#services">Services</a>
+      <a href="#faq">FAQ</a>
+      <a href="#contact">Contact</a>
+      <a class="btn btn-line" href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">Client Login</a>
+      <a class="btn btn-grad" href="#contact">Book a Consult</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero" id="top">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="hero-inner">
+    <div class="hero-pill sl sl-u in-load"><span class="dot"></span> Managed IT · Security-first · Fast response</div>
+    <h1 class="sl sl-l in-load d1">We Keep Your Business<br><span class="g">Running Smoothly</span></h1>
+    <p class="lede sl sl-r in-load d2">Fast, secure, and hassle-free technology solutions — proactive monitoring, expert support, and infrastructure that scales with you.</p>
+    <div class="hero-ctas sl sl-u in-load d3">
+      <a class="btn btn-grad" href="#contact">Book a Consult</a>
+      <a class="btn btn-line" href="tel:+18456041462">📞 (845) 604-1462</a>
+    </div>
+    <div class="hero-chips sl sl-u in-load d4">
+      <span>Microsoft 365</span>
+      <span>Intune / Entra ID</span>
+      <span>Backup &amp; DR</span>
+      <span>Network &amp; Wi-Fi</span>
+      <span>SonicWall / UniFi</span>
+    </div>
+  </div>
+  <div class="hero-scroll" aria-hidden="true">▾</div>
+</section>
+
+<!-- ═══════════ STATS ═══════════ -->
+<div class="stats wrap">
+  <div class="stats-card sl sl-u">
+    <div class="stat"><b data-count="99.9" data-suffix="%">99.9%</b><small>Uptime Targets</small></div>
+    <div class="stat"><b data-count="15" data-suffix=" min">15 min</b><small>Avg First Response</small></div>
+    <div class="stat"><b data-count="365">365</b><small>Days Monitored</small></div>
+    <div class="stat"><b>24/7</b><small>Alerting &amp; Support</small></div>
+  </div>
+</div>
+
+<!-- ═══════════ ABOUT — copy slides from LEFT, cards from RIGHT ═══════════ -->
+<section class="about" id="about">
+  <div class="wrap about-grid">
+    <div class="about-copy sl sl-l">
+      <span class="kicker">About</span>
+      <h2 class="sec-title">Empower Your Business <span class="g">in the Digital Age</span></h2>
+      <p>LINEAR is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response. We streamline operations through proactive monitoring, strong security, and networks that scale.</p>
+      <a class="btn btn-grad" href="#services">Explore Services</a>
+    </div>
+    <div class="feat-grid">
+      <div class="feat sl sl-r">
+        <div class="feat-ico">🖥️</div>
+        <h3>Proactive Managed IT</h3>
+        <p>24/7 monitoring, patch management, and helpdesk keep devices healthy and your team productive.</p>
+      </div>
+      <div class="feat sl sl-r d1">
+        <div class="feat-ico">🛡️</div>
+        <h3>Security First</h3>
+        <p>Endpoint protection, email security, MFA, and policies to defend against today's threats.</p>
+      </div>
+      <div class="feat sl sl-r d2">
+        <div class="feat-ico">☁️</div>
+        <h3>Cloud &amp; Backup</h3>
+        <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement tested backup &amp; DR.</p>
+      </div>
+      <div class="feat sl sl-r d3">
+        <div class="feat-ico">📶</div>
+        <h3>Networks that Scale</h3>
+        <p>Wi-Fi to firewalls and VPNs — we design, deploy, and maintain stable, fast networks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SERVICES — FLIP CARDS, rows alternate left/right ═══════════ -->
+<section class="services" id="services">
+  <div class="wrap">
+    <div class="services-head sl sl-l">
+      <div>
+        <span class="kicker">Services</span>
+        <h2 class="sec-title" style="margin-bottom:12px">Everything <span class="g">Your IT Needs</span></h2>
+        <p class="sec-lede">Choose the coverage you need — we can manage your full environment or augment your existing team.</p>
+      </div>
+      <a class="btn btn-grad" href="#contact">Get a Quote</a>
+    </div>
+    <p class="flip-hint sl sl-r"><b>Tap any card</b> to flip it and see what's included ↻</p>
+    <div class="svc-grid">
+
+      <button class="flip sl sl-l" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">💻</div>
+            <h3>Managed Endpoint</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Managed Endpoint</h3>
+            <p>Windows &amp; macOS hardening, updates, antivirus/EDR, asset &amp; license tracking.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-l d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">📧</div>
+            <h3>Microsoft 365</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Microsoft 365</h3>
+            <p>Tenant setup, Intune, Entra ID/MFA, email hygiene, SharePoint &amp; automation.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">💾</div>
+            <h3>Backup &amp; DR</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Backup &amp; DR</h3>
+            <p>Workstation &amp; server backups (onsite/cloud), restore drills, ransomware resilience.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🌐</div>
+            <h3>Networking</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Networking</h3>
+            <p>Switching, Wi-Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring &amp; alerts.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-l" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🎧</div>
+            <h3>Support Desk</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Support Desk</h3>
+            <p>Friendly help when you need it — remote &amp; onsite, clear SLAs, simple billing.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-l d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🧭</div>
+            <h3>Advisory</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Advisory</h3>
+            <p>Road-mapping, budgeting, and audits to keep IT predictable and aligned to your goals.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r d1" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🔐</div>
+            <h3>Security</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Security</h3>
+            <p>MFA enforcement, phishing defense, security baselines, audits &amp; incident readiness.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+      <button class="flip sl sl-r" type="button" aria-expanded="false">
+        <div class="flip-in">
+          <div class="flip-face flip-front">
+            <div class="svc-ico">🗄️</div>
+            <h3>Cloud &amp; Servers</h3>
+            <span class="tap">Tap to flip</span>
+          </div>
+          <div class="flip-face flip-back">
+            <h3>Cloud &amp; Servers</h3>
+            <p>Server management, virtualization, cloud planning, monitoring, patching &amp; performance.</p>
+            <a class="back-link" href="#contact">Get started →</a>
+          </div>
+        </div>
+      </button>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ TESTIMONIALS — quotes alternate left/right ═══════════ -->
+<section class="social">
+  <div class="wrap">
+    <div class="sl sl-u" style="text-align:center">
+      <span class="kicker" style="justify-content:center;display:inline-flex">What Clients Say</span>
+      <h2 class="sec-title">Trusted by Teams Who Just <span class="g">Want IT to Work</span></h2>
+    </div>
+    <div class="quotes">
+      <blockquote class="quote sl sl-l">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p>"LINEAR stabilized our Wi-Fi and printers in one visit. Our staff stopped losing time."</p>
+        <footer>— Office Manager, Healthcare</footer>
+      </blockquote>
+      <blockquote class="quote sl sl-u d1">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p>"Clear communication, fast turnarounds, and they explain things in plain English."</p>
+        <footer>— Operations Lead, Retail</footer>
+      </blockquote>
+      <blockquote class="quote sl sl-r d2">
+        <div class="stars" aria-hidden="true">★★★★★</div>
+        <p>"They migrated us to Microsoft 365 and set up Intune. Onboarding new hires is now painless."</p>
+        <footer>— HR Lead, Manufacturing</footer>
+      </blockquote>
+    </div>
+    <div class="cta-banner sl sl-u">
+      <div>
+        <h3>Ready to modernize your IT?</h3>
+        <p>Let's discuss your environment and what's holding you back.</p>
+      </div>
+      <a class="btn btn-grad" href="#contact">Book a quick consult →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FAQ — items alternate left/right ═══════════ -->
+<section class="faq" id="faq">
+  <div class="wrap">
+    <div class="sl sl-u" style="text-align:center">
+      <span class="kicker" style="justify-content:center;display:inline-flex">FAQ</span>
+      <h2 class="sec-title">Frequently Asked <span class="g">Questions</span></h2>
+      <p class="sec-lede" style="margin:0 auto">Quick answers about onboarding, support, pricing, and security.</p>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item sl sl-l">
+        <summary>What does onboarding look like?</summary>
+        <div class="faq-body">We start with a discovery session and a light audit of endpoints, network, and cloud. Then we deploy agents, document your environment, define SLAs, and roll out quick wins in the first 14–30 days.</div>
+      </details>
+      <details class="faq-item sl sl-r">
+        <summary>How do you price Managed Services?</summary>
+        <div class="faq-body">Most clients choose a per-device or per-user monthly plan covering monitoring, patching, security, and support. Project work (migrations, new sites, etc.) is scoped separately with a fixed or hourly quote.</div>
+      </details>
+      <details class="faq-item sl sl-l">
+        <summary>Can you support remote and multi-site teams?</summary>
+        <div class="faq-body">Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi-Fi and switching for consistent performance in each location.</div>
+      </details>
+      <details class="faq-item sl sl-r">
+        <summary>What security controls do you implement?</summary>
+        <div class="faq-body">MFA/conditional access, least-privilege accounts, next-gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs.</div>
+      </details>
+      <details class="faq-item sl sl-l">
+        <summary>Do you work with existing IT teams?</summary>
+        <div class="faq-body">Absolutely. We can be your full MSP or an extension to handle helpdesk, patching, or projects while your team focuses on strategy.</div>
+      </details>
+      <details class="faq-item sl sl-r">
+        <summary>How fast can we start?</summary>
+        <div class="faq-body">Discovery can begin this week; agent deployment usually the same or next day. Full onboarding typically completes within 2–4 weeks depending on scope.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ CONTACT — form from LEFT, panel from RIGHT ═══════════ -->
+<section class="contact" id="contact">
+  <div class="wrap">
+    <div class="contact-shell">
+      <div class="contact-form sl sl-l">
+        <span class="kicker">Contact</span>
+        <h2 class="sec-title">Let's <span class="g">Talk</span></h2>
+        <p>Tell us a bit about your environment and we'll get back to you the same day.</p>
+        <form action="https://formspree.io/f/mjgzyppb" method="POST">
+          <div class="f-row">
+            <div class="f-field">
+              <label for="cf-name">Name</label>
+              <input id="cf-name" type="text" name="name" required autocomplete="name" placeholder="Your name">
+            </div>
+            <div class="f-field">
+              <label for="cf-email">Email</label>
+              <input id="cf-email" type="email" name="email" required autocomplete="email" placeholder="you@company.com">
+            </div>
+          </div>
+          <div class="f-field">
+            <label for="cf-company">Company</label>
+            <input id="cf-company" type="text" name="company" autocomplete="organization" placeholder="Company name (optional)">
+          </div>
+          <div class="f-field">
+            <label for="cf-msg">Message</label>
+            <textarea id="cf-msg" name="message" required placeholder="What's going on with your IT? Users, sites, pain points…"></textarea>
+          </div>
+          <button class="btn btn-grad" type="submit">Send Message →</button>
+          <div class="form-note">Typically <b>same-day</b> response</div>
+        </form>
+      </div>
+      <aside class="contact-side sl sl-r">
+        <h3>LINE<em>AR</em></h3>
+        <div class="c-item">
+          <div class="c-ico">📍</div>
+          <div><small>Location</small><span>Monroe, NY · United States</span></div>
+        </div>
+        <div class="c-item">
+          <div class="c-ico">✉️</div>
+          <div><small>Email</small><a href="mailto:support@linearit.co">support@linearit.co</a></div>
+        </div>
+        <div class="c-item">
+          <div class="c-ico">📞</div>
+          <div><small>Phone</small><a href="tel:+18456041462">(845) 604-1462</a></div>
+        </div>
+        <div class="contact-links">
+          <a class="btn btn-line" href="https://www.linearit.co/assets/LinearTech.vcf">📇 vCard</a>
+          <a class="btn btn-line" href="https://speed.cloudflare.com/" target="_blank" rel="noopener">⚡ Speed Test</a>
+          <a class="btn btn-line" href="https://www.google.com/maps/dir/?api=1&amp;destination=Linear%20Tech%20Monroe%20NY" target="_blank" rel="noopener">🧭 Directions</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span class="name">LINE<em>AR</em></span>
+    <p>© <span id="year"></span> LINEAR · Straightforward IT Excellence · Monroe, NY</p>
+    <nav>
+      <a href="#top">Home</a>
+      <a href="#services">Services</a>
+      <a href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">Client Login</a>
+      <a href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&amp;y=Guest">Remote Support</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- ═══════════ MOBILE BAR ═══════════ -->
+<div class="mobile-bar">
+  <a href="tel:+18456041462">📞 Call</a>
+  <a href="mailto:support@linearit.co">✉️ Email</a>
+  <a class="hot" href="#contact">Book Consult</a>
+</div>
+
+<a class="to-top" id="toTop" href="#top" aria-label="Back to top">↑</a>
+
+<script>
+// nav scroll state + back-to-top
+const nav = document.getElementById('nav');
+const toTop = document.getElementById('toTop');
+const onScroll = () => {
+  nav.classList.toggle('scrolled', scrollY > 24);
+  toTop.classList.toggle('show', scrollY > 700);
+};
+addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+
+// mobile menu
+const burger = document.getElementById('hamburger');
+const menu = document.getElementById('menu');
+burger.addEventListener('click', () => {
+  const open = menu.classList.toggle('open');
+  burger.setAttribute('aria-expanded', open);
+});
+menu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  menu.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+}));
+
+// hero elements animate in on load
+requestAnimationFrame(() => {
+  document.querySelectorAll('.in-load').forEach(el => el.classList.add('in'));
+});
+
+// slide-in reveals from left/right on scroll
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  });
+}, {threshold:.12, rootMargin:'0px 0px -50px'});
+document.querySelectorAll('.sl:not(.in-load)').forEach(el => io.observe(el));
+
+// flip cards — click/tap or Enter/Space toggles
+document.querySelectorAll('.flip').forEach(card => {
+  card.addEventListener('click', e => {
+    if (e.target.closest('a')) return; // let "Get started" link work
+    const flipped = card.classList.toggle('flipped');
+    card.setAttribute('aria-expanded', flipped);
+  });
+});
+
+// stat count-up when visible
+const ease = t => 1 - Math.pow(1 - t, 3);
+const statIO = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    statIO.unobserve(e.target);
+    const el = e.target;
+    const target = parseFloat(el.dataset.count);
+    const suffix = el.dataset.suffix || '';
+    const decimals = (el.dataset.count.split('.')[1] || '').length;
+    const t0 = performance.now(), dur = 1600;
+    const tick = now => {
+      const p = Math.min((now - t0) / dur, 1);
+      el.textContent = (target * ease(p)).toFixed(decimals) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}, {threshold:.5});
+document.querySelectorAll('[data-count]').forEach(el => statIO.observe(el));
+
+// year
+document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+<!-- Tawk.to live chat -->
+<script>
+var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+(function(){
+  var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+  s1.async = true;
+  s1.src = 'https://embed.tawk.to/6967d3f1cd894f197b19d503/1jeup7pqb';
+  s1.charset = 'UTF-8';
+  s1.setAttribute('crossorigin','*');
+  s0.parentNode.insertBefore(s1,s0);
+})();
+</script>
+
+</body>
+</html>
