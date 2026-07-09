@@ -47,7 +47,7 @@
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overflow-x:clip}
 body{
   font-family:var(--font-b);
   font-size:16.5px;line-height:1.7;
@@ -77,12 +77,12 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
 .sec-lede{font-size:clamp(16.5px,1.6vw,19px);color:var(--txt-2);max-width:620px}
 
 /* ═══════════════════════ SLIDE-IN REVEALS ═══════════════════════ */
-.sl{opacity:0;transition:opacity .85s var(--ease),transform .85s var(--ease);will-change:opacity,transform}
-.sl-l{transform:translateX(-72px)}
-.sl-r{transform:translateX(72px)}
-.sl-u{transform:translateY(46px)}
+.sl{opacity:0;transition:opacity 1.5s var(--ease),transform 1.5s var(--ease);will-change:opacity,transform}
+.sl-l{transform:translateX(-120px)}
+.sl-r{transform:translateX(120px)}
+.sl-u{transform:translateY(70px)}
 .sl.in{opacity:1;transform:none}
-.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+.d1{transition-delay:.18s}.d2{transition-delay:.36s}.d3{transition-delay:.54s}.d4{transition-delay:.72s}
 
 /* ═══════════════════════ BUTTONS ═══════════════════════ */
 .btn{
@@ -140,7 +140,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
 }
 .wordmark .name em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 
-.menu{margin-left:auto;display:flex;align-items:center;gap:2px}
+.menu{margin-left:auto;display:flex;align-items:center;gap:2px;min-width:0}
 .menu>a{
   color:var(--txt-2);font-size:14.5px;font-weight:500;
   padding:8px 15px;border-radius:999px;
@@ -171,7 +171,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
   border-radius:12px;padding:9px 12px;font-size:17px;
 }
 .hamburger:hover{background:rgba(255,255,255,.12)}
-@media (max-width:980px){
+@media (max-width:1180px){
   .hamburger{display:inline-flex}
   .menu{
     position:fixed;top:76px;left:0;right:0;
@@ -730,6 +730,7 @@ h1,h2,h3,h4{font-family:var(--font-d);line-height:1.12;letter-spacing:-.02em}
       <a href="#services">Services</a>
       <a href="#faq">FAQ</a>
       <a href="#contact">Contact</a>
+      <a class="btn btn-line" href="https://linearit.screenconnect.com/Bin/ScreenConnect.ClientSetup.exe?e=Access&amp;y=Guest">🛠 Remote Support</a>
       <a class="btn btn-line" href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">Client Login</a>
       <a class="btn btn-grad" href="#contact">Book a Consult</a>
     </nav>
