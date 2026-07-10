@@ -31,6 +31,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://linearit.co/projects/</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://linearit.co/google/</loc>
     <lastmod>2026-07-07</lastmod>
     <changefreq>monthly</changefreq>
