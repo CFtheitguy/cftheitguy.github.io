@@ -8,17 +8,17 @@
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500;600;700&family=Archivo:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --peri:#6999f5;
   --peri-deep:#4d7fe8;
   --aqua:#70f2ff;
-  --ink:#0a0a0a;
+  --ink:#000000;
   --paper:#ffffff;
-  --mono:'IBM Plex Mono', ui-monospace, monospace;
-  --serif:'Source Serif 4', Georgia, serif;
-  --sans:'Archivo', system-ui, sans-serif;
+  --mono:'Space Grotesk', system-ui, sans-serif;
+  --serif:'Space Grotesk', system-ui, sans-serif;
+  --sans:'Space Grotesk', system-ui, sans-serif;
   scroll-behavior:smooth;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -34,7 +34,7 @@ section{scroll-margin-top:80px}
   letter-spacing:.42em;
   text-transform:uppercase;
 }
-.wordmark{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;line-height:1}
+.wordmark{font-family:var(--serif);font-weight:500;letter-spacing:-.02em;line-height:1}
 
 /* ── gradient meshes ── */
 .mesh-light{
@@ -188,9 +188,9 @@ section{scroll-margin-top:80px}
 .sec-head{margin-bottom:64px;max-width:760px}
 .sec-head .kicker{color:var(--peri-deep);margin-bottom:18px;display:block}
 .sec-head h2{
-  font-family:var(--serif);font-weight:400;
+  font-family:var(--serif);font-weight:500;
   font-size:clamp(2.2rem,5vw,3.4rem);
-  line-height:1.12;letter-spacing:-.015em;
+  line-height:1.12;letter-spacing:-.02em;
 }
 .sec-head p{margin-top:20px;font-size:.92rem;color:#444}
 
@@ -275,9 +275,9 @@ section{scroll-margin-top:80px}
   padding:36px 28px;text-align:left;
 }
 .stat b{
-  font-family:var(--sans);font-weight:800;
+  font-family:var(--sans);font-weight:700;
   font-size:clamp(2.2rem,4.5vw,3.2rem);
-  display:block;line-height:1;margin-bottom:14px;
+  display:block;line-height:1;margin-bottom:14px;letter-spacing:-.01em;
   color:var(--aqua);
 }
 .stat:nth-child(2n) b{color:var(--peri)}
