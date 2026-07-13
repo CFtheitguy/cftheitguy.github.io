@@ -25,7 +25,7 @@
 html,body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
-section{scroll-margin-top:80px}
+section{scroll-margin-top:104px}
 
 .kicker{
   font-family:var(--mono);
@@ -67,7 +67,7 @@ section{scroll-margin-top:80px}
 
 /* ── NAV ── */
 .nav{
-  position:fixed;top:0;left:0;right:0;height:68px;z-index:1000;
+  position:fixed;top:0;left:0;right:0;height:96px;z-index:1000;
   display:flex;align-items:center;
   background:rgba(5,5,7,.82);
   backdrop-filter:blur(14px) saturate(140%);
@@ -78,7 +78,7 @@ section{scroll-margin-top:80px}
 }
 .nav-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px}
 .brand{display:flex;align-items:center;flex-shrink:0}
-.brand img{height:40px;width:auto;display:block}
+.brand img{height:58px;width:auto;display:block}
 .nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
 .nav-links a{font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75);transition:color .2s}
 .nav-links a:hover{color:var(--aqua)}
@@ -125,7 +125,7 @@ section{scroll-margin-top:80px}
   min-height:100svh;
   display:flex;flex-direction:column;justify-content:center;
   color:var(--ink);
-  padding:130px 24px 80px;
+  padding:150px 24px 80px;
   position:relative;overflow:hidden;
 }
 .hero-inner{max-width:1200px;margin:0 auto;width:100%}
@@ -382,7 +382,7 @@ section{scroll-margin-top:80px}
 @media (max-width:680px){
   .nav-links{
     display:none;
-    position:absolute;top:68px;left:0;right:0;
+    position:absolute;top:96px;left:0;right:0;
     background:rgba(5,5,7,.97);flex-direction:column;
     padding:26px 24px;gap:20px;align-items:flex-start;
     border-bottom:1px solid rgba(255,255,255,.1);
@@ -433,7 +433,7 @@ section{scroll-margin-top:80px}
 <header class="hero mesh-light" id="top">
   <div class="hero-inner">
     <div class="kicker">Managed IT&nbsp;&nbsp;/&nbsp;&nbsp;Security-first&nbsp;&nbsp;/&nbsp;&nbsp;Fast response</div>
-    <h1>Keep your name out<span class="hl">)</span>of the news</h1>
+    <h1>Keep your name out of the news</h1>
     <p>Fast, secure, and hassle-free technology solutions — proactive monitoring, expert support, and infrastructure that scales with you.</p>
     <div class="hero-ctas">
       <a class="btn btn-aqua" href="#contact">Book a consult</a>
