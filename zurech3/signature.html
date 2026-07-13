@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>linear — Email Signature</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<style>
+  body{
+    margin:0;background:#f2f6fc;color:#0a0a0a;
+    font-family:'Courier New',ui-monospace,monospace;
+    padding:40px 20px 80px;
+  }
+  .page{max-width:720px;margin:0 auto}
+  h1{font-family:Georgia,serif;font-weight:400;font-size:2rem;margin:0 0 8px}
+  .lead{font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:#4d7fe8;margin:0 0 34px}
+  .card{
+    background:#fff;border-radius:16px;padding:36px;
+    box-shadow:0 12px 40px rgba(20,40,90,.12);
+    margin-bottom:22px;
+  }
+  .steps{font-size:.82rem;line-height:2;color:#333}
+  .steps b{color:#0a0a0a}
+  .btn{
+    display:inline-block;background:#0a0a0a;color:#fff;border:0;cursor:pointer;
+    font-family:'Courier New',monospace;font-weight:700;font-size:.75rem;
+    letter-spacing:.2em;text-transform:uppercase;
+    padding:14px 26px;border-radius:999px;margin-top:18px;
+  }
+  .btn:hover{background:#4d7fe8}
+  .ok{color:#1b9e77;font-size:.75rem;letter-spacing:.15em;margin-left:14px;display:none}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Email signature</h1>
+  <p class="lead">linear / brand refresh</p>
+
+  <div class="card" id="sigwrap">
+    <!-- ══ SIGNATURE START ══ -->
+    <table cellpadding="0" cellspacing="0" border="0" id="signature" style="font-family:Arial,Helvetica,sans-serif;border-collapse:collapse;">
+      <tr>
+        <td style="vertical-align:middle;padding:0 26px 0 0;">
+          <img src="https://linearit.co/zurech3/assets/sig-logo.png" width="176" height="50" alt="linear" style="display:block;border:0;">
+        </td>
+        <td style="vertical-align:middle;border-left:2px solid #0a0a0a;padding:2px 0 2px 26px;">
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#4d7fe8;padding:0 0 14px;">Straightforward&nbsp;IT&nbsp;Excellence</div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:1px;color:#0a0a0a;padding-bottom:8px;">Chaim&nbsp;Friedman</div>
+          <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.9;color:#0a0a0a;">
+            <span style="color:#4d7fe8;font-weight:bold;">T</span>&nbsp;&nbsp;<a href="tel:+18456041462" style="color:#0a0a0a;text-decoration:none;">845-604-1462</a><br>
+            <span style="color:#4d7fe8;font-weight:bold;">E</span>&nbsp;&nbsp;<a href="mailto:chaim@linearit.co" style="color:#0a0a0a;text-decoration:none;">chaim@linearit.co</a><br>
+            <span style="color:#4d7fe8;font-weight:bold;">W</span>&nbsp;&nbsp;<a href="https://linearit.co" style="color:#0a0a0a;text-decoration:none;border-bottom:2px solid #70f2ff;">linearit.co</a>
+          </div>
+        </td>
+      </tr>
+    </table>
+    <!-- ══ SIGNATURE END ══ -->
+  </div>
+
+  <div class="card">
+    <div class="steps">
+      <b>Gmail:</b> Settings → See all settings → Signature → create new,<br>
+      click <b>Copy signature</b> below, then paste (Ctrl/Cmd+V) into the box.<br><br>
+      <b>Outlook:</b> Settings → Account → Signatures → new signature → paste.
+    </div>
+    <button class="btn" onclick="copySig()">Copy signature</button><span class="ok" id="ok">Copied ✓</span>
+  </div>
+</div>
+
+<script>
+function copySig(){
+  const sig = document.getElementById('signature');
+  const range = document.createRange();
+  range.selectNode(sig);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('copy');
+  sel.removeAllRanges();
+  document.getElementById('ok').style.display = 'inline';
+  setTimeout(() => document.getElementById('ok').style.display = 'none', 2500);
+}
+</script>
+</body>
+</html>
