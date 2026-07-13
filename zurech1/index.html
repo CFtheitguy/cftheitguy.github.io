@@ -57,7 +57,7 @@ section{scroll-margin-top:80px}
   content:"";
   position:absolute;
   inset:0;
-  background:url("assets/mark-black.png") repeat;
+  background:url("assets/pattern-tile-black.png") repeat;
   background-size:84px;
   opacity:.05;
   pointer-events:none;
@@ -77,9 +77,8 @@ section{scroll-margin-top:80px}
   padding:0 24px;
 }
 .nav-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px}
-.brand{display:flex;align-items:center;gap:11px;flex-shrink:0}
-.brand img{height:30px;width:auto}
-.brand .wordmark{font-size:1.55rem;color:#fff;transform:translateY(-2px)}
+.brand{display:flex;align-items:center;flex-shrink:0}
+.brand img{height:26px;width:auto;display:block}
 .nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
 .nav-links a{font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75);transition:color .2s}
 .nav-links a:hover{color:var(--aqua)}
@@ -131,9 +130,8 @@ section{scroll-margin-top:80px}
 }
 .hero-inner{max-width:1200px;margin:0 auto;width:100%}
 .hero .kicker{color:var(--aqua);margin-bottom:34px}
-.hero-logo{display:flex;align-items:center;gap:22px;margin-bottom:40px}
-.hero-logo img{height:74px;width:auto}
-.hero-logo .wordmark{font-size:clamp(3.4rem,9vw,5.6rem);color:#fff;transform:translateY(-6px)}
+.hero-logo{display:flex;align-items:center;margin-bottom:40px}
+.hero-logo img{height:clamp(50px,9vw,78px);width:auto;display:block}
 .hero h1{
   font-family:var(--mono);
   font-weight:600;
@@ -357,13 +355,12 @@ section{scroll-margin-top:80px}
 .footer{background:var(--ink);color:#fff;padding:90px 24px 40px;position:relative;overflow:hidden}
 .footer::before{
   content:"";position:absolute;inset:0;
-  background:url("assets/mark-white.png") repeat;background-size:76px;opacity:.045;
+  background:url("assets/pattern-tile-white.png") repeat;background-size:76px;opacity:.045;
 }
 .footer .wrap{position:relative}
 .footer-top{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;align-items:flex-end;margin-bottom:70px}
-.footer-brand{display:flex;align-items:center;gap:18px}
-.footer-brand img{height:52px}
-.footer-brand .wordmark{font-size:clamp(3rem,8vw,4.6rem);color:#fff;transform:translateY(-5px)}
+.footer-brand{display:flex;align-items:center}
+.footer-brand img{height:clamp(46px,7vw,64px);width:auto;display:block}
 .footer-links{display:flex;gap:24px;flex-wrap:wrap}
 .footer-links a{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.65)}
 .footer-links a:hover{color:var(--aqua)}
@@ -400,7 +397,7 @@ section{scroll-margin-top:80px}
   }
   .nav-drop-menu a{padding:0 0 18px}
   .about-grid,.svc-grid,.stats-grid{grid-template-columns:1fr}
-  .hero-logo img{height:52px}
+  .hero-logo img{height:54px}
   .section{padding:80px 20px}
   .poster{padding:38px 28px;min-height:0}
   .form-grid{grid-template-columns:1fr}
@@ -413,8 +410,7 @@ section{scroll-margin-top:80px}
 <nav class="nav">
   <div class="nav-inner">
     <a class="brand" href="#top">
-      <img src="assets/mark-white.png" alt="linear mark">
-      <span class="wordmark">linear</span>
+      <img src="assets/logo-white.svg" alt="linear">
     </a>
     <button class="nav-toggle" aria-label="Menu" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
     <div class="nav-links" id="navlinks">
@@ -438,8 +434,7 @@ section{scroll-margin-top:80px}
   <div class="hero-inner">
     <div class="kicker">Managed IT&nbsp;&nbsp;/&nbsp;&nbsp;Security-first&nbsp;&nbsp;/&nbsp;&nbsp;Fast response</div>
     <div class="hero-logo">
-      <img src="assets/mark-white.png" alt="">
-      <span class="wordmark">linear</span>
+      <img src="assets/logo-white.svg" alt="linear">
     </div>
     <h1>Keep your name out<span class="hl">)</span>of the news</h1>
     <p>Fast, secure, and hassle-free technology solutions — proactive monitoring, expert support, and infrastructure that scales with you.</p>
@@ -473,22 +468,22 @@ section{scroll-margin-top:80px}
     </div>
     <div class="about-grid">
       <div class="about-card">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Proactive Managed IT</h3>
         <p>24/7 monitoring, patch management, and helpdesk keep devices healthy and your team productive.</p>
       </div>
       <div class="about-card">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Security First</h3>
         <p>Endpoint protection, email security, MFA, and policies to defend against today's threats.</p>
       </div>
       <div class="about-card">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Cloud &amp; Backup</h3>
         <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement tested backup &amp; DR.</p>
       </div>
       <div class="about-card">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Networks that Scale</h3>
         <p>Wi-Fi to firewalls and VPNs — we design, deploy, and maintain stable, fast networks.</p>
       </div>
@@ -503,7 +498,7 @@ section{scroll-margin-top:80px}
         <p>He's never seen your office. He's never met your staff. And unlike you, he already knows which one of them opens the wrong email on a Tuesday afternoon.</p>
         <div class="stamp">Stay safe.</div>
         <div class="poster-foot">
-          <img src="assets/mark-black.png" alt="">
+          <img src="assets/icon.svg" alt="">
           <span class="site">linearit.co</span>
         </div>
       </article>
@@ -511,7 +506,7 @@ section{scroll-margin-top:80px}
         <p>He hasn't reset a password in years. He calls one number for everything. And unlike you, he sometimes wonders if he's our only client.</p>
         <div class="stamp">Stay covered.</div>
         <div class="poster-foot">
-          <img src="assets/mark-white.png" alt="">
+          <img src="assets/icon-white.svg" alt="">
           <span class="site">linearit.co</span>
         </div>
       </article>
@@ -528,42 +523,42 @@ section{scroll-margin-top:80px}
     </div>
     <div class="svc-grid">
       <div class="svc svc-aqua">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Managed Endpoint</h3>
         <p>Windows &amp; macOS hardening, updates, antivirus/EDR, asset &amp; license tracking.</p>
       </div>
       <div class="svc">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Microsoft 365</h3>
         <p>Tenant setup, Intune, Entra ID/MFA, email hygiene, SharePoint &amp; automation.</p>
       </div>
       <div class="svc">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Backup &amp; DR</h3>
         <p>Workstation &amp; server backups (onsite/cloud), restore drills, ransomware resilience.</p>
       </div>
       <div class="svc svc-peri">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Networking</h3>
         <p>Switching, Wi-Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring &amp; alerts.</p>
       </div>
       <div class="svc svc-ink">
-        <img src="assets/mark-white.png" alt="">
+        <img src="assets/icon-white.svg" alt="">
         <h3>Security</h3>
         <p>MFA enforcement, phishing defense, security baselines, audits &amp; incident readiness.</p>
       </div>
       <div class="svc">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Support Desk</h3>
         <p>Friendly help when you need it — remote &amp; onsite, clear SLAs, simple billing.</p>
       </div>
       <div class="svc">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Cloud &amp; Servers</h3>
         <p>Server management, virtualization, cloud planning, monitoring, patching &amp; performance.</p>
       </div>
       <div class="svc svc-aqua">
-        <img src="assets/mark-black.png" alt="">
+        <img src="assets/icon.svg" alt="">
         <h3>Advisory</h3>
         <p>Road-mapping, budgeting, and audits to keep IT predictable and aligned to your goals.</p>
       </div>
@@ -583,7 +578,7 @@ section{scroll-margin-top:80px}
 </section>
 
 <section class="haickers mesh-dark">
-  <img class="watermark" src="assets/mark-white.png" alt="">
+  <img class="watermark" src="assets/icon-white.svg" alt="">
   <h2>Hackers with AI aren't<br>just h<span class="hl">AI</span>ckers</h2>
   <p>Attacks are faster, cheaper, and more convincing than ever. Your defenses should be too. We put modern, layered security in front of your business — before someone else tests it for you.</p>
   <a class="btn btn-aqua" href="#contact">Get protected</a>
@@ -676,8 +671,7 @@ section{scroll-margin-top:80px}
   <div class="wrap">
     <div class="footer-top">
       <div class="footer-brand">
-        <img src="assets/mark-white.png" alt="">
-        <span class="wordmark">linear</span>
+        <img src="assets/logo-white.svg" alt="linear">
       </div>
       <div class="footer-links">
         <a href="#about">About</a>
