@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>linear — Wallpapers</title>
+<meta name="description" content="linear brand wallpapers — phone and desktop lock screens.">
+<link rel="icon" type="image/png" href="../assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --peri:#6999f5; --peri-deep:#4d7fe8; --aqua:#70f2ff; --ink:#000000;
+  --font:'Space Grotesk', system-ui, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+
+/* header */
+.top{
+  color:#fff;padding:70px 24px 60px;position:relative;overflow:hidden;
+  background:
+    radial-gradient(46% 62% at 16% 22%, rgba(105,153,245,.55) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(50% 65% at 82% 72%, rgba(64,220,205,.5) 0%, rgba(64,220,205,0) 100%),
+    #050507;
+}
+.top-inner{max-width:1100px;margin:0 auto}
+.brand{display:flex;align-items:center;margin-bottom:40px}
+.brand img{height:26px;width:auto}
+.kicker{font-size:.72rem;font-weight:600;letter-spacing:.42em;text-transform:uppercase;color:var(--aqua);margin-bottom:20px}
+.top h1{font-size:clamp(2.2rem,6vw,3.6rem);font-weight:500;letter-spacing:-.02em;line-height:1.05;margin-bottom:18px}
+.top p{max-width:520px;color:rgba(255,255,255,.72);font-size:.95rem}
+.back{display:inline-block;margin-top:28px;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.7);border-bottom:2px solid var(--aqua);padding-bottom:3px}
+.back:hover{color:var(--aqua)}
+
+/* grid */
+.wrap{max-width:1100px;margin:0 auto;padding:70px 24px 110px}
+.grid{display:grid;grid-template-columns:0.9fr 1.4fr;gap:36px;align-items:start}
+.card{
+  border:1px solid rgba(0,0,0,.1);border-radius:20px;overflow:hidden;
+  background:#fff;transition:transform .2s, box-shadow .2s;
+}
+.card:hover{transform:translateY(-4px);box-shadow:0 20px 48px rgba(20,40,90,.14)}
+.shot{background:#eef3fb;display:flex;align-items:center;justify-content:center;padding:22px}
+.shot img{border-radius:10px;box-shadow:0 10px 30px rgba(10,20,60,.18);width:100%;height:auto}
+.card-body{padding:22px 24px 26px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.card-body .meta .lbl{font-size:.78rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+.card-body .meta .dim{font-size:.72rem;color:#777;margin-top:4px}
+.dl{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--ink);color:#fff;
+  font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  padding:13px 22px;border-radius:999px;transition:transform .15s, background .2s;
+}
+.dl:hover{background:var(--peri-deep);transform:translateY(-2px)}
+
+.note{margin-top:56px;font-size:.82rem;color:#555;max-width:640px;line-height:1.8}
+
+@media (max-width:760px){
+  .grid{grid-template-columns:1fr;gap:26px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="../"><img src="../assets/logo-white.svg" alt="linear"></a>
+    <div class="kicker">Brand assets</div>
+    <h1>Wallpapers</h1>
+    <p>linear lock screens in the brand gradient. Pick your device, download the full-resolution file, and set it as your wallpaper.</p>
+    <a class="back" href="../">← Back to site</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+
+    <div class="card">
+      <div class="shot"><img src="../assets/wallpaper/preview-phone.jpg" alt="Phone wallpaper preview"></div>
+      <div class="card-body">
+        <div class="meta">
+          <div class="lbl">Phone</div>
+          <div class="dim">1440 × 3120 · PNG</div>
+        </div>
+        <a class="dl" href="../assets/wallpaper/linear-wallpaper-phone.png" download>Download ↓</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="shot"><img src="../assets/wallpaper/preview-desktop.jpg" alt="Desktop wallpaper preview"></div>
+      <div class="card-body">
+        <div class="meta">
+          <div class="lbl">Desktop</div>
+          <div class="dim">3840 × 2160 · 4K · PNG</div>
+        </div>
+        <a class="dl" href="../assets/wallpaper/linear-wallpaper-desktop.png" download>Download ↓</a>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="note">
+    <strong>iPhone / Android:</strong> download the phone file, open Photos, then set it as your lock or home screen — the system will crop the edges slightly to fit.<br><br>
+    <strong>Mac / Windows:</strong> download the desktop file and set it as your background. It's true 4K, so it stays sharp on large and high-DPI displays.
+  </p>
+</main>
+
+</body>
+</html>
