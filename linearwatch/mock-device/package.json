@@ -1,0 +1,12 @@
+{
+  "name": "linearwatch-mock-device",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mock LinearWatch device — enrolls and uploads synthetic screenshots to exercise the ingest-to-view loop. Pure Node, no dependencies.",
+  "bin": { "linearwatch-mock-device": "./mock-device.mjs" },
+  "scripts": {
+    "start": "node mock-device.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

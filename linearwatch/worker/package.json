@@ -1,0 +1,19 @@
+{
+  "name": "linearwatch-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LinearWatch API — Cloudflare Worker (D1 + R2). Disclosed employee-monitoring ingest & dashboard API.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema:local": "wrangler d1 execute linearwatch --local --file=./schema.sql",
+    "schema:remote": "wrangler d1 execute linearwatch --remote --file=./schema.sql"
+  },
+  "dependencies": {
+    "@cf-wasm/photon": "^0.1.27"
+  },
+  "devDependencies": {
+    "wrangler": "^4.20.0"
+  }
+}

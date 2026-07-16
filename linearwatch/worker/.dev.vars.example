@@ -1,0 +1,8 @@
+# Local-dev secrets for `wrangler dev`. Copy to `.dev.vars` (gitignored) and fill in.
+# In production set these with:  wrangler secret put SIGNING_SECRET  (etc.)
+
+# HMAC key for signed view URLs and session integrity. Use a long random string.
+SIGNING_SECRET=dev-signing-secret-change-me-0123456789abcdef
+
+# Guards POST /v1/bootstrap and POST /v1/admin/run-retention (tenant provisioning).
+BOOTSTRAP_SECRET=dev-bootstrap-secret-change-me

@@ -1,0 +1,43 @@
+# LinearWatch API — Cloudflare Worker
+# ===================================
+# This is a SEPARATE Worker from the site's existing `linear-chat` worker (whose
+# config lives at the repo root). Deploy from THIS directory:
+#   cd linearwatch/worker && npx wrangler deploy
+#
+# Secrets are NOT stored here (this repo is public). Set them with:
+#   wrangler secret put SIGNING_SECRET      # HMAC key for signed view URLs + sessions
+#   wrangler secret put BOOTSTRAP_SECRET    # guards POST /v1/bootstrap (org provisioning)
+# For local dev, put the same names in .dev.vars (gitignored).
+
+name = "linearwatch-api"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# --- D1 (metadata) ---
+# Create it once:  wrangler d1 create linearwatch
+# then paste the returned database_id below (replace the placeholder).
+[[d1_databases]]
+binding = "DB"
+database_name = "linearwatch"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# --- R2 (screenshot bytes: originals + thumbnails) ---
+# Create it once:  wrangler r2 bucket create linearwatch-screenshots
+[[r2_buckets]]
+binding = "SHOTS"
+bucket_name = "linearwatch-screenshots"
+
+# --- Scheduled retention sweep (deletes screenshots older than each org's
+#     retention_days). Runs hourly. ---
+[triggers]
+crons = ["0 * * * *"]
+
+# --- Non-secret vars only (secrets go via `wrangler secret put`) ---
+[vars]
+# Comma-separated list of allowed dashboard origins for CORS. Use "*" for local
+# dev; set to your Pages URL(s) in production, e.g. "https://watch.linearit.co".
+ALLOW_ORIGIN = "*"
+# Max accepted upload size, megabytes.
+MAX_UPLOAD_MB = "12"
+# Thumbnail longest edge, pixels.
+THUMB_MAX_EDGE = "360"
