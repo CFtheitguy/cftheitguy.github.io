@@ -1,0 +1,23 @@
+# Cloudflare Worker config for the Device Report — device.linearit.co
+# -----------------------------------------------------------------------------
+# This is a SEPARATE, isolated Worker from linear-chat. It lives in its own
+# folder with its own config and shares nothing with the chat Worker, so it
+# cannot affect chat.linearit.co.
+#
+# Deploy with:   cd device-worker && npx wrangler deploy
+#
+# `custom_domain = true` makes that one command also create the
+# device.linearit.co Custom Domain AND its DNS record in the linearit.co zone
+# automatically — no dashboard step required (linearit.co is already in this
+# Cloudflare account).
+
+name = "linear-device"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# Vanity hostname -> this Worker. Auto-provisions the Custom Domain + DNS.
+routes = [
+  { pattern = "device.linearit.co", custom_domain = true }
+]
+
+# No D1 / R2 / secrets — it only proxies the public GitHub Pages page.

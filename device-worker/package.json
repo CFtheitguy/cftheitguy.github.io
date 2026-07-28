@@ -1,0 +1,14 @@
+{
+  "name": "linear-device",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker that serves the Linear IT device report at device.linearit.co",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

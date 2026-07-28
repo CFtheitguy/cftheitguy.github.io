@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Device Report — Linear IT</title>
+<meta name="description" content="Instant device report — location, device &amp; OS, content filter, CPU, memory, internet speed and more. Open device.linearit.co on any device.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<meta property="og:title" content="Device Report — Linear IT">
+<meta property="og:description" content="Open on any device to see location, device & OS, content filter, CPU, RAM, internet speed and more.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --peri:#6999f5;
+  --peri-deep:#4d7fe8;
+  --aqua:#70f2ff;
+  --bg:#050507;
+  --panel:#0c0e13;
+  --panel-2:#11141b;
+  --line:rgba(255,255,255,.09);
+  --txt:#eef2f7;
+  --dim:rgba(255,255,255,.55);
+  --dim-2:rgba(255,255,255,.38);
+  --ok:#3ad29f;
+  --warn:#f5c56b;
+  --info:#6999f5;
+  --bad:#ff6b6b;
+  --font:'Space Grotesk', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font);
+  color:var(--txt);
+  background:var(--bg);
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+  position:relative;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(46% 60% at 14% 18%, rgba(105,153,245,.30) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(52% 66% at 86% 78%, rgba(112,242,255,.22) 0%, rgba(112,242,255,0) 100%),
+    radial-gradient(30% 44% at 60% 42%, rgba(105,153,245,.10) 0%, rgba(105,153,245,0) 100%),
+    var(--bg);
+}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+
+/* ── NAV ── */
+.nav{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;gap:16px;
+  padding:14px 22px;
+  background:rgba(5,5,7,.72);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.brand img{height:38px;width:auto}
+.brand .wm{font-weight:600;letter-spacing:.02em;font-size:1.05rem}
+.brand .wm small{display:block;font-size:.6rem;letter-spacing:.34em;text-transform:uppercase;color:var(--dim);font-weight:500;margin-top:2px}
+.nav-actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.btn{
+  font-family:var(--font);font-size:.78rem;font-weight:600;letter-spacing:.02em;
+  padding:9px 15px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(255,255,255,.04);color:var(--txt);cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;transition:transform .12s, background .2s, border-color .2s;
+  white-space:nowrap;
+}
+.btn:hover{background:rgba(255,255,255,.09);transform:translateY(-1px)}
+.btn.primary{background:var(--aqua);color:#04121a;border-color:transparent;font-weight:700}
+.btn.primary:hover{background:#8ff5ff}
+.btn svg{width:15px;height:15px}
+
+/* ── HERO ── */
+.hero{max-width:1180px;margin:0 auto;padding:38px 22px 10px}
+.eyebrow{font-size:.68rem;font-weight:600;letter-spacing:.34em;text-transform:uppercase;color:var(--aqua);margin-bottom:14px}
+.hero h1{font-size:clamp(1.7rem,4.4vw,2.9rem);font-weight:600;letter-spacing:-.02em;line-height:1.12}
+.hero .summary{margin-top:16px;font-size:clamp(1rem,2.3vw,1.28rem);color:var(--txt);max-width:900px;line-height:1.5}
+.hero .summary b{color:var(--aqua);font-weight:600}
+.hero .meta{margin-top:14px;color:var(--dim);font-size:.86rem;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center}
+.hero .meta .dot{width:5px;height:5px;border-radius:50%;background:var(--dim-2);display:inline-block}
+
+.scanbar{margin-top:22px;height:6px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;max-width:520px}
+.scanbar > span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--peri),var(--aqua));transition:width .4s ease}
+.scan-label{margin-top:8px;font-size:.76rem;color:var(--dim)}
+
+/* ── IDLE / RUN BUTTON ── */
+.lead{margin-top:18px;font-size:clamp(1rem,2.3vw,1.24rem);color:var(--txt);max-width:820px;line-height:1.55}
+.lead b{color:var(--aqua);font-weight:600}
+.run-btn{
+  margin-top:30px;font-family:var(--font);font-weight:700;font-size:1.12rem;letter-spacing:.01em;
+  padding:18px 34px;border-radius:999px;border:none;cursor:pointer;
+  color:#04121a;background:linear-gradient(120deg,var(--aqua),#8ff5ff);
+  display:inline-flex;align-items:center;gap:11px;
+  box-shadow:0 10px 34px rgba(112,242,255,.28);
+  transition:transform .14s, box-shadow .2s;
+}
+.run-btn svg{width:20px;height:20px}
+.run-btn:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(112,242,255,.42)}
+.run-btn:active{transform:translateY(0)}
+.run-btn:disabled{opacity:.6;cursor:default;transform:none;box-shadow:none}
+.reassure{margin-top:16px;font-size:.82rem;color:var(--dim)}
+
+/* ── FINISH BAR ── */
+#finish-bar{max-width:1180px;margin:0 auto 34px;padding:0 22px}
+.finish-inner{
+  background:linear-gradient(120deg,rgba(105,153,245,.16),rgba(112,242,255,.10));
+  border:1px solid rgba(112,242,255,.28);border-radius:16px;
+  padding:20px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+}
+.finish-title{font-size:1.05rem;font-weight:600}
+.finish-sub{font-size:.86rem;color:var(--dim);margin-top:3px;max-width:460px}
+.finish-actions{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.btn.big{padding:13px 22px;font-size:.92rem}
+
+/* ── GRID ── */
+.grid{
+  max-width:1180px;margin:26px auto 10px;padding:0 22px 60px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;
+}
+.grid.pending{display:none}
+.card{
+  background:linear-gradient(180deg,var(--panel-2),var(--panel));
+  border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;
+  position:relative;overflow:hidden;transition:border-color .2s, transform .12s;
+}
+.card:hover{border-color:rgba(112,242,255,.28)}
+.card.span-2{grid-column:span 2}
+@media(max-width:720px){.card.span-2{grid-column:span 1}}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.card-head .ico{
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  display:grid;place-items:center;font-size:1.02rem;
+  background:rgba(105,153,245,.14);border:1px solid rgba(105,153,245,.22);
+}
+.card-head h3{font-size:.82rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);flex:1}
+.chip{
+  font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:4px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent;
+}
+.chip.live{color:var(--ok);background:rgba(58,210,159,.12);border-color:rgba(58,210,159,.3)}
+.chip.approx{color:var(--warn);background:rgba(245,197,107,.12);border-color:rgba(245,197,107,.3)}
+.chip.agent{color:var(--info);background:rgba(105,153,245,.12);border-color:rgba(105,153,245,.32)}
+.chip.na{color:var(--dim);background:rgba(255,255,255,.05);border-color:var(--line)}
+.chip.loading{color:var(--dim);background:rgba(255,255,255,.05);border-color:var(--line);animation:pulse 1.3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.big{font-size:1.7rem;font-weight:600;letter-spacing:-.01em;line-height:1.15;margin-bottom:2px;word-break:break-word}
+.big .unit{font-size:.9rem;font-weight:500;color:var(--dim);letter-spacing:0}
+.sub{font-size:.82rem;color:var(--dim);margin-bottom:12px}
+
+dl.rows{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:.86rem;margin-top:4px}
+dl.rows dt{color:var(--dim);white-space:nowrap}
+dl.rows dd{text-align:right;font-weight:500;word-break:break-word}
+dl.rows dd.mono{font-variant-numeric:tabular-nums}
+
+.note{margin-top:12px;font-size:.74rem;color:var(--dim-2);line-height:1.45;border-top:1px solid var(--line);padding-top:10px}
+
+/* meter */
+.meter{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 4px}
+.meter > span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--peri),var(--aqua));transition:width .5s ease}
+.meter.warn > span{background:linear-gradient(90deg,#f5c56b,#f59e6b)}
+
+select,.linklike{
+  font-family:var(--font);font-size:.9rem;color:var(--txt);
+  background:var(--panel);border:1px solid var(--line);border-radius:9px;
+  padding:9px 11px;width:100%;margin-top:6px;cursor:pointer;
+}
+select:focus{outline:none;border-color:var(--aqua)}
+.inline-btn{
+  font-family:var(--font);font-size:.74rem;font-weight:600;color:var(--aqua);
+  background:none;border:none;cursor:pointer;padding:0;margin-top:10px;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.inline-btn:hover{text-decoration:underline}
+
+.spark{display:flex;gap:2px;align-items:flex-end;height:30px;margin-top:8px}
+.spark i{flex:1;background:linear-gradient(180deg,var(--aqua),var(--peri));border-radius:2px;min-height:2px;opacity:.85}
+
+/* toast */
+#toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:#0e1118;border:1px solid var(--line);color:var(--txt);
+  padding:12px 20px;border-radius:12px;font-size:.86rem;font-weight:500;
+  box-shadow:0 12px 40px rgba(0,0,0,.5);opacity:0;pointer-events:none;
+  transition:opacity .25s, transform .25s;z-index:100;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast b{color:var(--aqua)}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:26px 22px 40px;text-align:center;color:var(--dim);font-size:.8rem}
+footer a{color:var(--aqua)}
+footer .disc{max-width:760px;margin:0 auto 14px;color:var(--dim-2);font-size:.76rem;line-height:1.55}
+footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="https://www.linearit.co">
+    <img src="/logo.png" alt="Linear IT" onerror="this.style.display='none'">
+    <span class="wm">Device Report<small>Linear IT</small></span>
+  </a>
+  <div class="nav-actions" id="nav-actions" hidden>
+    <button class="btn" id="btn-refresh" title="Start a fresh report">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Start over
+    </button>
+    <button class="btn" id="btn-copy" title="Copy the full report to clipboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy report
+    </button>
+    <button class="btn primary" id="btn-send" title="Email this report to Linear IT support">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Send to Linear IT
+    </button>
+  </div>
+</nav>
+
+<header class="hero">
+  <!-- IDLE: what the visitor sees first -->
+  <div id="idle">
+    <div class="eyebrow">Device check</div>
+    <h1>Check this device in one&nbsp;tap.</h1>
+    <p class="lead">Run an instant report on <b>this</b> device &mdash; location, operating system, content filter, processor, memory, internet speed and more. It installs nothing, can't see your files, and <b>you</b> decide whether to send it.</p>
+    <button class="run-btn" id="btn-run">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+      Run device report
+    </button>
+    <p class="reassure">Takes about 10 seconds &middot; installs nothing &middot; nothing is sent unless you tap “Send”</p>
+  </div>
+
+  <!-- LIVE: appears after the button is tapped -->
+  <div id="live" hidden>
+    <div class="eyebrow">Live device snapshot</div>
+    <h1>Here's what this device looks&nbsp;like.</h1>
+    <p class="summary" id="summary">Scanning this device&hellip;</p>
+    <div class="meta" id="hero-meta">
+      <span id="meta-time">&mdash;</span>
+      <span class="dot"></span>
+      <span id="meta-ip">Locating&hellip;</span>
+    </div>
+    <div class="scanbar"><span id="scan-fill"></span></div>
+    <div class="scan-label" id="scan-label">Starting checks&hellip;</div>
+  </div>
+</header>
+
+<main class="grid pending" id="grid">
+
+  <!-- LOCATION -->
+  <article class="card" id="c-loc">
+    <div class="card-head"><span class="ico">📍</span><h3>Location &amp; Network</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub>Approximate, from your internet connection</div>
+    <dl class="rows" data-rows></dl>
+    <button class="inline-btn" id="btn-gps">📡 Use precise GPS location</button>
+  </article>
+
+  <!-- DEVICE & OS -->
+  <article class="card" id="c-os">
+    <div class="card-head"><span class="ico">💻</span><h3>Device &amp; Operating System</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <dl class="rows" data-rows></dl>
+  </article>
+
+  <!-- CONTENT FILTER -->
+  <article class="card" id="c-filter">
+    <div class="card-head"><span class="ico">🛡️</span><h3>Content Filter</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>Checking&hellip;</div>
+    <div class="sub" data-sub>Best-effort detection &mdash; confirm below</div>
+    <dl class="rows" data-rows></dl>
+    <select id="filter-select" aria-label="Confirm content filter">
+      <option value="">— Confirm filter (optional) —</option>
+      <option>None / Unfiltered</option>
+      <option>Not sure</option>
+      <option>Techloq</option>
+      <option>Netspark</option>
+      <option>NetFree</option>
+      <option>Geder</option>
+      <option>Meshimer</option>
+      <option>Gentech</option>
+      <option>TAG (Technology Awareness Group)</option>
+      <option>MBSmart</option>
+      <option>Nativ</option>
+      <option>Bark</option>
+      <option>Circle</option>
+      <option>Other</option>
+    </select>
+    <div class="note">Websites can only see a filter if it announces itself. A "not detected" result doesn't mean the device is unfiltered — confirm with the client or the agent.</div>
+  </article>
+
+  <!-- CPU -->
+  <article class="card" id="c-cpu">
+    <div class="card-head"><span class="ico">⚙️</span><h3>Processor &amp; Performance</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <div class="meter"><span data-meter></span></div>
+    <dl class="rows" data-rows></dl>
+    <div class="note">Clock speed isn't exposed to browsers. Performance is a quick in-browser benchmark (single thread), useful for comparing devices.</div>
+  </article>
+
+  <!-- RAM -->
+  <article class="card" id="c-ram">
+    <div class="card-head"><span class="ico">🧠</span><h3>Memory (RAM)</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <dl class="rows" data-rows></dl>
+  </article>
+
+  <!-- STORAGE -->
+  <article class="card" id="c-disk">
+    <div class="card-head"><span class="ico">💾</span><h3>Storage</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <div class="meter"><span data-meter></span></div>
+    <dl class="rows" data-rows></dl>
+    <div class="note">Browsers only expose the space granted to this website, not the whole drive. Full disk capacity requires the management agent.</div>
+  </article>
+
+  <!-- INTERNET SPEED -->
+  <article class="card span-2" id="c-net">
+    <div class="card-head"><span class="ico">📶</span><h3>Internet Speed</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub>Live download test</div>
+    <div class="spark" id="net-spark"></div>
+    <dl class="rows" data-rows></dl>
+    <button class="inline-btn" id="btn-retest">🔁 Run speed test again</button>
+  </article>
+
+  <!-- UPTIME -->
+  <article class="card" id="c-uptime">
+    <div class="card-head"><span class="ico">⏱️</span><h3>Uptime &amp; Session</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <dl class="rows" data-rows></dl>
+    <div class="note">Device power-on uptime isn't available to browsers. This shows how long this page/session has been open. True uptime requires the agent.</div>
+  </article>
+
+  <!-- USERS -->
+  <article class="card" id="c-users">
+    <div class="card-head"><span class="ico">👥</span><h3>User Accounts</h3><span class="chip agent" data-chip>Agent</span></div>
+    <div class="big" data-big>Agent required</div>
+    <div class="sub" data-sub>Admin vs. standard user counts</div>
+    <dl class="rows" data-rows></dl>
+    <div class="note">Local account inventory (how many admins vs. standard users) is not visible to any website. It's collected by the NinjaOne agent on the device.</div>
+  </article>
+
+  <!-- INSTALLED APPS -->
+  <article class="card" id="c-apps">
+    <div class="card-head"><span class="ico">📦</span><h3>Installed Apps</h3><span class="chip agent" data-chip>Agent</span></div>
+    <div class="big" data-big>Agent required</div>
+    <div class="sub" data-sub>Software inventory</div>
+    <dl class="rows" data-rows></dl>
+    <div class="note">For privacy, browsers can't list installed programs. The agent provides the full software inventory. Detected browser plug-ins are shown above.</div>
+  </article>
+
+  <!-- DISPLAY & GPU -->
+  <article class="card" id="c-display">
+    <div class="card-head"><span class="ico">🖥️</span><h3>Display &amp; Graphics</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <dl class="rows" data-rows></dl>
+  </article>
+
+  <!-- BATTERY -->
+  <article class="card" id="c-battery">
+    <div class="card-head"><span class="ico">🔋</span><h3>Battery &amp; Power</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <div class="meter"><span data-meter></span></div>
+    <dl class="rows" data-rows></dl>
+  </article>
+
+  <!-- BROWSER / ENV -->
+  <article class="card" id="c-browser">
+    <div class="card-head"><span class="ico">🌐</span><h3>Browser &amp; Environment</h3><span class="chip loading" data-chip>&hellip;</span></div>
+    <div class="big" data-big>&mdash;</div>
+    <div class="sub" data-sub></div>
+    <dl class="rows" data-rows></dl>
+  </article>
+
+</main>
+
+<section id="finish-bar" hidden>
+  <div class="finish-inner">
+    <div class="finish-text">
+      <div class="finish-title">✅ Report ready</div>
+      <div class="finish-sub">Send it to Linear IT and we'll take it from here — the email is pre-filled, just hit send.</div>
+    </div>
+    <div class="finish-actions">
+      <button class="btn" id="btn-copy2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy report
+      </button>
+      <button class="btn primary big" id="btn-send2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        Send report to Linear IT
+      </button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p class="disc">
+    This report reads only what your web browser is allowed to share &mdash; it installs nothing and cannot see your files, passwords, or activity.
+    Items marked <b style="color:var(--info)">Agent</b> require the NinjaOne management agent. Values marked <b style="color:var(--warn)">Approx</b> are browser estimates and may be capped or rounded.
+  </p>
+  <div class="contact">
+    <span>Linear IT</span>
+    <a href="tel:+18456041462">(845) 604-1462</a>
+    <a href="mailto:support@linearit.co">support@linearit.co</a>
+    <a href="https://www.linearit.co">linearit.co</a>
+  </div>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================================
+   Linear IT — Device Report
+   Pure client-side. Every probe is isolated so one failure never breaks
+   the page. Nothing is uploaded anywhere; "Send" opens the user's mail app.
+   ========================================================================= */
+(function(){
+  "use strict";
+
+  var REPORT = {};          // flat key/value store used to build the text report
+  var MODULES = 13;         // number of checks that report completion via tickDone()
+  var doneCount = 0;
+
+  /* ---------- tiny DOM helpers ---------- */
+  function $(sel, ctx){ return (ctx||document).querySelector(sel); }
+  function card(id){ return document.getElementById(id); }
+  function setChip(id, cls, text){
+    var el = $('[data-chip]', card(id)); if(!el) return;
+    el.className = 'chip ' + cls; el.textContent = text;
+  }
+  function setBig(id, html){ var el=$('[data-big]',card(id)); if(el) el.innerHTML = html; }
+  function setSub(id, text){ var el=$('[data-sub]',card(id)); if(el) el.textContent = text; }
+  function setMeter(id, pct, warn){
+    var el=$('[data-meter]',card(id)); if(!el) return;
+    el.parentElement.classList.toggle('warn', !!warn);
+    el.style.width = Math.max(0,Math.min(100,pct)) + '%';
+  }
+  function setRows(id, pairs){
+    var dl=$('[data-rows]',card(id)); if(!dl) return;
+    dl.innerHTML='';
+    pairs.forEach(function(p){
+      if(p[1]===undefined || p[1]===null || p[1]==='') return;
+      var dt=document.createElement('dt'); dt.textContent=p[0];
+      var dd=document.createElement('dd'); dd.textContent=p[1]; if(p[2]) dd.className='mono';
+      dl.appendChild(dt); dl.appendChild(dd);
+    });
+  }
+  function rec(k,v){ if(v!==undefined && v!==null && v!=='') REPORT[k]=v; }
+  function esc(s){ return String(s).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c];}); }
+
+  /* ---------- progress ---------- */
+  var finished=false;
+  function finalize(){
+    if(finished) return; finished=true;
+    $('#scan-fill').style.width = '100%';
+    $('#scan-label').textContent = 'All checks complete.';
+    setTimeout(function(){
+      $('.scanbar').style.opacity='0';
+      $('#scan-label').style.opacity='.6';
+      var fb=document.getElementById('finish-bar');
+      if(fb){ fb.hidden=false; }
+    },700);
+    buildSummary();
+  }
+  function tickDone(label){
+    doneCount++;
+    var pct = Math.min(100, Math.round(doneCount/MODULES*100));
+    if(!finished){
+      $('#scan-fill').style.width = pct + '%';
+      $('#scan-label').textContent = (label||'Working…');
+    }
+    if(doneCount>=MODULES) finalize();
+  }
+
+  function toast(msg){
+    var t=$('#toast'); t.innerHTML=msg; t.classList.add('show');
+    clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('show');},2600);
+  }
+
+  /* ---------- formatting ---------- */
+  function fmtBytes(n){
+    if(!n && n!==0) return null;
+    var u=['B','KB','MB','GB','TB']; var i=0;
+    while(n>=1024 && i<u.length-1){ n/=1024; i++; }
+    return (n>=100?Math.round(n):n.toFixed(n>=10?0:1)) + ' ' + u[i];
+  }
+  function fmtDur(ms){
+    var s=Math.floor(ms/1000);
+    var d=Math.floor(s/86400); s%=86400;
+    var h=Math.floor(s/3600); s%=3600;
+    var m=Math.floor(s/60); s%=60;
+    var out=[];
+    if(d) out.push(d+'d');
+    if(h||d) out.push(h+'h');
+    out.push(m+'m'); out.push(s+'s');
+    return out.join(' ');
+  }
+
+  /* =====================================================================
+     1. LOCATION & NETWORK  (Cloudflare meta -> ipwho.is enrich)
+     ===================================================================== */
+  var GEO = {};
+  function withTimeout(promise, ms){
+    return Promise.race([promise, new Promise(function(_,rej){ setTimeout(function(){rej(new Error('timeout'));}, ms); })]);
+  }
+  function loadLocation(){
+    setChip('c-loc','loading','…');
+    // Primary: Cloudflare trace/meta (reliable, CORS-friendly)
+    withTimeout(fetch('https://speed.cloudflare.com/meta',{cache:'no-store'}).then(function(r){return r.json();}), 6000)
+      .then(function(m){
+        GEO.ip = m.clientIp; GEO.city=m.city; GEO.region=m.region; GEO.country=m.country;
+        GEO.postal=m.postalCode; GEO.lat=m.latitude; GEO.lon=m.longitude;
+        GEO.asn=m.asn; GEO.org=m.asOrganization; GEO.colo=m.colo; GEO.proto=m.httpProtocol;
+        renderLocation();
+        // Enrich (ISP name, connection type) — non-blocking
+        return withTimeout(fetch('https://ipwho.is/'+ (m.clientIp||''), {cache:'no-store'}).then(function(r){return r.json();}), 5000);
+      })
+      .then(function(w){
+        if(w && w.success!==false){
+          if(w.connection){ GEO.isp = w.connection.isp || GEO.org; GEO.orgName = w.connection.org; }
+          if(w.city) GEO.city=w.city; if(w.region) GEO.region=w.region;
+          if(w.country) GEO.country=w.country; if(w.postal) GEO.postal=w.postal;
+          if(w.type) GEO.iptype=w.type;
+          if(w.flag && w.flag.emoji) GEO.flag=w.flag.emoji;
+          renderLocation();
+        }
+      })
+      .catch(function(){ /* try a lighter fallback */ })
+      .finally(function(){
+        if(!GEO.ip){ fallbackIP(); } else { tickDone('Located device'); }
+      });
+  }
+  function fallbackIP(){
+    withTimeout(fetch('https://ipwho.is/',{cache:'no-store'}).then(function(r){return r.json();}),6000)
+      .then(function(w){
+        if(w && w.success!==false){
+          GEO.ip=w.ip; GEO.city=w.city; GEO.region=w.region; GEO.country=w.country;
+          GEO.postal=w.postal; GEO.lat=w.latitude; GEO.lon=w.longitude;
+          if(w.connection){GEO.isp=w.connection.isp; GEO.org=w.connection.org; GEO.asn='AS'+w.connection.asn;}
+          if(w.flag&&w.flag.emoji) GEO.flag=w.flag.emoji; if(w.type) GEO.iptype=w.type;
+          renderLocation();
+        } else { locationFailed(); }
+      })
+      .catch(locationFailed)
+      .finally(function(){ tickDone('Located device'); });
+  }
+  function locationFailed(){
+    setChip('c-loc','na','N/A');
+    setBig('c-loc','Unavailable');
+    setSub('c-loc','Could not reach location service (offline or blocked)');
+    $('#meta-ip').textContent='IP unavailable';
+  }
+  function renderLocation(){
+    var place = [GEO.city, GEO.region, GEO.country].filter(Boolean).join(', ');
+    setChip('c-loc','approx','Approx');
+    setBig('c-loc', (GEO.flag?GEO.flag+' ':'') + esc(place || (GEO.country||'Unknown')));
+    setSub('c-loc','Approximate, from your internet connection');
+    setRows('c-loc',[
+      ['Public IP', GEO.ip, true],
+      ['ISP / Carrier', GEO.isp || GEO.org],
+      ['Network', GEO.asn ? (GEO.asn + (GEO.org?(' · '+GEO.org):'')) : GEO.org],
+      ['Connection', GEO.iptype ? (GEO.iptype==='IPv4'?'IPv4':GEO.iptype) : null],
+      ['Postal', GEO.postal, true],
+      ['Coordinates', (GEO.lat&&GEO.lon)? (Number(GEO.lat).toFixed(3)+', '+Number(GEO.lon).toFixed(3)) : null, true],
+      ['Nearest CF edge', GEO.colo, true]
+    ]);
+    $('#meta-ip').textContent = (GEO.ip||'') + (place?(' · '+place):'');
+    rec('Location', place); rec('Public IP', GEO.ip); rec('ISP', GEO.isp||GEO.org);
+    rec('Network (ASN)', GEO.asn); rec('Coordinates', (GEO.lat&&GEO.lon)?(GEO.lat+', '+GEO.lon):'');
+  }
+
+  // Precise GPS on demand
+  $('#btn-gps').addEventListener('click', function(){
+    if(!navigator.geolocation){ toast('Geolocation not supported on this device'); return; }
+    this.textContent='📡 Requesting location…';
+    var btn=this;
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var la=pos.coords.latitude, lo=pos.coords.longitude, acc=Math.round(pos.coords.accuracy);
+      GEO.lat=la; GEO.lon=lo;
+      var dl=$('[data-rows]',card('c-loc'));
+      var dt=document.createElement('dt'); dt.textContent='GPS (precise)';
+      var dd=document.createElement('dd'); dd.className='mono';
+      dd.innerHTML='<a class="linklike" style="display:inline;padding:0;border:0;background:none;color:var(--aqua)" target="_blank" rel="noopener" href="https://www.google.com/maps?q='+la+','+lo+'">'+la.toFixed(5)+', '+lo.toFixed(5)+'</a>';
+      dl.appendChild(dt); dl.appendChild(dd);
+      var dt2=document.createElement('dt'); dt2.textContent='GPS accuracy';
+      var dd2=document.createElement('dd'); dd2.className='mono'; dd2.textContent='±'+acc+' m';
+      dl.appendChild(dt2); dl.appendChild(dd2);
+      setChip('c-loc','live','GPS');
+      rec('GPS', la.toFixed(5)+', '+lo.toFixed(5)+' (±'+acc+'m)');
+      btn.textContent='✅ Precise location added'; btn.disabled=true;
+    }, function(err){
+      btn.textContent='📡 Use precise GPS location';
+      toast(err.code===1?'Location permission denied':'Could not get GPS location');
+    }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
+  });
+
+  /* =====================================================================
+     2. DEVICE & OS
+     ===================================================================== */
+  function parseOS(ua){
+    ua = ua||'';
+    if(/Windows NT 10/.test(ua)) return {name:'Windows', ver:'10 / 11'};
+    if(/Windows NT 6\.3/.test(ua)) return {name:'Windows', ver:'8.1'};
+    if(/Windows NT 6\.1/.test(ua)) return {name:'Windows', ver:'7'};
+    if(/Windows/.test(ua)) return {name:'Windows', ver:''};
+    if(/iPhone|iPad|iPod/.test(ua)){ var m=ua.match(/OS (\d+[_\.]\d+)/); return {name:/iPad/.test(ua)?'iPadOS':'iOS', ver:m?m[1].replace(/_/g,'.'):''}; }
+    if(/Mac OS X/.test(ua)){ var mm=ua.match(/Mac OS X (\d+[_\.]\d+)/); return {name:'macOS', ver:mm?mm[1].replace(/_/g,'.'):''}; }
+    if(/Android/.test(ua)){ var a=ua.match(/Android (\d+(\.\d+)?)/); return {name:'Android', ver:a?a[1]:''}; }
+    if(/CrOS/.test(ua)) return {name:'ChromeOS', ver:''};
+    if(/Linux/.test(ua)) return {name:'Linux', ver:''};
+    return {name:'Unknown OS', ver:''};
+  }
+  function deviceType(ua){
+    if(/iPad|Tablet|PlayBook|Silk/.test(ua) || (/Android/.test(ua) && !/Mobile/.test(ua))) return 'Tablet';
+    if(/Mobi|iPhone|iPod|Android.*Mobile|Windows Phone/.test(ua)) return 'Phone';
+    return 'Desktop / Laptop';
+  }
+  function deviceIcon(t){ return t==='Phone'?'📱':(t==='Tablet'?'📲':'💻'); }
+
+  function loadOS(){
+    setChip('c-os','loading','…');
+    var ua = navigator.userAgent || '';
+    var os = parseOS(ua);
+    var type = deviceType(ua);
+    var model = '';
+    var uad = navigator.userAgentData;
+
+    function paint(arch, platVer, modelName, bitness){
+      if(platVer && os.name==='Windows'){
+        var maj = parseInt(platVer.split('.')[0],10);
+        os.ver = maj>=13 ? '11' : (maj>0 ? '10' : os.ver);
+      } else if(platVer && !os.ver){ os.ver = platVer; }
+      var typeIcon = deviceIcon(type);
+      card('c-os').querySelector('.ico').textContent = typeIcon;
+      setChip('c-os','live','Live');
+      setBig('c-os', esc(os.name + (os.ver?(' '+os.ver):'')));
+      setSub('c-os', type + (modelName?(' · '+modelName):''));
+      setRows('c-os',[
+        ['Form factor', type],
+        ['Operating system', os.name + (os.ver?(' '+os.ver):'')],
+        ['Model', modelName||null],
+        ['Architecture', arch ? (arch + (bitness?(' · '+bitness+'-bit'):'')) : null],
+        ['CPU cores', navigator.hardwareConcurrency || null, true],
+        ['Touch screen', (navigator.maxTouchPoints>0)?('Yes ('+navigator.maxTouchPoints+' points)'):'No'],
+        ['Platform', (uad&&uad.platform)|| navigator.platform || null]
+      ]);
+      rec('Device type', type + (modelName?(' ('+modelName+')'):''));
+      rec('Operating system', os.name+(os.ver?(' '+os.ver):''));
+      rec('Architecture', arch?(arch+(bitness?('/'+bitness+'-bit'):'')):'');
+      tickDone('Identified device');
+    }
+
+    if(uad && uad.getHighEntropyValues){
+      uad.getHighEntropyValues(['model','platform','platformVersion','architecture','bitness'])
+        .then(function(v){
+          if(v.platform) os.name = v.platform==='macOS'?'macOS':(v.platform==='Windows'?'Windows':v.platform);
+          paint(v.architecture, v.platformVersion, v.model, v.bitness);
+        })
+        .catch(function(){ paint(null,null,model,null); });
+    } else {
+      // fallback model hint from UA
+      var mm = ua.match(/\(([^)]+)\)/);
+      if(/iPhone/.test(ua)) model='iPhone'; else if(/iPad/.test(ua)) model='iPad';
+      paint(null, null, model, null);
+    }
+  }
+
+  /* =====================================================================
+     3. CONTENT FILTER  (best-effort)
+     ===================================================================== */
+  function loadFilter(){
+    setChip('c-filter','loading','…');
+    var ua = (navigator.userAgent||'').toLowerCase();
+    var hits = [];
+    var confidence = 'none';
+
+    // (a) UA tokens some filter browsers add
+    if(/netspark/.test(ua)) hits.push('Netspark');
+    if(/netfree/.test(ua)) hits.push('NetFree');
+    if(/techloq/.test(ua)) hits.push('Techloq');
+    if(/gentech/.test(ua)) hits.push('Gentech');
+
+    // (b) injected globals
+    try{ if(window.netfree || window.__netfree || document.querySelector('meta[name="netfree"]')) hits.push('NetFree'); }catch(e){}
+    try{ if(window.netspark || document.getElementById('netspark_bar')) hits.push('Netspark'); }catch(e){}
+
+    // (c) active probe: NetFree publishes an account endpoint reachable only behind it
+    var probes = [
+      withTimeout(
+        fetch('https://ip.netfree.link/',{cache:'no-store',mode:'cors'})
+          .then(function(r){ return r.ok?r.text():''; })
+          .then(function(t){ return /netfree|user|account/i.test(t) ? 'NetFree' : ''; })
+          .catch(function(){ return ''; }),
+        3500
+      )
+    ];
+
+    withTimeout(Promise.all(probes),5000).then(function(res){
+      res.forEach(function(r){ if(r) hits.push(r); });
+    }).catch(function(){}).finally(function(){
+      // de-dupe
+      var uniq = hits.filter(function(v,i){ return hits.indexOf(v)===i; });
+      if(uniq.length){
+        confidence='detected';
+        setChip('c-filter','live','Detected');
+        setBig('c-filter', esc(uniq.join(', ')));
+        setSub('c-filter','Detected from device / network signals');
+        setRows('c-filter',[['Signal','Announced by device or network'],['Filters seen', uniq.join(', ')]]);
+        rec('Content filter', uniq.join(', ') + ' (auto-detected)');
+      } else {
+        setChip('c-filter','na','Not detected');
+        setBig('c-filter','None detected');
+        setSub('c-filter','No filter announced itself — confirm below');
+        setRows('c-filter',[['Auto-detect','No filter signature seen'],['Note','Silent filters won’t show here']]);
+        rec('Content filter','None auto-detected');
+      }
+      tickDone('Checked content filter');
+    });
+  }
+  $('#filter-select').addEventListener('change', function(){
+    var v=this.value; if(!v) return;
+    setChip('c-filter','live','Confirmed');
+    setBig('c-filter', esc(v));
+    setSub('c-filter','Confirmed by technician');
+    rec('Content filter', v + ' (confirmed)');
+    buildSummary();
+    toast('Filter set to <b>'+esc(v)+'</b>');
+  });
+
+  /* =====================================================================
+     4. CPU & PERFORMANCE
+     ===================================================================== */
+  function loadCPU(){
+    setChip('c-cpu','loading','…');
+    var cores = navigator.hardwareConcurrency || null;
+    // defer benchmark so it doesn't block first paint
+    setTimeout(function(){
+      var score=null, mops=null, rating='—', pct=0;
+      try{
+        var iters=6000000, t0=performance.now(), x=0;
+        for(var i=0;i<iters;i++){ x += Math.sqrt(i*1.0001)*0.5; if((i&2047)===0) x%=100000; }
+        var ms=performance.now()-t0;
+        if(x===Infinity) ms=ms; // keep x live
+        mops = iters/(ms/1000)/1e6;         // million ops / sec (single thread)
+        score = Math.round(mops);
+        if(mops>=180){rating='Excellent';pct=100;}
+        else if(mops>=110){rating='Very good';pct=80;}
+        else if(mops>=60){rating='Good';pct=60;}
+        else if(mops>=30){rating='Fair';pct=40;}
+        else {rating='Modest';pct=22;}
+      }catch(e){}
+      setChip('c-cpu','live','Live');
+      setBig('c-cpu', (cores? cores : '—') + ' <span class="unit">logical cores</span>');
+      setSub('c-cpu', 'Single-thread score: ' + (score!=null? (score+' ('+rating+')') : 'n/a'));
+      setMeter('c-cpu', pct, pct<40);
+      setRows('c-cpu',[
+        ['Logical cores', cores, true],
+        ['Single-thread score', score!=null? (score+' Mops/s') : 'n/a', true],
+        ['Rating', rating],
+        ['Clock speed', 'Not exposed to browser']
+      ]);
+      rec('CPU cores', cores);
+      rec('CPU single-thread score', score!=null?(score+' Mops/s ('+rating+')'):'n/a');
+      tickDone('Benchmarked CPU');
+    }, 60);
+  }
+
+  /* =====================================================================
+     5. RAM
+     ===================================================================== */
+  function loadRAM(){
+    var dm = navigator.deviceMemory; // GiB, coarse, Chromium only, capped ~8
+    if(dm){
+      setChip('c-ram','approx','Approx');
+      setBig('c-ram', '≈ ' + dm + ' <span class="unit">GB</span>');
+      setSub('c-ram', dm>=8 ? 'Browsers report 8 GB as the maximum — device may have more' : 'Reported by the browser (coarse)');
+      setRows('c-ram',[
+        ['Installed RAM', '≈ '+dm+' GB', true],
+        ['Precision', 'Rounded by browser'],
+        ['Note', dm>=8?'Actual may exceed 8 GB':'—']
+      ]);
+      rec('RAM','≈ '+dm+' GB (browser estimate)');
+    } else {
+      setChip('c-ram','na','N/A');
+      setBig('c-ram','Not exposed');
+      setSub('c-ram','This browser doesn’t report memory (e.g. Safari/Firefox)');
+      setRows('c-ram',[['Installed RAM','Requires agent'],['Reason','Browser doesn’t expose it']]);
+      rec('RAM','Not exposed to browser');
+    }
+    tickDone('Checked memory');
+  }
+
+  /* =====================================================================
+     6. STORAGE (origin quota — labelled honestly)
+     ===================================================================== */
+  function loadStorage(){
+    setChip('c-disk','loading','…');
+    if(navigator.storage && navigator.storage.estimate){
+      navigator.storage.estimate().then(function(est){
+        var quota=est.quota||0, usage=est.usage||0;
+        var pct = quota? Math.round(usage/quota*100) : 0;
+        setChip('c-disk','approx','Approx');
+        setBig('c-disk', fmtBytes(quota) + ' <span class="unit">available to browser</span>');
+        setSub('c-disk','Browser storage quota (proxy for free space)');
+        setMeter('c-disk', pct);
+        setRows('c-disk',[
+          ['Quota (approx free)', fmtBytes(quota), true],
+          ['Used by this site', fmtBytes(usage), true],
+          ['Full drive size', 'Requires agent']
+        ]);
+        rec('Storage (browser quota)', fmtBytes(quota));
+        tickDone('Checked storage');
+      }).catch(function(){ storageNA(); });
+    } else { storageNA(); }
+  }
+  function storageNA(){
+    setChip('c-disk','na','N/A');
+    setBig('c-disk','Not exposed');
+    setSub('c-disk','This browser doesn’t report storage');
+    setRows('c-disk',[['Free space','Requires agent']]);
+    rec('Storage','Not exposed to browser');
+    tickDone('Checked storage');
+  }
+
+  /* =====================================================================
+     7. INTERNET SPEED  (Cloudflare down-test + Network Info API)
+     ===================================================================== */
+  var speedRunning=false;
+  function loadNetInfo(){
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var rows=[];
+    if(c){
+      if(c.effectiveType) rows.push(['Connection class', c.effectiveType.toUpperCase()]);
+      if(c.downlink) rows.push(['Estimated downlink', c.downlink+' Mbps', true]);
+      if(c.rtt!=null) rows.push(['Latency (est.)', c.rtt+' ms', true]);
+      if('saveData' in c) rows.push(['Data saver', c.saveData?'On':'Off']);
+    }
+    return rows;
+  }
+  function speedTest(){
+    if(speedRunning) return; speedRunning=true;
+    setChip('c-net','loading','testing…');
+    setBig('c-net','Testing… <span class="unit">measuring</span>');
+    var spark=$('#net-spark'); spark.innerHTML='';
+    var baseRows = loadNetInfo();
+    setRows('c-net', baseRows.concat([['Download','measuring…']]));
+
+    // latency
+    var lat=null, t0=performance.now();
+    withTimeout(fetch('https://speed.cloudflare.com/__down?bytes=1000',{cache:'no-store'}).then(function(r){return r.arrayBuffer();}),6000)
+      .then(function(){ lat=Math.round(performance.now()-t0); })
+      .catch(function(){})
+      .finally(runDownload);
+
+    function runDownload(){
+      var bytes=8000000; // 8 MB
+      var ctrl = ('AbortController' in window)? new AbortController() : null;
+      var killer = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 15000);
+      var start=performance.now(), received=0, lastT=start, samples=[];
+      fetch('https://speed.cloudflare.com/__down?bytes='+bytes, {cache:'no-store', signal: ctrl?ctrl.signal:undefined})
+        .then(function(resp){
+          if(!resp.body || !resp.body.getReader){ return resp.arrayBuffer().then(function(b){ received=b.byteLength; }); }
+          var reader=resp.body.getReader();
+          function pump(){
+            return reader.read().then(function(res){
+              if(res.done) return;
+              received += res.value.length;
+              var now=performance.now();
+              if(now-lastT>120){
+                var inst=(res.value.length*8)/((now-lastT)/1000)/1e6;
+                samples.push(inst);
+                if(samples.length>28) samples.shift();
+                drawSpark(spark, samples);
+                var mbNow=(received*8)/((now-start)/1000)/1e6;
+                setBig('c-net', mbNow.toFixed(1) + ' <span class="unit">Mbps ↓ (live)</span>');
+                lastT=now;
+              }
+              return pump();
+            });
+          }
+          return pump();
+        })
+        .then(function(){ finish(); })
+        .catch(function(){ finish(true); });
+
+      function finish(aborted){
+        clearTimeout(killer); speedRunning=false;
+        var secs=(performance.now()-start)/1000;
+        var mbps = secs>0 ? (received*8)/secs/1e6 : 0;
+        if(received<50000){ // essentially failed
+          setChip('c-net','na','N/A');
+          setBig('c-net','Speed test blocked');
+          setSub('c-net','Could not reach the speed server (offline or filtered)');
+          setRows('c-net', baseRows.concat([['Download','unavailable']]));
+          rec('Internet speed','Test unavailable');
+          tickDone('Speed test'); return;
+        }
+        var rating = mbps>=100?'Excellent':(mbps>=50?'Fast':(mbps>=25?'Good':(mbps>=10?'Usable':'Slow')));
+        setChip('c-net','live','Live');
+        setBig('c-net', mbps.toFixed(1) + ' <span class="unit">Mbps ↓ · '+rating+'</span>');
+        setSub('c-net','Downloaded '+fmtBytes(received)+(aborted?' (capped at 15s)':'')+' · '+rating);
+        setRows('c-net', baseRows.concat([
+          ['Download speed', mbps.toFixed(1)+' Mbps', true],
+          ['Latency (ping)', lat!=null? lat+' ms':'—', true],
+          ['Data transferred', fmtBytes(received), true],
+          ['Rating', rating]
+        ]));
+        rec('Internet speed', mbps.toFixed(1)+' Mbps down'+(lat!=null?(', '+lat+' ms ping'):'')+' ('+rating+')');
+        tickDone('Speed test');
+      }
+    }
+  }
+  function drawSpark(el, samples){
+    if(!samples.length) return;
+    var max=Math.max.apply(null,samples)||1;
+    el.innerHTML='';
+    samples.forEach(function(v){
+      var i=document.createElement('i');
+      i.style.height=Math.max(6,Math.round(v/max*30))+'px';
+      el.appendChild(i);
+    });
+  }
+
+  /* =====================================================================
+     8. UPTIME / SESSION
+     ===================================================================== */
+  function loadUptime(){
+    setChip('c-uptime','approx','Session');
+    var navStart = (performance.timeOrigin || Date.now());
+    function tick(){
+      var open = performance.now();
+      setBig('c-uptime', fmtDur(open));
+      setSub('c-uptime','This page/session has been open');
+    }
+    tick();
+    setInterval(tick, 1000);
+    var loadMs = (window.performance && performance.timing && performance.timing.loadEventEnd)?
+       (performance.timing.loadEventEnd - performance.timing.navigationStart) : Math.round(performance.now());
+    setRows('c-uptime',[
+      ['Session started', new Date(navStart).toLocaleTimeString()],
+      ['Page load time', (loadMs>0?loadMs:'—')+' ms', true],
+      ['Device power-on', 'Requires agent']
+    ]);
+    rec('Device uptime','Requires agent (session-only in browser)');
+    tickDone('Session timer');
+  }
+
+  /* =====================================================================
+     9. USERS  (agent-only, but detect current environment hints)
+     ===================================================================== */
+  function loadUsers(){
+    setRows('c-users',[
+      ['Admin users', 'Requires agent'],
+      ['Standard users', 'Requires agent'],
+      ['Signed-in user', 'Not exposed to browser']
+    ]);
+    rec('User accounts','Requires agent (admin/standard counts not visible to browser)');
+    tickDone('User accounts (agent)');
+  }
+
+  /* =====================================================================
+     10. INSTALLED APPS (agent-only + browser plugins where available)
+     ===================================================================== */
+  function loadApps(){
+    var plugins=[];
+    try{
+      if(navigator.plugins && navigator.plugins.length){
+        for(var i=0;i<navigator.plugins.length;i++){ plugins.push(navigator.plugins[i].name); }
+      }
+    }catch(e){}
+    var rows=[['Software inventory','Requires agent']];
+    // PWA / related apps (own scope only)
+    if(navigator.getInstalledRelatedApps){
+      navigator.getInstalledRelatedApps().then(function(apps){
+        if(apps && apps.length){ rows.push(['Related apps', apps.length+' installed']); }
+        finishApps(rows, plugins);
+      }).catch(function(){ finishApps(rows, plugins); });
+    } else { finishApps(rows, plugins); }
+  }
+  function finishApps(rows, plugins){
+    if(plugins.length){ rows.push(['Browser plug-ins', plugins.slice(0,3).join(', ')+(plugins.length>3?' +'+(plugins.length-3):'')]); }
+    var pdf = (navigator.pdfViewerEnabled!=null)? (navigator.pdfViewerEnabled?'Yes':'No') : null;
+    if(pdf) rows.push(['Built-in PDF viewer', pdf]);
+    setRows('c-apps', rows);
+    rec('Installed apps','Requires agent'+(plugins.length?(' — browser plug-ins: '+plugins.length):''));
+    tickDone('Installed apps (agent)');
+  }
+
+  /* =====================================================================
+     11. DISPLAY & GRAPHICS
+     ===================================================================== */
+  function gpuInfo(){
+    try{
+      var c=document.createElement('canvas');
+      var gl=c.getContext('webgl')||c.getContext('experimental-webgl');
+      if(!gl) return null;
+      var dbg=gl.getExtension('WEBGL_debug_renderer_info');
+      if(dbg) return gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+      return gl.getParameter(gl.RENDERER);
+    }catch(e){ return null; }
+  }
+  function loadDisplay(){
+    setChip('c-display','live','Live');
+    var w=screen.width, h=screen.height, dpr=window.devicePixelRatio||1;
+    var vw=window.innerWidth, vh=window.innerHeight;
+    var gpu=gpuInfo();
+    var orient = (screen.orientation&&screen.orientation.type)|| (w>h?'landscape':'portrait');
+    setBig('c-display', w + ' × ' + h + ' <span class="unit">px</span>');
+    setSub('c-display', (gpu? gpu : 'Screen') );
+    setRows('c-display',[
+      ['Screen resolution', w+' × '+h+' px', true],
+      ['Physical (est.)', Math.round(w*dpr)+' × '+Math.round(h*dpr)+' px', true],
+      ['Pixel ratio', dpr+'×', true],
+      ['Viewport', vw+' × '+vh+' px', true],
+      ['Color depth', screen.colorDepth+'-bit', true],
+      ['Orientation', String(orient).replace('-primary','')],
+      ['Graphics (GPU)', gpu||'Hidden by browser']
+    ]);
+    rec('Display', w+'×'+h+' @'+dpr+'x'); rec('GPU', gpu||'Hidden');
+    tickDone('Read display');
+  }
+
+  /* =====================================================================
+     12. BATTERY + BROWSER/ENV  (two cards, one module tick each side)
+     ===================================================================== */
+  function loadBattery(){
+    if(navigator.getBattery){
+      navigator.getBattery().then(function(b){
+        function paint(){
+          var pctv=Math.round(b.level*100);
+          setChip('c-battery','live','Live');
+          setBig('c-battery', pctv + '% <span class="unit">'+(b.charging?'⚡ charging':'on battery')+'</span>');
+          setMeter('c-battery', pctv, pctv<=20 && !b.charging);
+          var rows=[['Charge level', pctv+'%', true],['Power', b.charging?'Plugged in / charging':'On battery']];
+          if(b.charging && b.chargingTime && isFinite(b.chargingTime)) rows.push(['Full in', Math.round(b.chargingTime/60)+' min', true]);
+          if(!b.charging && b.dischargingTime && isFinite(b.dischargingTime)) rows.push(['Time left', Math.round(b.dischargingTime/60)+' min', true]);
+          setSub('c-battery', b.charging?'Charging':'Running on battery');
+          setRows('c-battery', rows);
+          rec('Battery', pctv+'% '+(b.charging?'(charging)':'(on battery)'));
+        }
+        paint();
+        b.addEventListener('levelchange',paint); b.addEventListener('chargingchange',paint);
+        tickDone('Read battery');
+      }).catch(batteryNA);
+    } else batteryNA();
+  }
+  function batteryNA(){
+    setChip('c-battery','na','N/A');
+    setBig('c-battery','No battery API');
+    setSub('c-battery','Desktop, or browser hides it (Safari/Firefox)');
+    setRows('c-battery',[['Battery','Not reported by this browser']]);
+    setMeter('c-battery',0);
+    rec('Battery','Not reported');
+    tickDone('Read battery');
+  }
+
+  function browserInfo(){
+    var ua=navigator.userAgent, name='Unknown', ver='';
+    var tests=[
+      ['Edge', /Edg\/([\d.]+)/],['Opera', /OPR\/([\d.]+)/],
+      ['Samsung Internet', /SamsungBrowser\/([\d.]+)/],
+      ['Chrome', /Chrome\/([\d.]+)/],['Firefox', /Firefox\/([\d.]+)/],
+      ['Safari', /Version\/([\d.]+).*Safari/]
+    ];
+    for(var i=0;i<tests.length;i++){ var m=ua.match(tests[i][1]); if(m){ name=tests[i][0]; ver=m[1]; break; } }
+    return {name:name, ver:ver};
+  }
+  function loadBrowser(){
+    var b=browserInfo();
+    var tz=''; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone; }catch(e){}
+    var langs=(navigator.languages&&navigator.languages.join(', '))||navigator.language||'';
+    var scheme = (window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'Dark':'Light';
+    setChip('c-browser','live','Live');
+    setBig('c-browser', esc(b.name) + (b.ver?(' <span class="unit">'+b.ver.split('.')[0]+'</span>'):''));
+    setSub('c-browser', tz? ('Timezone: '+tz):'');
+    setRows('c-browser',[
+      ['Browser', b.name+(b.ver?(' '+b.ver):'')],
+      ['Languages', langs],
+      ['Timezone', tz],
+      ['Local time', new Date().toLocaleString()],
+      ['Theme preference', scheme],
+      ['Cookies', navigator.cookieEnabled?'Enabled':'Disabled'],
+      ['Online', navigator.onLine?'Yes':'No'],
+      ['Do Not Track', (navigator.doNotTrack==='1')?'On':'Off']
+    ]);
+    rec('Browser', b.name+(b.ver?(' '+b.ver):''));
+    rec('Timezone', tz);
+    tickDone('Read browser');
+  }
+
+  /* =====================================================================
+     SUMMARY + REPORT
+     ===================================================================== */
+  function buildSummary(){
+    var os = REPORT['Operating system'] || 'this device';
+    var type = (REPORT['Device type'] || '').split(' (')[0] || '';
+    var loc = REPORT['Location'] || '';
+    var isp = REPORT['ISP'] || '';
+    var net = (REPORT['Internet speed'] || '').split(' (')[0];
+    var article = /^[aeiou]/i.test(os) ? 'an ' : 'a ';
+    var html = "You're on " + article + "<b>" + esc(os) + "</b>";
+    if(type) html += " (" + esc(type.toLowerCase()) + ")";
+    if(loc)  html += " in <b>" + esc(loc) + "</b>";
+    if(isp)  html += " via " + esc(isp);
+    if(net)  html += " &mdash; " + esc(net) + ".";
+    $('#summary').innerHTML = html;
+  }
+
+  function buildReportText(){
+    var order = ['Device type','Operating system','Architecture','CPU cores','CPU single-thread score',
+      'RAM','Storage (browser quota)','Storage','Internet speed','Location','Public IP','ISP','Network (ASN)',
+      'Coordinates','GPS','Content filter','Battery','Display','GPU','Browser','Timezone',
+      'Device uptime','User accounts','Installed apps'];
+    var lines=['LINEAR IT — DEVICE REPORT','Generated: '+new Date().toString(),''];
+    var seen={};
+    order.forEach(function(k){ if(REPORT[k]!=null){ lines.push(pad(k)+': '+REPORT[k]); seen[k]=1; } });
+    Object.keys(REPORT).forEach(function(k){ if(!seen[k]){ lines.push(pad(k)+': '+REPORT[k]); } });
+    lines.push('','Report page: '+location.href);
+    lines.push('Note: browser-based snapshot. Agent-only items require the NinjaOne agent.');
+    return lines.join('\n');
+    function pad(s){ return s; }
+  }
+
+  var SEND_TO = 'support@linearit.co';   // preset recipient
+
+  function doCopy(){
+    var txt=buildReportText();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast('📋 Report copied to clipboard'); })
+        .catch(function(){ legacyCopy(txt); });
+    } else legacyCopy(txt);
+  }
+  function legacyCopy(txt){
+    var ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast('📋 Report copied'); }catch(e){ toast('Copy failed — long-press to select'); }
+    document.body.removeChild(ta);
+  }
+
+  function doSend(){
+    var subject = 'Device Report' + (REPORT['Location']?(' — '+REPORT['Location']):'') + (REPORT['Operating system']?(' ('+REPORT['Operating system']+')'):'');
+    var body = buildReportText();
+    var href = 'mailto:'+SEND_TO+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+    // mailto has length limits; keep it safe and stash the full copy on the clipboard
+    if(href.length>1900){ if(navigator.clipboard) navigator.clipboard.writeText(buildReportText()); body = body.slice(0,1500)+'\n… (truncated — full report also copied to clipboard, paste to include)'; href='mailto:'+SEND_TO+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body); }
+    window.location.href = href;
+    toast('✉️ Opening your email to <b>'+SEND_TO+'</b>…');
+  }
+
+  $('#btn-copy').addEventListener('click', doCopy);
+  $('#btn-copy2').addEventListener('click', doCopy);
+  $('#btn-send').addEventListener('click', doSend);
+  $('#btn-send2').addEventListener('click', doSend);
+  $('#btn-retest').addEventListener('click', function(){ if(!speedRunning){ speedTest(); } });
+  $('#btn-refresh').addEventListener('click', function(){ location.reload(); });
+
+  /* =====================================================================
+     BOOT
+     ===================================================================== */
+  function boot(){
+    $('#meta-time').textContent = new Date().toLocaleString();
+    // fire everything; each ticks the progress bar when done
+    try{ loadLocation(); }catch(e){ tickDone(); }
+    try{ loadOS(); }catch(e){ tickDone(); }
+    try{ loadFilter(); }catch(e){ tickDone(); }
+    try{ loadCPU(); }catch(e){ tickDone(); }
+    try{ loadRAM(); }catch(e){ tickDone(); }
+    try{ loadStorage(); }catch(e){ tickDone(); }
+    try{ speedTest(); }catch(e){ tickDone(); }
+    try{ loadUptime(); }catch(e){ tickDone(); }
+    try{ loadUsers(); }catch(e){ tickDone(); }
+    try{ loadApps(); }catch(e){ tickDone(); }
+    try{ loadDisplay(); }catch(e){ tickDone(); }
+    try{ loadBattery(); }catch(e){ tickDone(); }
+    try{ loadBrowser(); }catch(e){ /* browser shares battery module slot */ }
+    // periodically refresh the one-line summary as data lands
+    setTimeout(buildSummary, 1500);
+    setTimeout(buildSummary, 3500);
+    // safety net: never let a hung probe hide the Send button
+    setTimeout(finalize, 13000);
+  }
+
+  // The report only runs when the visitor taps the button — nothing auto-runs.
+  function startReport(){
+    var idle=document.getElementById('idle'), live=document.getElementById('live'),
+        nav=document.getElementById('nav-actions'), grid=document.getElementById('grid');
+    if(idle) idle.hidden=true;
+    if(live) live.hidden=false;
+    if(nav) nav.hidden=false;
+    if(grid) grid.classList.remove('pending');
+    boot();
+  }
+  function wireRun(){
+    var runBtn=document.getElementById('btn-run');
+    if(runBtn){ runBtn.addEventListener('click', function(){ runBtn.disabled=true; startReport(); }); }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', wireRun);
+  else wireRun();
+})();
+</script>
+</body>
+</html>
