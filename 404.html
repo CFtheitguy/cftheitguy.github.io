@@ -22,9 +22,12 @@ body {
     min-height: 100vh;
     text-align: center;
     overflow: hidden;
+    position: relative;
 }
 
 .container {
+    position: relative;
+    z-index: 1;
     max-width: 650px;
     padding: 40px;
 }
@@ -33,7 +36,7 @@ body {
     font-size: 7rem;
     font-weight: 800;
     line-height: 1;
-    background: linear-gradient(90deg,#60a5fa,#22d3ee);
+    background: linear-gradient(90deg, #60a5fa, #22d3ee);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -58,12 +61,14 @@ p {
     text-decoration: none;
     border-radius: 999px;
     font-weight: 700;
-    transition: .25s;
+    transition: all .25s ease;
+    cursor: pointer;
 }
 
 .button:hover {
     transform: translateY(-2px);
     background: #67e8f9;
+    box-shadow: 0 10px 25px rgba(56, 189, 248, .35);
 }
 
 .footer {
@@ -75,19 +80,24 @@ p {
 .stars {
     position: absolute;
     inset: 0;
+    pointer-events: none;
     background-image:
-      radial-gradient(2px 2px at 20% 30%, white 50%, transparent 51%),
-      radial-gradient(2px 2px at 80% 20%, white 50%, transparent 51%),
-      radial-gradient(2px 2px at 60% 80%, white 50%, transparent 51%),
-      radial-gradient(1px 1px at 40% 60%, white 50%, transparent 51%),
-      radial-gradient(2px 2px at 90% 70%, white 50%, transparent 51%);
+        radial-gradient(2px 2px at 20% 30%, white 50%, transparent 51%),
+        radial-gradient(2px 2px at 80% 20%, white 50%, transparent 51%),
+        radial-gradient(2px 2px at 60% 80%, white 50%, transparent 51%),
+        radial-gradient(1px 1px at 40% 60%, white 50%, transparent 51%),
+        radial-gradient(2px 2px at 90% 70%, white 50%, transparent 51%);
     opacity: .5;
     animation: twinkle 8s linear infinite;
 }
 
 @keyframes twinkle {
-    from { transform: translateY(0); }
-    to { transform: translateY(-20px); }
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-20px);
+    }
 }
 </style>
 </head>
@@ -98,26 +108,35 @@ p {
 
 <div class="container">
 
-<div class="number">404</div>
+    <div class="number">404</div>
 
-<h1>Well... this is awkward.</h1>
+    <h1>Well... this is awkward.</h1>
 
-<p>
-We searched every folder, checked every link, looked under the virtual couch cushions, and even asked the server nicely—but the page you're looking for simply isn't here.
-</p>
-<p>
-Maybe the URL was mistyped, maybe the page moved to a better neighborhood, or maybe it never existed in the first place. Whatever happened, this isn't the destination you were hoping for.
-</p>
-  
-<p>
-The good news? The rest of the website is still perfectly fine. Click the button below and we'll get you safely back home before anyone notices.
-</p>
-  
-<a class="button" href="https://www.linearit.co/">🏠 Take Me Home</a>
+    <p>
+        We searched every folder, checked every link, looked under the virtual
+        couch cushions, and even asked the server nicely—but the page you're
+        looking for simply isn't here.
+    </p>
 
-<div class="footer">
-If you think this is a mistake, let us know—we'll rescue it.
-</div>
+    <p>
+        Maybe the URL was mistyped, maybe the page moved to a better
+        neighborhood, or maybe it never existed in the first place.
+        Whatever happened, this isn't the destination you were hoping for.
+    </p>
+
+    <p>
+        The good news? The rest of the website is still perfectly fine.
+        Click the button below and we'll get you safely back home before
+        anyone notices.
+    </p>
+
+    <a class="button" href="https://www.linearit.co/">
+        🏠 Take Me Home
+    </a>
+
+    <div class="footer">
+        If you think this is a mistake, let us know—we'll rescue it.
+    </div>
 
 </div>
 
