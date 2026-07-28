@@ -195,6 +195,18 @@ select:focus{outline:none;border-color:var(--aqua)}
 .ftest iframe{width:100%;height:210px;border:0;display:block;background:#fff}
 .ftest-link a{flex:1;display:grid;place-items:center;text-align:center;color:var(--aqua);font-weight:600;font-size:.85rem;padding:24px 10px;background:var(--panel);text-decoration:none;line-height:1.4}
 .ftest-link small{color:var(--dim);font-weight:400}
+.scan-cmd{display:flex;gap:8px;align-items:stretch;margin-top:12px;flex-wrap:wrap}
+.scan-cmd code{flex:1;min-width:220px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;background:#05060a;border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--aqua);overflow-x:auto;white-space:nowrap;display:flex;align-items:center}
+.scan-help{font-size:.78rem;color:var(--dim);margin-top:9px}
+.scan-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.scan-actions .btn{text-decoration:none}
+#scan-paste-wrap{margin-top:12px}
+#scan-paste{width:100%;height:88px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.76rem;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:10px;resize:vertical;margin-bottom:8px}
+#scan-paste:focus{outline:none;border-color:var(--aqua)}
+.scan-status{margin-top:10px;font-size:.82rem;font-weight:500;min-height:1.1em}
+.scan-status.ok{color:var(--ok)}
+.scan-status.err{color:var(--warn)}
+.scan-status.busy{color:var(--dim)}
 
 .spark{display:flex;gap:2px;align-items:flex-end;height:30px;margin-top:8px}
 .spark i{flex:1;background:linear-gradient(180deg,var(--aqua),var(--peri));border-radius:2px;min-height:2px;opacity:.85}
@@ -365,6 +377,28 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
     <div class="sub" data-sub></div>
     <dl class="rows" data-rows></dl>
     <div class="note">Device power-on uptime isn't available to browsers. This shows how long this page/session has been open. True uptime requires the agent.</div>
+  </article>
+
+  <!-- FULL SYSTEM SCAN (Windows) -->
+  <article class="card span-2" id="c-scan">
+    <div class="card-head"><span class="ico">🪟</span><h3>Full System Scan (Windows)</h3><span class="chip agent" data-chip>Optional</span></div>
+    <div class="sub" data-sub>No install. Fills the agent-only fields — installed apps, admin/standard users, real disk size, uptime, CPU speed, installed filter.</div>
+    <div class="scan-cmd">
+      <code id="scan-oneliner">irm https://www.linearit.co/device/scan.ps1 | iex</code>
+      <button class="btn" id="btn-scan-copy" type="button">Copy</button>
+    </div>
+    <div class="scan-help">Run in <b>PowerShell</b> (Admin recommended). It copies a report to your clipboard and opens a local bridge for ~5&nbsp;min.</div>
+    <div class="scan-actions">
+      <button class="btn primary" id="btn-scan-pull" type="button">📥 Pull from this PC</button>
+      <button class="btn" id="btn-scan-paste-toggle" type="button">📋 Paste report</button>
+      <a class="btn" href="/device/scan.ps1" download>⬇ Download .ps1</a>
+    </div>
+    <div id="scan-paste-wrap" hidden>
+      <textarea id="scan-paste" placeholder="Paste the report code the script copied to your clipboard, then click Load…"></textarea>
+      <button class="btn primary" id="btn-scan-load" type="button">Load report</button>
+    </div>
+    <div class="scan-status" id="scan-status"></div>
+    <div class="note">The script reads only this PC's own inventory, installs nothing, and listens only on localhost. <b>Pull from this PC</b> works when the script and this page run on the <b>same</b> computer; otherwise use <b>Paste report</b> (works from any device — run on the client's PC, paste on your phone).</div>
   </article>
 
   <!-- USERS -->
@@ -1240,6 +1274,139 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
   $('#btn-send2').addEventListener('click', doSend);
   $('#btn-retest').addEventListener('click', function(){ if(!speedRunning){ speedTest(); } });
   $('#btn-refresh').addEventListener('click', function(){ location.reload(); });
+
+  /* =====================================================================
+     FULL SYSTEM SCAN (Windows) — fills the agent-only cards from scan.ps1
+     Data arrives via the local bridge (fetch) or by pasting the report.
+     ===================================================================== */
+  function scanStatus(msg, cls){ var s=$('#scan-status'); if(!s) return; s.className='scan-status '+(cls||''); s.textContent=msg; }
+  var SCAN_CMD = 'irm https://www.linearit.co/device/scan.ps1 | iex';
+
+  function applyScan(d){
+    if(!d || typeof d!=='object' || String(d.schema||'').indexOf('linear-device')!==0){
+      scanStatus('That doesn’t look like a Linear scan report — copy it again from the script.', 'err'); return false;
+    }
+    // Windows PowerShell 5.1 serializes single-element arrays as a lone object —
+    // coerce the fields we treat as lists back into arrays.
+    function arr(x){ return Array.isArray(x) ? x : (x==null ? [] : [x]); }
+    d.disks = arr(d.disks);
+    d.filters = arr(d.filters);
+    if(d.apps) d.apps.list = arr(d.apps.list);
+    if(d.ram) d.ram.modules = arr(d.ram.modules);
+    if(d.users){ d.users.admins = arr(d.users.admins); d.users.standard = arr(d.users.standard); }
+    if(d.security) d.security.antivirus = arr(d.security.antivirus);
+    try {
+      if(d.users){
+        var u=d.users;
+        setChip('c-users','live','Scan');
+        setBig('c-users', (u.adminCount||0)+' <span class="unit">admin</span> · '+(u.standardCount||0)+' <span class="unit">standard</span>');
+        setSub('c-users','Local accounts on this PC');
+        setRows('c-users',[
+          ['Administrators', (u.admins&&u.admins.length)? u.admins.join(', ') : String(u.adminCount||0)],
+          ['Standard users', (u.standard&&u.standard.length)? u.standard.join(', ') : String(u.standardCount||0)],
+          ['Signed in now', u.current]
+        ]);
+        rec('User accounts', (u.adminCount||0)+' admin / '+(u.standardCount||0)+' standard'+((u.admins&&u.admins.length)?(' — admins: '+u.admins.join(', ')):''));
+      }
+      if(d.apps){
+        var a=d.apps, list=a.list||[];
+        setChip('c-apps','live','Scan');
+        setBig('c-apps', (a.count!=null?a.count:list.length)+' <span class="unit">installed</span>');
+        setSub('c-apps','Software inventory');
+        var top=list.slice(0,14).map(function(x){ return [x.name, x.version||'—', true]; });
+        if(list.length>14) top.push(['…','+'+(list.length-14)+' more']);
+        setRows('c-apps', top);
+        rec('Installed apps', (a.count!=null?a.count:list.length)+' apps'+(list.length?(' incl. '+list.slice(0,8).map(function(x){return x.name;}).join(', ')):''));
+      }
+      if(d.disks && d.disks.length){
+        var m=d.disks[0];
+        setChip('c-disk','live','Scan');
+        setBig('c-disk', (m.freeGB!=null?m.freeGB:'?')+' <span class="unit">GB free of '+(m.sizeGB!=null?m.sizeGB+' GB':'?')+'</span>');
+        setSub('c-disk','Actual drive'+(d.disks.length>1?'s':''));
+        setMeter('c-disk', m.usedPct!=null?m.usedPct:0, (m.usedPct||0)>=85);
+        setRows('c-disk', d.disks.map(function(dk){ return [dk.drive+(dk.label?(' '+dk.label):''), (dk.freeGB!=null?dk.freeGB:'?')+' free / '+(dk.sizeGB!=null?dk.sizeGB:'?')+' GB', true]; }));
+        rec('Storage', d.disks.map(function(dk){ return dk.drive+' '+dk.freeGB+'/'+dk.sizeGB+' GB free'; }).join('; '));
+      }
+      if(d.os && d.os.uptimeSec!=null){
+        setChip('c-uptime','live','Scan');
+        setBig('c-uptime', fmtDur(d.os.uptimeSec*1000));
+        setSub('c-uptime','Since last boot (actual)');
+        setRows('c-uptime',[
+          ['Last boot', d.os.lastBoot? new Date(d.os.lastBoot).toLocaleString() : '—'],
+          ['OS installed', d.os.installed||'—']
+        ]);
+        rec('Device uptime', fmtDur(d.os.uptimeSec*1000)+(d.os.lastBoot?(' (since '+new Date(d.os.lastBoot).toLocaleString()+')'):''));
+      }
+      if(d.cpu){
+        var crows=[['Processor', d.cpu.name],['Cores', d.cpu.cores+' cores / '+d.cpu.logical+' threads', true]];
+        if(d.cpu.maxClockMhz) crows.push(['Clock speed', (d.cpu.maxClockMhz/1000).toFixed(2)+' GHz', true]);
+        setSub('c-cpu', d.cpu.name);
+        setRows('c-cpu', crows);
+        rec('CPU', d.cpu.name+(d.cpu.maxClockMhz?(' @ '+(d.cpu.maxClockMhz/1000).toFixed(2)+' GHz'):''));
+      }
+      if(d.ram && d.ram.totalGB!=null){
+        setChip('c-ram','live','Scan');
+        setBig('c-ram', d.ram.totalGB+' <span class="unit">GB</span>');
+        setSub('c-ram','Installed (actual)');
+        var rr=[['Total', d.ram.totalGB+' GB', true], ['Slots used', (d.ram.slotsUsed||'?')+(d.ram.slotsTotal?(' of '+d.ram.slotsTotal):''), true]];
+        (d.ram.modules||[]).forEach(function(mm,i){ rr.push(['Module '+(i+1), mm.sizeGB+' GB'+(mm.speedMhz?(' @ '+mm.speedMhz+' MHz'):''), true]); });
+        setRows('c-ram', rr);
+        rec('RAM', d.ram.totalGB+' GB'+(d.ram.slotsUsed?(' ('+d.ram.slotsUsed+(d.ram.slotsTotal?('/'+d.ram.slotsTotal):'')+' slots)'):''));
+      }
+      if(d.computer){
+        var c=d.computer, el=$('[data-rows]',card('c-os'));
+        if(el){
+          [['Make / model',[c.manufacturer,c.model].filter(Boolean).join(' ')],['Serial',c.serial],['Domain / workgroup',c.domain]].forEach(function(p){
+            if(!p[1]) return; var dt=document.createElement('dt'); dt.textContent=p[0]; var dd=document.createElement('dd'); dd.textContent=p[1]; el.appendChild(dt); el.appendChild(dd);
+          });
+        }
+        rec('Computer', c.name+(c.model?(' ('+[c.manufacturer,c.model].filter(Boolean).join(' ')+')'):''));
+      }
+      if(d.filters && d.filters.length){
+        FILTER.confirmed = true;
+        setChip('c-filter','live','Installed');
+        setBig('c-filter', esc(d.filters.join(', ')));
+        setSub('c-filter','Installed on this PC (from system scan)');
+        setRows('c-filter',[['Installed filter', d.filters.join(', ')],['Source','Windows software / service scan']]);
+        rec('Content filter', d.filters.join(', ')+' (installed — from scan)');
+      }
+      if(d.security && (d.security.antivirus||d.security.firewall||d.security.bitlocker)){
+        var be=$('[data-rows]',card('c-browser'));
+        if(be){
+          [['Antivirus',(d.security.antivirus||[]).join(', ')],['Firewall',d.security.firewall],['BitLocker (C:)',d.security.bitlocker]].forEach(function(p){
+            if(!p[1]) return; var dt=document.createElement('dt'); dt.textContent=p[0]; var dd=document.createElement('dd'); dd.textContent=p[1]; be.appendChild(dt); be.appendChild(dd);
+          });
+        }
+      }
+      $('#c-scan').querySelector('[data-chip]').className='chip live'; $('#c-scan').querySelector('[data-chip]').textContent='Loaded';
+      scanStatus('✅ Full scan loaded'+((d.computer&&d.computer.name)?(' for '+d.computer.name):'')+(d.admin?'':' — run as Administrator for a couple more fields')+'.', 'ok');
+      buildSummary(); toast('🪟 Full system scan loaded');
+      return true;
+    } catch(e){ scanStatus('Loaded, but a field failed: '+e.message, 'err'); return false; }
+  }
+
+  function pullFromPC(){
+    scanStatus('Looking for the scan on this PC…', 'busy');
+    var ctrl = ('AbortController' in window)? new AbortController() : null;
+    var to = setTimeout(function(){ if(ctrl) ctrl.abort(); }, 4500);
+    fetch('http://127.0.0.1:8765/report.json?_='+Date.now(), {cache:'no-store', signal: ctrl?ctrl.signal:undefined})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ clearTimeout(to); applyScan(d); })
+      .catch(function(){ clearTimeout(to); scanStatus('Couldn’t reach a local scan. Run the command above on THIS PC (keep its window open), then click again — or use “Paste report”.', 'err'); });
+  }
+
+  $('#btn-scan-copy').addEventListener('click', function(){
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(SCAN_CMD).then(function(){ toast('📋 Command copied'); }).catch(function(){ legacyCopy(SCAN_CMD); }); }
+    else legacyCopy(SCAN_CMD);
+  });
+  $('#btn-scan-pull').addEventListener('click', pullFromPC);
+  $('#btn-scan-paste-toggle').addEventListener('click', function(){ var w=$('#scan-paste-wrap'); w.hidden=!w.hidden; if(!w.hidden) $('#scan-paste').focus(); });
+  $('#btn-scan-load').addEventListener('click', function(){
+    var v=($('#scan-paste').value||'').trim();
+    if(!v){ scanStatus('Paste the report text first.', 'err'); return; }
+    var d; try{ d=JSON.parse(v); }catch(e){ scanStatus('That isn’t valid report text — re-copy it from the script.', 'err'); return; }
+    applyScan(d);
+  });
 
   /* =====================================================================
      BOOT
