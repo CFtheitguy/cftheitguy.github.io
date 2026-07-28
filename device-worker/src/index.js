@@ -21,7 +21,7 @@
 
 const ORIGIN = "https://www.linearit.co"; // GitHub Pages custom domain (the site)
 const APP_PATH = "/device/";              // where the report lives on the site
-const EDGE_TTL = 300;                     // seconds Cloudflare may cache the page
+const EDGE_TTL = 0;                       // no caching — always serve the latest page
 
 export default {
   async fetch(request) {
@@ -52,7 +52,7 @@ export default {
           "User-Agent": request.headers.get("User-Agent") || "linear-device-worker",
         },
         redirect: "follow",
-        cf: { cacheEverything: true, cacheTtl: EDGE_TTL },
+        cf: { cacheEverything: false, cacheTtl: EDGE_TTL },
       });
     } catch (e) {
       return fallback();
@@ -72,7 +72,7 @@ export default {
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
     headers.set("X-Served-By", "linear-device");
-    headers.set("Cache-Control", `public, max-age=${EDGE_TTL}`);
+    headers.set("Cache-Control", "no-store, must-revalidate");
 
     const body = method === "HEAD" ? null : originResp.body;
     return new Response(body, {
