@@ -187,6 +187,14 @@ select:focus{outline:none;border-color:var(--aqua)}
 .verify-label{font-size:.74rem;color:var(--dim);width:100%;margin-bottom:2px}
 .verify a{font-size:.74rem;font-weight:600;color:var(--aqua);border:1px solid rgba(112,242,255,.28);background:rgba(112,242,255,.06);padding:5px 10px;border-radius:999px;text-decoration:none;transition:background .2s}
 .verify a:hover{background:rgba(112,242,255,.16)}
+.ftest-lead{font-size:.8rem;color:var(--dim);margin-top:14px;line-height:1.5}
+.ftest-lead b{color:var(--aqua);font-weight:600}
+.ftests{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:10px}
+.ftest{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.ftest-h{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);background:var(--panel);padding:7px 10px;border-bottom:1px solid var(--line)}
+.ftest iframe{width:100%;height:210px;border:0;display:block;background:#fff}
+.ftest-link a{flex:1;display:grid;place-items:center;text-align:center;color:var(--aqua);font-weight:600;font-size:.85rem;padding:24px 10px;background:var(--panel);text-decoration:none;line-height:1.4}
+.ftest-link small{color:var(--dim);font-weight:400}
 
 .spark{display:flex;gap:2px;align-items:flex-end;height:30px;margin-top:8px}
 .spark i{flex:1;background:linear-gradient(180deg,var(--aqua),var(--peri));border-radius:2px;min-height:2px;opacity:.85}
@@ -280,7 +288,7 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
   </article>
 
   <!-- CONTENT FILTER -->
-  <article class="card" id="c-filter">
+  <article class="card span-2" id="c-filter">
     <div class="card-head"><span class="ico">🛡️</span><h3>Content Filter</h3><span class="chip loading" data-chip>&hellip;</span></div>
     <div class="big" data-big>Checking&hellip;</div>
     <div class="sub" data-sub>Best-effort detection &mdash; confirm below</div>
@@ -302,14 +310,14 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
       <option>Circle</option>
       <option>Other</option>
     </select>
-    <div class="verify" id="filter-verify">
-      <span class="verify-label">Or open the filter's own test page:</span>
-      <a href="https://test.techloq.com" target="_blank" rel="noopener noreferrer">Techloq ↗</a>
-      <a href="https://geder.info" target="_blank" rel="noopener noreferrer">Geder ↗</a>
-      <a href="https://meshimerid.com" target="_blank" rel="noopener noreferrer">Meshimer ↗</a>
-      <a href="https://netfree.link" target="_blank" rel="noopener noreferrer">NetFree ↗</a>
+    <div class="ftest-lead">Live self-check &mdash; whichever page below shows <b>Active</b> is the filter running on this device. These are each filter's own official test page, loaded live through your connection.</div>
+    <div class="ftests" id="filter-tests">
+      <div class="ftest"><div class="ftest-h">Techloq</div><iframe src="https://test.techloq.com/" loading="lazy" title="Techloq filter test" referrerpolicy="no-referrer"></iframe></div>
+      <div class="ftest"><div class="ftest-h">Geder</div><iframe src="https://geder.info/" loading="lazy" title="Geder filter test" referrerpolicy="no-referrer"></iframe></div>
+      <div class="ftest"><div class="ftest-h">Meshimer</div><iframe src="https://meshimerid.com/" loading="lazy" title="Meshimer filter test" referrerpolicy="no-referrer"></iframe></div>
+      <div class="ftest ftest-link"><div class="ftest-h">NetFree</div><a href="https://netfree.link/" target="_blank" rel="noopener noreferrer">Open test ↗<br><small>can't embed</small></a></div>
     </div>
-    <div class="note">A web page can auto-detect a filter only when it routes your traffic through its own network (e.g. Techloq shows up as your ISP). Filters that work locally stay invisible to any website — so “none detected” does <b>not</b> mean unfiltered. Use a test link above, or the NinjaOne agent, to confirm.</div>
+    <div class="note">The instant result at the top is auto-detected from your network (works when a filter routes traffic through its own servers, e.g. Techloq). The live tests above are the authoritative check for all filters. If none shows “Active” but you expect a filter, it may filter locally — confirm with the NinjaOne agent.</div>
   </article>
 
   <!-- CPU -->
