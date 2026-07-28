@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 • Lost in Space</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+    overflow: hidden;
+}
+
+.container {
+    max-width: 650px;
+    padding: 40px;
+}
+
+.number {
+    font-size: 7rem;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(90deg,#60a5fa,#22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+h1 {
+    margin-top: 15px;
+    font-size: 2rem;
+}
+
+p {
+    margin: 25px 0;
+    font-size: 1.1rem;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
+
+.button {
+    display: inline-block;
+    padding: 14px 26px;
+    background: #38bdf8;
+    color: #0f172a;
+    text-decoration: none;
+    border-radius: 999px;
+    font-weight: 700;
+    transition: .25s;
+}
+
+.button:hover {
+    transform: translateY(-2px);
+    background: #67e8f9;
+}
+
+.footer {
+    margin-top: 40px;
+    color: #94a3b8;
+    font-size: .9rem;
+}
+
+.stars {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 20% 30%, white 50%, transparent 51%),
+      radial-gradient(2px 2px at 80% 20%, white 50%, transparent 51%),
+      radial-gradient(2px 2px at 60% 80%, white 50%, transparent 51%),
+      radial-gradient(1px 1px at 40% 60%, white 50%, transparent 51%),
+      radial-gradient(2px 2px at 90% 70%, white 50%, transparent 51%);
+    opacity: .5;
+    animation: twinkle 8s linear infinite;
+}
+
+@keyframes twinkle {
+    from { transform: translateY(0); }
+    to { transform: translateY(-20px); }
+}
+</style>
+</head>
+
+<body>
+
+<div class="stars"></div>
+
+<div class="container">
+
+<div class="number">404</div>
+
+<h1>Oops! This page wandered off.</h1>
+
+<p>
+Looks like this URL took a wrong turn.
+Maybe the link is outdated, maybe there's a typo...
+or maybe this page is on a coffee break ☕.
+</p>
+
+<a class="button" href="/">🏠 Take Me Home</a>
+
+<div class="footer">
+If you think this is a mistake, let us know—we'll rescue it.
+</div>
+
+</div>
+
+</body>
+</html>
