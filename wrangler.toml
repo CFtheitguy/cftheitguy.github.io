@@ -8,7 +8,7 @@
 # ADMIN_EMAILS and EMAIL_FROM must stay as *encrypted Secrets* on the Worker —
 # those survive deploys; plaintext vars not listed here would be wiped.
 
-name = "linear-chat"
+name = "linear-deivce"
 main = "chat/src/index.js"
 compatibility_date = "2025-06-01"
 
