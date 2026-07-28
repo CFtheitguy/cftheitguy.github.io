@@ -183,6 +183,10 @@ select:focus{outline:none;border-color:var(--aqua)}
   display:inline-flex;align-items:center;gap:5px;
 }
 .inline-btn:hover{text-decoration:underline}
+.verify{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.verify-label{font-size:.74rem;color:var(--dim);width:100%;margin-bottom:2px}
+.verify a{font-size:.74rem;font-weight:600;color:var(--aqua);border:1px solid rgba(112,242,255,.28);background:rgba(112,242,255,.06);padding:5px 10px;border-radius:999px;text-decoration:none;transition:background .2s}
+.verify a:hover{background:rgba(112,242,255,.16)}
 
 .spark{display:flex;gap:2px;align-items:flex-end;height:30px;margin-top:8px}
 .spark i{flex:1;background:linear-gradient(180deg,var(--aqua),var(--peri));border-radius:2px;min-height:2px;opacity:.85}
@@ -298,7 +302,14 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
       <option>Circle</option>
       <option>Other</option>
     </select>
-    <div class="note">Websites can only see a filter if it announces itself. A "not detected" result doesn't mean the device is unfiltered — confirm with the client or the agent.</div>
+    <div class="verify" id="filter-verify">
+      <span class="verify-label">Or open the filter's own test page:</span>
+      <a href="https://test.techloq.com" target="_blank" rel="noopener noreferrer">Techloq ↗</a>
+      <a href="https://geder.info" target="_blank" rel="noopener noreferrer">Geder ↗</a>
+      <a href="https://meshimerid.com" target="_blank" rel="noopener noreferrer">Meshimer ↗</a>
+      <a href="https://netfree.link" target="_blank" rel="noopener noreferrer">NetFree ↗</a>
+    </div>
+    <div class="note">A web page can auto-detect a filter only when it routes your traffic through its own network (e.g. Techloq shows up as your ISP). Filters that work locally stay invisible to any website — so “none detected” does <b>not</b> mean unfiltered. Use a test link above, or the NinjaOne agent, to confirm.</div>
   </article>
 
   <!-- CPU -->
@@ -333,7 +344,7 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
   <article class="card span-2" id="c-net">
     <div class="card-head"><span class="ico">📶</span><h3>Internet Speed</h3><span class="chip loading" data-chip>&hellip;</span></div>
     <div class="big" data-big>&mdash;</div>
-    <div class="sub" data-sub>Live download test</div>
+    <div class="sub" data-sub>Live download &amp; upload test</div>
     <div class="spark" id="net-spark"></div>
     <dl class="rows" data-rows></dl>
     <button class="inline-btn" id="btn-retest">🔁 Run speed test again</button>
@@ -586,6 +597,8 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
     $('#meta-ip').textContent = (GEO.ip||'') + (place?(' · '+place):'');
     rec('Location', place); rec('Public IP', GEO.ip); rec('ISP', GEO.isp||GEO.org);
     rec('Network (ASN)', GEO.asn); rec('Coordinates', (GEO.lat&&GEO.lon)?(GEO.lat+', '+GEO.lon):'');
+    // A proxy filter (e.g. Techloq) shows up as your ISP/ASN — re-check the filter card.
+    if(typeof checkFilterNetwork === 'function') checkFilterNetwork();
   }
 
   // Precise GPS on demand
@@ -687,57 +700,80 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
   /* =====================================================================
      3. CONTENT FILTER  (best-effort)
      ===================================================================== */
+  // Shared filter state — the network check (from the IP lookup) and the probes
+  // both feed into one result, so whichever finishes first (or later) updates it.
+  var FILTER = { hits: [], viaNetwork: null, confirmed: false };
+  function addHit(name){ if(FILTER.hits.indexOf(name)<0) FILTER.hits.push(name); }
+
+  // Proxy-based filters route your traffic through their own network, so your
+  // PUBLIC IP belongs to them — that's the one signal a web page can read.
+  var FILTER_NETWORKS = [
+    { name:'Techloq',  asns:[397263], rx:/techloq/i },
+    { name:'Geder',    asns:[],       rx:/geder/i },
+    { name:'Netspark', asns:[],       rx:/netspark/i },
+    { name:'NetFree',  asns:[],       rx:/netfree/i },
+    { name:'Meshimer', asns:[],       rx:/meshimer/i },
+    { name:'Gentech',  asns:[],       rx:/gentech/i }
+  ];
+  function checkFilterNetwork(){
+    var fields = [GEO.org, GEO.isp, GEO.orgName].filter(Boolean).join(' ');
+    var asnNum = parseInt(String(GEO.asn||'').replace(/\D/g,''),10);
+    FILTER_NETWORKS.forEach(function(f){
+      if((f.rx && f.rx.test(fields)) || (asnNum && f.asns.indexOf(asnNum)>=0)){
+        addHit(f.name); FILTER.viaNetwork = f.name;
+      }
+    });
+    renderFilter();
+  }
+  function renderFilter(){
+    if(FILTER.confirmed) return; // don't overwrite a manual confirmation
+    var uniq = FILTER.hits.filter(function(v,i){ return FILTER.hits.indexOf(v)===i; });
+    if(uniq.length){
+      setChip('c-filter','live','Detected');
+      setBig('c-filter', esc(uniq.join(', ')));
+      setSub('c-filter', FILTER.viaNetwork ? ('Detected — traffic routes through '+esc(FILTER.viaNetwork)+'’s network') : 'Detected from device signals');
+      var rows = [['Filter', uniq.join(', ')]];
+      if(FILTER.viaNetwork) rows.push(['How', 'Your public IP belongs to '+FILTER.viaNetwork]);
+      if(GEO.isp) rows.push(['Your network', GEO.isp]);
+      setRows('c-filter', rows);
+      rec('Content filter', uniq.join(', ') + (FILTER.viaNetwork ? ' (detected via network)' : ' (auto-detected)'));
+    } else {
+      setChip('c-filter','na','Not detected');
+      setBig('c-filter','None detected');
+      setSub('c-filter','No filter announced itself — verify below');
+      setRows('c-filter', [['Auto-detect','No filter signature in your network'],['Note','Local / DNS filters stay invisible to websites']]);
+      rec('Content filter','None auto-detected (verify with test page or agent)');
+    }
+    buildSummary();
+  }
   function loadFilter(){
     setChip('c-filter','loading','…');
     var ua = (navigator.userAgent||'').toLowerCase();
-    var hits = [];
-    var confidence = 'none';
-
     // (a) UA tokens some filter browsers add
-    if(/netspark/.test(ua)) hits.push('Netspark');
-    if(/netfree/.test(ua)) hits.push('NetFree');
-    if(/techloq/.test(ua)) hits.push('Techloq');
-    if(/gentech/.test(ua)) hits.push('Gentech');
-
+    if(/netspark/.test(ua)) addHit('Netspark');
+    if(/netfree/.test(ua)) addHit('NetFree');
+    if(/techloq/.test(ua)) addHit('Techloq');
+    if(/gentech/.test(ua)) addHit('Gentech');
     // (b) injected globals
-    try{ if(window.netfree || window.__netfree || document.querySelector('meta[name="netfree"]')) hits.push('NetFree'); }catch(e){}
-    try{ if(window.netspark || document.getElementById('netspark_bar')) hits.push('Netspark'); }catch(e){}
-
-    // (c) active probe: NetFree publishes an account endpoint reachable only behind it
-    var probes = [
-      withTimeout(
-        fetch('https://ip.netfree.link/',{cache:'no-store',mode:'cors'})
-          .then(function(r){ return r.ok?r.text():''; })
-          .then(function(t){ return /netfree|user|account/i.test(t) ? 'NetFree' : ''; })
-          .catch(function(){ return ''; }),
-        3500
-      )
-    ];
-
-    withTimeout(Promise.all(probes),5000).then(function(res){
-      res.forEach(function(r){ if(r) hits.push(r); });
-    }).catch(function(){}).finally(function(){
-      // de-dupe
-      var uniq = hits.filter(function(v,i){ return hits.indexOf(v)===i; });
-      if(uniq.length){
-        confidence='detected';
-        setChip('c-filter','live','Detected');
-        setBig('c-filter', esc(uniq.join(', ')));
-        setSub('c-filter','Detected from device / network signals');
-        setRows('c-filter',[['Signal','Announced by device or network'],['Filters seen', uniq.join(', ')]]);
-        rec('Content filter', uniq.join(', ') + ' (auto-detected)');
-      } else {
-        setChip('c-filter','na','Not detected');
-        setBig('c-filter','None detected');
-        setSub('c-filter','No filter announced itself — confirm below');
-        setRows('c-filter',[['Auto-detect','No filter signature seen'],['Note','Silent filters won’t show here']]);
-        rec('Content filter','None auto-detected');
-      }
+    try{ if(window.netfree || window.__netfree || document.querySelector('meta[name="netfree"]')) addHit('NetFree'); }catch(e){}
+    try{ if(window.netspark || document.getElementById('netspark_bar')) addHit('Netspark'); }catch(e){}
+    // (c) if the IP lookup already finished, use its network now
+    if(GEO.org || GEO.isp || GEO.asn) checkFilterNetwork();
+    // (d) NetFree exposes a readable (CORS) endpoint reachable only behind it
+    withTimeout(
+      fetch('https://ip.netfree.link/',{cache:'no-store',mode:'cors'})
+        .then(function(r){ return r.ok?r.text():''; })
+        .then(function(t){ if(/netfree|user|account/i.test(t)) addHit('NetFree'); })
+        .catch(function(){}),
+      3500
+    ).catch(function(){}).finally(function(){
+      renderFilter();
       tickDone('Checked content filter');
     });
   }
   $('#filter-select').addEventListener('change', function(){
     var v=this.value; if(!v) return;
+    FILTER.confirmed = true;
     setChip('c-filter','live','Confirmed');
     setBig('c-filter', esc(v));
     setSub('c-filter','Confirmed by technician');
@@ -862,7 +898,7 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
     setBig('c-net','Testing… <span class="unit">measuring</span>');
     var spark=$('#net-spark'); spark.innerHTML='';
     var baseRows = loadNetInfo();
-    setRows('c-net', baseRows.concat([['Download','measuring…']]));
+    setRows('c-net', baseRows.concat([['Download','measuring…'],['Upload','—']]));
 
     // latency
     var lat=null, t0=performance.now();
@@ -899,32 +935,56 @@ footer .contact{display:flex;gap:8px 20px;justify-content:center;flex-wrap:wrap;
           }
           return pump();
         })
-        .then(function(){ finish(); })
-        .catch(function(){ finish(true); });
+        .then(function(){ afterDownload(false); })
+        .catch(function(){ afterDownload(true); });
 
-      function finish(aborted){
-        clearTimeout(killer); speedRunning=false;
+      function afterDownload(aborted){
+        clearTimeout(killer);
         var secs=(performance.now()-start)/1000;
-        var mbps = secs>0 ? (received*8)/secs/1e6 : 0;
-        if(received<50000){ // essentially failed
+        var dmbps = secs>0 ? (received*8)/secs/1e6 : 0;
+        if(received<50000){ // download essentially failed
+          speedRunning=false;
           setChip('c-net','na','N/A');
           setBig('c-net','Speed test blocked');
           setSub('c-net','Could not reach the speed server (offline or filtered)');
-          setRows('c-net', baseRows.concat([['Download','unavailable']]));
+          setRows('c-net', baseRows.concat([['Download','unavailable'],['Upload','unavailable']]));
           rec('Internet speed','Test unavailable');
           tickDone('Speed test'); return;
         }
-        var rating = mbps>=100?'Excellent':(mbps>=50?'Fast':(mbps>=25?'Good':(mbps>=10?'Usable':'Slow')));
+        // show the download number right away, then measure upload
+        setBig('c-net', dmbps.toFixed(1)+' <span class="unit">Mbps ↓ &nbsp;·&nbsp; measuring ↑…</span>');
+        setSub('c-net','Download done — testing upload…');
+        runUpload(dmbps, aborted);
+      }
+
+      function runUpload(dmbps, dAborted){
+        var upBytes=4000000, payload=null;
+        try{ payload=new Uint8Array(upBytes); }catch(e){}
+        var uctrl = ('AbortController' in window)? new AbortController() : null;
+        var ukiller = setTimeout(function(){ if(uctrl) uctrl.abort(); }, 15000);
+        var ut0=performance.now();
+        var req = payload
+          ? fetch('https://speed.cloudflare.com/__up', {method:'POST', body:payload, cache:'no-store', signal: uctrl?uctrl.signal:undefined})
+          : Promise.reject(new Error('no payload'));
+        req.then(function(r){ return (r && r.arrayBuffer) ? r.arrayBuffer().catch(function(){}) : null; })
+           .then(function(){ clearTimeout(ukiller); var us=(performance.now()-ut0)/1000; finalizeNet(dmbps, us>0?(upBytes*8)/us/1e6:null, dAborted); })
+           .catch(function(){ clearTimeout(ukiller); finalizeNet(dmbps, null, dAborted); });
+      }
+
+      function finalizeNet(dmbps, umbps, aborted){
+        speedRunning=false;
+        var rating = dmbps>=100?'Excellent':(dmbps>=50?'Fast':(dmbps>=25?'Good':(dmbps>=10?'Usable':'Slow')));
         setChip('c-net','live','Live');
-        setBig('c-net', mbps.toFixed(1) + ' <span class="unit">Mbps ↓ · '+rating+'</span>');
-        setSub('c-net','Downloaded '+fmtBytes(received)+(aborted?' (capped at 15s)':'')+' · '+rating);
+        var upBig = (umbps!=null) ? umbps.toFixed(1) : '—';
+        setBig('c-net', dmbps.toFixed(1)+' <span class="unit">Mbps ↓</span> &nbsp; '+upBig+' <span class="unit">Mbps ↑</span>');
+        setSub('c-net','↓ download · ↑ upload'+(aborted?' (download capped at 15s)':'')+' · '+rating);
         setRows('c-net', baseRows.concat([
-          ['Download speed', mbps.toFixed(1)+' Mbps', true],
+          ['Download', dmbps.toFixed(1)+' Mbps', true],
+          ['Upload', umbps!=null ? umbps.toFixed(1)+' Mbps' : 'unavailable', true],
           ['Latency (ping)', lat!=null? lat+' ms':'—', true],
-          ['Data transferred', fmtBytes(received), true],
           ['Rating', rating]
         ]));
-        rec('Internet speed', mbps.toFixed(1)+' Mbps down'+(lat!=null?(', '+lat+' ms ping'):'')+' ('+rating+')');
+        rec('Internet speed', dmbps.toFixed(1)+' Mbps down'+(umbps!=null?(' / '+umbps.toFixed(1)+' Mbps up'):'')+(lat!=null?(', '+lat+' ms ping'):'')+' ('+rating+')');
         tickDone('Speed test');
       }
     }
