@@ -18,21 +18,27 @@ GitHub Pages only serves the single custom domain in the repo's `CNAME`
 (`www.linearit.co`), so the `device` subdomain has to be wired in Cloudflare
 (where the `linearit.co` DNS already lives). Pick one:
 
-### Option A — Redirect rule (simplest, recommended)
+### Option A — Cloudflare Worker (recommended, built & ready)
+A ready-to-deploy Worker is committed at [`../device-worker/`](../device-worker/).
+It reverse-proxies this page so the address bar stays `device.linearit.co`, and a
+single deploy provisions the domain + DNS automatically:
+
+```bash
+cd device-worker && npx wrangler deploy
+```
+
+Full steps (and an auto-deploy-on-push option) are in
+[`../device-worker/README.md`](../device-worker/README.md).
+
+### Option B — Redirect rule (no Worker)
 Cloudflare → **Rules → Redirect Rules → Create rule**
 - **When**: Hostname `equals` `device.linearit.co`
 - **Then**: Static redirect → `https://www.linearit.co/device/` — Status `301`
 - Add a DNS record so the hostname resolves: **DNS → Add record** →
   `CNAME  device  →  www.linearit.co` (Proxied / orange cloud).
 
-Visitors typing `device.linearit.co` land on the report; the address bar shows
-`www.linearit.co/device/`.
-
-### Option B — Keep the `device.linearit.co` URL (Cloudflare Worker)
-If you want the address bar to stay `device.linearit.co`, add a tiny Worker on a
-route `device.linearit.co/*` that fetches and returns
-`https://www.linearit.co/device/`. More moving parts than Option A; only worth it
-if the vanity URL matters.
+Visitors typing `device.linearit.co` land on the report, but the address bar then
+shows `www.linearit.co/device/`.
 
 ---
 
