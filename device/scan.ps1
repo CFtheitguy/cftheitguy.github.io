@@ -132,9 +132,9 @@ $apps = @($appsRaw | Sort-Object DisplayName -Unique | ForEach-Object {
 
 # ---- Installed content filter (the reliable check!) -------------------------
 $filterMap = @{
-  'Techloq'='Techloq'; 'NetSpark'='Netspark'; 'Netspark'='Netspark'; 'NetFree'='NetFree';
-  'Net Free'='NetFree'; 'Geder'='Geder'; 'Meshimer'='Meshimer'; 'Gentech'='Gentech';
-  'Nativ'='Nativ'; 'MBSmart'='MBSmart'; 'MB Smart'='MBSmart'; 'Bark'='Bark'; 'Qustodio'='Qustodio';
+  'Techloq'='Techloq'; 'Netspark'='Netspark'; 'NetFree'='NetFree'; 'Net Free'='NetFree';
+  'Geder'='Geder'; 'Meshimer'='Meshimer'; 'Gentech'='Gentech'; 'Nativ'='Nativ';
+  'MBSmart'='MBSmart'; 'MB Smart'='MBSmart'; 'Bark'='Bark'; 'Qustodio'='Qustodio';
   'Circle'='Circle'; 'Technology Awareness'='TAG'; 'Livigent'='Livigent'; 'K9 Web'='K9'
 }
 $svc = @(Get-CimInstance Win32_Service | Select-Object -ExpandProperty DisplayName)
