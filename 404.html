@@ -4,18 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>404 • Lost in Space</title>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+:root {
+    --black: #000000;
+    --white: #FFFFFF;
+    --aqua: #70F2FF;
+    --peri: #6999F5;
+    --peri-deep: #4D7FE8;
+    --surface: #F4F7FB;
+    --body: #3C3C3C;
 }
 
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
-    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: linear-gradient(135deg, #0f172a, #1e293b);
-    color: white;
+    font-family: "Space Grotesk", system-ui, -apple-system, sans-serif;
+    background: var(--surface);
+    color: var(--body);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -25,88 +33,138 @@ body {
     position: relative;
 }
 
+/* mesh gradient */
+.mesh {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(600px 500px at 15% 20%, rgba(112, 242, 255, .35), transparent 60%),
+        radial-gradient(650px 550px at 85% 25%, rgba(105, 153, 245, .35), transparent 60%),
+        radial-gradient(700px 600px at 70% 90%, rgba(77, 127, 232, .28), transparent 60%),
+        radial-gradient(500px 500px at 25% 85%, rgba(112, 242, 255, .22), transparent 60%);
+    filter: blur(10px);
+}
+
+/* faint repeating dashed-ring logomark field */
+.rings {
+    position: absolute;
+    inset: -60px;
+    pointer-events: none;
+    opacity: .06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='60' r='34' fill='none' stroke='%234D7FE8' stroke-width='4' stroke-dasharray='8 8'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    animation: drift 22s linear infinite;
+}
+
+@keyframes drift {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-120px); }
+}
+
 .container {
     position: relative;
     z-index: 1;
-    max-width: 650px;
+    max-width: 640px;
     padding: 40px;
 }
 
-.number {
-    font-size: 7rem;
-    font-weight: 800;
+.wordmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 48px;
+}
+
+.wordmark svg { display: block; }
+
+.wordmark .logo-ring { animation: spin 14s linear infinite; transform-origin: 22px 22px; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.wordmark span {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 2rem;
     line-height: 1;
-    background: linear-gradient(90deg, #60a5fa, #22d3ee);
+    color: var(--black);
+    letter-spacing: .5px;
+}
+
+.number {
+    font-size: 8rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -2px;
+    background: linear-gradient(90deg, var(--aqua), var(--peri-deep));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 h1 {
-    margin-top: 15px;
+    margin-top: 12px;
     font-size: 2rem;
+    font-weight: 600;
+    color: var(--black);
 }
 
 p {
-    margin: 25px 0;
+    margin: 22px 0;
     font-size: 1.1rem;
-    color: #cbd5e1;
-    line-height: 1.6;
+    color: var(--body);
+    line-height: 1.65;
 }
 
 .button {
     display: inline-block;
-    padding: 14px 26px;
-    background: #38bdf8;
-    color: #0f172a;
+    margin-top: 14px;
+    padding: 15px 30px;
+    background: linear-gradient(90deg, var(--peri), var(--peri-deep));
+    color: var(--white);
     text-decoration: none;
     border-radius: 999px;
-    font-weight: 700;
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
     transition: all .25s ease;
-    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(77, 127, 232, .25);
 }
 
 .button:hover {
     transform: translateY(-2px);
-    background: #67e8f9;
-    box-shadow: 0 10px 25px rgba(56, 189, 248, .35);
+    box-shadow: 0 14px 34px rgba(77, 127, 232, .4);
 }
 
 .footer {
-    margin-top: 40px;
-    color: #94a3b8;
+    margin-top: 44px;
+    color: #6b7480;
     font-size: .9rem;
 }
 
-.stars {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-        radial-gradient(2px 2px at 20% 30%, white 50%, transparent 51%),
-        radial-gradient(2px 2px at 80% 20%, white 50%, transparent 51%),
-        radial-gradient(2px 2px at 60% 80%, white 50%, transparent 51%),
-        radial-gradient(1px 1px at 40% 60%, white 50%, transparent 51%),
-        radial-gradient(2px 2px at 90% 70%, white 50%, transparent 51%);
-    opacity: .5;
-    animation: twinkle 8s linear infinite;
-}
+.footer a { color: var(--peri-deep); text-decoration: none; font-weight: 500; }
+.footer a:hover { text-decoration: underline; }
 
-@keyframes twinkle {
-    from {
-        transform: translateY(0);
-    }
-    to {
-        transform: translateY(-20px);
-    }
+@media (max-width: 520px) {
+    .number { font-size: 5.5rem; }
+    h1 { font-size: 1.6rem; }
+    p { font-size: 1rem; }
 }
 </style>
 </head>
-
 <body>
 
-<div class="stars"></div>
+<div class="mesh"></div>
+<div class="rings"></div>
 
 <div class="container">
+
+    <a class="wordmark" href="https://www.linearit.co/" aria-label="linear home">
+        <svg class="logo-ring" width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="22" cy="22" r="18" stroke="#4D7FE8" stroke-width="3" stroke-dasharray="5 5"/>
+            <circle cx="22" cy="22" r="6" fill="#70F2FF"/>
+        </svg>
+        <span>linear</span>
+    </a>
 
     <div class="number">404</div>
 
@@ -125,17 +183,14 @@ p {
     </p>
 
     <p>
-        The good news? The rest of the website is still perfectly fine.
-        Click the button below and we'll get you safely back home before
-        anyone notices.
+        The good news? The rest of the site is still perfectly fine.
+        Click below and we'll get you safely back home before anyone notices.
     </p>
 
-    <a class="button" href="https://www.linearit.co/">
-        🏠 Take Me Home
-    </a>
+    <a class="button" href="https://www.linearit.co/">Take me home</a>
 
     <div class="footer">
-        If you think this is a mistake, let us know—we'll rescue it.
+        Think this is a mistake? <a href="mailto:chaim@linearit.co">Let us know</a>—we'll rescue it.
     </div>
 
 </div>
