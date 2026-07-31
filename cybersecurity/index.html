@@ -9,7 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ── Brand tokens ── */
     :root {
       --aqua:      #70F2FF;
       --peri:      #6999F5;
@@ -29,364 +28,190 @@
       --border:  rgba(112,242,255,.09);
       --shadow:  0 2px 28px rgba(0,0,0,.45);
     }
-
-    /* ── Reset ── */
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     html { scroll-behavior: smooth; }
-
     body {
       font-family: 'Space Grotesk', system-ui, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.72;
       transition: background .35s, color .35s;
-      min-height: 100vh;
     }
-
-    /* ── Background pattern (repeating dashed-ring logomark) ── */
     .bg-pattern {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      opacity: .032;
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .032;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Ccircle cx='55' cy='55' r='46' fill='none' stroke='%236999F5' stroke-width='2' stroke-dasharray='6,4'/%3E%3Ccircle cx='55' cy='55' r='28' fill='none' stroke='%2370F2FF' stroke-width='1.5' stroke-dasharray='4,3'/%3E%3Ccircle cx='55' cy='55' r='9' fill='%236999F5'/%3E%3C/svg%3E");
     }
     [data-theme="dark"] .bg-pattern { opacity: .055; }
-
-    /* ── Mesh gradient strip at top ── */
     .mesh-top {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 340px;
-      z-index: 0;
-      pointer-events: none;
+      position: fixed; top: 0; left: 0; right: 0; height: 340px; z-index: 0; pointer-events: none;
       background: radial-gradient(ellipse 60% 200px at 30% -30%, rgba(105,153,245,.18), transparent),
                   radial-gradient(ellipse 50% 180px at 80% -20%, rgba(112,242,255,.12), transparent);
     }
-
-    /* ── Theme toggle ── */
     .theme-btn {
-      position: fixed;
-      top: 18px; right: 18px;
-      z-index: 200;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 40px;
-      padding: 9px 18px;
-      cursor: pointer;
-      font-size: 17px;
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-family: inherit;
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 600;
+      position: fixed; top: 18px; right: 18px; z-index: 200;
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 40px;
+      padding: 9px 18px; cursor: pointer; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 7px;
+      font-family: inherit; color: var(--text); font-size: 13px; font-weight: 600;
       transition: transform .15s, box-shadow .15s;
     }
     .theme-btn:hover { transform: scale(1.05); box-shadow: 0 4px 32px rgba(105,153,245,.25); }
-    .theme-btn .icon { font-size: 17px; }
-
-    /* ── Layout ── */
     .wrap {
-      position: relative;
-      z-index: 1;
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 0 22px 80px;
+      position: relative; z-index: 1;
+      max-width: 760px; margin: 0 auto; padding: 0 22px 80px;
     }
-
-    /* ── Hero ── */
-    .hero {
-      padding: 88px 0 56px;
-      text-align: center;
-    }
-
+    /* Hero */
+    .hero { padding: 88px 0 56px; text-align: center; }
     .logo-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 40px;
-      padding: 7px 20px 7px 12px;
-      margin-bottom: 34px;
-      box-shadow: var(--shadow);
+      display: inline-flex; align-items: center; gap: 9px;
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 40px;
+      padding: 7px 20px 7px 12px; margin-bottom: 34px; box-shadow: var(--shadow);
     }
-    .logo-pill svg { flex-shrink: 0; }
     .logo-pill span {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .1em;
-      text-transform: uppercase;
+      font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
       background: linear-gradient(130deg, var(--peri), var(--aqua));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-
     .hero h1 {
-      font-size: clamp(2.4rem, 5.5vw, 3.6rem);
-      font-weight: 700;
-      line-height: 1.12;
-      letter-spacing: -.03em;
-      margin-bottom: 18px;
+      font-size: clamp(2.4rem, 5.5vw, 3.6rem); font-weight: 700;
+      line-height: 1.12; letter-spacing: -.03em; margin-bottom: 18px;
     }
     .hero h1 em {
       font-style: normal;
       background: linear-gradient(130deg, var(--peri) 10%, var(--aqua) 90%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .hero .sub {
-      font-size: 1.05rem;
-      color: var(--muted);
-      max-width: 480px;
-      margin: 0 auto 28px;
-    }
+    .hero .sub { font-size: 1.05rem; color: var(--muted); max-width: 500px; margin: 0 auto 28px; }
     .edition {
       display: inline-block;
       background: linear-gradient(130deg, var(--peri-deep), var(--peri));
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      padding: 5px 15px;
-      border-radius: 40px;
+      color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; padding: 5px 15px; border-radius: 40px;
     }
-
-    /* ── TOC ── */
+    /* TOC */
     .toc {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 18px;
-      padding: 28px 30px;
-      margin-bottom: 40px;
-      box-shadow: var(--shadow);
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 18px;
+      padding: 28px 30px; margin-bottom: 40px; box-shadow: var(--shadow);
     }
     .toc-label {
-      font-size: 10.5px;
-      font-weight: 700;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 18px;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 18px;
     }
-    .toc-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px 20px;
-    }
+    .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
     @media (max-width:480px) { .toc-grid { grid-template-columns: 1fr; } }
     .toc-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 7px 0;
-      text-decoration: none;
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 500;
-      border-bottom: 1px solid var(--border);
-      transition: color .18s;
+      display: flex; align-items: center; gap: 10px; padding: 8px 0;
+      text-decoration: none; color: var(--text); font-size: 14px; font-weight: 500;
+      border-bottom: 1px solid var(--border); transition: color .18s;
     }
-    .toc-link:last-child, .toc-link:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+    .toc-link:last-child { border-bottom: none; }
+    .toc-link:nth-last-child(2):nth-child(odd) { border-bottom: none; }
     .toc-link:hover { color: var(--peri); }
-    .toc-n {
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--peri);
-      min-width: 22px;
-      letter-spacing: .04em;
-    }
-
-    /* ── Chapter cards ── */
+    .toc-n { font-size: 10px; font-weight: 700; color: var(--peri); min-width: 22px; letter-spacing: .04em; }
+    /* Chapter cards */
     .chapter {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 22px;
-      padding: 36px 38px;
-      margin-bottom: 22px;
-      box-shadow: var(--shadow);
+      background: var(--surface); border: 1.5px solid var(--border); border-radius: 22px;
+      padding: 36px 38px; margin-bottom: 22px; box-shadow: var(--shadow);
       transition: border-color .2s, box-shadow .2s;
     }
-    .chapter:hover {
-      border-color: rgba(105,153,245,.38);
-      box-shadow: 0 4px 36px rgba(105,153,245,.10);
-    }
+    .chapter:hover { border-color: rgba(105,153,245,.38); box-shadow: 0 4px 36px rgba(105,153,245,.10); }
     @media (max-width:560px) { .chapter { padding: 26px 22px; } }
-
-    .ch-head {
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 18px;
-    }
+    .ch-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
     .ch-icon {
-      width: 50px; height: 50px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      flex-shrink: 0;
+      width: 50px; height: 50px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
     }
     .ch-meta { flex: 1; }
     .ch-num {
-      font-size: 10.5px;
-      font-weight: 700;
-      letter-spacing: .13em;
-      text-transform: uppercase;
-      color: var(--peri);
-      margin-bottom: 3px;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .13em;
+      text-transform: uppercase; color: var(--peri); margin-bottom: 3px;
     }
-    .chapter h2 {
-      font-size: 1.38rem;
-      font-weight: 700;
-      letter-spacing: -.015em;
-      line-height: 1.25;
-    }
-    .chapter .lead {
-      font-size: .97rem;
-      color: var(--muted);
-      margin-bottom: 18px;
-    }
-
-    /* ── Tips list ── */
+    .chapter h2 { font-size: 1.38rem; font-weight: 700; letter-spacing: -.015em; line-height: 1.25; }
+    .chapter .lead { font-size: .97rem; color: var(--muted); margin-bottom: 18px; }
+    /* Tips */
     .tips { list-style: none; }
     .tips li {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 11px 0;
-      border-top: 1px solid var(--border);
-      font-size: .94rem;
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 11px 0; border-top: 1px solid var(--border); font-size: .94rem;
     }
     .tips li:first-child { border-top: none; }
     .dot {
-      width: 7px; height: 7px;
-      border-radius: 50%;
+      width: 7px; height: 7px; border-radius: 50%;
       background: linear-gradient(135deg, var(--peri), var(--aqua));
-      margin-top: 8px;
-      flex-shrink: 0;
+      margin-top: 8px; flex-shrink: 0;
     }
-
-    /* ── Callout ── */
+    /* Callout */
     .callout {
       background: linear-gradient(135deg, rgba(105,153,245,.07), rgba(112,242,255,.07));
-      border: 1.5px solid rgba(105,153,245,.22);
-      border-radius: 12px;
-      padding: 14px 18px;
-      margin-top: 18px;
-      font-size: .9rem;
-      line-height: 1.6;
+      border: 1.5px solid rgba(105,153,245,.22); border-radius: 12px;
+      padding: 14px 18px; margin-top: 18px; font-size: .9rem; line-height: 1.6;
     }
     .callout strong { color: var(--peri); }
-
-    /* ── New badge ── */
+    /* Danger callout */
+    .callout-warn {
+      background: rgba(239,68,68,.06); border: 1.5px solid rgba(239,68,68,.2);
+      border-radius: 12px; padding: 14px 18px; margin-top: 18px; font-size: .9rem;
+    }
+    .callout-warn strong { color: #EF4444; }
+    /* New badge */
     .new {
       display: inline-block;
       background: linear-gradient(130deg, var(--aqua), var(--peri));
-      color: #0C0F18;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-left: 8px;
-      vertical-align: middle;
+      color: #0C0F18; font-size: 10px; font-weight: 800;
+      letter-spacing: .08em; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle;
     }
-
-    /* ── Checklist card ── */
+    /* Tool links */
+    .tool-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px;
+    }
+    @media (max-width:480px) { .tool-grid { grid-template-columns: 1fr; } }
+    .tool-link {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; text-decoration: none; color: var(--text);
+      font-size: .87rem; font-weight: 500; transition: border-color .18s, color .18s;
+    }
+    .tool-link:hover { border-color: var(--peri); color: var(--peri); }
+    .tool-icon { font-size: 16px; flex-shrink: 0; }
+    /* Checklist card */
     .checklist-card {
       background: linear-gradient(140deg, var(--peri-deep) 0%, var(--peri) 60%, #5dbff8 100%);
-      border-radius: 22px;
-      padding: 42px 38px;
-      margin-bottom: 22px;
-      color: #fff;
-      box-shadow: 0 8px 40px rgba(77,127,232,.35);
+      border-radius: 22px; padding: 42px 38px; margin-bottom: 22px;
+      color: #fff; box-shadow: 0 8px 40px rgba(77,127,232,.35);
     }
     @media (max-width:560px) { .checklist-card { padding: 28px 22px; } }
-    .checklist-card h2 {
-      font-size: 1.65rem;
-      font-weight: 700;
-      letter-spacing: -.025em;
-      margin-bottom: 6px;
-    }
-    .checklist-card .sub {
-      opacity: .82;
-      font-size: .95rem;
-      margin-bottom: 28px;
-    }
-    .cl-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
+    .checklist-card h2 { font-size: 1.65rem; font-weight: 700; letter-spacing: -.025em; margin-bottom: 6px; }
+    .checklist-card .sub { opacity: .82; font-size: .95rem; margin-bottom: 28px; }
+    .cl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width:500px) { .cl-grid { grid-template-columns: 1fr; } }
     .cl-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: rgba(255,255,255,.14);
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: 11px;
-      padding: 12px 14px;
-      font-size: .87rem;
-      font-weight: 500;
-      backdrop-filter: blur(4px);
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18);
+      border-radius: 11px; padding: 12px 14px; font-size: .87rem; font-weight: 500;
     }
     .cl-icon { font-size: 17px; flex-shrink: 0; }
-
-    /* ── Divider ── */
+    /* Divider */
     .divider {
       height: 1px;
       background: linear-gradient(90deg, transparent, var(--peri), transparent);
-      opacity: .18;
-      margin: 52px 0;
+      opacity: .18; margin: 52px 0;
     }
-
-    /* ── Footer ── */
-    .footer {
-      text-align: center;
-    }
-    .footer-logo {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      margin-bottom: 14px;
-    }
-    .footer-logo .wordmark {
-      font-size: 15px;
-      font-weight: 700;
+    /* Footer */
+    .footer { text-align: center; }
+    .footer-logo { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+    .footer-logo .wm {
+      font-size: 15px; font-weight: 700;
       background: linear-gradient(130deg, var(--peri), var(--aqua));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .footer p {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-    .footer a {
-      color: var(--peri);
-      text-decoration: none;
-      font-weight: 500;
-    }
+    .footer p { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    .footer a { color: var(--peri); text-decoration: none; font-weight: 500; }
     .footer a:hover { text-decoration: underline; }
-    .footer .tagline {
-      margin-top: 16px;
-      font-size: 12px;
-      opacity: .5;
-    }
-
-    /* ── Scrollbar ── */
+    .footer .tagline { margin-top: 16px; font-size: 12px; opacity: .45; }
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--peri); border-radius: 3px; opacity: .4; }
+    ::-webkit-scrollbar-thumb { background: var(--peri); border-radius: 3px; }
   </style>
 </head>
 <body>
@@ -394,104 +219,109 @@
 <div class="bg-pattern"></div>
 <div class="mesh-top"></div>
 
-<!-- Dark / Light toggle -->
 <button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
-  <span class="icon" id="themeIcon">🌙</span>
+  <span id="themeIcon">🌙</span>
   <span id="themeLabel">Dark</span>
 </button>
 
 <div class="wrap">
 
-  <!-- ── Hero ── -->
+  <!-- Hero -->
   <header class="hero">
     <div class="logo-pill">
-      <!-- Dashed-ring logomark -->
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
         <circle cx="13" cy="13" r="11" stroke="#6999F5" stroke-width="1.6" stroke-dasharray="3.5,2.5"/>
-        <circle cx="13" cy="13" r="6"  stroke="#70F2FF" stroke-width="1.2" stroke-dasharray="2.5,2"/>
+        <circle cx="13" cy="13" r="6" stroke="#70F2FF" stroke-width="1.2" stroke-dasharray="2.5,2"/>
         <circle cx="13" cy="13" r="2.5" fill="#70F2FF"/>
       </svg>
       <span>Linear Tech</span>
     </div>
-
     <h1>Stay <em>Secure</em><br>in 2026</h1>
-    <p class="sub">Practical cybersecurity for real people — no jargon, no fluff. Just what you actually need to do.</p>
+    <p class="sub">A plain-language cybersecurity guide for everyone — what actually matters, what to actually do, and what to stop worrying about.</p>
     <span class="edition">2026 Edition</span>
   </header>
 
-  <!-- ── Table of Contents ── -->
+  <!-- TOC -->
   <nav class="toc" aria-label="Guide chapters">
     <div class="toc-label">In This Guide</div>
     <div class="toc-grid">
-      <a class="toc-link" href="#ch1"><span class="toc-n">01</span> How Threats Get In</a>
-      <a class="toc-link" href="#ch2"><span class="toc-n">02</span> Passwords &amp; MFA</a>
-      <a class="toc-link" href="#ch3"><span class="toc-n">03</span> Keep Things Updated</a>
+      <a class="toc-link" href="#ch1"><span class="toc-n">01</span> How You Get Infected</a>
+      <a class="toc-link" href="#ch2"><span class="toc-n">02</span> Windows Security</a>
+      <a class="toc-link" href="#ch3"><span class="toc-n">03</span> Router &amp; Wi-Fi</a>
       <a class="toc-link" href="#ch4"><span class="toc-n">04</span> Email &amp; Phishing</a>
-      <a class="toc-link" href="#ch5"><span class="toc-n">05</span> Router &amp; Wi-Fi</a>
-      <a class="toc-link" href="#ch6"><span class="toc-n">06</span> Backups</a>
-      <a class="toc-link" href="#ch7"><span class="toc-n">07</span> AI Scams</a>
-      <a class="toc-link" href="#ch8"><span class="toc-n">08</span> Your Checklist</a>
+      <a class="toc-link" href="#ch5"><span class="toc-n">05</span> Scams to Avoid</a>
+      <a class="toc-link" href="#ch6"><span class="toc-n">06</span> Computer Maintenance</a>
+      <a class="toc-link" href="#ch7"><span class="toc-n">07</span> AI Threats in 2026</a>
+      <a class="toc-link" href="#ch8"><span class="toc-n">08</span> If You Got Phished</a>
+      <a class="toc-link" href="#ch9"><span class="toc-n">09</span> Your Checklist</a>
     </div>
   </nav>
 
-  <!-- ── Chapter 1 ── -->
+  <!-- Ch 1 -->
   <article class="chapter" id="ch1">
     <div class="ch-head">
       <div class="ch-icon" style="background:rgba(112,242,255,.1);">🚪</div>
       <div class="ch-meta">
         <div class="ch-num">Chapter 01</div>
-        <h2>How Threats Get In</h2>
+        <h2>How You Actually Get Infected</h2>
       </div>
     </div>
-    <p class="lead">Hackers rarely "hack" in the Hollywood sense. Most attacks come down to one of four doors — and they're all about tricking you, not breaking technology.</p>
+    <p class="lead">Most attacks aren't sophisticated hacks — they're tricks. Infections happen one of three ways, and understanding them is half the battle.</p>
     <ul class="tips">
-      <li><span class="dot"></span><span><strong>Phishing emails &amp; texts</strong> — A fake message tricks you into clicking a link or handing over a login. Still the #1 attack method worldwide.</span></li>
-      <li><span class="dot"></span><span><strong>Unpatched software</strong> — Outdated apps and operating systems have known holes. Attackers exploit them automatically, at scale.</span></li>
-      <li><span class="dot"></span><span><strong>Reused or weak passwords</strong> — One breached account becomes all your accounts when you use the same password everywhere.</span></li>
-      <li><span class="dot"></span><span><strong>Malicious downloads</strong> — Fake software, cracked apps, or "free" tools that silently install malware alongside whatever you wanted.</span></li>
+      <li><span class="dot"></span><span><strong>You get tricked.</strong> This is the #1 method. Someone downloads and runs malware themselves — disguised as an invoice, a software update, a "fix" for a fake virus, or a cracked app. Being tricked has nothing to do with intelligence; it happens to smart people every day. The rule: only download software from the original company's official website, after searching for it yourself.</span></li>
+      <li><span class="dot"></span><span><strong>Your software is out of date.</strong> Criminals build pages that silently test your browser for known vulnerabilities — and if found, infect your computer automatically, without you clicking anything. These are called exploit kits. You don't have to visit shady sites; attackers inject them into legitimate websites via compromised ads. Keeping software updated is your primary defense.</span></li>
+      <li><span class="dot"></span><span><strong>A zero-day hits.</strong> Rare, but real: hackers discover a flaw before it's patched and use it silently. The defense is simple — never open attachments or office documents you weren't specifically expecting, and don't click links in texts or messaging apps from unknown sources.</span></li>
     </ul>
-    <div class="callout"><strong>The hard truth:</strong> No security product defeats a user who clicks the wrong link. Awareness is your first layer of defense.</div>
+    <div class="callout"><strong>The rule:</strong> Your antivirus saying something isn't a virus doesn't mean it's safe. Antivirus is the airbag — if it fires, something already went wrong. Don't rely on it alone.</div>
   </article>
 
-  <!-- ── Chapter 2 ── -->
+  <!-- Ch 2 -->
   <article class="chapter" id="ch2">
     <div class="ch-head">
-      <div class="ch-icon" style="background:rgba(105,153,245,.1);">🔐</div>
+      <div class="ch-icon" style="background:rgba(105,153,245,.1);">🖥️</div>
       <div class="ch-meta">
         <div class="ch-num">Chapter 02</div>
-        <h2>Passwords &amp; Multi-Factor Authentication</h2>
+        <h2>Windows Security</h2>
       </div>
     </div>
-    <p class="lead">This is the single highest-impact thing you can do. Do both of these and you've eliminated the majority of account-takeover risk.</p>
+    <p class="lead">This is the complete setup. Done right, your machine becomes virtually impervious to viruses you don't actively try to install yourself.</p>
     <ul class="tips">
-      <li><span class="dot"></span><span><strong>Use a password manager.</strong> Bitwarden (free, open-source) or 1Password. It generates a unique, random password for every account — you only remember one strong master password.</span></li>
-      <li><span class="dot"></span><span><strong>Turn on MFA everywhere it's offered</strong> — especially email, banking, and Microsoft 365. An authenticator app (Microsoft Authenticator, Authy) is stronger than SMS codes.</span></li>
-      <li><span class="dot"></span><span><strong>Use passkeys when available.</strong> Windows Hello, Face ID, and hardware keys can't be phished. They're the future — and they're here now.</span></li>
-      <li><span class="dot"></span><span><strong>Never reuse passwords.</strong> One breach turns into every account if you do. A password manager makes this effortless.</span></li>
+      <li><span class="dot"></span><span><strong>Stay on Windows 11.</strong> Windows 10 support ended October 2025. If you're still on it, you're getting no security updates — period. Upgrade now or replace the machine.</span></li>
+      <li><span class="dot"></span><span><strong>Keep Windows Update current.</strong> Go to Settings &gt; Windows Update and apply updates within a week of release. Don't skip them indefinitely.</span></li>
+      <li><span class="dot"></span><span><strong>UAC to full — always.</strong> Set User Account Control to "Always notify." Anything lower lets malware silently escalate to admin permissions. It's not bubblewrap — it stops real attacks.</span></li>
+      <li><span class="dot"></span><span><strong>Turn on BitLocker.</strong> If you have Windows Pro, enable BitLocker Drive Encryption. If you have Home, check Settings &gt; System &gt; About for Device Encryption. Without this, anyone who gets physical access to your machine can read all your files.</span></li>
+      <li><span class="dot"></span><span><strong>Use Chrome or Firefox — 64-bit, up to date.</strong> Make sure auto-update is on. Your browser is your biggest attack surface.</span></li>
+      <li><span class="dot"></span><span><strong>Install uBlock Origin.</strong> Add it to Chrome or Firefox from the official extension store. The majority of malware threats arrive through malicious advertisements — even on major websites. This stops them.</span></li>
+      <li><span class="dot"></span><span><strong>Windows Defender is good — use it.</strong> Enable cloud-based protection in Windows Security settings. You don't need a paid third-party antivirus; Defender is a legitimate, well-maintained product.</span></li>
+      <li><span class="dot"></span><span><strong>SmartScreen on.</strong> Search for SmartScreen in Start and ensure it's set to warn before running unrecognized apps. This stops most downloaded malware before it even runs.</span></li>
     </ul>
-    <div class="callout"><strong>Free pick:</strong> Bitwarden is audited, trusted, and completely free for individuals. There's no excuse not to use one.</div>
+    <div class="callout-warn"><strong>Hard rule:</strong> Don't pirate software. Cracked apps and keygens are the easiest way for criminals to get people to willingly run malware. If you wouldn't unlock your front door for a stranger, don't run untrusted executables.</div>
   </article>
 
-  <!-- ── Chapter 3 ── -->
+  <!-- Ch 3 -->
   <article class="chapter" id="ch3">
     <div class="ch-head">
-      <div class="ch-icon" style="background:rgba(112,242,255,.1);">⬆️</div>
+      <div class="ch-icon" style="background:rgba(112,242,255,.1);">📡</div>
       <div class="ch-meta">
         <div class="ch-num">Chapter 03</div>
-        <h2>Keep Everything Updated</h2>
+        <h2>Router &amp; Wi-Fi</h2>
       </div>
     </div>
-    <p class="lead">Most malware attacks exploit vulnerabilities that were already patched — on systems where the update was never installed. Updates are security, not just features.</p>
+    <p class="lead">Your router is a small computer running its own operating system — and it needs the same care. Most people configure it once and never touch it again.</p>
     <ul class="tips">
-      <li><span class="dot"></span><span><strong>Windows Update: on, automatic.</strong> Don't postpone indefinitely. Apply updates within a week of release.</span></li>
-      <li><span class="dot"></span><span><strong>Your browser is your biggest attack surface.</strong> Chrome, Edge, and Firefox all auto-update — confirm they're actually doing it.</span></li>
-      <li><span class="dot"></span><span><strong>Don't forget apps.</strong> Adobe Reader, Zoom, Office, and media players — outdated versions are open doors.</span></li>
-      <li><span class="dot"></span><span><strong>Router firmware.</strong> Log into your router once a year and check for firmware updates. Most people never do this once.</span></li>
-      <li><span class="dot"></span><span><strong>Get off Windows 10.</strong> Microsoft ended support in October 2025. If you're still on it, you're receiving no security patches.</span></li>
+      <li><span class="dot"></span><span><strong>Update the firmware.</strong> Routers have bugs and vulnerabilities just like any computer. Log into your router admin page (usually 192.168.1.1 or 192.168.0.1), find firmware updates, and apply them. Do this once a year.</span></li>
+      <li><span class="dot"></span><span><strong>WPA3 or WPA2-AES only.</strong> In your router's Wi-Fi settings, set the security type to WPA3 if available, or WPA2-Personal + AES. Never WEP, never "open."</span></li>
+      <li><span class="dot"></span><span><strong>Make your Wi-Fi password a passphrase.</strong> At least 12 characters. You rarely have to type it, so make it long. "BlueSky-Mango-Thunder" beats "P@ssw0rd" in every way.</span></li>
+      <li><span class="dot"></span><span><strong>Change the default admin password.</strong> Every router ships with a known default password (often "admin"). Leaving it means any malware that infects a device on your network can take over your router. Write the new password on a piece of paper and tape it to the router.</span></li>
+      <li><span class="dot"></span><span><strong>Change your DNS to Quad9.</strong> Set your DNS servers to 9.9.9.9 (primary) and 149.112.112.112 (secondary). Quad9 blocks connections to known malicious domains and removes ISP ad hijacking. It's free and run by a nonprofit security consortium.</span></li>
+      <li><span class="dot"></span><span><strong>Turn off WPS.</strong> Wi-Fi Protected Setup is a poorly implemented feature with known vulnerabilities. Disable it unless you have a Wi-Fi printer that specifically requires it.</span></li>
+      <li><span class="dot"></span><span><strong>Turn off remote management.</strong> There's no reason for this to be accessible from the internet. It should be off by default but verify it.</span></li>
+      <li><span class="dot"></span><span><strong>Use a guest network for IoT devices.</strong> Smart TVs, thermostats, cameras, and other connected devices belong on a separate guest network — isolated from your computers and phones. Enable "guest isolation" so devices can't talk to each other.</span></li>
     </ul>
+    <div class="callout"><strong>Skip these — they don't help:</strong> SSID hiding and MAC address filtering look like security but do nothing against actual attackers. They only add setup friction for you. The only thing that works is a strong Wi-Fi password.</div>
   </article>
 
-  <!-- ── Chapter 4 ── -->
+  <!-- Ch 4 -->
   <article class="chapter" id="ch4">
     <div class="ch-head">
       <div class="ch-icon" style="background:rgba(105,153,245,.1);">📧</div>
@@ -500,114 +330,147 @@
         <h2>Email &amp; Phishing</h2>
       </div>
     </div>
-    <p class="lead">Phishing is the #1 delivery method for ransomware, credential theft, and wire fraud. Learning what to look for takes two minutes.</p>
+    <p class="lead">Phishing is the delivery method for most ransomware, credential theft, and wire fraud. Learning what to look for takes two minutes and pays off for life.</p>
     <ul class="tips">
-      <li><span class="dot"></span><span><strong>Check the actual sender address</strong> — not the display name. "Microsoft Support" from support@random-1234.ru is not Microsoft.</span></li>
-      <li><span class="dot"></span><span><strong>Urgency = red flag.</strong> "Your account will be suspended in 24 hours" is almost always fake. Real companies give you time and options.</span></li>
-      <li><span class="dot"></span><span><strong>Hover before you click.</strong> On desktop, hover over any link to see the real URL before you click it.</span></li>
-      <li><span class="dot"></span><span><strong>Don't open unexpected attachments</strong> — even from people you know. Their account may have been compromised and used to send it.</span></li>
-      <li><span class="dot"></span><span><strong>When in doubt, go direct.</strong> Instead of clicking a link in an email, open your browser and navigate to the site yourself.</span></li>
+      <li><span class="dot"></span><span><strong>Check the actual sender address — not the display name.</strong> "Microsoft Support" from alerts@random-domain.ru is not Microsoft. Click the sender name to see the real address.</span></li>
+      <li><span class="dot"></span><span><strong>Urgency is a red flag.</strong> "Your account will be locked in 24 hours" is a pressure tactic. Legitimate companies give you time and options. Slow down.</span></li>
+      <li><span class="dot"></span><span><strong>Hover before you click.</strong> On desktop, hover over any link to see the real URL in the status bar before clicking. If the destination doesn't match who supposedly sent it, don't click.</span></li>
+      <li><span class="dot"></span><span><strong>Don't open unexpected attachments.</strong> Even from people you know — their account may be compromised. If you weren't expecting a file and the email doesn't make sense in context, reply and ask before opening.</span></li>
+      <li><span class="dot"></span><span><strong>When in doubt, go direct.</strong> If you get an email from your bank, don't click the link. Open a new browser tab and go to your bank's website yourself. Always.</span></li>
+      <li><span class="dot"></span><span><strong>Check suspicious links before clicking.</strong> Copy the link and paste it into urlscan.io to see a screenshot of where it goes. Or paste it into VirusTotal to check against security blacklists.</span></li>
     </ul>
-    <div class="callout"><strong>2026 update:</strong> AI-generated phishing now has perfect grammar and can reference real details about you scraped from social media. Typos no longer identify fakes.</div>
+    <div class="callout"><strong>2026 update:</strong> AI-generated phishing now has flawless grammar and can reference real personal details scraped from LinkedIn, social media, or data breaches. Typos and awkward phrasing no longer indicate a fake. Trust the link destination, not the writing quality.</div>
   </article>
 
-  <!-- ── Chapter 5 ── -->
+  <!-- Ch 5 -->
   <article class="chapter" id="ch5">
     <div class="ch-head">
-      <div class="ch-icon" style="background:rgba(112,242,255,.1);">📡</div>
+      <div class="ch-icon" style="background:rgba(112,242,255,.1);">🚫</div>
       <div class="ch-meta">
         <div class="ch-num">Chapter 05</div>
-        <h2>Router &amp; Wi-Fi</h2>
+        <h2>Scams to Avoid</h2>
       </div>
     </div>
-    <p class="lead">Your router is the gateway to every device on your network. Most people configure it once and never touch it again — attackers count on that.</p>
+    <p class="lead">Some "security" products and tactics are the scam, not the solution. Knowing what to ignore is just as valuable as knowing what to do.</p>
     <ul class="tips">
-      <li><span class="dot"></span><span><strong>Change the default admin password.</strong> Every router ships with "admin/admin" or similar — it's publicly searchable online.</span></li>
-      <li><span class="dot"></span><span><strong>Use WPA3 if your router supports it.</strong> If not, WPA2-AES. Never WEP. Never open.</span></li>
-      <li><span class="dot"></span><span><strong>Create a guest network</strong> for visitors, smart TVs, and IoT devices. Keep untrusted devices off your main network.</span></li>
-      <li><span class="dot"></span><span><strong>Disable remote management</strong> unless you specifically need it — it's an open door from the internet.</span></li>
-      <li><span class="dot"></span><span><strong>Make your Wi-Fi password a passphrase.</strong> "BlueSky-Mango-Thunder" at 22 characters beats "P@ssw0rd8!" in every way.</span></li>
+      <li><span class="dot"></span><span><strong>Registry cleaners are fake.</strong> Programs like CCleaner's registry mode, CleanMyPC, and countless others find hundreds of "problems" on a brand-new Windows installation. They're inventing issues to look useful — and they cause real damage. Microsoft explicitly warns against them. Professional IT never uses them to solve actual problems, because no real problem is solved by cleaning the registry.</span></li>
+      <li><span class="dot"></span><span><strong>"Your PC is infected" pop-ups are fake.</strong> A website cannot detect viruses on your computer. These pop-ups — especially those that play audio or lock your screen — are scams trying to get you to call a fake tech support number or install malware disguised as a fix.</span></li>
+      <li><span class="dot"></span><span><strong>Unsolicited "tech support" calls are always fake.</strong> Microsoft, Windows, your ISP, and your antivirus company do not call you to tell you your computer has a virus. Hang up. Full stop.</span></li>
+      <li><span class="dot"></span><span><strong>PC optimizer tools don't work.</strong> "SpeedUpMyPC," "Advanced SystemCare," and similar tools use the same scare tactics as registry cleaners. They slow systems down and add adware. Windows has its own built-in disk cleanup (cleanmgr.exe) that's more effective and safe.</span></li>
+      <li><span class="dot"></span><span><strong>Privacy "telemetry blockers" can break security.</strong> Tools that promise to disable Windows telemetry often touch low-level OS settings they shouldn't, and regularly disable actual security features in the process. Leave Windows privacy settings to the Settings app itself.</span></li>
     </ul>
   </article>
 
-  <!-- ── Chapter 6 ── -->
+  <!-- Ch 6 -->
   <article class="chapter" id="ch6">
     <div class="ch-head">
-      <div class="ch-icon" style="background:rgba(105,153,245,.1);">💾</div>
+      <div class="ch-icon" style="background:rgba(105,153,245,.1);">🔧</div>
       <div class="ch-meta">
         <div class="ch-num">Chapter 06</div>
-        <h2>Backups</h2>
+        <h2>Computer Maintenance</h2>
       </div>
     </div>
-    <p class="lead">Ransomware doesn't care how good your antivirus is. Backups are your last line of defense — and the only recovery option that actually works.</p>
+    <p class="lead">Occasional maintenance keeps Windows fast and clean. Here's what actually matters — done in the right order.</p>
     <ul class="tips">
-      <li><span class="dot"></span><span><strong>Follow the 3-2-1 rule:</strong> 3 copies of your data, on 2 different media types, with 1 copy offsite or in the cloud.</span></li>
-      <li><span class="dot"></span><span><strong>Automate it.</strong> A backup you have to manually run is a backup that won't happen at the moment you need it most.</span></li>
-      <li><span class="dot"></span><span><strong>Test your restores.</strong> A backup you've never tested is just hope. Restore one file to confirm it actually works.</span></li>
-      <li><span class="dot"></span><span><strong>Cloud sync ≠ backup.</strong> If you delete a file in OneDrive or Google Drive and it syncs, your "backup" deleted it too. Use versioned backup instead.</span></li>
+      <li><span class="dot"></span><span><strong>Uninstall programs you don't use.</strong> Go to Settings &gt; Apps. Remove anything unfamiliar or unused — especially toolbars, "helpers," or expired antivirus software. Old, unused software is an attack surface.</span></li>
+      <li><span class="dot"></span><span><strong>Run the built-in disk cleanup.</strong> Search "cleanmgr" in Start, run as administrator, and check everything except Downloads. It can free 6GB+ by cleaning Windows component caches that no other tool can safely touch.</span></li>
+      <li><span class="dot"></span><span><strong>Run MalwareBytes for a checkup.</strong> MalwareBytes AdwCleaner removes adware and browser hijackers. MalwareBytes Anti-Malware does a broader scan. Both have free versions that work well. Review everything before agreeing to remove it.</span></li>
+      <li><span class="dot"></span><span><strong>Verify Windows Update and Firewall are working.</strong> Classic signs of infection damage: Windows Update fails, or the Firewall can't be turned on. If either is broken, that's a priority fix.</span></li>
+      <li><span class="dot"></span><span><strong>Update your browser and apps.</strong> Manually check: Chrome: Menu &gt; Help &gt; About. Firefox: Menu &gt; Help &gt; About. Make sure they're current.</span></li>
+      <li><span class="dot"></span><span><strong>Update drivers from the manufacturer.</strong> Go to your computer maker's website (Dell, Lenovo, HP, etc.) and download current drivers for your model. Outdated drivers cause mysterious crashes, slow performance, and compatibility issues.</span></li>
+      <li><span class="dot"></span><span><strong>Clean the vents.</strong> Heat kills hardware and throttles performance. Use compressed air on laptop vents once a year. Hold fans still while blowing — don't spin them fast or you'll damage the bearings.</span></li>
     </ul>
-    <div class="callout"><strong>For businesses:</strong> Modern ransomware finds and destroys connected backups before triggering encryption. You need at least one offline or immutable backup that attackers can't reach.</div>
+    <div class="callout"><strong>Don't defrag an SSD.</strong> Windows knows to skip defrag on solid-state drives automatically. Never run third-party defraggers on SSDs — it wears them out with unnecessary writes.</div>
   </article>
 
-  <!-- ── Chapter 7 ── -->
+  <!-- Ch 7 -->
   <article class="chapter" id="ch7">
     <div class="ch-head">
       <div class="ch-icon" style="background:rgba(112,242,255,.1);">🤖</div>
       <div class="ch-meta">
         <div class="ch-num">Chapter 07</div>
-        <h2>AI Scams <span class="new">2026</span></h2>
+        <h2>AI Threats in 2026 <span class="new">New</span></h2>
       </div>
     </div>
-    <p class="lead">The threat landscape has fundamentally shifted. AI has made scams faster, cheaper, and far more convincing than anything we've seen before.</p>
+    <p class="lead">The threat landscape has fundamentally shifted. AI has made certain scams faster, cheaper, and far more convincing than anything that came before.</p>
     <ul class="tips">
-      <li><span class="dot"></span><span><strong>Voice cloning is real.</strong> Attackers can clone a voice from seconds of audio found online. A distressed "family member" call demanding gift cards or a wire transfer may not be who you think.</span></li>
-      <li><span class="dot"></span><span><strong>Real-time video deepfakes exist.</strong> Businesses have lost millions to fake "executive" video calls authorizing wire transfers. If something feels off, it probably is.</span></li>
-      <li><span class="dot"></span><span><strong>Create a family safe word.</strong> Agree on a private code word in advance. Anyone who can't produce it in an emergency call isn't who they say they are.</span></li>
-      <li><span class="dot"></span><span><strong>AI phishing looks professional.</strong> Spelling errors, grammar mistakes, and awkward phrasing no longer flag a scam. Every message can look polished now.</span></li>
-      <li><span class="dot"></span><span><strong>Verify out-of-band.</strong> If a request comes by email, verify by phone. If by phone, verify by text. Never confirm using the same channel the request arrived on.</span></li>
+      <li><span class="dot"></span><span><strong>Voice cloning is real and cheap.</strong> Criminals can clone someone's voice from a few seconds of public audio. A distressed "family member" or "colleague" calling to ask for an urgent wire transfer, gift cards, or login credentials may not be who they sound like.</span></li>
+      <li><span class="dot"></span><span><strong>Real-time video deepfakes exist.</strong> Businesses have lost significant sums to fake "executive" video calls authorizing transactions. If something feels off about a video call — especially one making an unusual financial or access request — trust that feeling.</span></li>
+      <li><span class="dot"></span><span><strong>Establish a family safe word.</strong> Agree on a private code word in advance. Anyone who can't produce it in a claimed emergency call isn't who they claim to be. This takes 30 seconds to set up and costs nothing.</span></li>
+      <li><span class="dot"></span><span><strong>AI-written phishing looks professional.</strong> Perfect grammar, your real name, accurate company details — all possible now. Assess emails by where the link actually goes, not by how polished the writing is.</span></li>
+      <li><span class="dot"></span><span><strong>Always verify out-of-band.</strong> If an unusual request arrives by email, confirm it by phone. If it arrives by phone, confirm it by text or email. Never verify through the same channel the request arrived on.</span></li>
     </ul>
-    <div class="callout"><strong>For businesses:</strong> Implement a verbal verification protocol for any wire transfer, password reset, or unusual IT request. One extra call can prevent five-figure losses.</div>
+    <div class="callout"><strong>For businesses:</strong> Implement a verbal confirmation protocol for any wire transfer, password reset, or unusual IT request regardless of how the request arrives. One extra phone call can prevent losses in the tens of thousands.</div>
   </article>
 
-  <!-- ── Checklist ── -->
-  <section class="checklist-card" id="ch8">
+  <!-- Ch 8 -->
+  <article class="chapter" id="ch8">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(105,153,245,.1);">🆘</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 08</div>
+        <h2>If You Got Phished or Infected</h2>
+      </div>
+    </div>
+    <p class="lead">Don't panic. Here's exactly what to do — in the right order.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Change the compromised password immediately</strong> from a different, trusted device. Enable MFA on that account if it isn't already on.</span></li>
+      <li><span class="dot"></span><span><strong>Report the phishing link.</strong> Right-click the link in the email — copy it without clicking. Report it to Google (google.com/safebrowsing/report_phish) and Microsoft (microsoft.com/wdsi/support/report-unsafe-site). This blocks it for others within minutes.</span></li>
+      <li><span class="dot"></span><span><strong>Check suspicious links at urlscan.io or VirusTotal</strong> before ever opening them. Paste the URL and get a safe preview and blacklist check. Free, instant, no account needed.</span></li>
+      <li><span class="dot"></span><span><strong>Got a spam text with a link?</strong> Forward it to 7726 (SPAM). Every major US carrier accepts this. It reports the sender to your carrier for investigation and blocking — no account needed.</span></li>
+      <li><span class="dot"></span><span><strong>Run MalwareBytes.</strong> If you think you downloaded something bad, run MalwareBytes Anti-Malware (free version). It finds what Windows Defender sometimes misses, especially adware and browser hijackers.</span></li>
+      <li><span class="dot"></span><span><strong>If it feels serious, call your IT provider.</strong> Ransomware, compromised business email, or suspected network intrusion are not DIY situations. The faster you call, the more options you have.</span></li>
+    </ul>
+    <div class="callout">
+      <strong>Useful free tools:</strong>
+      <div class="tool-grid" style="margin-top:10px;">
+        <a class="tool-link" href="https://urlscan.io" target="_blank" rel="noopener"><span class="tool-icon">🔍</span> urlscan.io — preview links safely</a>
+        <a class="tool-link" href="https://virustotal.com" target="_blank" rel="noopener"><span class="tool-icon">🛡️</span> VirusTotal — check files &amp; URLs</a>
+        <a class="tool-link" href="https://www.malwarebytes.com" target="_blank" rel="noopener"><span class="tool-icon">🧹</span> MalwareBytes — free malware scan</a>
+        <a class="tool-link" href="https://bitwarden.com" target="_blank" rel="noopener"><span class="tool-icon">🔐</span> Bitwarden — free password manager</a>
+      </div>
+    </div>
+  </article>
+
+  <!-- Checklist -->
+  <section class="checklist-card" id="ch9">
     <h2>✅ Your Action Checklist</h2>
-    <p class="sub">Do these 10 things and you're more secure than 90% of people.</p>
+    <p class="sub">Do these 12 things and you're more secure than the vast majority of people and businesses.</p>
     <div class="cl-grid">
-      <div class="cl-item"><span class="cl-icon">🔐</span> Use a password manager</div>
-      <div class="cl-item"><span class="cl-icon">📱</span> Enable MFA on email &amp; banking</div>
-      <div class="cl-item"><span class="cl-icon">🔄</span> Turn on automatic updates</div>
-      <div class="cl-item"><span class="cl-icon">📧</span> Learn to spot phishing</div>
-      <div class="cl-item"><span class="cl-icon">📡</span> Secure your router &amp; Wi-Fi</div>
-      <div class="cl-item"><span class="cl-icon">💾</span> Set up automated backups</div>
-      <div class="cl-item"><span class="cl-icon">🤖</span> Create a family safe word</div>
-      <div class="cl-item"><span class="cl-icon">🖥️</span> Upgrade off Windows 10</div>
-      <div class="cl-item"><span class="cl-icon">🔑</span> Use passkeys where available</div>
-      <div class="cl-item"><span class="cl-icon">🚫</span> Never reuse passwords</div>
+      <div class="cl-item"><span class="cl-icon">🖥️</span> Upgrade to Windows 11</div>
+      <div class="cl-item"><span class="cl-icon">🔄</span> Windows Update: automatic</div>
+      <div class="cl-item"><span class="cl-icon">⚠️</span> UAC set to "Always notify"</div>
+      <div class="cl-item"><span class="cl-icon">🔒</span> BitLocker / Device Encryption on</div>
+      <div class="cl-item"><span class="cl-icon">🌐</span> uBlock Origin in your browser</div>
+      <div class="cl-item"><span class="cl-icon">🔐</span> Password manager (Bitwarden)</div>
+      <div class="cl-item"><span class="cl-icon">📱</span> MFA on email, banking, M365</div>
+      <div class="cl-item"><span class="cl-icon">📡</span> Router: WPA3, new admin password</div>
+      <div class="cl-item"><span class="cl-icon">🌍</span> DNS: Quad9 (9.9.9.9)</div>
+      <div class="cl-item"><span class="cl-icon">🤖</span> Family safe word for AI scams</div>
+      <div class="cl-item"><span class="cl-icon">💾</span> Automated offsite backup</div>
+      <div class="cl-item"><span class="cl-icon">🚫</span> No registry cleaners. Ever.</div>
     </div>
   </section>
 
   <div class="divider"></div>
 
-  <!-- ── Footer ── -->
   <footer class="footer">
     <div class="footer-logo">
-      <svg width="30" height="30" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="30" height="30" viewBox="0 0 26 26" fill="none">
         <circle cx="13" cy="13" r="11" stroke="#6999F5" stroke-width="1.6" stroke-dasharray="3.5,2.5"/>
-        <circle cx="13" cy="13" r="6"  stroke="#70F2FF" stroke-width="1.2" stroke-dasharray="2.5,2"/>
+        <circle cx="13" cy="13" r="6" stroke="#70F2FF" stroke-width="1.2" stroke-dasharray="2.5,2"/>
         <circle cx="13" cy="13" r="2.5" fill="#70F2FF"/>
       </svg>
-      <span class="wordmark">Linear Tech</span>
+      <span class="wm">Linear Tech</span>
     </div>
     <p>Managed IT &amp; Cybersecurity · Monroe, NY</p>
     <p><a href="mailto:chaim@linearit.co">chaim@linearit.co</a> &nbsp;·&nbsp; <a href="https://linearit.co">linearit.co</a></p>
-    <p class="tagline">Content adapted from Decent Security · Updated for 2026 by Linear Tech</p>
+    <p class="tagline">Content drawn from Decent Security (decentsecurity.com) · Updated &amp; adapted for 2026 by Linear Tech</p>
   </footer>
 
-</div><!-- /wrap -->
+</div>
 
 <script>
-  // Respect system preference on load
   (function () {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (prefersDark) {
@@ -616,7 +479,6 @@
       document.getElementById('themeLabel').textContent = 'Light';
     }
   })();
-
   function toggleTheme() {
     const html  = document.documentElement;
     const icon  = document.getElementById('themeIcon');
