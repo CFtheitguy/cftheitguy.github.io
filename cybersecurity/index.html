@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cybersecurity Guide 2026 | Linear Tech</title>
+  <meta name="description" content="Practical cybersecurity for real people — no jargon, no fluff. By Linear Tech, Monroe NY.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── Brand tokens ── */
+    :root {
+      --aqua:      #70F2FF;
+      --peri:      #6999F5;
+      --peri-deep: #4D7FE8;
+      --bg:        #F4F7FB;
+      --surface:   #FFFFFF;
+      --text:      #3C3C3C;
+      --muted:     #6B7280;
+      --border:    rgba(105,153,245,.14);
+      --shadow:    0 2px 24px rgba(0,0,0,.07);
+    }
+    [data-theme="dark"] {
+      --bg:      #0C0F18;
+      --surface: #141828;
+      --text:    #E2E8F5;
+      --muted:   #8B95A8;
+      --border:  rgba(112,242,255,.09);
+      --shadow:  0 2px 28px rgba(0,0,0,.45);
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.72;
+      transition: background .35s, color .35s;
+      min-height: 100vh;
+    }
+
+    /* ── Background pattern (repeating dashed-ring logomark) ── */
+    .bg-pattern {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: .032;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110'%3E%3Ccircle cx='55' cy='55' r='46' fill='none' stroke='%236999F5' stroke-width='2' stroke-dasharray='6,4'/%3E%3Ccircle cx='55' cy='55' r='28' fill='none' stroke='%2370F2FF' stroke-width='1.5' stroke-dasharray='4,3'/%3E%3Ccircle cx='55' cy='55' r='9' fill='%236999F5'/%3E%3C/svg%3E");
+    }
+    [data-theme="dark"] .bg-pattern { opacity: .055; }
+
+    /* ── Mesh gradient strip at top ── */
+    .mesh-top {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 340px;
+      z-index: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse 60% 200px at 30% -30%, rgba(105,153,245,.18), transparent),
+                  radial-gradient(ellipse 50% 180px at 80% -20%, rgba(112,242,255,.12), transparent);
+    }
+
+    /* ── Theme toggle ── */
+    .theme-btn {
+      position: fixed;
+      top: 18px; right: 18px;
+      z-index: 200;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 40px;
+      padding: 9px 18px;
+      cursor: pointer;
+      font-size: 17px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: inherit;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .theme-btn:hover { transform: scale(1.05); box-shadow: 0 4px 32px rgba(105,153,245,.25); }
+    .theme-btn .icon { font-size: 17px; }
+
+    /* ── Layout ── */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 22px 80px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 88px 0 56px;
+      text-align: center;
+    }
+
+    .logo-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 40px;
+      padding: 7px 20px 7px 12px;
+      margin-bottom: 34px;
+      box-shadow: var(--shadow);
+    }
+    .logo-pill svg { flex-shrink: 0; }
+    .logo-pill span {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      background: linear-gradient(130deg, var(--peri), var(--aqua));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 5.5vw, 3.6rem);
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: -.03em;
+      margin-bottom: 18px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(130deg, var(--peri) 10%, var(--aqua) 90%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero .sub {
+      font-size: 1.05rem;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 28px;
+    }
+    .edition {
+      display: inline-block;
+      background: linear-gradient(130deg, var(--peri-deep), var(--peri));
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 5px 15px;
+      border-radius: 40px;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 28px 30px;
+      margin-bottom: 40px;
+      box-shadow: var(--shadow);
+    }
+    .toc-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 20px;
+    }
+    @media (max-width:480px) { .toc-grid { grid-template-columns: 1fr; } }
+    .toc-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      transition: color .18s;
+    }
+    .toc-link:last-child, .toc-link:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+    .toc-link:hover { color: var(--peri); }
+    .toc-n {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--peri);
+      min-width: 22px;
+      letter-spacing: .04em;
+    }
+
+    /* ── Chapter cards ── */
+    .chapter {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 22px;
+      padding: 36px 38px;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .chapter:hover {
+      border-color: rgba(105,153,245,.38);
+      box-shadow: 0 4px 36px rgba(105,153,245,.10);
+    }
+    @media (max-width:560px) { .chapter { padding: 26px 22px; } }
+
+    .ch-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .ch-icon {
+      width: 50px; height: 50px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .ch-meta { flex: 1; }
+    .ch-num {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      color: var(--peri);
+      margin-bottom: 3px;
+    }
+    .chapter h2 {
+      font-size: 1.38rem;
+      font-weight: 700;
+      letter-spacing: -.015em;
+      line-height: 1.25;
+    }
+    .chapter .lead {
+      font-size: .97rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    /* ── Tips list ── */
+    .tips { list-style: none; }
+    .tips li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 11px 0;
+      border-top: 1px solid var(--border);
+      font-size: .94rem;
+    }
+    .tips li:first-child { border-top: none; }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--peri), var(--aqua));
+      margin-top: 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── Callout ── */
+    .callout {
+      background: linear-gradient(135deg, rgba(105,153,245,.07), rgba(112,242,255,.07));
+      border: 1.5px solid rgba(105,153,245,.22);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 18px;
+      font-size: .9rem;
+      line-height: 1.6;
+    }
+    .callout strong { color: var(--peri); }
+
+    /* ── New badge ── */
+    .new {
+      display: inline-block;
+      background: linear-gradient(130deg, var(--aqua), var(--peri));
+      color: #0C0F18;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    /* ── Checklist card ── */
+    .checklist-card {
+      background: linear-gradient(140deg, var(--peri-deep) 0%, var(--peri) 60%, #5dbff8 100%);
+      border-radius: 22px;
+      padding: 42px 38px;
+      margin-bottom: 22px;
+      color: #fff;
+      box-shadow: 0 8px 40px rgba(77,127,232,.35);
+    }
+    @media (max-width:560px) { .checklist-card { padding: 28px 22px; } }
+    .checklist-card h2 {
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: -.025em;
+      margin-bottom: 6px;
+    }
+    .checklist-card .sub {
+      opacity: .82;
+      font-size: .95rem;
+      margin-bottom: 28px;
+    }
+    .cl-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width:500px) { .cl-grid { grid-template-columns: 1fr; } }
+    .cl-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 11px;
+      padding: 12px 14px;
+      font-size: .87rem;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
+    }
+    .cl-icon { font-size: 17px; flex-shrink: 0; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--peri), transparent);
+      opacity: .18;
+      margin: 52px 0;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+    }
+    .footer-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 14px;
+    }
+    .footer-logo .wordmark {
+      font-size: 15px;
+      font-weight: 700;
+      background: linear-gradient(130deg, var(--peri), var(--aqua));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .footer p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .footer a {
+      color: var(--peri);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .footer a:hover { text-decoration: underline; }
+    .footer .tagline {
+      margin-top: 16px;
+      font-size: 12px;
+      opacity: .5;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--peri); border-radius: 3px; opacity: .4; }
+  </style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="mesh-top"></div>
+
+<!-- Dark / Light toggle -->
+<button class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark mode">
+  <span class="icon" id="themeIcon">🌙</span>
+  <span id="themeLabel">Dark</span>
+</button>
+
+<div class="wrap">
+
+  <!-- ── Hero ── -->
+  <header class="hero">
+    <div class="logo-pill">
+      <!-- Dashed-ring logomark -->
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="13" cy="13" r="11" stroke="#6999F5" stroke-width="1.6" stroke-dasharray="3.5,2.5"/>
+        <circle cx="13" cy="13" r="6"  stroke="#70F2FF" stroke-width="1.2" stroke-dasharray="2.5,2"/>
+        <circle cx="13" cy="13" r="2.5" fill="#70F2FF"/>
+      </svg>
+      <span>Linear Tech</span>
+    </div>
+
+    <h1>Stay <em>Secure</em><br>in 2026</h1>
+    <p class="sub">Practical cybersecurity for real people — no jargon, no fluff. Just what you actually need to do.</p>
+    <span class="edition">2026 Edition</span>
+  </header>
+
+  <!-- ── Table of Contents ── -->
+  <nav class="toc" aria-label="Guide chapters">
+    <div class="toc-label">In This Guide</div>
+    <div class="toc-grid">
+      <a class="toc-link" href="#ch1"><span class="toc-n">01</span> How Threats Get In</a>
+      <a class="toc-link" href="#ch2"><span class="toc-n">02</span> Passwords &amp; MFA</a>
+      <a class="toc-link" href="#ch3"><span class="toc-n">03</span> Keep Things Updated</a>
+      <a class="toc-link" href="#ch4"><span class="toc-n">04</span> Email &amp; Phishing</a>
+      <a class="toc-link" href="#ch5"><span class="toc-n">05</span> Router &amp; Wi-Fi</a>
+      <a class="toc-link" href="#ch6"><span class="toc-n">06</span> Backups</a>
+      <a class="toc-link" href="#ch7"><span class="toc-n">07</span> AI Scams</a>
+      <a class="toc-link" href="#ch8"><span class="toc-n">08</span> Your Checklist</a>
+    </div>
+  </nav>
+
+  <!-- ── Chapter 1 ── -->
+  <article class="chapter" id="ch1">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(112,242,255,.1);">🚪</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 01</div>
+        <h2>How Threats Get In</h2>
+      </div>
+    </div>
+    <p class="lead">Hackers rarely "hack" in the Hollywood sense. Most attacks come down to one of four doors — and they're all about tricking you, not breaking technology.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Phishing emails &amp; texts</strong> — A fake message tricks you into clicking a link or handing over a login. Still the #1 attack method worldwide.</span></li>
+      <li><span class="dot"></span><span><strong>Unpatched software</strong> — Outdated apps and operating systems have known holes. Attackers exploit them automatically, at scale.</span></li>
+      <li><span class="dot"></span><span><strong>Reused or weak passwords</strong> — One breached account becomes all your accounts when you use the same password everywhere.</span></li>
+      <li><span class="dot"></span><span><strong>Malicious downloads</strong> — Fake software, cracked apps, or "free" tools that silently install malware alongside whatever you wanted.</span></li>
+    </ul>
+    <div class="callout"><strong>The hard truth:</strong> No security product defeats a user who clicks the wrong link. Awareness is your first layer of defense.</div>
+  </article>
+
+  <!-- ── Chapter 2 ── -->
+  <article class="chapter" id="ch2">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(105,153,245,.1);">🔐</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 02</div>
+        <h2>Passwords &amp; Multi-Factor Authentication</h2>
+      </div>
+    </div>
+    <p class="lead">This is the single highest-impact thing you can do. Do both of these and you've eliminated the majority of account-takeover risk.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Use a password manager.</strong> Bitwarden (free, open-source) or 1Password. It generates a unique, random password for every account — you only remember one strong master password.</span></li>
+      <li><span class="dot"></span><span><strong>Turn on MFA everywhere it's offered</strong> — especially email, banking, and Microsoft 365. An authenticator app (Microsoft Authenticator, Authy) is stronger than SMS codes.</span></li>
+      <li><span class="dot"></span><span><strong>Use passkeys when available.</strong> Windows Hello, Face ID, and hardware keys can't be phished. They're the future — and they're here now.</span></li>
+      <li><span class="dot"></span><span><strong>Never reuse passwords.</strong> One breach turns into every account if you do. A password manager makes this effortless.</span></li>
+    </ul>
+    <div class="callout"><strong>Free pick:</strong> Bitwarden is audited, trusted, and completely free for individuals. There's no excuse not to use one.</div>
+  </article>
+
+  <!-- ── Chapter 3 ── -->
+  <article class="chapter" id="ch3">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(112,242,255,.1);">⬆️</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 03</div>
+        <h2>Keep Everything Updated</h2>
+      </div>
+    </div>
+    <p class="lead">Most malware attacks exploit vulnerabilities that were already patched — on systems where the update was never installed. Updates are security, not just features.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Windows Update: on, automatic.</strong> Don't postpone indefinitely. Apply updates within a week of release.</span></li>
+      <li><span class="dot"></span><span><strong>Your browser is your biggest attack surface.</strong> Chrome, Edge, and Firefox all auto-update — confirm they're actually doing it.</span></li>
+      <li><span class="dot"></span><span><strong>Don't forget apps.</strong> Adobe Reader, Zoom, Office, and media players — outdated versions are open doors.</span></li>
+      <li><span class="dot"></span><span><strong>Router firmware.</strong> Log into your router once a year and check for firmware updates. Most people never do this once.</span></li>
+      <li><span class="dot"></span><span><strong>Get off Windows 10.</strong> Microsoft ended support in October 2025. If you're still on it, you're receiving no security patches.</span></li>
+    </ul>
+  </article>
+
+  <!-- ── Chapter 4 ── -->
+  <article class="chapter" id="ch4">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(105,153,245,.1);">📧</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 04</div>
+        <h2>Email &amp; Phishing</h2>
+      </div>
+    </div>
+    <p class="lead">Phishing is the #1 delivery method for ransomware, credential theft, and wire fraud. Learning what to look for takes two minutes.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Check the actual sender address</strong> — not the display name. "Microsoft Support" from support@random-1234.ru is not Microsoft.</span></li>
+      <li><span class="dot"></span><span><strong>Urgency = red flag.</strong> "Your account will be suspended in 24 hours" is almost always fake. Real companies give you time and options.</span></li>
+      <li><span class="dot"></span><span><strong>Hover before you click.</strong> On desktop, hover over any link to see the real URL before you click it.</span></li>
+      <li><span class="dot"></span><span><strong>Don't open unexpected attachments</strong> — even from people you know. Their account may have been compromised and used to send it.</span></li>
+      <li><span class="dot"></span><span><strong>When in doubt, go direct.</strong> Instead of clicking a link in an email, open your browser and navigate to the site yourself.</span></li>
+    </ul>
+    <div class="callout"><strong>2026 update:</strong> AI-generated phishing now has perfect grammar and can reference real details about you scraped from social media. Typos no longer identify fakes.</div>
+  </article>
+
+  <!-- ── Chapter 5 ── -->
+  <article class="chapter" id="ch5">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(112,242,255,.1);">📡</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 05</div>
+        <h2>Router &amp; Wi-Fi</h2>
+      </div>
+    </div>
+    <p class="lead">Your router is the gateway to every device on your network. Most people configure it once and never touch it again — attackers count on that.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Change the default admin password.</strong> Every router ships with "admin/admin" or similar — it's publicly searchable online.</span></li>
+      <li><span class="dot"></span><span><strong>Use WPA3 if your router supports it.</strong> If not, WPA2-AES. Never WEP. Never open.</span></li>
+      <li><span class="dot"></span><span><strong>Create a guest network</strong> for visitors, smart TVs, and IoT devices. Keep untrusted devices off your main network.</span></li>
+      <li><span class="dot"></span><span><strong>Disable remote management</strong> unless you specifically need it — it's an open door from the internet.</span></li>
+      <li><span class="dot"></span><span><strong>Make your Wi-Fi password a passphrase.</strong> "BlueSky-Mango-Thunder" at 22 characters beats "P@ssw0rd8!" in every way.</span></li>
+    </ul>
+  </article>
+
+  <!-- ── Chapter 6 ── -->
+  <article class="chapter" id="ch6">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(105,153,245,.1);">💾</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 06</div>
+        <h2>Backups</h2>
+      </div>
+    </div>
+    <p class="lead">Ransomware doesn't care how good your antivirus is. Backups are your last line of defense — and the only recovery option that actually works.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Follow the 3-2-1 rule:</strong> 3 copies of your data, on 2 different media types, with 1 copy offsite or in the cloud.</span></li>
+      <li><span class="dot"></span><span><strong>Automate it.</strong> A backup you have to manually run is a backup that won't happen at the moment you need it most.</span></li>
+      <li><span class="dot"></span><span><strong>Test your restores.</strong> A backup you've never tested is just hope. Restore one file to confirm it actually works.</span></li>
+      <li><span class="dot"></span><span><strong>Cloud sync ≠ backup.</strong> If you delete a file in OneDrive or Google Drive and it syncs, your "backup" deleted it too. Use versioned backup instead.</span></li>
+    </ul>
+    <div class="callout"><strong>For businesses:</strong> Modern ransomware finds and destroys connected backups before triggering encryption. You need at least one offline or immutable backup that attackers can't reach.</div>
+  </article>
+
+  <!-- ── Chapter 7 ── -->
+  <article class="chapter" id="ch7">
+    <div class="ch-head">
+      <div class="ch-icon" style="background:rgba(112,242,255,.1);">🤖</div>
+      <div class="ch-meta">
+        <div class="ch-num">Chapter 07</div>
+        <h2>AI Scams <span class="new">2026</span></h2>
+      </div>
+    </div>
+    <p class="lead">The threat landscape has fundamentally shifted. AI has made scams faster, cheaper, and far more convincing than anything we've seen before.</p>
+    <ul class="tips">
+      <li><span class="dot"></span><span><strong>Voice cloning is real.</strong> Attackers can clone a voice from seconds of audio found online. A distressed "family member" call demanding gift cards or a wire transfer may not be who you think.</span></li>
+      <li><span class="dot"></span><span><strong>Real-time video deepfakes exist.</strong> Businesses have lost millions to fake "executive" video calls authorizing wire transfers. If something feels off, it probably is.</span></li>
+      <li><span class="dot"></span><span><strong>Create a family safe word.</strong> Agree on a private code word in advance. Anyone who can't produce it in an emergency call isn't who they say they are.</span></li>
+      <li><span class="dot"></span><span><strong>AI phishing looks professional.</strong> Spelling errors, grammar mistakes, and awkward phrasing no longer flag a scam. Every message can look polished now.</span></li>
+      <li><span class="dot"></span><span><strong>Verify out-of-band.</strong> If a request comes by email, verify by phone. If by phone, verify by text. Never confirm using the same channel the request arrived on.</span></li>
+    </ul>
+    <div class="callout"><strong>For businesses:</strong> Implement a verbal verification protocol for any wire transfer, password reset, or unusual IT request. One extra call can prevent five-figure losses.</div>
+  </article>
+
+  <!-- ── Checklist ── -->
+  <section class="checklist-card" id="ch8">
+    <h2>✅ Your Action Checklist</h2>
+    <p class="sub">Do these 10 things and you're more secure than 90% of people.</p>
+    <div class="cl-grid">
+      <div class="cl-item"><span class="cl-icon">🔐</span> Use a password manager</div>
+      <div class="cl-item"><span class="cl-icon">📱</span> Enable MFA on email &amp; banking</div>
+      <div class="cl-item"><span class="cl-icon">🔄</span> Turn on automatic updates</div>
+      <div class="cl-item"><span class="cl-icon">📧</span> Learn to spot phishing</div>
+      <div class="cl-item"><span class="cl-icon">📡</span> Secure your router &amp; Wi-Fi</div>
+      <div class="cl-item"><span class="cl-icon">💾</span> Set up automated backups</div>
+      <div class="cl-item"><span class="cl-icon">🤖</span> Create a family safe word</div>
+      <div class="cl-item"><span class="cl-icon">🖥️</span> Upgrade off Windows 10</div>
+      <div class="cl-item"><span class="cl-icon">🔑</span> Use passkeys where available</div>
+      <div class="cl-item"><span class="cl-icon">🚫</span> Never reuse passwords</div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── Footer ── -->
+  <footer class="footer">
+    <div class="footer-logo">
+      <svg width="30" height="30" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="13" cy="13" r="11" stroke="#6999F5" stroke-width="1.6" stroke-dasharray="3.5,2.5"/>
+        <circle cx="13" cy="13" r="6"  stroke="#70F2FF" stroke-width="1.2" stroke-dasharray="2.5,2"/>
+        <circle cx="13" cy="13" r="2.5" fill="#70F2FF"/>
+      </svg>
+      <span class="wordmark">Linear Tech</span>
+    </div>
+    <p>Managed IT &amp; Cybersecurity · Monroe, NY</p>
+    <p><a href="mailto:chaim@linearit.co">chaim@linearit.co</a> &nbsp;·&nbsp; <a href="https://linearit.co">linearit.co</a></p>
+    <p class="tagline">Content adapted from Decent Security · Updated for 2026 by Linear Tech</p>
+  </footer>
+
+</div><!-- /wrap -->
+
+<script>
+  // Respect system preference on load
+  (function () {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (prefersDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.getElementById('themeIcon').textContent  = '☀️';
+      document.getElementById('themeLabel').textContent = 'Light';
+    }
+  })();
+
+  function toggleTheme() {
+    const html  = document.documentElement;
+    const icon  = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    icon.textContent  = isDark ? '🌙' : '☀️';
+    label.textContent = isDark ? 'Dark' : 'Light';
+  }
+</script>
+</body>
+</html>
