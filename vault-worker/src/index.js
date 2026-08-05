@@ -159,7 +159,7 @@ async function authCode(request, env) {
   }
 
   const r = await issueCode(env, email, purpose);
-  if (r.error) return json({ error: r.error }, r.status);
+  if (r.error) return json({ error: r.error, detail: r.detail }, r.status);
   const out = { ok: true };
   if (r.dev_code) out.dev_code = r.dev_code;
   return json(out);
@@ -188,7 +188,7 @@ async function issueCode(env, email, purpose) {
 
   const sent = await sendCodeEmail(env, email, code);
   if (env.DEV_MODE === "1") return { ok: true, dev_code: code };
-  if (!sent) return { error: "Couldn't send the email — email delivery isn't configured yet.", status: 502 };
+  if (!sent.ok) return { error: "Couldn't send the email — email delivery isn't configured yet.", status: 502, detail: sent.reason };
   return { ok: true };
 }
 
@@ -294,7 +294,7 @@ async function authLogin(request, env) {
   // Phase 1: no code yet -> send one to the email (2nd factor).
   if (!hasCode) {
     const r = await issueCode(env, email, "login");
-    if (r.error) return json({ error: r.error }, r.status);
+    if (r.error) return json({ error: r.error, detail: r.detail }, r.status);
     const out = { mfa: true };
     if (r.dev_code) out.dev_code = r.dev_code;
     return json(out);
@@ -532,20 +532,25 @@ function codeEmailHtml(code) {
     "</div>";
 }
 async function sendEmail(env, msg) {
+  if (!env.RESEND_API_KEY) return { ok: false, reason: "RESEND_API_KEY is not set on the Worker" };
   try {
-    if (env.RESEND_API_KEY) {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + env.RESEND_API_KEY, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: env.EMAIL_FROM || "Linear IT <alert@linearit.co>",
-          to: [msg.to], subject: msg.subject, text: msg.text, html: msg.html,
-        }),
-      });
-      return res.ok;
-    }
-  } catch (_) { /* fall through */ }
-  return false;
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + env.RESEND_API_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: env.EMAIL_FROM || "Linear IT <alert@linearit.co>",
+        to: [msg.to], subject: msg.subject, text: msg.text, html: msg.html,
+      }),
+    });
+    if (res.ok) return { ok: true };
+    let body = "";
+    try { body = JSON.stringify(await res.json()); } catch (_) { try { body = await res.text(); } catch (_2) { body = ""; } }
+    console.error("Resend send failed", res.status, body);
+    return { ok: false, reason: "Resend HTTP " + res.status + " " + body };
+  } catch (e) {
+    console.error("Resend fetch error", e);
+    return { ok: false, reason: "fetch error: " + String((e && e.message) || e) };
+  }
 }
 
 /* ============================================================
