@@ -159,7 +159,7 @@ async function authCode(request, env) {
   }
 
   const r = await issueCode(env, email, purpose);
-  if (r.error) return json({ error: r.error, detail: r.detail }, r.status);
+  if (r.error) return json({ error: r.error }, r.status);
   const out = { ok: true };
   if (r.dev_code) out.dev_code = r.dev_code;
   return json(out);
@@ -294,7 +294,7 @@ async function authLogin(request, env) {
   // Phase 1: no code yet -> send one to the email (2nd factor).
   if (!hasCode) {
     const r = await issueCode(env, email, "login");
-    if (r.error) return json({ error: r.error, detail: r.detail }, r.status);
+    if (r.error) return json({ error: r.error }, r.status);
     const out = { mfa: true };
     if (r.dev_code) out.dev_code = r.dev_code;
     return json(out);
