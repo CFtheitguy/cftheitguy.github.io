@@ -37,7 +37,7 @@ routes = [
 [[d1_databases]]
 binding = "DB"
 database_name = "linear_vault"
-database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+database_id = "ca04bb5a-51bf-4895-b3fc-d6a7cfa08e9e"
 
 # Non-secret vars only. Keep AUTH_SECRET / RESEND_API_KEY / EMAIL_FROM / ADMIN_EMAILS
 # as encrypted Secrets (see setup above), NOT here.
