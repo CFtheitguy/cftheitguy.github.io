@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="robots" content="noindex,nofollow"/>
 <title>Linear Vault</title>
-<link rel="icon" href="/favicon.png"/>
+<link rel="icon" href="/vault/assets/icon.png"/>
 <!--
   Strict Content-Security-Policy: the page loads NO third-party code, fonts, or
   images. The only network calls it may make are to the vault API. This keeps a
@@ -42,6 +42,8 @@
 }
 html,body{height:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:center/cover no-repeat url("/vault/assets/pattern.png");opacity:.5}
+[data-theme="light"] body::before{opacity:.7}
 a{color:var(--accent)}
 button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select,textarea{font:inherit}
@@ -77,9 +79,9 @@ textarea{resize:vertical;min-height:70px}
 .center-wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:28px 16px}
 .card{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:30px 28px;box-shadow:var(--shadow)}
 .brand{display:flex;align-items:center;gap:11px;justify-content:center;margin-bottom:6px}
-.brand img{height:44px;width:auto;max-width:230px;object-fit:contain}
-.topbar .brand img{height:26px;max-width:150px}
-[data-theme="light"] .brand img{filter:invert(1)}
+.brandlogo{display:block;height:44px;width:151px;background:center/contain no-repeat url("/vault/assets/logo-white.png")}
+.topbar .brandlogo{height:26px;width:89px}
+[data-theme="light"] .brandlogo{background-image:url("/vault/assets/logo-dark.png")}
 .brand b{font-size:19px;letter-spacing:.2px}
 .brandtag{font-size:14px;font-weight:700;color:var(--muted);padding-left:11px;margin-left:3px;border-left:1px solid var(--border2)}
 .sub{text-align:center;color:var(--muted);font-size:14px;margin:2px 0 22px}
@@ -183,7 +185,7 @@ tr:last-child td{border-bottom:none}
 <!-- 1. Enter email -->
 <section id="screen-email" class="center-wrap">
   <div class="card">
-    <div class="brand"><img alt="Linear IT" src="/logo.png"/></div>
+    <div class="brand"><span class="brandlogo" role="img" aria-label="Linear IT"></span></div>
     <p class="sub">Your secure password vault</p>
     <label class="field"><span class="lbl">Email address</span>
       <input id="email-input" type="email" autocomplete="username" inputmode="email" placeholder="you@example.com" autofocus/>
@@ -215,7 +217,7 @@ tr:last-child td{border-bottom:none}
 <!-- 3. New (approved) user: create master password -->
 <section id="screen-register" class="center-wrap hidden">
   <div class="card">
-    <div class="brand"><img alt="Linear IT" src="/logo.png"/></div>
+    <div class="brand"><span class="brandlogo" role="img" aria-label="Linear IT"></span></div>
     <p class="sub" style="margin-bottom:8px">Create your master password</p>
     <div style="text-align:center"><span class="email-chip" id="reg-email"></span></div>
     <label class="field"><span class="lbl">Master password</span>
@@ -257,7 +259,7 @@ tr:last-child td{border-bottom:none}
 <!-- =========================== VAULT =========================== -->
 <section id="screen-vault" class="hidden">
   <div class="topbar">
-    <div class="brand"><img alt="Linear IT" src="/logo.png"/><span class="brandtag">Vault</span></div>
+    <div class="brand"><span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag">Vault</span></div>
     <div class="searchwrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="search" type="search" placeholder="Search this vault…" autocomplete="off"/></div>
     <span class="spacer"></span>
     <span class="who" id="who"></span>
@@ -281,7 +283,7 @@ tr:last-child td{border-bottom:none}
 <!-- =========================== ADMIN =========================== -->
 <section id="screen-admin" class="hidden">
   <div class="topbar">
-    <div class="brand"><img alt="Linear IT" src="/logo.png"/><span class="brandtag">Admin</span></div>
+    <div class="brand"><span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag">Admin</span></div>
     <span class="spacer"></span>
     <span class="who" id="admin-who"></span>
     <button class="iconbtn" id="admin-theme" title="Theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
