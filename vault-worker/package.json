@@ -1,0 +1,14 @@
+{
+  "name": "linear-vault",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker backend for the Linear IT password manager at vault.linearit.co (zero-knowledge; stores only ciphertext).",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
