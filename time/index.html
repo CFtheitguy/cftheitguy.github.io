@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="robots" content="noindex,nofollow"/>
+<title>Linear Time</title>
+<link rel="icon" href="/time/assets/icon.png"/>
+<link rel="manifest" href="/time/manifest.webmanifest"/>
+<meta name="theme-color" content="#0f1117"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Linear Time"/>
+<link rel="apple-touch-icon" href="/time/assets/icon.png"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://time.linearit.co; manifest-src 'self'; worker-src 'self';"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root,[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
+  --accent:#00b0ec;--accent-h:#009bd2;--accent-bg:rgba(0,176,236,.16);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
+  --danger:#f87171;--danger-bg:rgba(248,113,113,.12);
+  --warn:#fbbf24;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --input-bg:#0f1117;
+}
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
+  --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
+  --danger:#dc2626;--danger-bg:rgba(220,38,38,.08);
+  --warn:#d97706;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --input-bg:#f4f6fb;
+}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:center/cover no-repeat url("/time/assets/pattern.png");opacity:.35}
+[data-theme="light"] body::before{opacity:.5}
+a{color:var(--accent)}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font:inherit}
+.hidden{display:none!important}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* ---- Buttons ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:10px;font-weight:600;font-size:15px;background:var(--accent);color:#fff;transition:background .15s,transform .05s;border:1px solid transparent}
+.btn:hover{background:var(--accent-h)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn.full{width:100%}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.btn.ghost:hover{background:var(--bg3)}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:8px}
+.btn.lg{padding:15px 22px;font-size:16px}
+.btn.danger{background:var(--danger)}
+.btn.danger:hover{filter:brightness(.92)}
+.btn.success{background:var(--success);color:#08210f}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;color:var(--muted);border:1px solid transparent}
+.iconbtn:hover{background:var(--bg3);color:var(--text)}
+
+/* ---- Inputs ---- */
+label.field{display:block;margin:0 0 14px}
+label.field .lbl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px}
+input[type=text],input[type=email],input[type=date],select,textarea{
+  width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--input-bg);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+.err{color:var(--danger);font-size:13.5px;margin-top:8px;min-height:1.2em}
+.code-input{text-align:center;letter-spacing:10px;font-size:26px;font-weight:700}
+
+/* ---- Layout ---- */
+.center-wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:28px 16px}
+.card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:30px 28px;box-shadow:var(--shadow)}
+.brand{display:flex;align-items:center;gap:11px;justify-content:center;margin-bottom:6px}
+.brandlogo{display:block;height:40px;width:138px;background:center/contain no-repeat url("/time/assets/logo-white.png")}
+[data-theme="light"] .brandlogo{background-image:url("/time/assets/logo-dark.png")}
+.brandtag{font-size:14px;font-weight:700;color:var(--muted);padding-left:11px;margin-left:3px;border-left:1px solid var(--border2)}
+.sub{text-align:center;color:var(--muted);font-size:14px;margin:2px 0 22px}
+
+/* ---- App shell (tracker + admin) ---- */
+.shell{max-width:920px;margin:0 auto;padding:20px 16px 60px}
+.topbar{display:flex;align-items:center;gap:14px;padding:6px 2px 20px}
+.topbar .brandlogo{height:24px;width:83px}
+.topbar .spacer{flex:1}
+.whoami{font-size:13px;color:var(--muted);text-align:right;line-height:1.35}
+.whoami b{color:var(--text);font-weight:600}
+.tabs{display:flex;gap:6px;margin:0 0 18px;flex-wrap:wrap}
+.tab{padding:8px 14px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);border:1px solid transparent}
+.tab:hover{background:var(--bg3);color:var(--text)}
+.tab.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:var(--shadow);margin-bottom:18px}
+.panel h2{font-size:16px;margin-bottom:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row > *{flex:1;min-width:120px}
+.grow0{flex:0 0 auto;min-width:0}
+
+/* ---- Greeting / tracker ---- */
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+.panel-head .today{margin-bottom:0}
+.hello{font-size:26px;font-weight:700;letter-spacing:-.3px;margin-bottom:2px}
+.hello .wave{font-size:24px}
+.today{color:var(--muted);font-size:14px;margin-bottom:20px}
+.prompt-title{font-size:17px;font-weight:600;margin-bottom:14px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 14px;border-radius:14px;border:1px solid var(--border2);background:var(--card2);transition:transform .06s,border-color .15s,background .15s}
+.tile:hover{border-color:var(--accent);background:var(--bg3);transform:translateY(-1px)}
+.tile .emoji{font-size:30px;line-height:1}
+.tile .t{font-weight:600;font-size:15px}
+.tile .s{font-size:12px;color:var(--muted)}
+.writein{display:flex;gap:10px;margin-top:4px}
+.writein input{flex:1}
+
+/* ---- Running task card ---- */
+.running{text-align:center;padding:10px 4px 4px}
+.running .label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.running .name{font-size:22px;font-weight:700;margin-bottom:10px;word-break:break-word}
+.running .clock{font-size:52px;font-weight:800;letter-spacing:1px;color:var(--accent);margin:6px 0 4px}
+.running .since{color:var(--muted);font-size:13px;margin-bottom:20px}
+.running .actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.checkin-note{margin-top:16px;font-size:12.5px;color:var(--muted)}
+
+/* ---- Tables / log ---- */
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:440px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--border)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--card2)}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent-bg);color:var(--accent);text-transform:capitalize}
+.badge.live{background:var(--success-bg);color:var(--success)}
+.total-row td{font-weight:700;background:var(--card2)}
+.worker-head{display:flex;align-items:baseline;gap:10px;margin:22px 0 8px}
+.worker-head h3{font-size:15px}
+.worker-head .em{color:var(--muted);font-size:13px}
+.worker-head .tot{margin-left:auto;font-weight:700;color:var(--accent)}
+.empty{color:var(--muted);text-align:center;padding:34px 10px;font-size:14px}
+.codepill{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;letter-spacing:2px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:4px 10px;display:inline-flex;align-items:center;gap:8px}
+
+/* ---- Modal ---- */
+.scrim{position:fixed;inset:0;background:rgba(4,6,12,.6);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal{width:100%;max-width:400px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px;box-shadow:var(--shadow);text-align:center}
+.modal .emoji{font-size:38px}
+.modal h3{font-size:20px;margin:8px 0 4px}
+.modal p{color:var(--muted);font-size:14px;margin-bottom:20px}
+.modal .actions{display:flex;flex-direction:column;gap:10px}
+
+/* ---- Banner ---- */
+.banner{display:flex;align-items:center;gap:12px;background:var(--accent-bg);border:1px solid var(--accent);color:var(--text);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px}
+.banner .spacer{flex:1}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:11px 18px;border-radius:10px;box-shadow:var(--shadow);font-size:14px;z-index:60;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.spin{width:18px;height:18px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.foot{text-align:center;color:var(--muted2);font-size:12px;margin-top:26px}
+.foot a{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH ============ -->
+<section id="view-auth" class="center-wrap">
+  <div class="card">
+    <div class="brand"><span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag">Time</span></div>
+
+    <!-- step: email -->
+    <div id="auth-email">
+      <p class="sub">Sign in to track your day.</p>
+      <label class="field"><span class="lbl">Work email</span>
+        <input id="in-email" type="email" autocomplete="email" placeholder="you@company.com" inputmode="email"/>
+      </label>
+      <button id="btn-sendcode" class="btn full">Email me a code</button>
+      <div id="err-email" class="err"></div>
+    </div>
+
+    <!-- step: code (+ profile for a new worker) -->
+    <div id="auth-code" class="hidden">
+      <p class="sub">We emailed a 6-digit code to <b id="code-dest"></b>.</p>
+      <div id="new-worker" class="hidden">
+        <label class="field"><span class="lbl">Your name</span>
+          <input id="in-name" type="text" autocomplete="name" placeholder="Alex Rivera"/>
+        </label>
+        <label class="field"><span class="lbl">Company code</span>
+          <input id="in-company" type="text" autocomplete="off" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:3px;font-weight:600"/>
+          <span class="hint">The short code your manager gave you.</span>
+        </label>
+      </div>
+      <label class="field"><span class="lbl">Sign-in code</span>
+        <input id="in-code" class="code-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••"/>
+      </label>
+      <button id="btn-verify" class="btn full">Sign in</button>
+      <div id="err-code" class="err"></div>
+      <div style="text-align:center;margin-top:10px">
+        <button id="btn-back" class="btn ghost sm">Use a different email</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRACKER (worker) ============ -->
+<section id="view-tracker" class="shell hidden">
+  <div class="topbar">
+    <span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag" style="border:none;padding-left:0">Time</span>
+    <span class="spacer"></span>
+    <div class="whoami" id="who-tracker"></div>
+    <button id="btn-signout-1" class="btn ghost sm">Sign out</button>
+  </div>
+
+  <div id="notify-banner" class="banner hidden">
+    <span>🔔</span><span>Turn on reminders so Linear Time can nudge you every 30 minutes — even in the background.</span>
+    <span class="spacer"></span>
+    <button id="btn-enable-notify" class="btn sm">Enable</button>
+    <button id="btn-dismiss-notify" class="iconbtn" title="Dismiss">✕</button>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="hello" id="greeting">Good morning <span class="wave">👋</span></div>
+        <div class="today" id="today-date"></div>
+      </div>
+      <button id="btn-endday" class="btn ghost sm">End day</button>
+    </div>
+
+    <!-- day complete summary -->
+    <div id="dayend-box" class="running hidden"></div>
+
+    <!-- picker (no task running) -->
+    <div id="picker">
+      <div class="prompt-title" id="prompt-title">What's your first task?</div>
+      <div class="tiles" id="preset-tiles"></div>
+      <div class="writein">
+        <input id="in-task" type="text" placeholder="…or type what you're doing" maxlength="120"/>
+        <button id="btn-start-custom" class="btn">Start</button>
+      </div>
+      <div id="err-task" class="err"></div>
+    </div>
+
+    <!-- running task -->
+    <div id="runbox" class="running hidden">
+      <div class="label">Currently working on</div>
+      <div class="name" id="run-name">—</div>
+      <div class="clock mono" id="run-clock">00:00:00</div>
+      <div class="since" id="run-since"></div>
+      <div class="actions">
+        <button id="btn-switch" class="btn ghost lg">Switch task</button>
+        <button id="btn-end" class="btn danger lg">End task</button>
+      </div>
+      <div class="checkin-note" id="checkin-note"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Today's log</h2>
+    <div id="log-wrap"></div>
+  </div>
+
+  <div class="foot">Linear IT · Time Tracker · <a href="tel:+18456041462">(845) 604-1462</a></div>
+</section>
+
+<!-- ============ ADMIN / REPORTS ============ -->
+<section id="view-admin" class="shell hidden">
+  <div class="topbar">
+    <span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag" style="border:none;padding-left:0">Time · Reports</span>
+    <span class="spacer"></span>
+    <div class="whoami" id="who-admin"></div>
+    <button id="btn-signout-2" class="btn ghost sm">Sign out</button>
+  </div>
+  <div class="tabs" id="admin-tabs"></div>
+  <div id="admin-body"></div>
+  <div class="foot">Linear IT · Time Tracker · <a href="tel:+18456041462">(845) 604-1462</a></div>
+</section>
+
+<div id="modal-root"></div>
+<div id="toast" class="toast"></div>
+
+<script src="/time/app.js"></script>
+</body>
+</html>

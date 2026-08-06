@@ -1,0 +1,14 @@
+{
+  "name": "linear-time-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker for Linear Time (time.linearit.co) — time tracking API + D1.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

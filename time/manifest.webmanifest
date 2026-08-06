@@ -1,0 +1,17 @@
+{
+  "name": "Linear Time",
+  "short_name": "Linear Time",
+  "description": "Track your day, one task at a time — from Linear IT.",
+  "id": "/time/",
+  "start_url": "/time/",
+  "scope": "/time/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "/time/assets/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/time/assets/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/time/assets/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
