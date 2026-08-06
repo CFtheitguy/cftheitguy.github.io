@@ -51,14 +51,28 @@
  *   APP_ORIGIN      where the app is hosted (default https://www.linearit.co)
  *   APP_PATH        path of the app on that origin (default /time/)
  *   DEV_MODE = "1"  return the code in the API response (LOCAL TESTING ONLY)
+ *
+ * BACKGROUND REMINDERS (optional — enables nudges when the app is closed)
+ *   VAPID_PUBLIC       Web Push public key, base64url of the raw 65-byte P-256 point
+ *   VAPID_PRIVATE_JWK  the matching private key as a JWK JSON string
+ *   VAPID_SUBJECT      contact URL, e.g. mailto:admin@linearit.co
+ *   (generate all three with: node ../time-worker/gen-vapid.mjs)
+ *   A Cron Trigger (see wrangler.toml [triggers]) runs every 5 min and pushes the
+ *   30-min check-in / after-5pm wrap-up to whoever is due. If these are unset,
+ *   reminders simply fall back to in-app only (the app must be open).
  * =============================================================================
  */
 
-const TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // session token lifetime (a full shift; re-issued on each authed call)
+// Sessions are effectively permanent: the worker signs in once at setup and the
+// token re-issues on every authed call, so it never expires in normal daily use.
+const TOKEN_TTL_MS = 400 * 24 * 60 * 60 * 1000; // ~13 months, sliding
 const CODE_TTL_MS = 10 * 60 * 1000;       // one-time code lifetime
 const CODE_RESEND_MS = 45 * 1000;         // min gap between code emails to one address
 const MAX_CODE_ATTEMPTS = 5;              // wrong codes before a code is burned
 const PRESETS = ["breakfast", "exercise", "break"]; // the once-a-day quick picks
+const CHECKIN_MS = 30 * 60 * 1000;        // "still on this?" interval
+const WRAP_HOUR = 17;                     // 5pm: start asking to wrap up the day
+const PUSH_THROTTLE_MS = 25 * 60 * 1000;  // don't re-push a worker more often than this
 
 export default {
   async fetch(request, env, ctx) {
@@ -80,6 +94,13 @@ export default {
       return cors(request, env, json({ error: String((err && err.message) || err) }, status));
     }
   },
+
+  // Cloudflare Cron Trigger (every 5 min): send background reminders (30-min
+  // check-ins + the after-5pm wrap-up) via Web Push, so nudges arrive even when
+  // the app window is closed. Configured by `[triggers] crons` in wrangler.toml.
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runReminders(env));
+  },
 };
 
 /* ============================================================
@@ -96,6 +117,14 @@ async function handleApi(request, env, url, p, method) {
   if (p === "/api/day" && method === "GET") return dayGet(request, env, url);
   if (p === "/api/task/start" && method === "POST") return taskStart(request, env);
   if (p === "/api/task/end" && method === "POST") return taskEnd(request, env);
+  if (p === "/api/task/checkin" && method === "POST") return taskCheckin(request, env);
+  if (p === "/api/day/end" && method === "POST") return dayEnd(request, env);
+  if (p === "/api/day/resume" && method === "POST") return dayResume(request, env);
+
+  // --- background reminders (Web Push) ---
+  if (p === "/api/push/key" && method === "GET") return pushKey(request, env);
+  if (p === "/api/push/subscribe" && method === "POST") return pushSubscribe(request, env);
+  if (p === "/api/push/pending" && method === "POST") return pushPending(request, env);
 
   // --- admin / reports ---
   if (p === "/api/admin/scope" && method === "GET") return adminScope(request, env);
@@ -248,11 +277,12 @@ async function authVerify(request, env) {
     if (!company) return json({ error: "That company code isn't valid. Check with your manager.", need: "profile" }, 404);
     const now = Date.now();
     await env.DB.prepare(
-      "INSERT INTO workers (email, name, company_id, created_at, last_seen_at) VALUES (?,?,?,?,?)"
-    ).bind(email, name, company.id, now, now).run();
+      "INSERT INTO workers (email, name, company_id, tz_offset, created_at, last_seen_at) VALUES (?,?,?,?,?,?)"
+    ).bind(email, name, company.id, tzOffset(body), now, now).run();
     worker = { name, cid: company.id, cname: company.name };
   } else {
-    await env.DB.prepare("UPDATE workers SET last_seen_at=? WHERE email=?").bind(Date.now(), email).run();
+    await env.DB.prepare("UPDATE workers SET last_seen_at=?, tz_offset=? WHERE email=?")
+      .bind(Date.now(), tzOffset(body), email).run();
   }
 
   const claims = { email, kind: "user", company_id: worker.cid, name: worker.name };
@@ -272,13 +302,14 @@ async function dayGet(request, env, url) {
   if (!day) return json({ error: "Bad day." }, 400);
 
   const rows = (await env.DB.prepare(
-    "SELECT id, task, preset, started_at, ended_at FROM entries WHERE email=? AND day=? ORDER BY started_at"
+    "SELECT id, task, preset, started_at, ended_at, checkin_at FROM entries WHERE email=? AND day=? ORDER BY started_at"
   ).bind(claims.email, day).all()).results || [];
 
   const running = await env.DB.prepare(
-    "SELECT id, task, preset, started_at, ended_at, day FROM entries WHERE email=? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1"
+    "SELECT id, task, preset, started_at, ended_at, checkin_at, day FROM entries WHERE email=? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1"
   ).bind(claims.email).first();
 
+  const ended = await env.DB.prepare("SELECT 1 FROM day_end WHERE email=? AND day=?").bind(claims.email, day).first();
   const presetsUsed = rows.filter((r) => r.preset).map((r) => r.preset);
   return json({
     token: await reissue(env, claims),
@@ -288,6 +319,8 @@ async function dayGet(request, env, url) {
     running: running ? cleanEntry(running) : null,
     presetsUsed: [...new Set(presetsUsed)],
     presets: PRESETS,
+    dayEnded: !!ended,
+    wrapHour: WRAP_HOUR,
     serverNow: Date.now(),
   });
 }
@@ -314,12 +347,14 @@ async function taskStart(request, env) {
   // End any task still running before starting the next (a shift has one active task).
   await env.DB.prepare("UPDATE entries SET ended_at=? WHERE email=? AND ended_at IS NULL")
     .bind(now, claims.email).run();
+  // Starting work reopens the day if it had been ended earlier.
+  await env.DB.prepare("DELETE FROM day_end WHERE email=? AND day=?").bind(claims.email, day).run();
 
   const res = await env.DB.prepare(
-    "INSERT INTO entries (email, company_id, day, task, preset, started_at, ended_at, created_at) VALUES (?,?,?,?,?,?,NULL,?)"
-  ).bind(claims.email, claims.company_id, day, task, preset, now, now).run();
+    "INSERT INTO entries (email, company_id, day, task, preset, started_at, ended_at, checkin_at, created_at) VALUES (?,?,?,?,?,?,NULL,?,?)"
+  ).bind(claims.email, claims.company_id, day, task, preset, now, now + CHECKIN_MS, now).run();
 
-  return json({ token: await reissue(env, claims), id: res.meta && res.meta.last_row_id, startedAt: now });
+  return json({ token: await reissue(env, claims), id: res.meta && res.meta.last_row_id, startedAt: now, checkinAt: now + CHECKIN_MS });
 }
 
 async function taskEnd(request, env) {
@@ -328,6 +363,148 @@ async function taskEnd(request, env) {
   const res = await env.DB.prepare("UPDATE entries SET ended_at=? WHERE email=? AND ended_at IS NULL")
     .bind(now, claims.email).run();
   return json({ token: await reissue(env, claims), endedAt: now, ended: (res.meta && res.meta.changes) || 0 });
+}
+
+// "Yes, keep going" — push the next check-in out another interval.
+async function taskCheckin(request, env) {
+  const claims = await requireUser(request, env);
+  const next = Date.now() + CHECKIN_MS;
+  const res = await env.DB.prepare("UPDATE entries SET checkin_at=? WHERE email=? AND ended_at IS NULL")
+    .bind(next, claims.email).run();
+  return json({ token: await reissue(env, claims), checkinAt: next, updated: (res.meta && res.meta.changes) || 0 });
+}
+
+// End the whole day: close any running task and mark the day done (so the
+// after-5pm nudges stop). The worker can always reopen it by starting a task.
+async function dayEnd(request, env) {
+  const claims = await requireUser(request, env);
+  const body = await readBody(request);
+  const day = validDay(body.day);
+  if (!day) return json({ error: "Bad day." }, 400);
+  const now = Date.now();
+  await env.DB.prepare("UPDATE entries SET ended_at=? WHERE email=? AND ended_at IS NULL").bind(now, claims.email).run();
+  await env.DB.prepare("INSERT OR REPLACE INTO day_end (email, day, ended_at) VALUES (?,?,?)").bind(claims.email, day, now).run();
+  return json({ token: await reissue(env, claims), endedAt: now });
+}
+
+async function dayResume(request, env) {
+  const claims = await requireUser(request, env);
+  const body = await readBody(request);
+  const day = validDay(body.day);
+  if (!day) return json({ error: "Bad day." }, 400);
+  await env.DB.prepare("DELETE FROM day_end WHERE email=? AND day=?").bind(claims.email, day).run();
+  return json({ token: await reissue(env, claims), ok: true });
+}
+
+/* ============================================================
+ * Background reminders — Web Push subscriptions + what's "due"
+ * ============================================================ */
+async function pushKey(request, env) {
+  return json({ key: env.VAPID_PUBLIC || "" });
+}
+
+async function pushSubscribe(request, env) {
+  const claims = await requireUser(request, env);
+  const body = await readBody(request);
+  const sub = body.sub;
+  if (!sub || !sub.endpoint) return json({ error: "Bad subscription." }, 400);
+  const now = Date.now();
+  await env.DB.prepare(
+    "INSERT INTO push_subs (email, endpoint, sub, tz_offset, last_push_at, updated_at) VALUES (?,?,?,?,0,?) " +
+    "ON CONFLICT(email) DO UPDATE SET endpoint=excluded.endpoint, sub=excluded.sub, tz_offset=excluded.tz_offset, updated_at=excluded.updated_at"
+  ).bind(claims.email, String(sub.endpoint), JSON.stringify(sub), tzOffset(body), now).run();
+  await env.DB.prepare("UPDATE workers SET tz_offset=? WHERE email=?").bind(tzOffset(body), claims.email).run();
+  return json({ token: await reissue(env, claims), ok: true });
+}
+
+// The service worker calls this after a (payload-less) push to learn what to show.
+async function pushPending(request, env) {
+  const claims = await requireUser(request, env);
+  const w = await env.DB.prepare("SELECT tz_offset FROM workers WHERE email=?").bind(claims.email).first();
+  const pend = await computePending(env, claims.email, Date.now(), w ? Number(w.tz_offset) || 0 : 0);
+  return json(Object.assign({ token: await reissue(env, claims) }, pend));
+}
+
+// Decide whether a worker is due for a nudge right now (shared by the SW endpoint
+// and the cron sender). Returns { show, type, title, body }.
+async function computePending(env, email, now, tzOff) {
+  const running = await env.DB.prepare(
+    "SELECT task, checkin_at FROM entries WHERE email=? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1"
+  ).bind(email).first();
+
+  if (running && running.checkin_at && now >= Number(running.checkin_at)) {
+    return { show: true, type: "checkin", title: "Still working on “" + running.task + "”?",
+      body: "Open Linear Time to keep going or switch tasks." };
+  }
+
+  const localMs = now - (tzOff || 0) * 60000;
+  const hour = new Date(localMs).getUTCHours();
+  const localDay = ymdUTC(localMs);
+  const ended = await env.DB.prepare("SELECT 1 FROM day_end WHERE email=? AND day=?").bind(email, localDay).first();
+  if (!ended && hour >= WRAP_HOUR) {
+    return { show: true, type: "wrap", title: "Wrap up your day?",
+      body: "It’s after 5:00 PM — end your day in Linear Time, or keep going." };
+  }
+  return { show: false };
+}
+
+/* ============================================================
+ * Cron sender — walk subscriptions, push a reminder to anyone due
+ * ============================================================ */
+async function runReminders(env) {
+  if (!env.VAPID_PUBLIC || !env.VAPID_PRIVATE_JWK) return; // push not configured yet
+  await ensureSchema(env);
+  const subs = (await env.DB.prepare("SELECT email, endpoint, tz_offset, last_push_at FROM push_subs").all()).results || [];
+  const now = Date.now();
+  for (const s of subs) {
+    try {
+      if (now - Number(s.last_push_at || 0) < PUSH_THROTTLE_MS) continue;
+      const pend = await computePending(env, s.email, now, Number(s.tz_offset) || 0);
+      if (!pend.show) continue;
+      const status = await sendPush(env, s.endpoint);
+      if (status === 404 || status === 410) {
+        await env.DB.prepare("DELETE FROM push_subs WHERE email=?").bind(s.email).run();
+      } else {
+        await env.DB.prepare("UPDATE push_subs SET last_push_at=? WHERE email=?").bind(now, s.email).run();
+      }
+    } catch (_) { /* one bad subscription shouldn't stop the rest */ }
+  }
+}
+
+// Send a payload-less Web Push (a "tickle"); the service worker then fetches
+// /api/push/pending to learn the message. Payload-less avoids RFC 8291 body
+// encryption — we only need the VAPID (RFC 8292) auth JWT.
+let vapidKeyPromise = null;
+async function importVapidKey(env) {
+  if (!vapidKeyPromise) {
+    const jwk = JSON.parse(env.VAPID_PRIVATE_JWK);
+    vapidKeyPromise = crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  }
+  return vapidKeyPromise;
+}
+async function vapidJWT(env, audience) {
+  const key = await importVapidKey(env);
+  const header = b64urlStr(JSON.stringify({ typ: "JWT", alg: "ES256" }));
+  const payload = b64urlStr(JSON.stringify({
+    aud: audience,
+    exp: Math.floor(Date.now() / 1000) + 12 * 3600,
+    sub: env.VAPID_SUBJECT || "mailto:admin@linearit.co",
+  }));
+  const input = header + "." + payload;
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(input));
+  return input + "." + b64url(sig);
+}
+async function sendPush(env, endpoint) {
+  const jwt = await vapidJWT(env, new URL(endpoint).origin);
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: "vapid t=" + jwt + ", k=" + env.VAPID_PUBLIC,
+      TTL: "1800",
+      Urgency: "normal",
+    },
+  });
+  return res.status;
 }
 
 /* ============================================================
@@ -670,8 +847,18 @@ function cleanEntry(r) {
     id: r.id, task: r.task, preset: r.preset || null,
     started_at: Number(r.started_at),
     ended_at: r.ended_at == null ? null : Number(r.ended_at),
+    checkin_at: r.checkin_at == null ? null : Number(r.checkin_at),
     day: r.day,
   };
+}
+// Client sends its UTC offset in minutes (Date.getTimezoneOffset()); clamp it.
+function tzOffset(body) {
+  const n = Number(body && body.tz_offset);
+  return Number.isFinite(n) && n >= -900 && n <= 900 ? Math.round(n) : 0;
+}
+function ymdUTC(ms) {
+  const d = new Date(ms);
+  return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
 }
 function adminEmailSet(env) {
   return String(env.ADMIN_EMAILS || "").split(",").map((e) => normEmail(e)).filter(Boolean);
@@ -722,14 +909,14 @@ async function ensureSchema(env) {
     ),
     env.DB.prepare(
       "CREATE TABLE IF NOT EXISTS workers (" +
-      "email TEXT PRIMARY KEY, name TEXT NOT NULL, company_id TEXT NOT NULL, " +
+      "email TEXT PRIMARY KEY, name TEXT NOT NULL, company_id TEXT NOT NULL, tz_offset INTEGER NOT NULL DEFAULT 0, " +
       "created_at INTEGER NOT NULL, last_seen_at INTEGER NOT NULL)"
     ),
     env.DB.prepare(
       "CREATE TABLE IF NOT EXISTS entries (" +
       "id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, company_id TEXT NOT NULL, " +
       "day TEXT NOT NULL, task TEXT NOT NULL, preset TEXT, " +
-      "started_at INTEGER NOT NULL, ended_at INTEGER, created_at INTEGER NOT NULL)"
+      "started_at INTEGER NOT NULL, ended_at INTEGER, checkin_at INTEGER, created_at INTEGER NOT NULL)"
     ),
     env.DB.prepare(
       "CREATE TABLE IF NOT EXISTS login_codes (" +
@@ -737,10 +924,25 @@ async function ensureSchema(env) {
       "expires_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, " +
       "consumed INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)"
     ),
+    env.DB.prepare(
+      "CREATE TABLE IF NOT EXISTS day_end (" +
+      "email TEXT NOT NULL, day TEXT NOT NULL, ended_at INTEGER NOT NULL, PRIMARY KEY (email, day))"
+    ),
+    env.DB.prepare(
+      "CREATE TABLE IF NOT EXISTS push_subs (" +
+      "email TEXT PRIMARY KEY, endpoint TEXT NOT NULL, sub TEXT NOT NULL, " +
+      "tz_offset INTEGER NOT NULL DEFAULT 0, last_push_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL)"
+    ),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_entries_email_day ON entries(email, day)"),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_entries_company_day ON entries(company_id, day)"),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_entries_running ON entries(email, ended_at)"),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_codes_email ON login_codes(email)"),
   ]);
+  // Add columns that may be missing on a database created by an earlier version.
+  // (On a fresh DB the CREATEs above already include them, so these ALTERs no-op.)
+  for (const alt of [
+    "ALTER TABLE workers ADD COLUMN tz_offset INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE entries ADD COLUMN checkin_at INTEGER",
+  ]) { try { await env.DB.prepare(alt).run(); } catch (_) { /* already exists */ } }
   schemaReady = true;
 }

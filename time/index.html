@@ -104,6 +104,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 
 .grow0{flex:0 0 auto;min-width:0}
 
 /* ---- Greeting / tracker ---- */
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+.panel-head .today{margin-bottom:0}
 .hello{font-size:26px;font-weight:700;letter-spacing:-.3px;margin-bottom:2px}
 .hello .wave{font-size:24px}
 .today{color:var(--muted);font-size:14px;margin-bottom:20px}
@@ -220,8 +222,16 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   </div>
 
   <div class="panel">
-    <div class="hello" id="greeting">Good morning <span class="wave">👋</span></div>
-    <div class="today" id="today-date"></div>
+    <div class="panel-head">
+      <div>
+        <div class="hello" id="greeting">Good morning <span class="wave">👋</span></div>
+        <div class="today" id="today-date"></div>
+      </div>
+      <button id="btn-endday" class="btn ghost sm">End day</button>
+    </div>
+
+    <!-- day complete summary -->
+    <div id="dayend-box" class="running hidden"></div>
 
     <!-- picker (no task running) -->
     <div id="picker">

@@ -91,13 +91,26 @@ Sign-in is always email + a 6-digit code. There are no passwords to manage.
 | `RESEND_API_KEY` | **secret** | sends the sign-in code email |
 | `EMAIL_FROM` | **secret** | From: address, e.g. `Linear IT <alert@linearit.co>` |
 | `ADMIN_EMAILS` | **secret** | comma-separated super-admin addresses |
+| `VAPID_PUBLIC` / `VAPID_PRIVATE_JWK` / `VAPID_SUBJECT` | **secret** *(optional)* | Web Push keys for background reminders (`node gen-vapid.mjs`) |
 | `ALLOW_ORIGIN` / `APP_ORIGIN` / `APP_PATH` | `[vars]` | CORS + where to proxy the app from |
 | `DEV_MODE=1` | var (local only) | returns the code in the API response for testing |
+
+## Background reminders (Cron Trigger + Web Push)
+`wrangler.toml` schedules the Worker every 5 minutes (`[triggers] crons`). On each
+run the `scheduled()` handler finds workers who are due for a 30-minute check-in or
+the after-5pm wrap-up and sends them a **payload-less Web Push**; their service
+worker then asks `/api/push/pending` what to show. This is what makes reminders
+arrive when the app window is closed. It only fires if the `VAPID_*` secrets are
+set — otherwise the cron is a no-op and reminders stay in-app only.
+
+Generate the keys once with `node gen-vapid.mjs` and set the three printed values
+as secrets. Rotating them just makes every browser re-subscribe on next open.
 
 ## Local development
 ```bash
 npx wrangler dev            # http://localhost:8787
 # set DEV_MODE=1 in .dev.vars to skip real emails and get the code back in the response
+# test the cron locally:  curl "http://localhost:8787/__scheduled?cron=*/5+*+*+*+*"
 ```
 
 ## Rollback
@@ -106,6 +119,7 @@ Cloudflare → `linear-time` → **Deployments** → pick a previous version →
 ## Data model (auto-created)
 `companies(id, name, code, created_at)` ·
 `admins(email, company_id, …)` ·
-`workers(email, name, company_id, …)` ·
-`entries(id, email, company_id, day, task, preset, started_at, ended_at, …)` ·
+`workers(email, name, company_id, tz_offset, …)` ·
+`entries(id, email, company_id, day, task, preset, started_at, ended_at, checkin_at, …)` ·
+`day_end(email, day, ended_at)` · `push_subs(email, endpoint, sub, tz_offset, …)` ·
 `login_codes(…)`

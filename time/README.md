@@ -29,8 +29,21 @@ It's built the same way as the Vault: the app lives once in this repo under
    timer for another 30 minutes; **No** ends it and asks what's next.
 5. **End → what's next?** The moment a task ends, the app immediately asks for the
    name of the next one. Nothing to remember.
-6. **Midnight is handled.** If a task is still running when the date changes, it's
+6. **After 5 PM: wrap up.** From 5:00 PM on, the app asks whether to wrap up the
+   day. There's also an **End day** button available at all times. Ending the day
+   closes any running task and shows a short summary — and they can **Start working
+   again** any time to reopen it.
+7. **Midnight is handled.** If a task is still running when the date changes, it's
    closed automatically and the next morning starts fresh.
+
+**Sign in once, ever.** After the first setup on a computer, the session is kept
+indefinitely — the worker never sees the sign-in screen again on that machine
+(unless they sign out).
+
+**Reminders reach them even when the app is closed.** With reminders enabled, the
+server pushes the 30-minute check-in and the after-5pm wrap-up to the installed
+app in the background — the app window doesn't need to be open (the browser just
+needs its normal background process running, which installed apps keep).
 
 Everything is timestamped on the server, so the timesheet is exact even if the
 computer sleeps or the app is closed and reopened.
@@ -54,8 +67,12 @@ Sign-in is always **email + a 6-digit code** — no passwords.
 ### 1. Deploy the backend (once)
 Follow [`../time-worker/README.md`](../time-worker/README.md). In short: create the
 D1 database, set the four secrets (`AUTH_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`,
-`ADMIN_EMAILS` = your email), `npx wrangler deploy`. The `/time/` app is already
-live on GitHub Pages, so there's nothing else to build.
+`ADMIN_EMAILS` = your email), then — to get background reminders when the app is
+closed — generate and set the push keys (`node gen-vapid.mjs`, then
+`VAPID_PUBLIC` / `VAPID_PRIVATE_JWK` / `VAPID_SUBJECT`), and `npx wrangler deploy`.
+The `/time/` app is already live on GitHub Pages, so there's nothing else to build.
+(If you skip the VAPID keys, everything still works — reminders just need the app
+to be open.)
 
 ### 2. First sign-in as super admin
 1. Open **https://time.linearit.co** and sign in with the email you put in
@@ -129,16 +146,30 @@ Open the site → **Share → Add to Home Screen** (iOS) or **Install app**
 
 ---
 
-## Notifications (the 30-minute nudge in the background)
+## Notifications & background reminders
 
 The first time a worker opens the tracker, a banner offers to **Enable**
-reminders. With that on, the check-in shows as a desktop notification even when
-the app window is behind others — so keep the app **open in the background**
-during the shift (minimized is fine; fully quitting it stops the timer).
+reminders. Tapping **Enable** does two things:
 
-> Reminders fire while the app is running. If you later want nudges even when the
-> app is fully closed, that needs Web Push (VAPID keys + a scheduled ping) — a
-> straightforward add-on to the Worker if you decide you want it.
+1. Shows the 30-minute check-in and after-5pm wrap-up as desktop notifications
+   while the app is open (even behind other windows).
+2. **Subscribes the device to Web Push**, so the Worker's cron (every 5 minutes)
+   can deliver those same nudges **even when the app window is fully closed**.
+
+For (2) to work when the app is closed, two things must be true:
+
+- **Push keys are set on the Worker** (`VAPID_PUBLIC` / `VAPID_PRIVATE_JWK` /
+  `VAPID_SUBJECT` — see setup step 1). Without them the cron runs but sends
+  nothing, and reminders fall back to in-app only.
+- **The browser's background process is allowed to run.** Installed apps
+  (PWAs) keep it running by default on Windows and macOS. If a worker uses the
+  plain browser tab instead of the installed app, make sure the browser's
+  *"Continue running background apps when [browser] is closed"* setting is on
+  (Chrome/Edge → Settings → System). Installing the app (the recommended setup)
+  handles this automatically.
+
+Reminders are gentle and throttled — at most one push every ~25 minutes per
+person, and the after-5pm nudge stops once they end their day.
 
 ---
 

@@ -39,7 +39,8 @@
   var pendingEmail = "";
   var T = null;            // tracker state
   function freshTracker() {
-    return { day: todayStr(), entries: [], running: null, presetsUsed: [], presets: ["breakfast", "exercise", "break"], skew: 0, picking: false, modalOpen: false };
+    return { day: todayStr(), entries: [], running: null, presetsUsed: [], presets: ["breakfast", "exercise", "break"],
+      skew: 0, picking: false, modalOpen: false, dayEnded: false, wrapHour: 17, wrapSnoozeUntil: 0 };
   }
   var A = null;            // admin state
   var ticker = null;
@@ -183,7 +184,7 @@
     var code = $("in-code").value.trim();
     $("err-code").textContent = "";
     if (!/^\d{4,8}$/.test(code)) { $("err-code").textContent = "Enter the 6-digit code from your email."; return; }
-    var body = { email: pendingEmail, code: code };
+    var body = { email: pendingEmail, code: code, tz_offset: new Date().getTimezoneOffset() };
     if (!$("new-worker").classList.contains("hidden")) {
       body.name = $("in-name").value.trim();
       body.company_code = $("in-company").value.trim().toUpperCase();
@@ -219,6 +220,8 @@
       T.running = d.running || null;
       T.presetsUsed = d.presetsUsed || [];
       T.presets = d.presets || T.presets;
+      T.dayEnded = !!d.dayEnded;
+      T.wrapHour = d.wrapHour || 17;
       if (d.profile && d.profile.name) {
         var p = getProfile() || {}; p.name = d.profile.name; setProfile(p);
       }
@@ -228,7 +231,9 @@
         notify("New day", "Yesterday's last task was closed automatically.");
         return loadDay();
       }
+      refreshSWAuth();       // keep the service worker's token fresh for push
       renderTracker();
+      maybeWrapUp();
     } catch (e) { if (e.status !== 401) toast(e.error || "Couldn't load your day."); }
   }
 
@@ -238,6 +243,19 @@
     $("greeting").innerHTML = greetWord() + (firstName(p.name) ? ", " + esc(firstName(p.name)) : "") + ' <span class="wave">👋</span>';
     $("today-date").textContent = fmtLongDate();
 
+    // Day is over → show a wrap-up summary instead of the picker/timer.
+    if (T.dayEnded) {
+      $("picker").classList.add("hidden");
+      $("runbox").classList.add("hidden");
+      $("dayend-box").classList.remove("hidden");
+      $("btn-endday").classList.add("hidden");
+      renderDayEnd();
+      renderLog();
+      return;
+    }
+    $("dayend-box").classList.add("hidden");
+    $("btn-endday").classList.remove("hidden");
+
     var running = T.running;
     var showPicker = !running || T.picking;
     $("picker").classList.toggle("hidden", !showPicker);
@@ -246,6 +264,17 @@
     if (showPicker) renderPicker();
     if (running) renderRunning();
     renderLog();
+  }
+
+  function renderDayEnd() {
+    var box = $("dayend-box"); clear(box);
+    var total = 0, count = T.entries.length;
+    T.entries.forEach(function (e) { total += (e.ended_at || e.started_at) - e.started_at; });
+    box.appendChild(el("div", { class: "emoji", style: "font-size:40px", text: "🌙" }, []));
+    box.appendChild(el("h3", { style: "font-size:22px;margin:6px 0 2px", text: "Day complete — nice work!" }, []));
+    box.appendChild(el("p", { class: "sub", style: "margin:2px 0 18px",
+      text: count + (count === 1 ? " task" : " tasks") + " · " + fmtDur(total) + " tracked today" }, []));
+    box.appendChild(el("button", { class: "btn lg", text: "Start working again", onclick: resumeDay }, []));
   }
 
   function renderPicker() {
@@ -320,8 +349,7 @@
     $("err-task").textContent = "";
     if (!task) { $("err-task").textContent = "Type what you're doing, or pick one above."; return; }
     try {
-      var out = await api("/api/task/start", { method: "POST", body: { day: todayStr(), task: task, preset: preset || null } });
-      if (out && out.id != null) setCheckin(out.id, (out.startedAt || now()) + CHECKIN_MS);
+      await api("/api/task/start", { method: "POST", body: { day: todayStr(), task: task, preset: preset || null, tz_offset: new Date().getTimezoneOffset() } });
       T.picking = false;
       closeModal();
       await loadDay();
@@ -329,24 +357,32 @@
   }
   async function endTask() {
     try {
-      if (T.running) clearCheckin(T.running.id);
       await api("/api/task/end", { method: "POST" });
       T.picking = false;
       await loadDay(); // running becomes null → picker shows "What's next?"
     } catch (e) { toast(e.error || "Couldn't end the task."); }
   }
 
-  /* ---- 30-minute check-in ---- */
-  function checkinAt(r) {
-    var stored = parseInt(localStorage.getItem("lt_checkin_" + r.id), 10);
-    if (stored) return stored;
-    var v = r.started_at + CHECKIN_MS; setCheckin(r.id, v); return v;
+  /* ---- end / resume the whole day ---- */
+  async function endDay() {
+    try {
+      closeModal();
+      await api("/api/day/end", { method: "POST", body: { day: todayStr() } });
+      await loadDay(); // dayEnded → summary
+    } catch (e) { toast(e.error || "Couldn't end the day."); }
   }
-  function setCheckin(id, ts) { localStorage.setItem("lt_checkin_" + id, String(ts)); }
-  function clearCheckin(id) { localStorage.removeItem("lt_checkin_" + id); }
+  async function resumeDay() {
+    try {
+      await api("/api/day/resume", { method: "POST", body: { day: todayStr() } });
+      T.wrapSnoozeUntil = now() + 60 * 60 * 1000; // don't immediately re-ask to wrap up
+      await loadDay();
+    } catch (e) { toast(e.error || "Couldn't reopen the day."); }
+  }
 
+  /* ---- 30-minute check-in (scheduled on the server, mirrored here) ---- */
+  function checkinAt(r) { return r && r.checkin_at ? r.checkin_at : (r ? r.started_at + CHECKIN_MS : 0); }
   function maybeCheckin() {
-    if (!T || !T.running || T.modalOpen) return;
+    if (!T || !T.running || T.modalOpen || T.dayEnded) return;
     if (now() >= checkinAt(T.running)) openCheckin();
   }
   function openCheckin() {
@@ -360,11 +396,39 @@
         el("h3", { text: "Still on this task?" }, []),
         el("p", { html: "You've been working on <b>" + esc(r.task) + "</b> for about " + fmtDur(now() - r.started_at) + "." }, []),
         el("div", { class: "actions" }, [
-          el("button", { class: "btn success lg", text: "Yes, keep going", onclick: function () {
-            setCheckin(r.id, now() + CHECKIN_MS); closeModal(); renderRunning();
+          el("button", { class: "btn success lg", text: "Yes, keep going", onclick: async function () {
+            closeModal();
+            try { await api("/api/task/checkin", { method: "POST" }); } catch (_) {}
+            await loadDay(); // picks up the new checkin_at
           } }, []),
           el("button", { class: "btn ghost lg", text: "No, I'll pick something else", onclick: function () {
             closeModal(); endTask();
+          } }, []),
+        ]),
+      ]),
+    ]));
+  }
+
+  /* ---- after-5pm wrap-up prompt ---- */
+  function maybeWrapUp() {
+    if (!T || T.dayEnded || T.modalOpen) return;
+    if (now() < T.wrapSnoozeUntil) return;
+    if (new Date().getHours() < (T.wrapHour || 17)) return;
+    openWrap();
+  }
+  function openWrap() {
+    T.modalOpen = true;
+    notify("Wrap up your day?", "It's after 5:00 PM. End your day or keep going.");
+    var root = $("modal-root"); clear(root);
+    root.appendChild(el("div", { class: "scrim" }, [
+      el("div", { class: "modal" }, [
+        el("div", { class: "emoji", text: "🌇" }, []),
+        el("h3", { text: "Wrapping up for the day?" }, []),
+        el("p", { text: "It's after 5:00 PM. You can end your day now, or keep working." }, []),
+        el("div", { class: "actions" }, [
+          el("button", { class: "btn lg", text: "End my day", onclick: endDay }, []),
+          el("button", { class: "btn ghost lg", text: "Keep working", onclick: function () {
+            T.wrapSnoozeUntil = now() + 60 * 60 * 1000; closeModal();
           } }, []),
         ]),
       ]),
@@ -384,20 +448,22 @@
       if (!T) return;
       if (todayStr() !== T.day) { loadDay(); return; }   // midnight rollover
       if (T.running) { tickClock(); maybeCheckin(); }
+      maybeWrapUp();                                      // after-5pm wrap-up, even when idle
     }, 1000);
   }
   function stopTicker() { if (ticker) { clearInterval(ticker); ticker = null; } }
 
-  /* ---- notifications ---- */
+  /* ---- notifications + background push ---- */
   function maybeShowNotifyBanner() {
     if (!("Notification" in window)) return;
-    if (Notification.permission === "granted" || localStorage.getItem("lt_notify_dismiss")) return;
+    if (Notification.permission === "granted") { setupPush(); return; }
+    if (localStorage.getItem("lt_notify_dismiss")) return;
     show("notify-banner");
   }
   async function enableNotify() {
     hide("notify-banner");
     try { await Notification.requestPermission(); } catch (_) {}
-    if (Notification.permission === "granted") toast("Reminders on ✓");
+    if (Notification.permission === "granted") { toast("Reminders on ✓"); setupPush(); }
   }
   function notify(title, body) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -407,6 +473,41 @@
     } else { plainNote(title, opts); }
   }
   function plainNote(title, opts) { try { new Notification(title, opts); } catch (_) {} }
+
+  // Subscribe this device to Web Push so the server can nudge it even when the
+  // app window is closed. Safe to call repeatedly (it reuses an existing sub).
+  async function setupPush() {
+    try {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+      if (Notification.permission !== "granted") return;
+      var reg = swReg || (await navigator.serviceWorker.getRegistration("/time/"));
+      if (!reg) return;
+      var sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        var kr = await api("/api/push/key", { auth: false });
+        if (!kr.key) return; // push not configured on the server yet
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToBytes(kr.key) });
+      }
+      await api("/api/push/subscribe", { method: "POST", body: { sub: sub.toJSON(), tz_offset: new Date().getTimezoneOffset() } });
+      await refreshSWAuth();
+    } catch (_) { /* push is best-effort; in-app reminders still work */ }
+  }
+  // Hand the service worker a token + API base it can use to fetch /api/push/pending.
+  async function refreshSWAuth() {
+    try {
+      if (!("caches" in window)) return;
+      var c = await caches.open("lt-auth");
+      await c.put("/time/__auth", new Response(JSON.stringify({ base: API_BASE, token: getToken() }),
+        { headers: { "content-type": "application/json" } }));
+    } catch (_) {}
+  }
+  function urlB64ToBytes(base64) {
+    var pad = "=".repeat((4 - (base64.length % 4)) % 4);
+    var b64 = (base64 + pad).replace(/-/g, "+").replace(/_/g, "/");
+    var raw = atob(b64), out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
 
   /* ============================================================
    * ADMIN / REPORTS
@@ -697,11 +798,16 @@
     $("in-task").addEventListener("keydown", function (e) { if (e.key === "Enter") startTask($("in-task").value, null); });
     $("btn-end").addEventListener("click", endTask);
     $("btn-switch").addEventListener("click", function () { T.picking = true; renderTracker(); });
+    $("btn-endday").addEventListener("click", endDay);
     $("btn-signout-1").addEventListener("click", signout);
     $("btn-signout-2").addEventListener("click", signout);
     $("btn-enable-notify").addEventListener("click", enableNotify);
     $("btn-dismiss-notify").addEventListener("click", function () { hide("notify-banner"); localStorage.setItem("lt_notify_dismiss", "1"); });
-    document.addEventListener("visibilitychange", function () { if (!document.hidden && T) { if (todayStr() !== T.day) loadDay(); else { tickClock(); maybeCheckin(); } } });
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden || !T) return;
+      if (todayStr() !== T.day) { loadDay(); return; }
+      tickClock(); maybeCheckin(); maybeWrapUp();
+    });
   }
   function signout() { clearSession(); routeToAuth(); }
 
