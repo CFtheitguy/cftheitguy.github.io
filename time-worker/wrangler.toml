@@ -1,0 +1,52 @@
+# Cloudflare Worker config for Linear Time (the time tracker) — time.linearit.co
+# -----------------------------------------------------------------------------
+# This is a SEPARATE, isolated Worker from linear-chat, linear-vault and
+# linear-device. It lives in its own folder with its own config and shares NOTHING
+# with the other Workers, so it cannot affect the other subdomains.
+#
+# ---- ONE-TIME SETUP (run from this folder) ----------------------------------
+#   1. cd time-worker && npm install
+#   2. npx wrangler d1 create linear_time           # creates the database...
+#      ...then paste the printed database_id below into `database_id`.
+#   3. Set the encrypted secrets (they survive every deploy):
+#        npx wrangler secret put AUTH_SECRET      # any long random string (>=32 chars)
+#        npx wrangler secret put RESEND_API_KEY   # same key you already use for chat/vault
+#        npx wrangler secret put EMAIL_FROM       # ->  Linear IT <alert@linearit.co>
+#        npx wrangler secret put ADMIN_EMAILS     # your super-admin email(s), comma-separated
+#   4. npx wrangler deploy
+#
+# That single `deploy` also creates the time.linearit.co Custom Domain AND its DNS
+# record automatically in the linearit.co zone (because of custom_domain = true).
+# The database tables create themselves on first request — no schema step.
+#
+# Secrets are intentionally NOT in this file (public repo). AUTH_SECRET,
+# RESEND_API_KEY, EMAIL_FROM and ADMIN_EMAILS must stay as *encrypted Secrets* on
+# the Worker — those survive deploys; plaintext vars not listed here get wiped.
+
+name = "linear-time"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# Vanity hostname -> this Worker. Auto-provisions the Custom Domain + DNS on deploy.
+routes = [
+  { pattern = "time.linearit.co", custom_domain = true }
+]
+
+# --- D1 database (companies, admins, workers, time entries, sign-in codes) ---
+# Run `npx wrangler d1 create linear_time` and paste the returned id here.
+[[d1_databases]]
+binding = "DB"
+database_name = "linear_time"
+database_id = "PASTE_D1_DATABASE_ID_HERE"
+
+# Non-secret vars only. Keep AUTH_SECRET / RESEND_API_KEY / EMAIL_FROM / ADMIN_EMAILS
+# as encrypted Secrets (see setup above), NOT here.
+[vars]
+# CORS origin allowed to call this API. The app is served from the GitHub Pages
+# site, so the browser's Origin is https://www.linearit.co. Same-origin calls from
+# https://time.linearit.co are always allowed too.
+ALLOW_ORIGIN = "https://www.linearit.co"
+# Where the front-end lives on the GitHub Pages site (this Worker reverse-proxies
+# it so time.linearit.co shows the same app, with no second copy to maintain).
+APP_ORIGIN = "https://www.linearit.co"
+APP_PATH = "/time/"
