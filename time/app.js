@@ -813,6 +813,9 @@
 
   async function boot() {
     bind();
+    // Ask the browser to keep our saved sign-in even under storage pressure, so the
+    // session survives restarts (installed PWAs are usually granted this silently).
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (_) {}
     // Register the service worker (offline shell + reminder notifications).
     // On time.linearit.co the Worker sends Service-Worker-Allowed:/ so we can take
     // the whole origin as scope — that makes the site installable from the root
