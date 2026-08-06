@@ -814,10 +814,14 @@
   async function boot() {
     bind();
     // Register the service worker (offline shell + reminder notifications).
+    // On time.linearit.co the Worker sends Service-Worker-Allowed:/ so we can take
+    // the whole origin as scope — that makes the site installable from the root
+    // URL (not just /time/). Elsewhere (GitHub Pages) fall back to /time/.
     if ("serviceWorker" in navigator) {
-      try { swReg = await navigator.serviceWorker.register("/time/sw.js", { scope: "/time/" }); } catch (_) {}
-      // Keep the freshest active registration for showNotification().
-      try { navigator.serviceWorker.getRegistration("/time/").then(function (r) { if (r) swReg = r; }); } catch (_) {}
+      var swScope = location.hostname === "time.linearit.co" ? "/" : "/time/";
+      try { swReg = await navigator.serviceWorker.register("/time/sw.js", { scope: swScope }); }
+      catch (_) { try { swReg = await navigator.serviceWorker.register("/time/sw.js", { scope: "/time/" }); } catch (_2) {} }
+      try { navigator.serviceWorker.getRegistration(swScope).then(function (r) { if (r) swReg = r; }); } catch (_) {}
     }
     if (getToken() && getProfile()) routeAfterLogin();
     else routeToAuth();
