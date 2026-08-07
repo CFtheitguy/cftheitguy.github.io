@@ -1,0 +1,59 @@
+# Cloudflare Worker config for Linear Sign (e-signatures) — sign.linearit.co
+# -----------------------------------------------------------------------------
+# A SEPARATE, isolated Worker from linear-chat / linear-vault / linear-device.
+# It lives in its own folder with its own config and shares NOTHING with the
+# other Workers, so it cannot affect chat.linearit.co, vault.linearit.co, etc.
+#
+# ---- ONE-TIME SETUP (run from THIS folder) ----------------------------------
+#   1. cd sign-worker && npm install
+#   2. npx wrangler d1 create linear_sign        # creates the D1 database...
+#        ...then paste the printed database_id below into `database_id`.
+#   3. npx wrangler r2 bucket create linear-sign-files   # PDF storage
+#   4. Set the encrypted secrets (they survive every deploy):
+#        npx wrangler secret put AUTH_SECRET      # any long random string (>=32 chars)
+#        npx wrangler secret put RESEND_API_KEY   # same key you already use for chat/vault
+#        npx wrangler secret put EMAIL_FROM       # ->  Linear IT <alert@linearit.co>
+#        npx wrangler secret put ADMIN_EMAILS     # who may SEND documents (comma-separated)
+#   5. npx wrangler deploy
+#
+# That single `deploy` also creates the sign.linearit.co Custom Domain AND its
+# DNS record automatically in the linearit.co zone (custom_domain = true).
+# The database tables create themselves on first request — no schema step.
+#
+# Secrets are intentionally NOT in this file (public repo). AUTH_SECRET,
+# RESEND_API_KEY, EMAIL_FROM and ADMIN_EMAILS must stay as *encrypted Secrets*
+# on the Worker — those survive deploys; plaintext vars not listed here get wiped.
+
+name = "linear-sign"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Vanity hostname -> this Worker. Auto-provisions the Custom Domain + DNS on deploy.
+routes = [
+  { pattern = "sign.linearit.co", custom_domain = true }
+]
+
+# --- D1 database (documents, recipients, fields, events, sign-in codes) ---
+# Run `npx wrangler d1 create linear_sign` and paste the returned id here.
+[[d1_databases]]
+binding = "DB"
+database_name = "linear_sign"
+database_id = "PASTE_LINEAR_SIGN_D1_DATABASE_ID_HERE"
+
+# --- R2 bucket (original + signed PDFs, signature images) ---
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "linear-sign-files"
+
+# Non-secret vars only. Keep AUTH_SECRET / RESEND_API_KEY / EMAIL_FROM /
+# ADMIN_EMAILS as encrypted Secrets (see setup above), NOT here.
+[vars]
+# CORS origin allowed to call this API from the GitHub Pages site.
+ALLOW_ORIGIN = "https://www.linearit.co"
+# Where the front-end lives on the GitHub Pages site (this Worker reverse-proxies
+# it so sign.linearit.co shows the same app, with no second copy to maintain).
+APP_ORIGIN = "https://www.linearit.co"
+APP_PATH = "/sign/"
+# Public base used to build the per-recipient signing links in emails.
+SIGN_BASE_URL = "https://sign.linearit.co"

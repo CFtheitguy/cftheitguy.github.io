@@ -1,0 +1,17 @@
+{
+  "name": "linear-sign",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker backend for Linear Sign, the e-signature tool at sign.linearit.co (upload a PDF, place fields, send for signature, stamp the signed PDF).",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
