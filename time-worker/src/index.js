@@ -33,6 +33,7 @@
  *   GET  /api/admin/scope         (admin)  who am I / which companies can I see
  *   GET  /api/admin/report        (admin)  a day's rows for a company (+worker)
  *   GET  /api/admin/workers       (admin)  people in a company
+ *   POST /api/admin/worker/rename (admin)  rename a person (scoped to company)
  *   GET  /api/admin/companies     (super)  list companies + join codes
  *   POST /api/admin/companies     (super)  create a company (mints a join code)
  *   POST /api/admin/company/code  (super)  regenerate a company's join code
@@ -130,6 +131,7 @@ async function handleApi(request, env, url, p, method) {
   if (p === "/api/admin/scope" && method === "GET") return adminScope(request, env);
   if (p === "/api/admin/report" && method === "GET") return adminReport(request, env, url);
   if (p === "/api/admin/workers" && method === "GET") return adminWorkers(request, env, url);
+  if (p === "/api/admin/worker/rename" && method === "POST") return renameWorker(request, env);
 
   // --- super-admin only ---
   if (p === "/api/admin/companies" && method === "GET") return listCompanies(request, env);
@@ -583,6 +585,25 @@ async function adminWorkers(request, env, url) {
       company: r.company_name || "", last_seen_at: Number(r.last_seen_at) || 0,
     })),
   });
+}
+
+// Rename a worker's display name. Company admins may only rename someone in
+// their own company; a super admin may rename anyone. Reports read the name live
+// from this row, so the change shows up everywhere at once.
+async function renameWorker(request, env) {
+  const claims = await requireAdmin(request, env);
+  const body = await readBody(request);
+  const email = normEmail(body.email);
+  const name = String(body.name || "").trim().slice(0, 80);
+  if (!validEmail(email)) return json({ error: "Invalid email." }, 400);
+  if (!name) return json({ error: "Enter a name." }, 400);
+  const worker = await env.DB.prepare("SELECT company_id FROM workers WHERE email=?").bind(email).first();
+  if (!worker) return json({ error: "Worker not found." }, 404);
+  if (claims.kind !== "super" && worker.company_id !== claims.company_id) {
+    return json({ error: "That person isn't in your company." }, 403);
+  }
+  await env.DB.prepare("UPDATE workers SET name=? WHERE email=?").bind(name, email).run();
+  return json({ token: await reissue(env, claims), ok: true });
 }
 
 /* ============================================================
