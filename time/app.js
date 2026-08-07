@@ -681,11 +681,25 @@
           el("td", { text: p.name }, []), el("td", { class: "em", text: p.email }, []),
           A.role === "super" ? el("td", { text: p.company || "" }, []) : null,
           el("td", { text: p.last_seen_at ? new Date(p.last_seen_at).toLocaleString() : "—" }, []),
+          el("td", { class: "num" }, [el("button", { class: "btn ghost sm", text: "Rename", onclick: function () { renameWorker(p); } }, [])]),
         ].filter(Boolean)));
       });
-      var head = [th("Name"), th("Email")]; if (A.role === "super") head.push(th("Company")); head.push(th("Last seen"));
+      var head = [th("Name"), th("Email")]; if (A.role === "super") head.push(th("Company")); head.push(th("Last seen"), thNum(""));
       panel.appendChild(el("div", { class: "tablewrap" }, [el("table", {}, [el("thead", {}, [el("tr", {}, head)]), tb])]));
     } catch (e) { clear(panel); panel.appendChild(el("div", { class: "empty", text: e.error || "Couldn't load." }, [])); }
+  }
+
+  async function renameWorker(p) {
+    var nn = prompt("New name for " + p.email + ":", p.name || "");
+    if (nn == null) return;               // cancelled
+    nn = nn.trim();
+    if (!nn) { toast("Name can't be empty."); return; }
+    if (nn === p.name) return;            // unchanged
+    try {
+      await api("/api/admin/worker/rename", { method: "POST", body: { email: p.email, name: nn } });
+      toast("Renamed to " + nn);
+      renderWorkersTab();
+    } catch (e) { toast(e.error || "Couldn't rename."); }
   }
 
   /* ---- Companies tab (super only) ---- */
