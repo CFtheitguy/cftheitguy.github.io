@@ -60,6 +60,15 @@ computer sleeps or the app is closed and reopened.
 
 Sign-in is always **email + a 6-digit code** — no passwords.
 
+### Per-company settings (Reports → Settings tab)
+Each company's admin (and any super admin) can tailor their company from the
+**Settings** tab:
+- **Nudge interval** — how often to ask "still on this?" (any value 1–480 min; default 30).
+- **The three quick-pick tiles** — rename them and change their emoji (e.g. Calls / Email / Coffee). The once-a-day rule still applies per tile.
+- **Background color** — an optional color for the worker's app (a native color picker). Leave it unchecked for the default dark theme.
+
+Workers pick up changes automatically on their next refresh.
+
 ---
 
 ## Setup, start to finish

@@ -34,6 +34,7 @@
  *   GET  /api/admin/report        (admin)  a day's rows for a company (+worker)
  *   GET  /api/admin/workers       (admin)  people in a company
  *   POST /api/admin/worker/rename (admin)  rename a person (scoped to company)
+ *   GET/POST /api/admin/settings  (admin)  per-company nudge interval, tiles, color
  *   GET  /api/admin/companies     (super)  list companies + join codes
  *   POST /api/admin/companies     (super)  create a company (mints a join code)
  *   POST /api/admin/company/code  (super)  regenerate a company's join code
@@ -70,10 +71,16 @@ const TOKEN_TTL_MS = 400 * 24 * 60 * 60 * 1000; // ~13 months, sliding
 const CODE_TTL_MS = 10 * 60 * 1000;       // one-time code lifetime
 const CODE_RESEND_MS = 45 * 1000;         // min gap between code emails to one address
 const MAX_CODE_ATTEMPTS = 5;              // wrong codes before a code is burned
-const PRESETS = ["breakfast", "exercise", "break"]; // the once-a-day quick picks
-const CHECKIN_MS = 30 * 60 * 1000;        // "still on this?" interval
 const WRAP_HOUR = 17;                     // 5pm: start asking to wrap up the day
-const PUSH_THROTTLE_MS = 25 * 60 * 1000;  // don't re-push a worker more often than this
+const DEFAULT_CHECKIN_MIN = 30;           // default "still on this?" interval (minutes)
+// The three once-a-day quick picks. Companies may relabel/re-emoji them, but the
+// three internal keys stay fixed so the "once a day" rule keeps working per slot.
+const DEFAULT_PRESETS = [
+  { key: "breakfast", label: "Breakfast", emoji: "🍳", sub: "Grab a bite" },
+  { key: "exercise", label: "Exercise", emoji: "🏃", sub: "Move a little" },
+  { key: "break", label: "Break", emoji: "☕", sub: "Recharge" },
+];
+const PRESETS = DEFAULT_PRESETS.map((p) => p.key);
 
 export default {
   async fetch(request, env, ctx) {
@@ -132,6 +139,8 @@ async function handleApi(request, env, url, p, method) {
   if (p === "/api/admin/report" && method === "GET") return adminReport(request, env, url);
   if (p === "/api/admin/workers" && method === "GET") return adminWorkers(request, env, url);
   if (p === "/api/admin/worker/rename" && method === "POST") return renameWorker(request, env);
+  if (p === "/api/admin/settings" && method === "GET") return getSettings(request, env, url);
+  if (p === "/api/admin/settings" && method === "POST") return saveSettings(request, env);
 
   // --- super-admin only ---
   if (p === "/api/admin/companies" && method === "GET") return listCompanies(request, env);
@@ -313,6 +322,7 @@ async function dayGet(request, env, url) {
 
   const ended = await env.DB.prepare("SELECT 1 FROM day_end WHERE email=? AND day=?").bind(claims.email, day).first();
   const presetsUsed = rows.filter((r) => r.preset).map((r) => r.preset);
+  const settings = await getCompanySettings(env, claims.company_id);
   return json({
     token: await reissue(env, claims),
     profile: { email: claims.email, name: claims.name || "", company_id: claims.company_id, role: "worker" },
@@ -321,6 +331,9 @@ async function dayGet(request, env, url) {
     running: running ? cleanEntry(running) : null,
     presetsUsed: [...new Set(presetsUsed)],
     presets: PRESETS,
+    presetsMeta: settings.presets,   // [{key,label,emoji,sub}] — company-customized tiles
+    checkinMin: settings.checkinMin, // company nudge interval (minutes)
+    bgColor: settings.bgColor,       // custom background or null
     dayEnded: !!ended,
     wrapHour: WRAP_HOUR,
     serverNow: Date.now(),
@@ -352,11 +365,13 @@ async function taskStart(request, env) {
   // Starting work reopens the day if it had been ended earlier.
   await env.DB.prepare("DELETE FROM day_end WHERE email=? AND day=?").bind(claims.email, day).run();
 
+  const settings = await getCompanySettings(env, claims.company_id);
+  const checkinAt = now + settings.checkinMin * 60000;
   const res = await env.DB.prepare(
     "INSERT INTO entries (email, company_id, day, task, preset, started_at, ended_at, checkin_at, created_at) VALUES (?,?,?,?,?,?,NULL,?,?)"
-  ).bind(claims.email, claims.company_id, day, task, preset, now, now + CHECKIN_MS, now).run();
+  ).bind(claims.email, claims.company_id, day, task, preset, now, checkinAt, now).run();
 
-  return json({ token: await reissue(env, claims), id: res.meta && res.meta.last_row_id, startedAt: now, checkinAt: now + CHECKIN_MS });
+  return json({ token: await reissue(env, claims), id: res.meta && res.meta.last_row_id, startedAt: now, checkinAt: checkinAt });
 }
 
 async function taskEnd(request, env) {
@@ -367,10 +382,11 @@ async function taskEnd(request, env) {
   return json({ token: await reissue(env, claims), endedAt: now, ended: (res.meta && res.meta.changes) || 0 });
 }
 
-// "Yes, keep going" — push the next check-in out another interval.
+// "Yes, keep going" — push the next check-in out another (company) interval.
 async function taskCheckin(request, env) {
   const claims = await requireUser(request, env);
-  const next = Date.now() + CHECKIN_MS;
+  const settings = await getCompanySettings(env, claims.company_id);
+  const next = Date.now() + settings.checkinMin * 60000;
   const res = await env.DB.prepare("UPDATE entries SET checkin_at=? WHERE email=? AND ended_at IS NULL")
     .bind(next, claims.email).run();
   return json({ token: await reissue(env, claims), checkinAt: next, updated: (res.meta && res.meta.changes) || 0 });
@@ -456,11 +472,19 @@ async function computePending(env, email, now, tzOff) {
 async function runReminders(env) {
   if (!env.VAPID_PUBLIC || !env.VAPID_PRIVATE_JWK) return; // push not configured yet
   await ensureSchema(env);
-  const subs = (await env.DB.prepare("SELECT email, endpoint, tz_offset, last_push_at FROM push_subs").all()).results || [];
+  const subs = (await env.DB.prepare(
+    "SELECT p.email, p.endpoint, p.tz_offset, p.last_push_at, w.company_id FROM push_subs p " +
+    "LEFT JOIN workers w ON w.email=p.email"
+  ).all()).results || [];
   const now = Date.now();
+  const minCache = {};
   for (const s of subs) {
     try {
-      if (now - Number(s.last_push_at || 0) < PUSH_THROTTLE_MS) continue;
+      // Re-nudge no more often than the company's own interval (floored to the
+      // 5-min cron granularity), so a shorter interval nags sooner, a longer one later.
+      if (!(s.company_id in minCache)) minCache[s.company_id] = (await getCompanySettings(env, s.company_id)).checkinMin;
+      const throttle = Math.max(4, minCache[s.company_id]) * 60000;
+      if (now - Number(s.last_push_at || 0) < throttle) continue;
       const pend = await computePending(env, s.email, now, Number(s.tz_offset) || 0);
       if (!pend.show) continue;
       const status = await sendPush(env, s.endpoint);
@@ -604,6 +628,52 @@ async function renameWorker(request, env) {
   }
   await env.DB.prepare("UPDATE workers SET name=? WHERE email=?").bind(name, email).run();
   return json({ token: await reissue(env, claims), ok: true });
+}
+
+/* ============================================================
+ * Per-company settings — nudge interval, the 3 tiles, background color
+ * ============================================================ */
+async function getSettings(request, env, url) {
+  const claims = await requireAdmin(request, env);
+  const companyId = scopeCompany(claims, url.searchParams.get("company_id"));
+  if (!companyId) return json({ error: "Pick a company." }, 400);
+  return json({ token: await reissue(env, claims), settings: await getCompanySettings(env, companyId) });
+}
+
+async function saveSettings(request, env) {
+  const claims = await requireAdmin(request, env);
+  const body = await readBody(request);
+  const companyId = scopeCompany(claims, body.company_id);
+  if (!companyId) return json({ error: "Pick a company." }, 400);
+  const exists = await env.DB.prepare("SELECT 1 FROM companies WHERE id=?").bind(companyId).first();
+  if (!exists) return json({ error: "Company not found." }, 404);
+  const norm = normalizeSettings(JSON.stringify({ checkinMin: body.checkinMin, presets: body.presets, bgColor: body.bgColor }));
+  await env.DB.prepare("UPDATE companies SET settings=? WHERE id=?").bind(JSON.stringify(norm), companyId).run();
+  return json({ token: await reissue(env, claims), settings: norm });
+}
+
+// Effective settings for a company (defaults filled in), always safe to render.
+async function getCompanySettings(env, companyId) {
+  const row = companyId ? await env.DB.prepare("SELECT settings FROM companies WHERE id=?").bind(companyId).first() : null;
+  return normalizeSettings(row && row.settings);
+}
+
+// Validate + fill defaults. Accepts a JSON string or nullish; never throws.
+function normalizeSettings(raw) {
+  let s = {};
+  if (raw) { try { s = JSON.parse(raw) || {}; } catch (_) { s = {}; } }
+  let checkinMin = Math.round(Number(s.checkinMin));
+  if (!Number.isFinite(checkinMin)) checkinMin = DEFAULT_CHECKIN_MIN;
+  checkinMin = Math.min(480, Math.max(1, checkinMin));
+  const presets = DEFAULT_PRESETS.map((d, i) => {
+    const p = Array.isArray(s.presets) ? s.presets[i] : null;
+    const label = p && typeof p.label === "string" && p.label.trim() ? p.label.trim().slice(0, 40) : d.label;
+    const emoji = p && typeof p.emoji === "string" && p.emoji.trim() ? p.emoji.trim().slice(0, 8) : d.emoji;
+    return { key: d.key, label, emoji, sub: d.sub };
+  });
+  let bgColor = null;
+  if (typeof s.bgColor === "string" && /^#[0-9a-fA-F]{6}$/.test(s.bgColor.trim())) bgColor = s.bgColor.trim().toLowerCase();
+  return { checkinMin, presets, bgColor };
 }
 
 /* ============================================================
@@ -922,7 +992,7 @@ async function ensureSchema(env) {
   await env.DB.batch([
     env.DB.prepare(
       "CREATE TABLE IF NOT EXISTS companies (" +
-      "id TEXT PRIMARY KEY, name TEXT NOT NULL, code TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL)"
+      "id TEXT PRIMARY KEY, name TEXT NOT NULL, code TEXT NOT NULL UNIQUE, settings TEXT, created_at INTEGER NOT NULL)"
     ),
     env.DB.prepare(
       "CREATE TABLE IF NOT EXISTS admins (" +
@@ -964,6 +1034,7 @@ async function ensureSchema(env) {
   for (const alt of [
     "ALTER TABLE workers ADD COLUMN tz_offset INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE entries ADD COLUMN checkin_at INTEGER",
+    "ALTER TABLE companies ADD COLUMN settings TEXT",
   ]) { try { await env.DB.prepare(alt).run(); } catch (_) { /* already exists */ } }
   schemaReady = true;
 }
