@@ -17,12 +17,13 @@
   /* ---- Config ---- */
   // Served from GitHub Pages -> talk to the Worker; served by the Worker -> same-origin.
   var API_BASE = location.hostname === "time.linearit.co" ? "" : "https://time.linearit.co";
-  var CHECKIN_MS = (parseInt(localStorage.getItem("lt_checkin_min"), 10) || 30) * 60 * 1000;
-  var PRESET_META = {
-    breakfast: { emoji: "🍳", label: "Breakfast", sub: "Grab a bite" },
-    exercise:  { emoji: "🏃", label: "Exercise",  sub: "Move a little" },
-    break:     { emoji: "☕", label: "Break",     sub: "Recharge" },
-  };
+  var CHECKIN_MS = 30 * 60 * 1000;   // default; overridden per company from /api/day
+  // Fallback tiles if the server hasn't sent the company's customized ones yet.
+  var DEFAULT_PRESETS_META = [
+    { key: "breakfast", emoji: "🍳", label: "Breakfast", sub: "Grab a bite" },
+    { key: "exercise",  emoji: "🏃", label: "Exercise",  sub: "Move a little" },
+    { key: "break",     emoji: "☕", label: "Break",     sub: "Recharge" },
+  ];
 
   /* ---- Persisted session ---- */
   function getToken() { return localStorage.getItem("lt_token") || ""; }
@@ -40,6 +41,7 @@
   var T = null;            // tracker state
   function freshTracker() {
     return { day: todayStr(), entries: [], running: null, presetsUsed: [], presets: ["breakfast", "exercise", "break"],
+      presetsMeta: DEFAULT_PRESETS_META, bgColor: null,
       skew: 0, picking: false, modalOpen: false, dayEnded: false, wrapHour: 17, wrapSnoozeUntil: 0 };
   }
   var A = null;            // admin state
@@ -144,6 +146,7 @@
   }
   function routeToAuth() {
     stopTicker(); T = null; A = null;
+    applyBg(null);
     showView("auth");
     $("auth-code").classList.add("hidden");
     $("auth-email").classList.remove("hidden");
@@ -220,6 +223,10 @@
       T.running = d.running || null;
       T.presetsUsed = d.presetsUsed || [];
       T.presets = d.presets || T.presets;
+      T.presetsMeta = (d.presetsMeta && d.presetsMeta.length) ? d.presetsMeta : DEFAULT_PRESETS_META;
+      if (d.checkinMin) CHECKIN_MS = d.checkinMin * 60000;
+      T.bgColor = d.bgColor || null;
+      applyBg(T.bgColor);
       T.dayEnded = !!d.dayEnded;
       T.wrapHour = d.wrapHour || 17;
       if (d.profile && d.profile.name) {
@@ -281,13 +288,12 @@
     var hasStuff = T.entries.length > 0 || T.running;
     $("prompt-title").textContent = T.picking ? "Switch to…" : (hasStuff ? "What's next?" : "What's your first task?");
     var tiles = $("preset-tiles"); clear(tiles);
-    T.presets.forEach(function (key) {
-      if (T.presetsUsed.indexOf(key) !== -1) return; // once-a-day: hide if already logged today
-      var m = PRESET_META[key] || { emoji: "•", label: cap(key), sub: "" };
-      tiles.appendChild(el("button", { class: "tile", onclick: function () { startTask(m.label, key); } }, [
-        el("span", { class: "emoji", text: m.emoji }),
+    (T.presetsMeta || DEFAULT_PRESETS_META).forEach(function (m) {
+      if (T.presetsUsed.indexOf(m.key) !== -1) return; // once-a-day: hide if already logged today
+      tiles.appendChild(el("button", { class: "tile", onclick: function () { startTask(m.label, m.key); } }, [
+        el("span", { class: "emoji", text: m.emoji || "•" }),
         el("span", { class: "t", text: m.label }),
-        el("span", { class: "s", text: m.sub }),
+        el("span", { class: "s", text: m.sub || "" }),
       ]));
     });
     // If switching, offer a way back to the current task.
@@ -529,8 +535,8 @@
   function renderAdminTabs() {
     var host = $("admin-tabs"); clear(host);
     var tabs = A.role === "super"
-      ? [["reports", "Reports"], ["workers", "People"], ["companies", "Companies"], ["admins", "Admins"]]
-      : [["reports", "Reports"], ["workers", "People"]];
+      ? [["reports", "Reports"], ["workers", "People"], ["settings", "Settings"], ["companies", "Companies"], ["admins", "Admins"]]
+      : [["reports", "Reports"], ["workers", "People"], ["settings", "Settings"]];
     tabs.forEach(function (t) {
       host.appendChild(el("button", { class: "tab" + (A.tab === t[0] ? " active" : ""), text: t[1], onclick: function () { selectTab(t[0]); } }, []));
     });
@@ -539,6 +545,7 @@
     A.tab = name; renderAdminTabs();
     if (name === "reports") renderReports();
     else if (name === "workers") renderWorkersTab();
+    else if (name === "settings") renderSettingsTab();
     else if (name === "companies") renderCompaniesTab();
     else if (name === "admins") renderAdminsTab();
   }
@@ -702,6 +709,82 @@
     } catch (e) { toast(e.error || "Couldn't rename."); }
   }
 
+  /* ---- Settings tab (per company) ---- */
+  async function renderSettingsTab() {
+    var body = $("admin-body"); clear(body);
+    var companyId = A.role === "super" ? (A.setCompany || (A.companies[0] && A.companies[0].id) || "") : A.selCompany;
+    A.setCompany = companyId;
+
+    var wrap = el("div", { class: "panel" }, [el("h2", { text: "Settings" }, []), el("div", { class: "empty", text: "Loading…" }, [])]);
+    body.appendChild(wrap);
+    if (A.role === "super" && !A.companies.length) {
+      clear(wrap); wrap.appendChild(el("h2", { text: "Settings" }, []));
+      wrap.appendChild(el("div", { class: "empty", text: "Create a company first (Companies tab)." }, [])); return;
+    }
+    try {
+      var r = await api("/api/admin/settings?company_id=" + encodeURIComponent(companyId));
+      var s = r.settings;
+      clear(wrap);
+
+      var header = el("div", { class: "panel-head" }, [el("h2", { style: "margin:0", text: "Settings" }, [])]);
+      if (A.role === "super") {
+        var sel = el("select", { style: "max-width:220px", onchange: function () { A.setCompany = this.value; renderSettingsTab(); } }, companyOptions(false));
+        sel.value = companyId;
+        header.appendChild(sel);
+      }
+      wrap.appendChild(header);
+
+      // Nudge interval
+      var intervalIn = el("input", { type: "text", inputmode: "numeric", value: String(s.checkinMin) }, []);
+      wrap.appendChild(el("label", { class: "field" }, [
+        el("span", { class: "lbl", text: "Nudge every … minutes" }, []),
+        intervalIn,
+        el("span", { class: "hint", text: "How often to ask “still on this?” — e.g. 20 for more often, 45 for less. Any value 1–480." }, []),
+      ]));
+
+      // The three tiles
+      wrap.appendChild(el("div", { class: "lbl", style: "font-size:13px;font-weight:600;color:var(--muted);margin:6px 0 8px", text: "The three quick-pick tiles (emoji + name)" }, []));
+      var presetInputs = [];
+      (s.presets || []).forEach(function (p) {
+        var emojiIn = el("input", { type: "text", value: p.emoji, maxlength: "8", style: "text-align:center" }, []);
+        var labelIn = el("input", { type: "text", value: p.label, maxlength: "40" }, []);
+        presetInputs.push({ emoji: emojiIn, label: labelIn });
+        wrap.appendChild(el("div", { class: "row", style: "margin-bottom:10px" }, [
+          el("div", { style: "flex:0 0 70px;min-width:0" }, [emojiIn]),
+          el("div", { style: "flex:1 1 auto;min-width:140px" }, [labelIn]),
+        ]));
+      });
+
+      // Optional background color
+      var useColor = el("input", { type: "checkbox" }, []); useColor.checked = !!s.bgColor;
+      var colorIn = el("input", { type: "color", value: s.bgColor || "#0f1117",
+        style: "width:56px;height:38px;padding:2px;border-radius:8px;border:1px solid var(--border2);background:var(--input-bg);cursor:pointer" }, []);
+      colorIn.disabled = !s.bgColor;
+      useColor.addEventListener("change", function () { colorIn.disabled = !useColor.checked; });
+      wrap.appendChild(el("label", { class: "field", style: "margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap" }, [
+        useColor, el("span", { class: "lbl", style: "margin:0", text: "Custom background color" }, []), colorIn,
+      ]));
+      wrap.appendChild(el("span", { class: "hint", style: "display:block;margin-top:-6px", text: "Optional — leave unchecked for the default. Darker shades keep text readable." }, []));
+
+      var errEl = el("div", { class: "err" }, []);
+      wrap.appendChild(el("button", { class: "btn", style: "margin-top:14px", text: "Save settings", onclick: async function () {
+        errEl.textContent = "";
+        var mins = parseInt(intervalIn.value, 10);
+        if (!mins || mins < 1 || mins > 480) { errEl.textContent = "Enter a nudge interval between 1 and 480 minutes."; return; }
+        var presets = presetInputs.map(function (pi) { return { emoji: pi.emoji.value.trim(), label: pi.label.value.trim() }; });
+        if (presets.some(function (p) { return !p.label; })) { errEl.textContent = "Each tile needs a name."; return; }
+        try {
+          await api("/api/admin/settings", { method: "POST", body: { company_id: companyId, checkinMin: mins, presets: presets, bgColor: useColor.checked ? colorIn.value : null } });
+          toast("Settings saved — workers pick them up on their next refresh.");
+        } catch (e) { errEl.textContent = e.error || "Couldn't save."; }
+      } }, []));
+      wrap.appendChild(errEl);
+    } catch (e) {
+      clear(wrap); wrap.appendChild(el("h2", { text: "Settings" }, []));
+      wrap.appendChild(el("div", { class: "empty", text: e.error || "Couldn't load." }, []));
+    }
+  }
+
   /* ---- Companies tab (super only) ---- */
   async function renderCompaniesTab() {
     var body = $("admin-body"); clear(body);
@@ -797,6 +880,18 @@
   function copy(text) {
     if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("Copied " + text); }, function () { toast(text); });
     else toast(text);
+  }
+  // Apply (or clear) a company's custom background color. Content sits on cards, so
+  // only the page backdrop changes; we also hide the pattern so the color reads clean.
+  function applyBg(color) {
+    var root = document.documentElement;
+    if (color && /^#[0-9a-fA-F]{6}$/.test(color)) {
+      root.style.setProperty("--bg", color);
+      root.setAttribute("data-custombg", "");
+    } else {
+      root.style.removeProperty("--bg");
+      root.removeAttribute("data-custombg");
+    }
   }
 
   /* ============================================================
