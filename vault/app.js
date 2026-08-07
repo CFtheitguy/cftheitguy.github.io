@@ -32,7 +32,15 @@
     { id: "online", name: "Online Accounts", icon: "globe" },
     { id: "passwords", name: "Passwords", icon: "key" },
   ];
-  function folderName(id) { for (var i = 0; i < FOLDERS.length; i++) if (FOLDERS[i].id === id) return FOLDERS[i].name; return "Passwords"; }
+  // Built-in folders + the user's own custom folders (stored in their encrypted vault).
+  function allFolders() { return FOLDERS.concat((S.folders || []).map(function (f) { return { id: f.id, name: f.name, icon: "folder", custom: true }; })); }
+  function folderMeta(id) { var a = allFolders(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
+  function folderName(id) { var f = folderMeta(id); return f ? f.name : "Passwords"; }
+  function vaultPayload() { return { items: S.items, folders: S.folders }; }
+  function loadVaultData(data) {
+    if (Array.isArray(data)) { S.items = data; S.folders = []; }           // legacy shape: bare items array
+    else { S.items = (data && data.items) || []; S.folders = (data && data.folders) || []; }
+  }
 
   /* ---- Runtime state (all cleared on lock) ---- */
   var S = null;
@@ -41,7 +49,7 @@
       token: null, email: "", mode: null,     // mode: 'login' | 'register' | 'admin'
       kek: null, authVerifier: "",             // derived from master password (login/register in progress)
       salt: "", iters: 0, wrappedDek: "",      // current account key material (kept to allow rekey)
-      dek: null, items: [], vaultVer: 0,       // decrypted vault (memory only)
+      dek: null, items: [], folders: [], vaultVer: 0, // decrypted vault (memory only); folders = user's custom folders
       folder: "pc", query: "", isAdmin: false, // UI
     };
   }
@@ -88,6 +96,9 @@
     ext: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>',
     gen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
   };
   function icon(name) { return h("span", { html: IC[name] }); }
 
@@ -207,8 +218,8 @@
       S.kek = keys.kek; S.authVerifier = keys.authVerifier;
       S.dek = await newDek();
       S.wrappedDek = await wrapDek(S.kek, S.dek);
-      S.items = [];
-      S.pendingVaultBlob = await encryptVault(S.dek, S.items);
+      S.items = []; S.folders = [];
+      S.pendingVaultBlob = await encryptVault(S.dek, vaultPayload());
       await api("/api/auth/code", "POST", { email: S.email, purpose: "register" });
       showCode();
     } catch (e) { $("#reg-err").textContent = e.message; }
@@ -240,11 +251,12 @@
         });
         S.vaultVer = rr.vault_ver || 1; S.pendingVaultBlob = null;
         openVault();
+        showFirstTimeWarning();
       } else { // login phase 2
         var lr = await api("/api/auth/login", "POST", { email: S.email, auth_verifier: S.authVerifier, code: code });
         S.salt = lr.salt; S.iters = lr.iters; S.wrappedDek = lr.wrapped_dek; S.vaultVer = lr.vault_ver || 0;
         S.dek = await unwrapDek(S.kek, lr.wrapped_dek);
-        S.items = await decryptVault(S.dek, lr.vault_blob);
+        loadVaultData(await decryptVault(S.dek, lr.vault_blob));
         openVault();
       }
     } catch (e) { $("#code-err").textContent = e.message; }
@@ -277,15 +289,29 @@
   }
   function renderFolders() {
     var wrap = $("#folders"); wrap.textContent = "";
-    FOLDERS.forEach(function (f) {
+    allFolders().forEach(function (f) {
       var count = S.items.filter(function (it) { return it.folder === f.id; }).length;
       var node = h("button", { class: "folder" + (S.folder === f.id ? " active" : ""), onclick: function () { S.folder = f.id; renderFolders(); renderEntries(); } }, [
-        h("span", { class: "ico", html: IC[f.icon] }),
+        h("span", { class: "ico", html: IC[f.icon] || IC.folder }),
         h("span", { class: "fname", text: f.name }),
         h("span", { class: "fcount", text: count + (count === 1 ? " item" : " items") }),
       ]);
       wrap.appendChild(node);
     });
+    wrap.appendChild(h("button", { class: "folder addfolder", title: "Add a folder", onclick: function () { openFolderModal(null); } }, [
+      h("span", { class: "ico", html: IC.plus }),
+      h("span", { class: "fname", text: "New folder" }),
+      h("span", { class: "fcount", text: "Add your own" }),
+    ]));
+  }
+  // Rename / delete controls shown in the toolbar only for the user's own folders.
+  function renderFolderActions() {
+    var box = $("#folder-actions"); if (!box) return; box.textContent = "";
+    var f = folderMeta(S.folder);
+    if (f && f.custom) {
+      box.appendChild(h("button", { class: "btn ghost sm", onclick: function () { openFolderModal(f); } }, [icon("edit"), " Rename"]));
+      box.appendChild(h("button", { class: "btn ghost sm", style: "color:var(--danger);margin-left:6px", onclick: function () { deleteFolder(f); } }, [icon("trash"), " Delete"]));
+    }
   }
   function currentList() {
     var q = S.query.trim().toLowerCase();
@@ -299,6 +325,7 @@
   }
   function renderEntries() {
     $("#folder-title").textContent = folderName(S.folder);
+    renderFolderActions();
     var box = $("#entries"); box.textContent = "";
     var list = currentList();
     if (!list.length) {
@@ -367,7 +394,7 @@
     var it = existing || { id: null, folder: S.folder, title: "", username: "", password: "", url: "", notes: "" };
     var isNew = !existing;
     var pwInput = h("input", { type: "password", autocomplete: "off", value: it.password || "", placeholder: "Password" });
-    var folderSel = h("select", {}, FOLDERS.map(function (f) { var o = h("option", { value: f.id, text: f.name }); if (f.id === it.folder) o.selected = true; return o; }));
+    var folderSel = h("select", {}, allFolders().map(function (f) { var o = h("option", { value: f.id, text: f.name }); if (f.id === it.folder) o.selected = true; return o; }));
     var titleInput = h("input", { type: "text", autocomplete: "off", value: it.title || "", placeholder: "e.g. Office 365, Dell laptop, Router" });
     var userInput = h("input", { type: "text", autocomplete: "off", value: it.username || "", placeholder: "Username / email" });
     var urlInput = h("input", { type: "text", autocomplete: "off", value: it.url || "", placeholder: "https:// (optional)" });
@@ -429,8 +456,52 @@
   }
 
   /* ---- Persist (encrypt + upload, with conflict guard) ---- */
+  /* ---- Custom folders: add / rename / delete ---- */
+  function openFolderModal(existing) {
+    var nameInput = h("input", { type: "text", autocomplete: "off", maxlength: "40", value: existing ? existing.name : "", placeholder: "e.g. Banking, Clients, Wi-Fi" });
+    var err = h("div", { class: "err" });
+    openModal(h("div", { class: "modal" }, [
+      h("h3", { text: existing ? "Rename folder" : "New folder" }),
+      h("div", { class: "msub", text: existing ? "Give this folder a new name." : "Create your own folder to organize passwords however you like." }),
+      field("Folder name", nameInput),
+      err,
+      h("div", { class: "actions" }, [
+        h("button", { class: "btn ghost", onclick: closeModal }, "Cancel"),
+        h("button", { class: "btn", onclick: async function (e) {
+          var nm = nameInput.value.trim();
+          if (!nm) { err.textContent = "Enter a folder name."; return; }
+          var btn = e.currentTarget; setBusy(btn, true, "Saving…");
+          var target;
+          if (existing) { S.folders = S.folders.map(function (f) { return f.id === existing.id ? { id: f.id, name: nm } : f; }); target = existing.id; }
+          else { target = uuid(); S.folders.push({ id: target, name: nm }); }
+          try { await persist(); closeModal(); S.folder = target; renderFolders(); renderEntries(); toast("Saved", "ok"); }
+          catch (er) { err.textContent = er.message; setBusy(btn, false); }
+        } }, existing ? "Save" : "Create folder"),
+      ]),
+    ]));
+    setTimeout(function () { nameInput.focus(); }, 30);
+  }
+  function deleteFolder(f) {
+    var n = S.items.filter(function (it) { return it.folder === f.id; }).length;
+    openModal(h("div", { class: "modal" }, [
+      h("h3", { text: "Delete folder “" + f.name + "”?" }),
+      h("div", { class: "msub", text: n ? ("Its " + n + " item" + (n === 1 ? "" : "s") + " will be moved to Passwords.") : "This folder is empty." }),
+      h("div", { class: "actions" }, [
+        h("button", { class: "btn ghost", onclick: closeModal }, "Cancel"),
+        h("button", { class: "btn danger", onclick: async function (e) {
+          setBusy(e.currentTarget, true, "Deleting…");
+          S.items = S.items.map(function (it) { return it.folder === f.id ? Object.assign({}, it, { folder: "passwords" }) : it; });
+          S.folders = S.folders.filter(function (x) { return x.id !== f.id; });
+          S.folder = "passwords";
+          try { await persist(); closeModal(); renderFolders(); renderEntries(); toast("Folder deleted", "ok"); }
+          catch (er) { toast(er.message, "bad"); closeModal(); }
+        } }, "Delete folder"),
+      ]),
+    ]));
+  }
+
   async function persist() {
-    var blob = await encryptVault(S.dek, S.items);
+    var blob = await encryptVault(S.dek, vaultPayload());
     try {
       var r = await api("/api/vault", "PUT", { vault_blob: blob, base_ver: S.vaultVer });
       S.vaultVer = r.vault_ver;
@@ -438,7 +509,7 @@
       if (e.status === 409) {
         // Vault changed on another device since we loaded it — reload to be safe.
         var g = await api("/api/vault", "GET");
-        S.vaultVer = g.vault_ver; S.items = await decryptVault(S.dek, g.vault_blob);
+        S.vaultVer = g.vault_ver; loadVaultData(await decryptVault(S.dek, g.vault_blob));
         renderFolders(); renderEntries();
         throw new Error("Your vault was updated on another device, so it was reloaded. Please redo your last change.");
       }
@@ -677,8 +748,31 @@
   function safeUrl(u) { u = String(u || ""); if (/^https?:\/\//i.test(u)) return u; if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)) return "https://" + u; return "#"; }
   function openUrl(u) { var s = safeUrl(u); if (s !== "#") window.open(s, "_blank", "noopener,noreferrer"); else toast("No valid web address", "bad"); }
 
-  function openModal(node) { var root = $("#modal-root"); root.textContent = ""; var bg = h("div", { class: "modal-bg", onclick: function (e) { if (e.target === bg) closeModal(); } }, [node]); root.appendChild(bg); }
-  function closeModal() { $("#modal-root").textContent = ""; }
+  function openModal(node, sticky) {
+    var root = $("#modal-root"); root.textContent = "";
+    if (sticky) root.dataset.sticky = "1"; else delete root.dataset.sticky;
+    var bg = h("div", { class: "modal-bg", onclick: function (e) { if (e.target === bg && !sticky) closeModal(); } }, [node]);
+    root.appendChild(bg);
+  }
+  function closeModal() { var root = $("#modal-root"); root.textContent = ""; delete root.dataset.sticky; }
+  // First-time client warning: the master password is unrecoverable. Must be acknowledged.
+  function showFirstTimeWarning() {
+    var agree = h("input", { type: "checkbox" });
+    var go = h("button", { class: "btn full", disabled: "disabled" }, "I understand — open my vault");
+    agree.addEventListener("change", function () { if (agree.checked) go.removeAttribute("disabled"); else go.setAttribute("disabled", "disabled"); });
+    go.addEventListener("click", function () { closeModal(); });
+    openModal(h("div", { class: "modal" }, [
+      h("div", { class: "warn-ico", html: IC.warn }),
+      h("h3", { style: "text-align:center", text: "Your master password is the only key" }),
+      h("div", { class: "warn-box" }, [
+        h("p", {}, ["Linear IT can ", h("b", { text: "never" }), " see, reset, or recover your master password."]),
+        h("p", {}, ["If you forget it, everything you save here is ", h("b", { text: "permanently lost" }), " — the most anyone can do is wipe your vault so you can start over empty."]),
+        h("p", { text: "Please keep your master password somewhere safe." }),
+      ]),
+      h("label", { class: "ack" }, [agree, h("span", { text: "I understand that if I lose my master password, it cannot be recovered." })]),
+      h("div", { class: "actions" }, [go]),
+    ]), true);
+  }
 
   function applyTheme(t) { document.documentElement.setAttribute("data-theme", t); try { localStorage.setItem("vault-theme", t); } catch (_) {} }
   function toggleTheme() { applyTheme(document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light"); }
@@ -768,7 +862,7 @@
       window.addEventListener(ev, onActivity, { passive: true });
     });
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") onActivity(); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("#modal-root").dataset.idle !== "1") closeModal(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("#modal-root").dataset.idle !== "1" && $("#modal-root").dataset.sticky !== "1") closeModal(); });
 
     show("email");
     setTimeout(function () { $("#email-input").focus(); }, 50);
