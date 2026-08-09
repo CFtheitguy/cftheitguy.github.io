@@ -95,10 +95,38 @@
     else renderLogin();
   }
 
+  /* ---- Brand chrome (logo + light/dark theme, matching vault + time) ----- */
+  function brandLogo(big) {
+    return '<div class="logo' + (big ? " big" : "") + '"><span class="brandlogo"></span><span class="brandtag">Sign</span></div>';
+  }
+  function themeBtn() {
+    var light = document.documentElement.getAttribute("data-theme") === "light";
+    return '<button class="iconbtn" data-act="theme" title="Toggle light / dark">' + (light ? "☀️" : "🌙") + '</button>';
+  }
+  function applyTheme() {
+    var t = localStorage.getItem("lsign_theme") || "dark";
+    document.documentElement.setAttribute("data-theme", t === "light" ? "light" : "dark");
+  }
+  function toggleTheme() {
+    var cur = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+    var nt = cur === "dark" ? "light" : "dark";
+    localStorage.setItem("lsign_theme", nt);
+    document.documentElement.setAttribute("data-theme", nt);
+    document.querySelectorAll('[data-act="theme"]').forEach(function (b) { b.textContent = nt === "light" ? "☀️" : "🌙"; });
+  }
+
   /* =========================================================================
    * Router
    * ======================================================================= */
+  var themeReady = false;
   function boot() {
+    if (!themeReady) {
+      themeReady = true;
+      applyTheme();
+      document.addEventListener("click", function (e) {
+        if (e.target.closest && e.target.closest('[data-act="theme"]')) toggleTheme();
+      });
+    }
     if (!window.pdfjsLib) {
       // Retry briefly in case the CDN script is still loading.
       return setTimeout(boot, 120);
@@ -113,15 +141,15 @@
    * Sender sign-in
    * ======================================================================= */
   function topBar(rightHtml) {
-    return '<header class="top">' +
-      '<div class="logo"><span class="mark">✍</span> Linear Sign <small>by Linear IT</small></div>' +
-      '<div class="spacer"></div>' + (rightHtml || "") + '</header>';
+    return '<header class="top">' + brandLogo() +
+      '<div class="spacer"></div>' + themeBtn() + (rightHtml || "") + '</header>';
   }
 
   function renderLogin() {
     app.innerHTML = topBar("") +
       '<div class="center-screen"><div class="card login-card">' +
-      '<h1>Sign in</h1><p class="sub">Enter your work email to receive a sign-in code.</p>' +
+      brandLogo(true) +
+      '<h1 style="text-align:center">Sign in</h1><p class="sub" style="text-align:center">Enter your work email to receive a sign-in code.</p>' +
       '<div id="login-body"></div></div></div>';
     var body = document.getElementById("login-body");
     var email = state.email || "";
@@ -257,7 +285,7 @@
   function progressBar(d) {
     var pct = d.recip_total ? Math.round((d.recip_signed / d.recip_total) * 100) : 0;
     return '<div style="width:90px;height:6px;background:#2a2f4d;border-radius:4px;overflow:hidden">' +
-      '<div style="height:100%;width:' + pct + '%;background:linear-gradient(90deg,#6366f1,#0ea5e9)"></div></div>';
+      '<div style="height:100%;width:' + pct + '%;background:var(--brand)"></div></div>';
   }
 
   /* ---- Upload new document ------------------------------------------------ */
@@ -380,7 +408,7 @@
 
     function addRecipient(email, name) {
       if (ed.recipients.length >= 25) return toast("That's a lot of recipients!", true);
-      var colors = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0ea5e9", "#ec4899", "#14b8a6"];
+      var colors = ["#00b0ec", "#4ade80", "#fbbf24", "#f87171", "#a78bfa", "#f472b6", "#22d3ee", "#34d399"];
       var rid = newLocalId();
       ed.recipients.push({ id: rid, email: email || "", name: name || "", color: colors[ed.recipients.length % colors.length], order_index: ed.recipients.length, role: "signer" });
       ed.active = rid; markDirty(); paintRecips(); paintPalette();
@@ -503,7 +531,7 @@
       var pageEl = pageEls[f.page];
       if (!pageEl) return;
       var recip = ed.recipients.filter(function (r) { return r.id === f.recipient_id; })[0];
-      var color = recip ? recip.color : "#6366f1";
+      var color = recip ? recip.color : "#00b0ec";
       var mta = FIELD_META[f.type];
       var node = el('<div class="fld"><span class="flabel">' + mta.icon + " " + mta.label + '</span>' +
         '<button class="fdel">×</button><span class="fres"></span></div>');
@@ -663,7 +691,7 @@
         recips.map(function (r) {
           var when = r.status === "signed" ? "Signed " + fmtWhen(r.signed_at) : (r.status === "viewed" ? "Viewed " + fmtWhen(r.viewed_at) : (r.status === "declined" ? "Declined" : "Waiting"));
           var pillcls = r.status === "signed" ? "completed" : (r.status === "declined" ? "declined" : (r.status === "viewed" ? "sent" : "draft"));
-          return '<div class="recip-item"><span class="dot" style="background:' + (r.color || "#6366f1") + '"></span>' +
+          return '<div class="recip-item"><span class="dot" style="background:' + (r.color || "#00b0ec") + '"></span>' +
             '<div class="rmeta"><b>' + esc(r.name || r.email) + '</b><span>' + esc(r.email) + '</span></div>' +
             '<span class="pill ' + pillcls + '">' + esc(when) + '</span></div>';
         }).join("") +
@@ -732,9 +760,8 @@
     var sigMemory = { signature: null, initials: null };
 
     app.innerHTML =
-      '<div class="sign-top">' +
-        '<div class="logo"><span class="mark">✍</span> Linear Sign</div>' +
-        '<div class="spacer" style="flex:1"></div>' +
+      '<div class="sign-top">' + brandLogo() +
+        '<div class="spacer" style="flex:1"></div>' + themeBtn() +
         '<button class="btn ghost sm" id="sg-decline">Decline</button>' +
         '<button class="btn primary sm" id="sg-finish">Finish &amp; sign</button>' +
       '</div>' +
@@ -943,7 +970,7 @@
     app.innerHTML = signerShell('<div class="stat-done"><div class="big">⚠️</div><h1>Can’t open this document</h1><p class="sub">' + esc(msg) + '</p></div>');
   }
   function signerShell(inner) {
-    return '<div class="sign-top"><div class="logo"><span class="mark">✍</span> Linear Sign <small>by Linear IT</small></div></div>' +
+    return '<div class="sign-top">' + brandLogo() + '<div class="spacer" style="flex:1"></div>' + themeBtn() + '</div>' +
       '<div class="wrap" style="max-width:560px">' + inner + '</div>';
   }
 
@@ -979,7 +1006,7 @@
   /* ---- misc ---- */
   function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function hexA(hex, a) {
-    var m = /^#?([0-9a-f]{6})$/i.exec(hex); if (!m) return "rgba(99,102,241," + a + ")";
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex); if (!m) return "rgba(0,176,236," + a + ")";
     var n = parseInt(m[1], 16); return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")";
   }
 

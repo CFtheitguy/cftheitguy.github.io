@@ -73,7 +73,7 @@ const CODE_RESEND_MS = 45 * 1000;        // min gap between code emails to one a
 const MAX_CODE_ATTEMPTS = 5;             // wrong codes before a code is burned
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const FIELD_TYPES = ["signature", "initials", "date", "text", "name", "email", "checkbox"];
-const RECIP_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0ea5e9", "#ec4899", "#14b8a6"];
+const RECIP_COLORS = ["#00b0ec", "#4ade80", "#fbbf24", "#f87171", "#a78bfa", "#f472b6", "#22d3ee", "#34d399"];
 
 export default {
   async fetch(request, env, ctx) {
@@ -871,7 +871,7 @@ function signLink(env, docId, token) {
 }
 function emailShell(inner) {
   return '<div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1f2430">' +
-    '<div style="font-weight:800;font-size:18px;color:#4f46e5;margin-bottom:14px">Linear Sign</div>' +
+    '<div style="font-weight:800;font-size:18px;color:#00b0ec;margin-bottom:14px">Linear Sign</div>' +
     inner +
     '<hr style="border:none;border-top:1px solid #eef0f5;margin:22px 0 12px">' +
     '<div style="color:#9aa0b0;font-size:12px">Linear IT · (845) 604-1462 · sign.linearit.co</div></div>';
@@ -888,7 +888,7 @@ function signInviteHtml(doc, r, link) {
     (r.name ? '<p style="margin:0 0 6px">Hi ' + esc(r.name) + ',</p>' : '') +
     '<p style="color:#333;margin:0 0 16px"><b>' + esc(doc.owner_email) + '</b> has requested your signature on <b>' + esc(doc.title) + '</b>.</p>' +
     (doc.message ? '<div style="background:#f7f8fb;border-radius:10px;padding:12px 14px;color:#444;margin:0 0 18px">' + esc(doc.message) + '</div>' : '') +
-    '<a href="' + esc(link) + '" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px">Review &amp; sign</a>' +
+    '<a href="' + esc(link) + '" style="display:inline-block;background:#00b0ec;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px">Review &amp; sign</a>' +
     '<p style="color:#9aa0b0;font-size:12px;margin:18px 0 0">This link is unique to you — please don\'t forward it.</p>'
   );
 }
