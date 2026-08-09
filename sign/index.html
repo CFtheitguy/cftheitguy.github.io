@@ -184,6 +184,8 @@
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
     }
   </script>
-  <script src="./app.js"></script>
+  <!-- Absolute path so it resolves the same whether the page is served from
+       www.linearit.co/sign/ or reverse-proxied at sign.linearit.co/ -->
+  <script src="/sign/app.js"></script>
 </body>
 </html>
