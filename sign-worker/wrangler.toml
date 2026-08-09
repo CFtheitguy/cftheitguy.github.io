@@ -24,7 +24,11 @@
 # RESEND_API_KEY, EMAIL_FROM and ADMIN_EMAILS must stay as *encrypted Secrets*
 # on the Worker — those survive deploys; plaintext vars not listed here get wiped.
 
-name = "linear-sign"
+# Worker/script name. Kept as "sign-worker" to match the Cloudflare Workers
+# Builds application name (derived from the repo's root directory), so
+# Git-connected deploys don't hit a name mismatch. The public hostname is set
+# by the `routes` custom domain below, not by this name.
+name = "sign-worker"
 main = "src/index.js"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
