@@ -908,8 +908,13 @@ async function proxyApp(request, env, url, method) {
     return new Response("Method Not Allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
   }
   const origin = env.APP_ORIGIN || "https://www.linearit.co";
-  const appPath = env.APP_PATH || "/sign/";
-  const path = url.pathname === "/" ? appPath : url.pathname;
+  const appPath = env.APP_PATH || "/sign/";      // where the app lives on APP_ORIGIN
+  const base = appPath.replace(/\/+$/, "");       // "/sign"
+  // Mount the app folder at the domain root: sign.linearit.co/ serves
+  // <origin>/sign/, sign.linearit.co/app.js serves <origin>/sign/app.js, etc.
+  let path = url.pathname;
+  if (path === "/") path = appPath;
+  else if (path !== base && !path.startsWith(base + "/")) path = base + path;
   const target = origin + path + url.search;
   let originResp;
   try {
