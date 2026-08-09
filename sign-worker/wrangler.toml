@@ -39,7 +39,7 @@ routes = [
 [[d1_databases]]
 binding = "DB"
 database_name = "linear_sign"
-database_id = "PASTE_LINEAR_SIGN_D1_DATABASE_ID_HERE"
+database_id = "e49ae5f1-a3f4-4100-8de0-b99a4d8f68c1"
 
 # --- R2 bucket (original + signed PDFs, signature images) ---
 [[r2_buckets]]
