@@ -374,6 +374,13 @@
           '<button class="btn sm ghost" id="ed-back">← Documents</button>' +
           '<input class="etitle" id="ed-title" value="' + esc(doc.title) + '" />' +
           '<span class="pill draft">Draft</span>' +
+          '<div class="zoombar">' +
+            '<button id="z-fitp" title="Fit whole page">⤢ Fit</button>' +
+            '<button id="z-out" title="Zoom out">−</button>' +
+            '<span class="zpct" id="z-pct">100%</span>' +
+            '<button id="z-in" title="Zoom in">+</button>' +
+            '<button id="z-fitw" title="Fit width">↔</button>' +
+          '</div>' +
           '<div class="spacer" style="flex:1"></div>' +
           '<span id="ed-saved" class="note" style="margin:0"></span>' +
           '<button class="btn sm" id="ed-save">Save draft</button>' +
@@ -381,6 +388,11 @@
         '</div>' +
         '<div class="estage">' +
           '<div class="epages" id="ed-pages"><div class="loading"><span class="spin"></span>Rendering PDF…</div></div>' +
+          '<div class="pagenav" id="ed-pagenav">' +
+            '<button id="pn-prev" title="Previous page">‹</button>' +
+            '<span class="pind" id="pn-ind">1 / 1</span>' +
+            '<button id="pn-next" title="Next page">›</button>' +
+          '</div>' +
           '<div class="eside">' +
             '<div class="sect-t">Recipients</div>' +
             '<div id="ed-recips"></div>' +
@@ -474,20 +486,27 @@
     }
 
     // ---- render PDF pages ----
-    var pageEls = [];
+    var pageEls = [];      // 1-indexed DOM nodes
+    var pageDims = [];     // 1-indexed {w,h} in PDF points
+    var numPages = 0;
+    var pagesBox = document.getElementById("ed-pages");
     try {
       var buf = await fetchPdf("/api/docs/" + docId + "/file", true);
       var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-      var pagesBox = document.getElementById("ed-pages");
+      numPages = pdf.numPages;
       pagesBox.innerHTML = "";
-      var width = Math.min(pagesBox.clientWidth - 48, 850);
-      for (var pn = 1; pn <= pdf.numPages; pn++) {
+      var dpr = window.devicePixelRatio || 1;
+      // Render the bitmap generously so zooming in stays crisp; display size is
+      // controlled separately by applyWidth() (CSS), so we can zoom without re-render.
+      var renderW = Math.min(1500, Math.max(1000, pagesBox.clientWidth));
+      for (var pn = 1; pn <= numPages; pn++) {
         var page = await pdf.getPage(pn);
         var vp0 = page.getViewport({ scale: 1 });
-        var scale = width / vp0.width;
-        var vp = page.getViewport({ scale: scale * (window.devicePixelRatio || 1) });
+        pageDims[pn] = { w: vp0.width, h: vp0.height };
+        var scale = renderW / vp0.width;
+        var vp = page.getViewport({ scale: scale * dpr });
         var pageEl = el('<div class="page" data-page="' + pn + '"><div class="flayer"></div></div>');
-        pageEl.style.width = width + "px";
+        pageEl.style.width = renderW + "px";
         pageEl.style.height = (vp0.height * scale) + "px";
         var canvas = document.createElement("canvas");
         canvas.width = vp.width; canvas.height = vp.height;
@@ -498,10 +517,73 @@
         pageEls[pn] = pageEl;
       }
     } catch (e) {
-      document.getElementById("ed-pages").innerHTML = '<div class="err">' + esc(e.message) + "</div>";
+      pagesBox.innerHTML = '<div class="err">' + esc(e.message) + "</div>";
     }
 
+    setupZoomAndNav();
     paintRecips(); paintPalette(); paintAllFields();
+
+    /* ---- Zoom + page navigation ------------------------------------------ */
+    function fitWidthPx() { return Math.max(240, (pagesBox.clientWidth || 900) - 48); }
+    function fitPagePx() {
+      var ref = pageDims[1] || { w: 8.5, h: 11 };
+      var availH = (pagesBox.clientHeight || 700) - 40;
+      return Math.min(fitWidthPx(), availH * (ref.w / ref.h));
+    }
+    function applyWidth(px) {
+      px = Math.max(240, Math.min(2200, px));
+      ed.dispW = px;
+      for (var i = 1; i < pageEls.length; i++) {
+        var pe = pageEls[i]; if (!pe) continue;
+        var dm = pageDims[i] || { w: 1, h: 1.3 };
+        pe.style.width = px + "px";
+        pe.style.height = (px * (dm.h / dm.w)) + "px";
+      }
+      var pctEl = document.getElementById("z-pct");
+      if (pctEl) pctEl.textContent = Math.round((px / fitWidthPx()) * 100) + "%";
+    }
+    function setMode(mode) {
+      ed.zoomMode = mode;
+      if (mode === "fitw") applyWidth(fitWidthPx());
+      else applyWidth(fitPagePx());
+    }
+    function setupZoomAndNav() {
+      if (!numPages) return;
+      document.getElementById("z-fitp").onclick = function () { setMode("fitp"); };
+      document.getElementById("z-fitw").onclick = function () { setMode("fitw"); };
+      document.getElementById("z-in").onclick = function () { ed.zoomMode = "manual"; applyWidth(ed.dispW * 1.2); };
+      document.getElementById("z-out").onclick = function () { ed.zoomMode = "manual"; applyWidth(ed.dispW / 1.2); };
+
+      var nav = document.getElementById("ed-pagenav");
+      var ind = document.getElementById("pn-ind");
+      ed.curPage = 1;
+      if (numPages > 1) {
+        nav.style.display = "flex";
+        ind.textContent = "1 / " + numPages;
+        var go = function (n) {
+          n = Math.max(1, Math.min(numPages, n)); ed.curPage = n;
+          if (pageEls[n]) pageEls[n].scrollIntoView({ behavior: "smooth", block: "start" });
+          ind.textContent = n + " / " + numPages;
+        };
+        document.getElementById("pn-prev").onclick = function () { go(ed.curPage - 1); };
+        document.getElementById("pn-next").onclick = function () { go(ed.curPage + 1); };
+        pagesBox.addEventListener("scroll", function () {
+          var boxTop = pagesBox.getBoundingClientRect().top, best = 1, bestd = 1e9;
+          for (var i = 1; i < pageEls.length; i++) {
+            if (!pageEls[i]) continue;
+            var d = Math.abs(pageEls[i].getBoundingClientRect().top - boxTop - 10);
+            if (d < bestd) { bestd = d; best = i; }
+          }
+          if (best !== ed.curPage) { ed.curPage = best; ind.textContent = best + " / " + numPages; }
+        });
+      }
+      // Default: show the whole page so nothing runs off-screen.
+      setMode("fitp");
+      window.addEventListener("resize", function () {
+        if (!document.body.contains(pagesBox)) return;
+        if (ed.zoomMode === "fitw" || ed.zoomMode === "fitp") setMode(ed.zoomMode);
+      });
+    }
 
     function attachPagePlacement(pageEl, pageNum) {
       pageEl.querySelector(".flayer").addEventListener("mousedown", function (e) {
