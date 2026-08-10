@@ -1,0 +1,151 @@
+<!--
+================================================================================
+
+   ██   ██ ██ ██████  ██████  ██    ██ ███████ ██   ██
+   ██  ██  ██ ██   ██ ██   ██ ██    ██ ██      ██   ██
+   █████   ██ ██   ██ ██   ██ ██    ██ ███████ ███████
+   ██  ██  ██ ██   ██ ██   ██ ██    ██      ██ ██   ██
+   ██   ██ ██ ██████  ██████   ██████  ███████ ██   ██
+
+                                              b y   l i n e a r
+================================================================================
+
+  You opened View Source instead of hitting refresh.
+  That was the whole test. You passed. You're invited.
+
+
+                                    בס"ד
+
+                       הננו להזמין בזה את ידידינו ומכירינו
+
+                        להשתתף בשמחתנו לרגל [ השמחה ]
+
+                                  קידוש רבה
+
+                        אי"ה בשב"ק פרשת [ ___ ] לאחר התפילה
+
+                              בביהמ"ד [ ___ ]
+
+                          בברכת שבתא טבא ובידידות
+
+                          חיים פרידמן ומשפחתו
+
+
+  --------------------------------------------------------------------------
+  HOST     Chaim Friedman — linear · Monroe, NY
+  WHAT     Kiddush
+  WHEN     [ SHABBOS PARSHAS ___ ], after davening
+  WHERE    [ ADDRESS ]
+  RSVP     chaim@linearit.co  ·  (845) 604-1462
+  --------------------------------------------------------------------------
+
+  Notes for the on-call:
+
+    - Cholent is monitored 24/7, not checked when something feels off.
+    - Kugel has a tested backup. Restore drill passed.
+    - Herring is end-of-life but still running in production.
+    - No tickets will be opened. No tickets will be closed.
+    - Uptime target at the bar: 99.9%.
+    - Avg first response to "pass the kichel": 15 min.
+
+  The page isn't down. You are.
+
+================================================================================
+
+
+                    (this comment is the invite —
+                     everything below it is just bait)
+
+
+================================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>500 — Internal Server Error</title>
+<link rel="stylesheet" href="/zurech3/assets/style.css">
+<style>
+  body {
+    margin: 0;
+    background: #ffffff;
+    color: #111;
+    font-family: "Times New Roman", Times, serif;
+  }
+  .topbar {
+    background: #0b1220;
+    padding: 14px 24px;
+  }
+  .topbar img {
+    height: 26px;
+    display: block;
+  }
+  .shell {
+    max-width: 640px;
+    margin: 12vh auto 0;
+    padding: 0 24px;
+  }
+  h1 {
+    font-size: 26px;
+    font-weight: normal;
+    margin: 0 0 6px;
+  }
+  hr {
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin: 14px 0 18px;
+  }
+  p {
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 0 0 14px;
+  }
+  .mono {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    color: #555;
+  }
+  .brokenimg {
+    display: block;
+    margin: 26px 0 0;
+    width: 180px;
+    height: 48px;
+  }
+  .ref {
+    margin-top: 40px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    color: #999;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <img src="https://www.linearit.co/zurech3/assets/logo-white.svg" alt="linear">
+</div>
+
+<div class="shell">
+  <h1>Internal Server Error</h1>
+  <hr>
+  <p>The server encountered an internal error or misconfiguration and was unable to complete your request.</p>
+  <p class="mono">GET /index.html — 500<br>Upstream: unreachable<br>Retry: automatic</p>
+
+  <img class="brokenimg" src="/zurech3/assets/icon.svg" alt="linear">
+
+  <div class="ref">
+    ref: 8f2a-e11c-4d90<br>
+    node: web-03<br>
+    ts: <span id="ts">--:--:--</span>
+  </div>
+</div>
+
+<script>
+  document.getElementById('ts').textContent = new Date().toISOString();
+  console.warn('[render] stylesheet /zurech3/assets/style.css failed to load — falling back');
+  console.warn('[render] asset /zurech3/assets/icon.svg 404');
+  console.info('%cnothing is actually down. check the source. — linear', 'color:#c47f00;font-size:13px;');
+</script>
+
+</body>
+</html>

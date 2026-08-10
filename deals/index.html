@@ -1,331 +1,421 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Affordable Home Office PC Setup | Linear Tech</title>
-  <meta name="description" content="Mini PC home office setup guide for everyday users and students. Recommended by Linear Tech." />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #f0f4f9; --card: #fff; --text: #111827; --muted: #526070;
-      --brand: #1a56db; --brand-dark: #1140a6; --brand-light: #e8f0fe;
-      --border: #dce4ef; --green: #059669; --r: 16px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Home Office Deals — The Complete Set | Linear IT</title>
+<meta name="description" content="A complete home-office PC setup, hand-picked by Linear. Grab the whole set in one click, or pick items individually." />
+<link rel="icon" href="/deals/assets/icon.png" />
+<link rel="canonical" href="https://www.linearit.co/deals/" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  /* ---- Linear IT brand palette (matches vault + time + sign) ---- */
+  :root,[data-theme="dark"]{
+    --bg:#0f1117; --bg2:#1a1d27; --panel:#181c2a; --panel2:#1e2235; --bg3:#222536;
+    --line:#2a2f45; --line2:#353b56;
+    --text:#eef0f6; --muted:#7c85a2; --faint:#4e5571;
+    --brand:#00b0ec; --brand-h:#009bd2; --brand2:#4fc3f0; --brandink:#fff;
+    --accent-bg:rgba(0,176,236,.16);
+    --green:#4ade80; --green-bg:rgba(74,222,128,.12);
+    --amber:#fbbf24; --amber-bg:rgba(251,191,36,.12); --red:#f87171; --red-bg:rgba(248,113,113,.12); --sky:#00b0ec;
+    --radius:14px; --shadow:0 8px 30px rgba(0,0,0,.45); --patop:.35;
+  }
+  [data-theme="light"]{
+    --bg:#f4f6fb; --bg2:#ffffff; --panel:#ffffff; --panel2:#f8f9fd; --bg3:#eef0f8;
+    --line:#dde1ee; --line2:#c8cee0;
+    --text:#1a1d2e; --muted:#5a6080; --faint:#9aa0bc;
+    --brand:#0091c9; --brand-h:#007cae; --brand2:#33a8d6; --brandink:#fff;
+    --accent-bg:rgba(0,145,201,.12);
+    --green:#16a34a; --green-bg:rgba(22,163,74,.08);
+    --amber:#d97706; --amber-bg:rgba(217,119,6,.1); --red:#dc2626; --red-bg:rgba(220,38,38,.08); --sky:#0091c9;
+    --radius:14px; --shadow:0 8px 30px rgba(0,0,0,.10); --patop:.5;
+  }
+  html,body{min-height:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:center/cover no-repeat url("/deals/assets/pattern.png");opacity:var(--patop)}
+  a{color:var(--brand);text-decoration:none}
+  a:hover{text-decoration:underline}
 
-    header {
-      background: linear-gradient(140deg, #0d2d6e 0%, #1a56db 60%, #2f7cf6 100%);
-      color: white; padding: 48px 24px 40px; text-align: center;
-    }
-    header h1 { font-family: 'DM Serif Display', serif; font-size: clamp(26px,5vw,46px); margin-bottom: 10px; }
-    header p { font-size: 16px; opacity: 0.9; max-width: 540px; margin: 0 auto; }
+  /* ---- Brand logo ---- */
+  .logo{display:flex;align-items:center;gap:11px}
+  .brandlogo{display:block;height:26px;width:89px;flex:none;
+    background:center/contain no-repeat url("/deals/assets/logo-white.png")}
+  [data-theme="light"] .brandlogo{background-image:url("/deals/assets/logo-dark.png")}
+  .brandtag{font-size:15px;font-weight:700;color:var(--muted);padding-left:11px;margin-left:1px;border-left:1px solid var(--line2)}
 
-    main { width: min(1060px, calc(100% - 32px)); margin: 28px auto 60px; }
+  /* ---- Top bar ---- */
+  header.top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+    padding:12px 20px;background:rgba(26,29,39,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  [data-theme="light"] header.top{background:rgba(255,255,255,.82)}
+  .spacer{flex:1}
+  .top .contact{color:var(--muted);font-size:13.5px;font-weight:600}
+  .top .contact:hover{color:var(--text);text-decoration:none}
 
-    .disclosure {
-      background: #fffbeb; border: 1px solid #f8d66d; border-radius: 10px;
-      padding: 12px 16px; font-size: 13px; color: #78530a; margin-bottom: 24px;
-    }
+  /* ---- Hero ---- */
+  .hero{max-width:1080px;margin:0 auto;padding:52px 20px 8px;text-align:center}
+  .hero .eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--brand);background:var(--accent-bg);padding:6px 14px;border-radius:999px;margin-bottom:18px}
+  .hero h1{font-size:clamp(30px,5.5vw,46px);letter-spacing:-.025em;line-height:1.1;margin:0 0 14px}
+  .hero p{color:var(--muted);font-size:17px;max-width:600px;margin:0 auto}
 
-    /* intro strip */
-    .intro {
-      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
-      padding: 24px 28px; margin-bottom: 24px;
-      box-shadow: 0 4px 18px rgba(15,40,90,0.06);
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
-    }
-    .intro-text h2 { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 8px; }
-    .intro-text p { color: var(--muted); font-size: 15px; }
-    .fit-box { border-radius: 10px; padding: 14px 16px; }
-    .fit-box.good { background: #ecfdf5; border: 1px solid #a7f3d0; }
-    .fit-box.not  { background: #fff1f1; border: 1px solid #fecaca; }
-    .fit-label { font-weight: 700; font-size: 14px; margin-bottom: 5px; }
-    .fit-box.good .fit-label { color: #065f46; }
-    .fit-box.not  .fit-label { color: #991b1b; }
-    .fit-box p { color: var(--muted); font-size: 14px; }
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 20px 70px}
 
-    /* products */
-    h2.sec { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 16px; }
+  /* ---- Disclosure ---- */
+  .disclosure{display:flex;gap:10px;align-items:flex-start;background:var(--amber-bg);border:1px solid rgba(251,191,36,.35);
+    border-radius:12px;padding:12px 16px;font-size:13px;color:var(--text);margin-bottom:28px}
+  .disclosure b{color:var(--amber)}
 
-    .products {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-    }
-    .product-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
-      padding: 20px; box-shadow: 0 4px 14px rgba(15,40,90,0.05);
-      display: flex; flex-direction: column;
-      transition: box-shadow 0.2s, transform 0.2s;
-    }
-    .product-card:hover { box-shadow: 0 8px 28px rgba(26,86,219,0.12); transform: translateY(-2px); }
-    .ptag {
-      background: var(--brand-light); color: var(--brand-dark);
-      border-radius: 999px; padding: 4px 11px; font-size: 11px;
-      font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
-      margin-bottom: 10px; width: fit-content;
-    }
+  /* ---- Section heads ---- */
+  .sec-head{margin:0 0 6px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .sec-head h2{font-size:24px;letter-spacing:-.02em;margin:0}
+  .sec-sub{color:var(--muted);font-size:15px;margin:0 0 20px}
 
-    /* Enterprise card override */
-    .product-card.enterprise {
-      background: linear-gradient(145deg, #0d2d6e 0%, #1a56db 100%);
-      border: 1px solid #1140a6;
-      color: white;
-    }
-    .product-card.enterprise h3 { color: white; }
-    .product-card.enterprise p { color: rgba(255,255,255,0.82); }
-    .product-card.enterprise .ptag {
-      background: rgba(255,255,255,0.15); color: #fff;
-    }
-    .product-card.enterprise:hover { box-shadow: 0 8px 28px rgba(13,45,110,0.35); }
-    .btn-enterprise {
-      display: block; background: white; color: var(--brand-dark);
-      text-align: center; text-decoration: none; font-weight: 700; font-size: 14px;
-      padding: 11px; border-radius: 9px; transition: background 0.15s; margin-top: auto;
-    }
-    .btn-enterprise:hover { background: #e8f0fe; }
+  /* ---- Complete Set feature ---- */
+  .set{background:var(--panel);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);
+    overflow:hidden;margin-bottom:16px}
+  .set-top{position:relative;padding:26px 28px;border-bottom:1px solid var(--line);
+    background:linear-gradient(135deg,rgba(0,176,236,.14),rgba(0,176,236,.02))}
+  .set-top .badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--brand);margin-bottom:10px}
+  .set-top h3{font-size:24px;letter-spacing:-.02em;margin:0 0 6px}
+  .set-top p{color:var(--muted);font-size:15px;max-width:640px;margin:0}
 
-    .product-card h3 { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 6px; }
-    .product-card p { color: var(--muted); font-size: 14px; flex: 1; margin-bottom: 14px; }
-    .btn {
-      display: block; background: var(--brand); color: white;
-      text-align: center; text-decoration: none; font-weight: 700; font-size: 14px;
-      padding: 11px; border-radius: 9px; transition: background 0.15s; margin-top: auto;
-    }
-    .btn:hover { background: var(--brand-dark); }
+  .set-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+  .set-item{padding:20px 22px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0}
+  .set-item:nth-child(3n){border-right:none}
+  .set-num{font-size:12px;font-weight:700;color:var(--faint)}
+  .set-item .emoji{font-size:22px;margin:6px 0 8px}
+  .tested{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.03em;
+    color:var(--green);background:var(--green-bg);border:1px solid rgba(74,222,128,.3);
+    padding:3px 9px;border-radius:999px;width:fit-content;margin-bottom:8px}
+  .set-item h4{font-size:16px;margin:0 0 4px}
+  .set-item p{color:var(--muted);font-size:13.5px;flex:1;margin:0 0 14px}
+  .ilink{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--brand);margin-top:auto}
+  .ilink:hover{color:var(--brand-h);text-decoration:none}
 
-    .it-note {
-      margin-top: 24px; background: var(--card); border: 1px solid var(--border);
-      border-left: 4px solid var(--brand); border-radius: var(--r);
-      padding: 18px 22px; color: var(--muted); font-size: 14px;
-    }
-    .it-note strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 15px; }
+  /* ---- Set footer (CTA + headset add-on) ---- */
+  .set-foot{padding:24px 28px;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center}
+  .set-cta h4{font-size:18px;margin:0 0 4px}
+  .set-cta p{color:var(--muted);font-size:13.5px;margin:0 0 14px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line2);
+    background:var(--panel2);color:var(--text);padding:12px 20px;border-radius:11px;font-weight:700;font-size:15px;
+    cursor:pointer;transition:.15s;text-align:center}
+  .btn:hover{border-color:var(--brand);background:var(--bg3);text-decoration:none}
+  .btn.primary{background:var(--brand);border-color:transparent;color:#fff;width:100%}
+  .btn.primary:hover{background:var(--brand-h)}
+  .btn.block{width:100%}
 
-    /* extras toggle */
-    .extras-toggle {
-      margin-top: 28px; width: 100%; background: var(--card);
-      border: 1px solid var(--border); border-radius: var(--r);
-      padding: 18px 22px; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between;
-      box-shadow: 0 4px 14px rgba(15,40,90,0.05);
-      transition: box-shadow 0.2s;
-    }
-    .extras-toggle:hover { box-shadow: 0 6px 22px rgba(26,86,219,0.1); }
-    .extras-toggle-left { display: flex; align-items: center; gap: 12px; }
-    .extras-toggle-left span { font-family: 'DM Serif Display', serif; font-size: 19px; color: var(--text); }
-    .extras-toggle-left small { font-size: 13px; color: var(--muted); }
-    .chevron { font-size: 18px; color: var(--brand); transition: transform 0.3s; }
-    .chevron.open { transform: rotate(180deg); }
+  .addon{background:var(--bg2);border:1px dashed var(--line2);border-radius:14px;padding:18px 20px}
+  .addon .ah{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .addon .ah .ico{font-size:22px}
+  .addon .ah .t{font-weight:700;font-size:15px}
+  .addon .ah .opt{margin-left:auto;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--brand);background:var(--accent-bg);padding:3px 9px;border-radius:999px}
+  .addon p{color:var(--muted);font-size:13px;margin:0 0 12px}
 
-    .extras-body {
-      display: none; margin-top: 16px;
-    }
-    .extras-body.open { display: block; }
+  .set-note{color:var(--faint);font-size:12.5px;text-align:center;margin:4px 0 32px}
 
-    footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
-    footer a { color: var(--brand); text-decoration: none; }
+  /* ---- Info cards row ---- */
+  .info{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:36px}
+  .fit{border-radius:14px;padding:16px 18px;border:1px solid}
+  .fit.good{background:var(--green-bg);border-color:rgba(74,222,128,.3)}
+  .fit.not{background:var(--red-bg);border-color:rgba(248,113,113,.3)}
+  .fit .lab{font-weight:700;font-size:14px;margin-bottom:5px}
+  .fit.good .lab{color:var(--green)}
+  .fit.not .lab{color:var(--red)}
+  .fit p{color:var(--muted);font-size:13.5px;margin:0}
 
-    @media (max-width: 820px) { .products { grid-template-columns: repeat(2,1fr); } }
-    @media (max-width: 560px) {
-      .intro { grid-template-columns: 1fr; }
-      .products { grid-template-columns: 1fr; }
-    }
-  </style>
+  /* ---- Generic product grid (Go / Extras) ---- */
+  .products{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;transition:.18s}
+  .card:hover{border-color:var(--brand);transform:translateY(-2px)}
+  .tag{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);color:var(--muted);border-radius:999px;
+    padding:4px 11px;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    margin-bottom:10px;width:fit-content}
+  .card h3{font-size:17px;margin:0 0 6px}
+  .card p{color:var(--muted);font-size:13.5px;flex:1;margin:0 0 14px}
+  .card .btn{width:100%;font-size:14px;padding:10px 14px}
+  .subbtns{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+  .subbox{border:1px solid var(--line);border-radius:11px;padding:10px 12px}
+  .subbox .sl{font-weight:700;font-size:12.5px;color:var(--text);margin-bottom:8px}
+
+  /* ---- Enterprise strip ---- */
+  .enterprise{margin-top:16px;background:linear-gradient(135deg,#0a2540,#0f1117);border:1px solid var(--line2);
+    border-radius:16px;padding:24px 28px;display:flex;align-items:center;gap:24px;box-shadow:var(--shadow)}
+  .enterprise .etxt{flex:1}
+  .enterprise .tag{background:rgba(0,176,236,.2);color:var(--brand2)}
+  .enterprise h3{font-size:20px;margin:0 0 6px}
+  .enterprise p{color:var(--muted);font-size:14px;margin:0}
+  .enterprise .btn{white-space:nowrap;background:var(--brand);border-color:transparent;color:#fff}
+  .enterprise .btn:hover{background:var(--brand-h)}
+
+  /* ---- IT note ---- */
+  .it-note{margin-top:32px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--brand);
+    border-radius:var(--radius);padding:18px 22px;color:var(--muted);font-size:14px}
+  .it-note strong{color:var(--text);display:block;margin-bottom:4px;font-size:15px}
+
+  /* ---- Extras toggle ---- */
+  .extras-toggle{margin-top:28px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 22px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+    box-shadow:var(--shadow);transition:.18s}
+  .extras-toggle:hover{border-color:var(--brand)}
+  .etl{display:flex;align-items:center;gap:12px}
+  .etl span{font-size:18px;font-weight:700;color:var(--text)}
+  .etl small{font-size:13px;color:var(--muted)}
+  .chevron{font-size:16px;color:var(--brand);transition:transform .3s}
+  .chevron.open{transform:rotate(180deg)}
+  .extras-body{display:none;margin-top:16px}
+  .extras-body.open{display:block}
+
+  footer{text-align:center;padding:28px 20px 40px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line)}
+  footer a{color:var(--brand)}
+
+  @media(max-width:860px){
+    .set-grid{grid-template-columns:repeat(2,1fr)}
+    .set-item:nth-child(3n){border-right:1px solid var(--line)}
+    .set-item:nth-child(2n){border-right:none}
+    .products{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:600px){
+    .set-grid{grid-template-columns:1fr}
+    .set-item,.set-item:nth-child(3n),.set-item:nth-child(2n){border-right:none}
+    .set-foot{grid-template-columns:1fr}
+    .info{grid-template-columns:1fr}
+    .products{grid-template-columns:1fr}
+    .enterprise{flex-direction:column;align-items:flex-start}
+  }
+</style>
 </head>
 <body>
 
-<header>
-  <h1>Affordable Home Office PC Setup</h1>
-  <p>PC prices went up. A mini PC is still a smart buy for everyday home and office use.</p>
+<header class="top">
+  <a href="https://www.linearit.co/" class="logo" aria-label="Linear IT">
+    <span class="brandlogo"></span><span class="brandtag">Deals</span>
+  </a>
+  <span class="spacer"></span>
+  <a class="contact" href="https://www.linearit.co/#contact">Contact&nbsp;→</a>
 </header>
 
-<main>
+<section class="hero">
+  <span class="eyebrow">Hand-picked by Linear</span>
+  <h1>The Complete Home-Office Set</h1>
+  <p>Everything you need for a clean, fast desk setup — picked by our techs. Grab the whole set in one click, or pick items on their own.</p>
+</section>
+
+<main class="wrap">
 
   <div class="disclosure">
-    <strong>Affiliate Disclosure:</strong> As an Amazon Associate, I earn from qualifying purchases. This does not change the price you pay.
+    <span>💡</span>
+    <div><b>Affiliate disclosure:</b> As an Amazon Associate, Linear IT earns from qualifying purchases. This never changes the price you pay.</div>
   </div>
 
-  <div class="intro">
-    <div class="intro-text">
-      <h2>Why a Mini PC?</h2>
-      <p>For email, browsing, Zoom, Office, and basic work — you don't need a big expensive tower. A mini PC with 16GB RAM and an SSD runs clean and fast for a lot less money.</p>
+  <!-- ============ COMPLETE SET ============ -->
+  <div class="sec-head"><h2>The Complete Set</h2></div>
+  <p class="sec-sub">Six pieces that cover a full home-office workstation.</p>
+
+  <div class="set">
+    <div class="set-top">
+      <div class="badge">⭐ Everything you need · 6 items</div>
+      <h3>Home-Office Workstation Bundle</h3>
+      <p>A mini PC with 16GB RAM and an SSD, a sharp 1080p monitor, wireless keyboard &amp; mouse, plus the cables and surge protection that tie it all together.</p>
     </div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div class="fit-box good">
-        <div class="fit-label">✅ Good for</div>
-        <p>Email, web, Office, Zoom, printing, students, home & basic office users.</p>
+
+    <div class="set-grid">
+      <div class="set-item">
+        <div class="set-num">01</div>
+        <div class="emoji">💻</div>
+        <span class="tested">✓ Tech-tested</span>
+        <h4>Mini PC</h4>
+        <p>16GB RAM + SSD. Small, quiet, and quick for email, Office, browsing, and Zoom.</p>
+        <a class="ilink" href="https://amzn.to/4g1gEv1" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
       </div>
-      <div class="fit-box not">
-        <div class="fit-label">✗ Not for</div>
-        <p>Gaming, video editing, AutoCAD, or heavy graphics work.</p>
+      <div class="set-item">
+        <div class="set-num">02</div>
+        <div class="emoji">🖥️</div>
+        <h4>24" Monitor</h4>
+        <p>Crisp 1080p FHD display that's easy on the eyes for docs, email, and calls.</p>
+        <a class="ilink" href="https://amzn.to/4g3nAIa" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </div>
+      <div class="set-item">
+        <div class="set-num">03</div>
+        <div class="emoji">⌨️</div>
+        <h4>Keyboard &amp; Mouse</h4>
+        <p>Wireless combo that keeps the desk clean and stays comfortable all day.</p>
+        <a class="ilink" href="https://amzn.to/4g1ZeyB" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </div>
+      <div class="set-item">
+        <div class="set-num">04</div>
+        <div class="emoji">🔌</div>
+        <h4>DisplayPort → HDMI Cable</h4>
+        <p>Connects the mini PC to your monitor in sharp 4K. No guessing which cable you need.</p>
+        <a class="ilink" href="https://amzn.to/4hlHjoQ" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </div>
+      <div class="set-item">
+        <div class="set-num">05</div>
+        <div class="emoji">⚡</div>
+        <h4>Surge Protector</h4>
+        <p>One power spike can kill the whole setup. Cheap insurance — don't skip it.</p>
+        <a class="ilink" href="https://amzn.to/4bC62l9" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </div>
+      <div class="set-item">
+        <div class="set-num">06</div>
+        <div class="emoji">🌐</div>
+        <h4>Ethernet Cable</h4>
+        <p>Wired beats Wi-Fi for Zoom, updates, and printing. Simple and rock-solid.</p>
+        <a class="ilink" href="https://amzn.to/4whePQQ" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      </div>
+    </div>
+
+    <div class="set-foot">
+      <div class="set-cta">
+        <h4>Add the whole set to your cart</h4>
+        <p>One click drops all six items into your Amazon cart. Remove anything you already have before checkout.</p>
+        <a class="btn primary" href="https://www.amazon.com/gp/aws/cart/add.html?AssociateTag=linearit200a-20&ASIN.1=B0D6G965BC&Quantity.1=1&ASIN.2=B0CF2D2XSG&Quantity.2=1&ASIN.3=B079JLY5M5&Quantity.3=1&ASIN.4=B017Q8ZX1O&Quantity.4=1&ASIN.5=B08MTBCXWX&Quantity.5=1&ASIN.6=B00N2VIWPY&Quantity.6=1" target="_blank" rel="nofollow sponsored noopener">🛒 Add all 6 to Amazon cart →</a>
+      </div>
+
+      <div class="addon">
+        <div class="ah">
+          <span class="ico">🎧</span>
+          <span class="t">Add a Headset</span>
+          <span class="tested" style="margin-bottom:0">✓ Tech-tested</span>
+          <span class="opt">Optional</span>
+        </div>
+        <p>Clearer mic and less background noise for Zoom, Teams, and support calls. Want it in the bundle? Add the set plus a headset in one click.</p>
+        <a class="btn block" href="https://www.amazon.com/gp/aws/cart/add.html?AssociateTag=linearit200a-20&ASIN.1=B0D6G965BC&Quantity.1=1&ASIN.2=B0CF2D2XSG&Quantity.2=1&ASIN.3=B079JLY5M5&Quantity.3=1&ASIN.4=B017Q8ZX1O&Quantity.4=1&ASIN.5=B08MTBCXWX&Quantity.5=1&ASIN.6=B00N2VIWPY&Quantity.6=1&ASIN.7=B0C48K99FS&Quantity.7=1" target="_blank" rel="nofollow sponsored noopener">🛒 Add set + headset →</a>
+        <div style="margin-top:8px;text-align:center">
+          <a class="ilink" href="https://amzn.to/45PtS9B" target="_blank" rel="nofollow sponsored noopener" style="font-size:12.5px">Just the headset →</a>
+        </div>
       </div>
     </div>
   </div>
+  <p class="set-note">Prices and availability are set by Amazon and may change at any time. Adding to cart doesn't purchase anything.</p>
 
-  <h2 class="sec">Everything You Need — 6 Items</h2>
-
-  <section class="products">
-
-    <article class="product-card">
-      <span class="ptag">💻 Computer</span>
-      <h3>Mini PC</h3>
-      <p>Look for 16GB RAM + SSD. Small footprint, quiet, and fast enough for any everyday task.</p>
-      <a class="btn" href="https://www.amazon.com/Beelink-SER5-Computer-Graphics-Support/dp/B0D6G965BC?tag=linearit200a-20&linkCode=ll2&linkId=efba37dfc54769828d04fb4bfefb7c27&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
-    </article>
-
-    <article class="product-card">
-      <span class="ptag">🖥️ Display</span>
-      <h3>Monitor</h3>
-      <p>24–27" 1080p IPS. Easy on the eyes, great for docs and video calls.</p>
-      <a class="btn" href="https://www.amazon.com/KOORUI-Business-Computer-Monitor-Display/dp/B09VD9P2Q3?tag=linearit200a-20&linkCode=ll2&linkId=c96c04b0c2828507aff587321f2fa245&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
-    </article>
-
-    <article class="product-card">
-      <span class="ptag">⌨️ Input</span>
-      <h3>Keyboard & Mouse</h3>
-      <p>Wireless combo keeps the desk clean. Comfortable for all-day typing.</p>
-      <a class="btn" href="https://www.amazon.com/Logitech-Wireless-Keyboard-SilentTouch-Technology/dp/B089KV4YYX?tag=linearit200a-20&linkCode=ll2&linkId=c96c04b0c2828507aff587321f2fa245&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
-    </article>
-
-    <article class="product-card">
-      <span class="ptag">⚡ Protection</span>
-      <h3>Surge Protector</h3>
-      <p>One power spike can kill your whole setup. This is cheap insurance. Don't skip it.</p>
-      <a class="btn" href="https://www.amazon.com/Yintar-Protector-Outlets-Extension-Essentials/dp/B08MTBCXWX?tag=linearit200a-20&linkCode=ll2&linkId=b33c95f264031fa43056d1402f8ffaec&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
-    </article>
-
-    <article class="product-card">
-      <span class="ptag">🌐 Internet</span>
-      <h3>Ethernet Cable</h3>
-      <p>Wired beats Wi-Fi for Zoom, updates, and network printing. Simple and reliable.</p>
-      <a class="btn" href="https://www.amazon.com/Amazon-Basics-Ethernet-Internet-Meters/dp/B00N2VIALK?tag=linearit200a-20&linkCode=ll2&linkId=8652187d930fc9dca723ad75304dc808&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
-    </article>
-
-    <article class="product-card">
-      <span class="ptag">🎧 Calls</span>
-      <h3>Headset</h3>
-      <p>Better mic pickup and less background noise for Zoom, Teams, and support calls.</p>
-      <a class="btn" href="https://www.amazon.com/Bluetooth-Wireless-Microphone-Computer-Cancelling/dp/B0C48K99FS?tag=linearit200a-20&linkCode=ll2&linkId=7e36523d22cf8dbf8f7dd90e286539d9&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
-    </article>
-
-  </section>
-
-  <!-- BUSINESS GRADE CARD — full width below the 6-item grid -->
-  <div style="margin-top:16px;">
-    <article class="product-card enterprise" style="flex-direction:row;align-items:center;gap:24px;padding:22px 28px;">
-      <div style="flex:1;">
-        <span class="ptag">🖥️ Business Grade</span>
-        <h3 style="font-size:20px;margin-bottom:6px;">Professional Workstations</h3>
-        <p style="margin-bottom:0;">In-stock business-grade computers, or we'll configure one specifically for your needs. Contact us and we'll take care of you.</p>
-      </div>
-      <a class="btn-enterprise" href="https://www.linearit.co/#contact" style="white-space:nowrap;padding:11px 22px;width:auto;">Contact Our Team →</a>
-    </article>
+  <!-- ============ WHY / FIT ============ -->
+  <div class="sec-head"><h2>Is this setup right for you?</h2></div>
+  <p class="sec-sub">For everyday work you don't need a big, expensive tower. A mini PC with 16GB RAM and an SSD runs clean and fast for a lot less.</p>
+  <div class="info">
+    <div class="fit good">
+      <div class="lab">✅ Great for</div>
+      <p>Email, web, Office, Zoom, printing — students, home users, and basic office work.</p>
+    </div>
+    <div class="fit not">
+      <div class="lab">✗ Not for</div>
+      <p>Gaming, video editing, AutoCAD, or heavy graphics work.</p>
+    </div>
   </div>
 
-  <!-- WORK ON THE GO SECTION -->
-  <h2 class="sec" style="margin-top:32px;">Work on the Go</h2>
-  <p style="color:var(--muted);font-size:15px;margin-bottom:16px;margin-top:-10px;">For when the office isn't an option.</p>
-  <section class="products" style="grid-template-columns:repeat(2,1fr);">
+  <!-- ============ BUSINESS GRADE ============ -->
+  <div class="enterprise">
+    <div class="etxt">
+      <span class="tag">🖥️ Business Grade</span>
+      <h3>Need something more powerful?</h3>
+      <p>In-stock business-grade computers, or we'll configure one built specifically for your needs. Contact us and we'll take care of you.</p>
+    </div>
+    <a class="btn" href="https://www.linearit.co/#contact">Contact our team →</a>
+  </div>
 
-    <article class="product-card">
-      <span class="ptag">💻 Laptop</span>
+  <!-- ============ WORK ON THE GO ============ -->
+  <div class="sec-head" style="margin-top:40px"><h2>Work on the Go</h2></div>
+  <p class="sec-sub">For when the office isn't an option.</p>
+  <section class="products" style="grid-template-columns:repeat(2,1fr)">
+    <article class="card">
+      <span class="tag">💻 Laptop</span>
       <h3>Laptop</h3>
-      <p style="margin-bottom:10px;">Thin, light, and capable — for email, Office, and Zoom wherever you are.</p>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto;">
-        <div style="border:1px solid var(--border);border-radius:9px;padding:10px 12px;">
-          <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:6px;">Like-New · Budget Pick</div>
-          <a class="btn" href="https://www.amazon.com/dp/B0G2M1X3L9?&linkCode=ll2&tag=linearit200a-20&linkId=d7073fe4989a5184168011c1a6b8cc46&language=en_US&ref_=as_li_ss_tl" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      <p>Thin, light, and capable — for email, Office, and Zoom wherever you are.</p>
+      <div class="subbtns">
+        <div class="subbox">
+          <div class="sl">Like-New · Budget Pick</div>
+          <a class="btn block" href="https://www.amazon.com/dp/B0G2M1X3L9?&linkCode=ll2&tag=linearit200a-20&linkId=d7073fe4989a5184168011c1a6b8cc46&language=en_US&ref_=as_li_ss_tl" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
         </div>
-        <div style="border:1px solid var(--border);border-radius:9px;padding:10px 12px;">
-          <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:6px;">Brand New · Higher-End</div>
-          <a class="btn" href="https://www.amazon.com/acer-AG15-21PT-R641-Dedicated-Graphics-Streaming/dp/B0FGBWHNCW?crid=12XF5HGYXLWNN&dib=eyJ2IjoiMSJ9.Cei9MFQ81L5ZNxlbRAwER_2ded9GmrYBuQi00FRbvP9ysOTbfT4va5r-9idQS9PUjhH9DjDnbO95FdCh8yRY9Rh-UhALqKNb76cYnFIV42g0l_B-05LgasGkVpaP7EVgOmvPs4KB6hFnKiTTmlG7zNSYV_banJScacvz0hUdWLJwP0dGSgJIGfckWu-U9eunWINhHz1bYcRDi0MNc2hrreViV1CtlC_KxenefYdDX0J9iZWU56sw-wY9YFp29ev_cpxXNn8XLBgtmsbf-OteeSX5BiMMseAsa4iHoHuyAFc.x-udp2zSL79eUirhhJ57Cd4y7_kfHby8w-tz5ehC7Xc&dib_tag=se&keywords=laptops&qid=1781127069&refinements=p_36%3A34000-92000%2Cp_n_g-1003119721111%3A23720418011%2Cp_n_g-1004198069091%3A23724789011%7C23724790011%2Cp_n_condition-type%3A2224371011%2Cp_n_g-1003409261111%3A24044944011%7C24044950011%2Cp_n_g-101015495581111%3A122269950011%7C122269952011%7C122269957011%2Cp_n_g-1004235078091%3A14292273011&rnid=85457740011&sprefix=laptops%2Caps%2C194&sr=8-5&linkCode=ll2&tag=linearit200a-20&linkId=c605da21d64a587d60b2bb4e7d81f1d2&language=en_US&ref_=as_li_ss_tl" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+        <div class="subbox">
+          <div class="sl">Brand New · Higher-End</div>
+          <a class="btn block" href="https://www.amazon.com/acer-AG15-21PT-R641-Dedicated-Graphics-Streaming/dp/B0FGBWHNCW?crid=12XF5HGYXLWNN&dib=eyJ2IjoiMSJ9.Cei9MFQ81L5ZNxlbRAwER_2ded9GmrYBuQi00FRbvP9ysOTbfT4va5r-9idQS9PUjhH9DjDnbO95FdCh8yRY9Rh-UhALqKNb76cYnFIV42g0l_B-05LgasGkVpaP7EVgOmvPs4KB6hFnKiTTmlG7zNSYV_banJScacvz0hUdWLJwP0dGSgJIGfckWu-U9eunWINhHz1bYcRDi0MNc2hrreViV1CtlC_KxenefYdDX0J9iZWU56sw-wY9YFp29ev_cpxXNn8XLBgtmsbf-OteeSX5BiMMseAsa4iHoHuyAFc.x-udp2zSL79eUirhhJ57Cd4y7_kfHby8w-tz5ehC7Xc&dib_tag=se&keywords=laptops&qid=1781127069&refinements=p_36%3A34000-92000%2Cp_n_g-1003119721111%3A23720418011%2Cp_n_g-1004198069091%3A23724789011%7C23724790011%2Cp_n_condition-type%3A2224371011%2Cp_n_g-1003409261111%3A24044944011%7C24044950011%2Cp_n_g-101015495581111%3A122269950011%7C122269952011%7C122269957011%2Cp_n_g-1004235078091%3A14292273011&rnid=85457740011&sprefix=laptops%2Caps%2C194&sr=8-5&linkCode=ll2&tag=linearit200a-20&linkId=c605da21d64a587d60b2bb4e7d81f1d2&language=en_US&ref_=as_li_ss_tl" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
         </div>
       </div>
     </article>
-
-    <article class="product-card">
-      <span class="ptag">🎒 Carry</span>
+    <article class="card">
+      <span class="tag">🎒 Carry</span>
       <h3>Laptop Case</h3>
       <p>Padded and water-repellent, fits up to 15.6". Keeps your gear protected on the move.</p>
-      <a class="btn" href="https://www.amazon.com/Lenovo-Carrying-15-6-Inch-Water-Repellent-GX40Q17231/dp/B075Y73SDV?crid=3LH8UC95RW2Y6&dib=eyJ2IjoiMSJ9.JWCVHAQyWEvgcE2zlnH1_DK_pVoUwSDX1ALS3EDD6jwUXYSnJYAGIQ-uySTC-g3uDzz0Yp5m-8AwiVZNJ_V8NMd27_Sx63MDxUHwt9vZx7yJd8qpRDXDDQ95Dcs-S25Vr_oA5GO1YPWY1enfLF2WaTCHWNU6LzdPeIB0lCr1o0R7nVoDUjIy_BYZb0kcMtzCKMEK3TY_Q3QHKD1O92KrI70lpx_7Lz5vstURdc_kgUI.XKLOTTW_Il9apPxKjKosErBWmbRAWfld7uB3saMZHto&dib_tag=se&keywords=15.6%2Blaptop%2Bcase&qid=1781106915&sprefix=laptop%2Bcase%2Caps%2C195&sr=8-4&th=1&psc=1&linkCode=ll2&tag=linearit200a-20&linkId=cd983c47f4d2cff9aad8585bac5ed1ac&language=en_US&ref_=as_li_ss_tl" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+      <a class="btn block" href="https://www.amazon.com/Lenovo-Carrying-15-6-Inch-Water-Repellent-GX40Q17231/dp/B075Y73SDV?crid=3LH8UC95RW2Y6&dib=eyJ2IjoiMSJ9.JWCVHAQyWEvgcE2zlnH1_DK_pVoUwSDX1ALS3EDD6jwUXYSnJYAGIQ-uySTC-g3uDzz0Yp5m-8AwiVZNJ_V8NMd27_Sx63MDxUHwt9vZx7yJd8qpRDXDDQ95Dcs-S25Vr_oA5GO1YPWY1enfLF2WaTCHWNU6LzdPeIB0lCr1o0R7nVoDUjIy_BYZb0kcMtzCKMEK3TY_Q3QHKD1O92KrI70lpx_7Lz5vstURdc_kgUI.XKLOTTW_Il9apPxKjKosErBWmbRAWfld7uB3saMZHto&dib_tag=se&keywords=15.6%2Blaptop%2Bcase&qid=1781106915&sprefix=laptop%2Bcase%2Caps%2C195&sr=8-4&th=1&psc=1&linkCode=ll2&tag=linearit200a-20&linkId=cd983c47f4d2cff9aad8585bac5ed1ac&language=en_US&ref_=as_li_ss_tl" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
     </article>
-
   </section>
 
   <div class="it-note">
     <strong>🔧 My IT take</strong>
-    The goal isn't the most powerful PC — it's the right one. 16GB RAM, SSD, good monitor, surge protection. That's all most people actually need.
+    The goal isn't the most powerful PC — it's the right one. 16GB RAM, an SSD, a good monitor, and surge protection cover what most people actually need.
   </div>
 
-  <!-- EXPANDABLE EXTRAS -->
+  <!-- ============ OPTIONAL EXTRAS ============ -->
   <div class="extras-toggle" onclick="toggleExtras()" id="extrasToggle">
-    <div class="extras-toggle-left">
+    <div class="etl">
       <span>➕ Optional Extras</span>
-      <small>Webcam, USB hub, backup drive &amp; more — click to expand</small>
+      <small>Webcam, USB hub, backup drive &amp; more — tap to expand</small>
     </div>
     <span class="chevron" id="chevron">▼</span>
   </div>
 
   <div class="extras-body" id="extrasBody">
-    <section class="products" style="margin-top:16px;">
-
-      <article class="product-card">
-        <span class="ptag">📷 Video</span>
+    <section class="products" style="margin-top:16px">
+      <article class="card">
+        <span class="tag">📷 Video</span>
         <h3>Webcam</h3>
-        <p>Most mini PCs don't have a built-in camera. A USB webcam is a must for Zoom and Teams calls.</p>
-        <a class="btn" href="https://www.amazon.com/AOC-Microphone-Cancellation-Streaming-Conferencing/dp/B0FQ57MYVH?tag=linearit200a-20&linkCode=ll2&linkId=c1870a691931a1923002ccec0bd3d2b8&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+        <p>Most mini PCs have no built-in camera. A USB webcam is a must for Zoom and Teams.</p>
+        <a class="btn block" href="https://www.amazon.com/AOC-Microphone-Cancellation-Streaming-Conferencing/dp/B0FQ57MYVH?tag=linearit200a-20&linkCode=ll2&linkId=c1870a691931a1923002ccec0bd3d2b8&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
       </article>
-
-      <article class="product-card">
-        <span class="ptag">🔌 Ports</span>
+      <article class="card">
+        <span class="tag">🔌 Ports</span>
         <h3>USB Hub</h3>
-        <p>Mini PCs have limited ports. A USB hub lets you plug in everything — drives, headsets, chargers.</p>
-        <a class="btn" href="https://www.amazon.com/Amazon-Basics-10Gbps-1xUSB-C-Windows/dp/B0CG53LVZB?tag=linearit200a-20&linkCode=ll2&linkId=fc7d38800827f47cde297812ad2951b9&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+        <p>Mini PCs have limited ports. A hub lets you plug in drives, headsets, and chargers.</p>
+        <a class="btn block" href="https://www.amazon.com/Amazon-Basics-10Gbps-1xUSB-C-Windows/dp/B0CG53LVZB?tag=linearit200a-20&linkCode=ll2&linkId=fc7d38800827f47cde297812ad2951b9&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
       </article>
-
-      <article class="product-card">
-        <span class="ptag">💾 Backup</span>
+      <article class="card">
+        <span class="tag">💾 Backup</span>
         <h3>External Hard Drive</h3>
-        <p>Keep a backup of your important files. One drive can save you from losing everything if something goes wrong.</p>
-        <a class="btn" href="https://www.amazon.com/SanDisk-1TB-Extreme-Portable-SDSSDE61-1T00-G25/dp/B08GTYFC37?tag=linearit200a-20&linkCode=ll2&linkId=1aa50156b80049a6f11e11b3312e4cff&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+        <p>Keep a backup of your important files. One drive can save you from losing everything.</p>
+        <a class="btn block" href="https://www.amazon.com/SanDisk-1TB-Extreme-Portable-SDSSDE61-1T00-G25/dp/B08GTYFC37?tag=linearit200a-20&linkCode=ll2&linkId=1aa50156b80049a6f11e11b3312e4cff&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
       </article>
-
-      <article class="product-card">
-        <span class="ptag">🖨️ Print</span>
+      <article class="card">
+        <span class="tag">🖨️ Print</span>
         <h3>Wireless Printer</h3>
         <p>Print from anywhere on your network. Great for home offices, documents, and forms.</p>
-        <a class="btn" href="https://www.amazon.com/Brother-DCP-L2640DW-Multi-Function-Subscription-Replenishment/dp/B0CPLFTPCV?tag=linearit200a-20&linkCode=ll2&linkId=62da5ab59803ee856686b076ed535bc4&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+        <a class="btn block" href="https://www.amazon.com/Brother-DCP-L2640DW-Multi-Function-Subscription-Replenishment/dp/B0CPLFTPCV?tag=linearit200a-20&linkCode=ll2&linkId=62da5ab59803ee856686b076ed535bc4&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
       </article>
-
-      <article class="product-card">
-        <span class="ptag">🔋 Power</span>
+      <article class="card">
+        <span class="tag">🔋 Power</span>
         <h3>UPS Battery Backup</h3>
-        <p>Keeps your PC running during a power outage so you don't lose unsaved work. A smart IT investment.</p>
-        <a class="btn" href="https://www.amazon.com/APC-Battery-Protector-Back-UPS-BE600M1/dp/B01FWAZEIU?tag=linearit200a-20&linkCode=ll2&linkId=7ee9082fb5797fe2c732f52fb8baf3b6&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+        <p>Keeps your PC running through a power outage so you don't lose unsaved work.</p>
+        <a class="btn block" href="https://www.amazon.com/APC-Battery-Protector-Back-UPS-BE600M1/dp/B01FWAZEIU?tag=linearit200a-20&linkCode=ll2&linkId=7ee9082fb5797fe2c732f52fb8baf3b6&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
       </article>
-
-      <article class="product-card">
-        <span class="ptag">🖥️ Desk</span>
+      <article class="card">
+        <span class="tag">🖥️ Desk</span>
         <h3>Monitor Arm</h3>
-        <p>Free up desk space and get the screen at the perfect eye level. Works with most standard monitors.</p>
-        <a class="btn" href="https://www.amazon.com/MOUNTUP-Dual-Monitor-Stand-Adjustable/dp/B07Z7ZM8CJ?tag=linearit200a-20&linkCode=ll2&linkId=ad75a536b7b43a4d27fdbce8a4360b4f&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
+        <p>Free up desk space and set the screen at perfect eye level. Fits most standard monitors.</p>
+        <a class="btn block" href="https://www.amazon.com/MOUNTUP-Dual-Monitor-Stand-Adjustable/dp/B07Z7ZM8CJ?tag=linearit200a-20&linkCode=ll2&linkId=ad75a536b7b43a4d27fdbce8a4360b4f&language=en_US" target="_blank" rel="nofollow sponsored noopener">View on Amazon →</a>
       </article>
-
     </section>
   </div>
 
 </main>
 
+<footer>
+  <a href="https://www.linearit.co/">Linear IT</a> &copy; 2026 &nbsp;·&nbsp; Prices and availability may change on Amazon at any time.
+</footer>
+
 <script>
-  function toggleExtras() {
+  function toggleExtras(){
     document.getElementById('extrasBody').classList.toggle('open');
     document.getElementById('chevron').classList.toggle('open');
   }
 </script>
-
-<footer>
-  <a href="https://linearit.co">Linear Tech</a> &copy; 2026 &nbsp;|&nbsp; Prices and availability may change on Amazon at any time.
-</footer>
 
 </body>
 </html>
