@@ -502,12 +502,12 @@
       for (var pn = 1; pn <= numPages; pn++) {
         var page = await pdf.getPage(pn);
         var vp0 = page.getViewport({ scale: 1 });
-        pageDims[pn] = { w: vp0.width, h: vp0.height };
+        // Aspect (height / width) as actually rendered — the source of truth for layout.
+        pageDims[pn] = { w: vp0.width, h: vp0.height, ratio: vp0.height / vp0.width };
         var scale = renderW / vp0.width;
         var vp = page.getViewport({ scale: scale * dpr });
         var pageEl = el('<div class="page" data-page="' + pn + '"><div class="flayer"></div></div>');
         pageEl.style.width = renderW + "px";
-        pageEl.style.height = (vp0.height * scale) + "px";
         var canvas = document.createElement("canvas");
         canvas.width = vp.width; canvas.height = vp.height;
         pageEl.insertBefore(canvas, pageEl.firstChild);
@@ -525,19 +525,26 @@
 
     /* ---- Zoom + page navigation ------------------------------------------ */
     function fitWidthPx() { return Math.max(240, (pagesBox.clientWidth || 900) - 48); }
+    // Widest the tallest page can be while still fitting the viewport height.
     function fitPagePx() {
-      var ref = pageDims[1] || { w: 8.5, h: 11 };
-      var availH = (pagesBox.clientHeight || 700) - 40;
-      return Math.min(fitWidthPx(), availH * (ref.w / ref.h));
+      var maxRatio = 0;
+      for (var i = 1; i <= numPages; i++) {
+        var r = pageDims[i] && pageDims[i].ratio;
+        if (r && r > maxRatio) maxRatio = r;
+      }
+      if (!maxRatio) maxRatio = 11 / 8.5;
+      var availH = (pagesBox.clientHeight || 700) - 48;
+      return Math.min(fitWidthPx(), availH / maxRatio);
     }
+    // Only the width is set — each page's height follows its canvas aspect ratio,
+    // so a page is never clipped even in mixed-size or rotated PDFs.
     function applyWidth(px) {
-      px = Math.max(240, Math.min(2200, px));
+      px = Math.max(240, Math.min(2400, px));
       ed.dispW = px;
       for (var i = 1; i < pageEls.length; i++) {
         var pe = pageEls[i]; if (!pe) continue;
-        var dm = pageDims[i] || { w: 1, h: 1.3 };
         pe.style.width = px + "px";
-        pe.style.height = (px * (dm.h / dm.w)) + "px";
+        pe.style.height = "auto";
       }
       var pctEl = document.getElementById("z-pct");
       if (pctEl) pctEl.textContent = Math.round((px / fitWidthPx()) * 100) + "%";
@@ -866,7 +873,7 @@
         var scale = width / vp0.width;
         var vp = page.getViewport({ scale: scale * (window.devicePixelRatio || 1) });
         var pageEl = el('<div class="page" data-page="' + pn + '"><div class="flayer"></div></div>');
-        pageEl.style.width = width + "px"; pageEl.style.height = (vp0.height * scale) + "px";
+        pageEl.style.width = width + "px"; // height follows the canvas aspect — never clipped
         var canvas = document.createElement("canvas"); canvas.width = vp.width; canvas.height = vp.height;
         pageEl.insertBefore(canvas, pageEl.firstChild);
         box.appendChild(pageEl);

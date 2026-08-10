@@ -154,7 +154,9 @@
   .ptool.active{border-color:var(--brand);background:var(--accent-bg);box-shadow:0 0 0 2px var(--accent-bg)}
   .ptool .pi{font-size:15px}
 
-  .page{position:relative;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.5);border-radius:2px;overflow:hidden}
+  /* Height is intentionally NOT set: the canvas's own aspect ratio drives it, so
+     the box can never clip the page (any size, rotation, or mixed-size PDF). */
+  .page{position:relative;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.5);border-radius:2px;flex:none;height:auto}
   .page canvas{display:block;width:100%;height:auto}
   .flayer{position:absolute;inset:0}
   .fld{position:absolute;border:1.5px dashed;border-radius:4px;display:flex;align-items:center;justify-content:center;
