@@ -14,8 +14,13 @@
  * TWO KINDS OF USER
  * -----------------
  *   • Senders  — staff who create and send documents. They sign in with their
- *                email + a 6-digit code emailed to them (Resend). An email must
- *                be listed in the ADMIN_EMAILS secret to be a sender.
+ *                email + a 6-digit code emailed to them (Resend). Two roles:
+ *                  - "owner"  : can also add/remove accounts (the Team screen)
+ *                  - "member" : can create and send documents only
+ *                The ADMIN_EMAILS secret lists the *permanent* owners; everyone
+ *                else is added from the Team screen and lives in the `users`
+ *                table. Permanent owners can't be edited or removed from the UI,
+ *                so the service can never be left without an administrator.
  *   • Signers  — recipients. They do NOT log in. Each recipient gets a private
  *                link containing a random per-recipient token. Opening the link
  *                shows only the fields assigned to them.
@@ -28,7 +33,11 @@
  *   -- sender (Bearer token) --
  *   POST   /api/auth/start        {email}         -> {authorized}
  *   POST   /api/auth/code         {email}         -> emails a sign-in code
- *   POST   /api/auth/login        {email,code}    -> {token}
+ *   POST   /api/auth/login        {email,code}    -> {token, role}
+ *   GET    /api/users                             -> (owner) list team accounts
+ *   POST   /api/users             {email,name,role}-> (owner) add an account
+ *   PUT    /api/users             {email,role?,disabled?} -> (owner) update
+ *   DELETE /api/users             {email}         -> (owner) remove an account
  *   GET    /api/docs                              -> list the sender's documents
  *   POST   /api/docs              (multipart)     -> create a draft from a PDF
  *   GET    /api/docs/:id                          -> full document (recips+fields)
@@ -56,7 +65,8 @@
  *   AUTH_SECRET      long random string — pepper for hashes, signs sender tokens
  *   RESEND_API_KEY   send email via Resend (same key linear-chat/vault use)
  *   EMAIL_FROM       From: address, e.g.  Linear IT <alert@linearit.co>
- *   ADMIN_EMAILS     comma-separated sender addresses (who may create documents)
+ *   ADMIN_EMAILS     comma-separated PERMANENT owner addresses. These can always
+ *                    sign in and manage the team; add everyone else in the UI.
  *   ALLOW_ORIGIN     CORS origin (default https://www.linearit.co)
  *   APP_ORIGIN       where the app is hosted (default https://www.linearit.co)
  *   APP_PATH         path of the app on that origin (default /sign/)
@@ -121,6 +131,12 @@ async function handleApi(request, env, url, p, method, ctx) {
     return json({ error: "Not found" }, 404);
   }
 
+  // Team management (owners only)
+  if (p === "/api/users" && method === "GET") return usersList(request, env);
+  if (p === "/api/users" && method === "POST") return userAdd(request, env);
+  if (p === "/api/users" && method === "PUT") return userUpdate(request, env);
+  if (p === "/api/users" && method === "DELETE") return userRemove(request, env);
+
   // Sender: documents
   if (p === "/api/docs" && method === "GET") return docsList(request, env);
   if (p === "/api/docs" && method === "POST") return docCreate(request, env);
@@ -149,14 +165,16 @@ async function authStart(request, env) {
   const body = await readBody(request);
   const email = normEmail(body.email);
   if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
-  return json({ authorized: isSender(env, email) });
+  const acc = await accessFor(env, email);
+  return json({ authorized: acc.allowed });
 }
 
 async function authCodeReq(request, env) {
   const body = await readBody(request);
   const email = normEmail(body.email);
   if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
-  if (!isSender(env, email)) return json({ error: "This email isn't set up to send documents. Contact Linear IT." }, 403);
+  const acc = await accessFor(env, email);
+  if (!acc.allowed) return json({ error: "This email isn't set up to send documents. Contact Linear IT." }, 403);
   const r = await issueCode(env, email);
   if (r.error) return json({ error: r.error }, r.status);
   const out = { ok: true };
@@ -167,10 +185,14 @@ async function authCodeReq(request, env) {
 async function authLogin(request, env) {
   const body = await readBody(request);
   const email = normEmail(body.email);
-  if (!validEmail(email) || !isSender(env, email)) return json({ error: "Incorrect email or code." }, 401);
+  const acc = await accessFor(env, email);
+  if (!validEmail(email) || !acc.allowed) return json({ error: "Incorrect email or code." }, 401);
   const cr = await consumeCode(env, email, body.code);
   if (cr.error) return json({ error: cr.error }, cr.status);
-  return json({ token: await makeToken(env, { email, kind: "sender" }), email });
+  try {
+    await env.DB.prepare("UPDATE users SET last_login=? WHERE email=?").bind(Date.now(), email).run();
+  } catch (_) {}
+  return json({ token: await makeToken(env, { email, kind: "sender" }), email, role: acc.role });
 }
 
 async function issueCode(env, email) {
@@ -221,6 +243,105 @@ async function consumeCode(env, email, code) {
 }
 
 /* ============================================================
+ * Team management (owners only)
+ * Bootstrap owners (the ADMIN_EMAILS secret) are always listed and are
+ * read-only here — they can't be demoted, disabled or deleted from the UI,
+ * so the service can never be left without an administrator.
+ * ============================================================ */
+async function usersList(request, env) {
+  const claims = await requireOwner(request, env);
+  const rows = (await env.DB.prepare(
+    "SELECT email, name, role, disabled, added_by, created_at, last_login FROM users ORDER BY email"
+  ).all()).results || [];
+
+  const listed = new Map();
+  for (const e of bootstrapOwners(env)) {
+    listed.set(e, { email: e, name: "", role: "owner", disabled: false, bootstrap: true, created_at: 0, last_login: 0 });
+  }
+  for (const r of rows) {
+    // A bootstrap owner also present in the table stays shown as bootstrap.
+    if (listed.has(normEmail(r.email))) continue;
+    listed.set(normEmail(r.email), {
+      email: r.email, name: r.name || "",
+      role: r.role === "owner" ? "owner" : "member",
+      disabled: !!Number(r.disabled), bootstrap: false,
+      created_at: Number(r.created_at) || 0, last_login: Number(r.last_login) || 0,
+    });
+  }
+  return json({
+    token: await makeToken(env, claims),
+    me: claims.email, my_role: claims.role,
+    users: [...listed.values()],
+  });
+}
+
+async function userAdd(request, env) {
+  const claims = await requireOwner(request, env);
+  const body = await readBody(request);
+  const email = normEmail(body.email);
+  const name = String(body.name || "").slice(0, 120);
+  const role = body.role === "owner" ? "owner" : "member";
+  if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
+  if (isBootstrapOwner(env, email)) return json({ error: "That email is already a permanent owner." }, 409);
+  const exists = await env.DB.prepare("SELECT 1 FROM users WHERE email=?").bind(email).first();
+  if (exists) return json({ error: "That email already has an account." }, 409);
+
+  await env.DB.prepare(
+    "INSERT INTO users (email, name, role, disabled, added_by, created_at, last_login) VALUES (?,?,?,0,?,?,0)"
+  ).bind(email, name, role, claims.email, Date.now()).run();
+
+  const base = env.SIGN_BASE_URL || "https://sign.linearit.co";
+  await sendEmail(env, {
+    to: email,
+    subject: "You've been added to Linear Sign",
+    text: (name ? "Hi " + name + ",\n\n" : "") +
+      claims.email + " has given you access to Linear Sign.\n\n" +
+      "Sign in at " + base + " with this email address (" + email + "). " +
+      "There's no password — we email you a 6-digit code each time you sign in.",
+    html: simpleEmailHtml("You've been added to Linear Sign",
+      "<b>" + esc(claims.email) + "</b> has given you access to Linear Sign.",
+      'Sign in at <a href="' + esc(base) + '">' + esc(base) + '</a> with <b>' + esc(email) + '</b>. ' +
+      "There's no password — we email you a 6-digit code each time you sign in."),
+  });
+  return json({ token: await makeToken(env, claims), ok: true });
+}
+
+async function userUpdate(request, env) {
+  const claims = await requireOwner(request, env);
+  const body = await readBody(request);
+  const email = normEmail(body.email);
+  if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
+  if (isBootstrapOwner(env, email)) return json({ error: "Permanent owners can't be changed here." }, 403);
+  if (email === claims.email) return json({ error: "You can't change your own role or access." }, 403);
+  const row = await env.DB.prepare("SELECT 1 FROM users WHERE email=?").bind(email).first();
+  if (!row) return json({ error: "That account doesn't exist." }, 404);
+
+  const sets = [], binds = [];
+  if (body.role !== undefined) { sets.push("role=?"); binds.push(body.role === "owner" ? "owner" : "member"); }
+  if (body.disabled !== undefined) { sets.push("disabled=?"); binds.push(body.disabled ? 1 : 0); }
+  if (body.name !== undefined) { sets.push("name=?"); binds.push(String(body.name).slice(0, 120)); }
+  if (!sets.length) return json({ error: "Nothing to update." }, 400);
+  binds.push(email);
+  await env.DB.prepare("UPDATE users SET " + sets.join(", ") + " WHERE email=?").bind(...binds).run();
+  return json({ token: await makeToken(env, claims), ok: true });
+}
+
+async function userRemove(request, env) {
+  const claims = await requireOwner(request, env);
+  const body = await readBody(request);
+  const email = normEmail(body.email);
+  if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
+  if (isBootstrapOwner(env, email)) return json({ error: "Permanent owners can't be removed here." }, 403);
+  if (email === claims.email) return json({ error: "You can't remove your own account." }, 403);
+
+  // Their documents stay put (owned by their address) so nothing in flight breaks;
+  // removing the account only revokes sign-in.
+  await env.DB.prepare("DELETE FROM users WHERE email=?").bind(email).run();
+  await env.DB.prepare("DELETE FROM login_codes WHERE email=?").bind(email).run();
+  return json({ token: await makeToken(env, claims), ok: true });
+}
+
+/* ============================================================
  * Documents (sender)
  * ============================================================ */
 async function docsList(request, env) {
@@ -231,7 +352,7 @@ async function docsList(request, env) {
     "(SELECT COUNT(*) FROM recipients r WHERE r.doc_id=d.id AND r.status='signed') AS recip_signed " +
     "FROM documents d WHERE owner_email=? ORDER BY updated_at DESC LIMIT 500"
   ).bind(claims.email).all()).results || [];
-  return json({ token: await makeToken(env, claims), docs: rows.map(mapDocRow) });
+  return json({ token: await makeToken(env, claims), docs: rows.map(mapDocRow), role: claims.role, me: claims.email });
 }
 
 async function docCreate(request, env) {
@@ -801,10 +922,19 @@ async function deleteDocFully(env, doc) {
 /* ============================================================
  * Auth tokens (sender sessions) — HMAC-signed, sliding expiry
  * ============================================================ */
+// Access is re-checked from the DB on every request (not trusted from the token),
+// so removing or demoting someone takes effect immediately, not at token expiry.
 async function requireSender(request, env) {
   const c = await authClaims(request, env);
-  if (!c || c.kind !== "sender" || !isSender(env, c.email)) throw httpError("Please sign in again.", 401);
-  return { email: c.email, kind: "sender" };
+  if (!c || c.kind !== "sender") throw httpError("Please sign in again.", 401);
+  const acc = await accessFor(env, c.email);
+  if (!acc.allowed) throw httpError("Your access has been removed. Contact an administrator.", 401);
+  return { email: c.email, kind: "sender", role: acc.role, bootstrap: acc.bootstrap };
+}
+async function requireOwner(request, env) {
+  const claims = await requireSender(request, env);
+  if (claims.role !== "owner") throw httpError("Only an owner can manage the team.", 403);
+  return claims;
 }
 async function makeToken(env, claims) {
   const payload = b64urlStr(JSON.stringify({ email: claims.email, kind: claims.kind || "sender", exp: Date.now() + TOKEN_TTL_MS }));
@@ -1025,8 +1155,30 @@ function safeFilename(s) { return (String(s || "document").replace(/[^A-Za-z0-9.
 function clamp01(v) { v = Number(v); return v < 0 ? 0 : v > 1 ? 1 : (Number.isFinite(v) ? v : 0); }
 function clampNum(v, lo, hi) { v = Number(v); if (!Number.isFinite(v)) return lo; return v < lo ? lo : v > hi ? hi : v; }
 function clampInt(v, lo, hi) { v = Math.round(Number(v)); if (!Number.isFinite(v)) return lo; return v < lo ? lo : v > hi ? hi : v; }
-function senderSet(env) { return String(env.ADMIN_EMAILS || "").split(",").map(normEmail).filter(Boolean); }
-function isSender(env, email) { return senderSet(env).includes(normEmail(email)); }
+/* ---- Who may sign in --------------------------------------------------------
+ * Two sources, checked in this order:
+ *   1. ADMIN_EMAILS secret — the "bootstrap owners". Always allowed, always the
+ *      owner role, and never editable from the UI, so an account can never be
+ *      locked out of its own service by a bad click.
+ *   2. The `users` table — accounts added from the Team screen by an owner.
+ *      Roles: "owner" (can manage the team) or "member" (can send documents).
+ * -------------------------------------------------------------------------- */
+function bootstrapOwners(env) { return String(env.ADMIN_EMAILS || "").split(",").map(normEmail).filter(Boolean); }
+function isBootstrapOwner(env, email) { return bootstrapOwners(env).includes(normEmail(email)); }
+
+// Resolve an email to { allowed, role, bootstrap }. Never throws.
+async function accessFor(env, email) {
+  email = normEmail(email);
+  if (!validEmail(email)) return { allowed: false, role: null, bootstrap: false };
+  if (isBootstrapOwner(env, email)) return { allowed: true, role: "owner", bootstrap: true };
+  try {
+    const row = await env.DB.prepare("SELECT role, disabled FROM users WHERE email=?").bind(email).first();
+    if (row && !Number(row.disabled)) {
+      return { allowed: true, role: row.role === "owner" ? "owner" : "member", bootstrap: false };
+    }
+  } catch (_) { /* table may not exist on the very first request */ }
+  return { allowed: false, role: null, bootstrap: false };
+}
 function httpError(message, status) { const e = new Error(message); e.status = status; return e; }
 async function readBody(request) {
   const ct = request.headers.get("content-type") || "";
@@ -1106,6 +1258,14 @@ async function ensureSchema(env) {
       "expires_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, consumed INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)"
     ),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_codes_email ON login_codes(email)"),
+    // Accounts added from the Team screen. The ADMIN_EMAILS secret holds the
+    // permanent owners and is intentionally NOT mirrored here.
+    env.DB.prepare(
+      "CREATE TABLE IF NOT EXISTS users (" +
+      "email TEXT PRIMARY KEY, name TEXT, role TEXT NOT NULL DEFAULT 'member', " +
+      "disabled INTEGER NOT NULL DEFAULT 0, added_by TEXT, " +
+      "created_at INTEGER NOT NULL, last_login INTEGER NOT NULL DEFAULT 0)"
+    ),
   ]);
   schemaReady = true;
 }
