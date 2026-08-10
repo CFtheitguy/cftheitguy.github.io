@@ -14,13 +14,16 @@
  * TWO KINDS OF USER
  * -----------------
  *   • Senders  — staff who create and send documents. They sign in with their
- *                email + a 6-digit code emailed to them (Resend). Two roles:
- *                  - "owner"  : can also add/remove accounts (the Team screen)
- *                  - "member" : can create and send documents only
- *                The ADMIN_EMAILS secret lists the *permanent* owners; everyone
- *                else is added from the Team screen and lives in the `users`
- *                table. Permanent owners can't be edited or removed from the UI,
- *                so the service can never be left without an administrator.
+ *                email + a 6-digit code emailed to them (Resend).
+ *                  - ADMIN_EMAILS addresses are the *administrators*: the only
+ *                    ones who can see or manage the account list (Team screen).
+ *                    They can't be edited or removed from the UI, so the service
+ *                    can never be left without an administrator.
+ *                  - Everyone else is added from the Team screen, lives in the
+ *                    `users` table, and can only create and send their own
+ *                    documents. They cannot see that an account list exists.
+ *                Administrator rights are deliberately NOT grantable in the app —
+ *                the only way to add one is the ADMIN_EMAILS secret.
  *   • Signers  — recipients. They do NOT log in. Each recipient gets a private
  *                link containing a random per-recipient token. Opening the link
  *                shows only the fields assigned to them.
@@ -34,10 +37,10 @@
  *   POST   /api/auth/start        {email}         -> {authorized}
  *   POST   /api/auth/code         {email}         -> emails a sign-in code
  *   POST   /api/auth/login        {email,code}    -> {token, role}
- *   GET    /api/users                             -> (owner) list team accounts
- *   POST   /api/users             {email,name,role}-> (owner) add an account
- *   PUT    /api/users             {email,role?,disabled?} -> (owner) update
- *   DELETE /api/users             {email}         -> (owner) remove an account
+ *   GET    /api/users                             -> (admin) list team accounts
+ *   POST   /api/users             {email,name}    -> (admin) add an account
+ *   PUT    /api/users             {email,disabled?,name?} -> (admin) update
+ *   DELETE /api/users             {email}         -> (admin) remove an account
  *   GET    /api/docs                              -> list the sender's documents
  *   POST   /api/docs              (multipart)     -> create a draft from a PDF
  *   GET    /api/docs/:id                          -> full document (recips+fields)
@@ -187,12 +190,13 @@ async function authLogin(request, env) {
   const email = normEmail(body.email);
   const acc = await accessFor(env, email);
   if (!validEmail(email) || !acc.allowed) return json({ error: "Incorrect email or code." }, 401);
+  const isAdmin = acc.bootstrap;
   const cr = await consumeCode(env, email, body.code);
   if (cr.error) return json({ error: cr.error }, cr.status);
   try {
     await env.DB.prepare("UPDATE users SET last_login=? WHERE email=?").bind(Date.now(), email).run();
   } catch (_) {}
-  return json({ token: await makeToken(env, { email, kind: "sender" }), email, role: acc.role });
+  return json({ token: await makeToken(env, { email, kind: "sender" }), email, role: acc.role, is_admin: isAdmin });
 }
 
 async function issueCode(env, email) {
@@ -249,7 +253,7 @@ async function consumeCode(env, email, code) {
  * so the service can never be left without an administrator.
  * ============================================================ */
 async function usersList(request, env) {
-  const claims = await requireOwner(request, env);
+  const claims = await requireAdmin(request, env);
   const rows = (await env.DB.prepare(
     "SELECT email, name, role, disabled, added_by, created_at, last_login FROM users ORDER BY email"
   ).all()).results || [];
@@ -270,17 +274,19 @@ async function usersList(request, env) {
   }
   return json({
     token: await makeToken(env, claims),
-    me: claims.email, my_role: claims.role,
+    me: claims.email, my_role: claims.role, is_admin: true,
     users: [...listed.values()],
   });
 }
 
 async function userAdd(request, env) {
-  const claims = await requireOwner(request, env);
+  const claims = await requireAdmin(request, env);
   const body = await readBody(request);
   const email = normEmail(body.email);
   const name = String(body.name || "").slice(0, 120);
-  const role = body.role === "owner" ? "owner" : "member";
+  // Every account created here is a plain member. Administrator rights come only
+  // from the ADMIN_EMAILS secret, so they can't be granted from the app.
+  const role = "member";
   if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
   if (isBootstrapOwner(env, email)) return json({ error: "That email is already a permanent owner." }, 409);
   const exists = await env.DB.prepare("SELECT 1 FROM users WHERE email=?").bind(email).first();
@@ -307,7 +313,7 @@ async function userAdd(request, env) {
 }
 
 async function userUpdate(request, env) {
-  const claims = await requireOwner(request, env);
+  const claims = await requireAdmin(request, env);
   const body = await readBody(request);
   const email = normEmail(body.email);
   if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
@@ -316,8 +322,9 @@ async function userUpdate(request, env) {
   const row = await env.DB.prepare("SELECT 1 FROM users WHERE email=?").bind(email).first();
   if (!row) return json({ error: "That account doesn't exist." }, 404);
 
+  // Role is deliberately not editable: administrator rights come only from the
+  // ADMIN_EMAILS secret, never from the app.
   const sets = [], binds = [];
-  if (body.role !== undefined) { sets.push("role=?"); binds.push(body.role === "owner" ? "owner" : "member"); }
   if (body.disabled !== undefined) { sets.push("disabled=?"); binds.push(body.disabled ? 1 : 0); }
   if (body.name !== undefined) { sets.push("name=?"); binds.push(String(body.name).slice(0, 120)); }
   if (!sets.length) return json({ error: "Nothing to update." }, 400);
@@ -327,7 +334,7 @@ async function userUpdate(request, env) {
 }
 
 async function userRemove(request, env) {
-  const claims = await requireOwner(request, env);
+  const claims = await requireAdmin(request, env);
   const body = await readBody(request);
   const email = normEmail(body.email);
   if (!validEmail(email)) return json({ error: "Enter a valid email address." }, 400);
@@ -352,7 +359,10 @@ async function docsList(request, env) {
     "(SELECT COUNT(*) FROM recipients r WHERE r.doc_id=d.id AND r.status='signed') AS recip_signed " +
     "FROM documents d WHERE owner_email=? ORDER BY updated_at DESC LIMIT 500"
   ).bind(claims.email).all()).results || [];
-  return json({ token: await makeToken(env, claims), docs: rows.map(mapDocRow), role: claims.role, me: claims.email });
+  return json({
+    token: await makeToken(env, claims), docs: rows.map(mapDocRow),
+    role: claims.role, is_admin: !!claims.bootstrap, me: claims.email,
+  });
 }
 
 async function docCreate(request, env) {
@@ -931,9 +941,12 @@ async function requireSender(request, env) {
   if (!acc.allowed) throw httpError("Your access has been removed. Contact an administrator.", 401);
   return { email: c.email, kind: "sender", role: acc.role, bootstrap: acc.bootstrap };
 }
-async function requireOwner(request, env) {
+// Team management is restricted to the ADMIN_EMAILS addresses ONLY. Accounts
+// created in the app can never see or manage the account list, no matter what
+// role they carry — so staff can't see who else has an account.
+async function requireAdmin(request, env) {
   const claims = await requireSender(request, env);
-  if (claims.role !== "owner") throw httpError("Only an owner can manage the team.", 403);
+  if (!claims.bootstrap) throw httpError("Only an administrator can manage the team.", 403);
   return claims;
 }
 async function makeToken(env, claims) {

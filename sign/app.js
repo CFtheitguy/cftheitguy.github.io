@@ -197,7 +197,8 @@
         btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Verifying…';
         try {
           var r = await api("/api/auth/login", { method: "POST", auth: false, body: { email: email, code: code } });
-          state.token = r.token; state.email = r.email || email; state.role = r.role || "member";
+          state.token = r.token; state.email = r.email || email;
+          state.role = r.role || "member"; state.isAdmin = !!r.is_admin;
           localStorage.setItem("lsign_token", state.token); localStorage.setItem("lsign_email", state.email);
           renderDashboard();
         } catch (e) { msg.innerHTML = '<div class="err">' + esc(e.message) + "</div>"; btn.disabled = false; btn.textContent = "Verify & sign in"; }
@@ -243,9 +244,11 @@
       var r = await api("/api/docs");
       docs = r.docs || [];
       state.role = r.role || "member";
+      state.isAdmin = !!r.is_admin;
       if (r.me) { state.email = r.me; localStorage.setItem("lsign_email", r.me); }
-      // Owners get a Team button next to their email in the top bar.
-      if (state.role === "owner") {
+      // Only the ADMIN_EMAILS administrators get a Team button; nobody else can
+      // even see that an account list exists.
+      if (state.isAdmin) {
         var who = document.querySelector("header.top .who");
         if (who && !document.getElementById("nav-team")) {
           var tb = el('<button class="btn sm ghost" id="nav-team">👥 Team</button>');
@@ -317,11 +320,9 @@
           '<div class="row" style="gap:8px">' +
             '<input id="tm-email" type="email" placeholder="name@company.com" style="flex:2" />' +
             '<input id="tm-name" type="text" placeholder="Name (optional)" style="flex:1.2" />' +
-            '<select id="tm-role" style="flex:.9">' +
-              '<option value="member">Member</option><option value="owner">Owner</option>' +
-            '</select>' +
           '</div>' +
-          '<div class="note">Members can create and send documents. Owners can also manage this list.</div>' +
+          '<div class="note">They can create and send their own documents. Only administrators ' +
+          '(set in Cloudflare) can see or manage this list — staff can\'t see who else has an account.</div>' +
           '<div id="tm-msg"></div>' +
         '</div>' +
         '<div class="mfoot"><button class="btn ghost" id="tm-close">Close</button>' +
@@ -347,7 +348,7 @@
       users.forEach(function (u) {
         var isMe = u.email === me;
         var tags = [];
-        if (u.bootstrap) tags.push('<span class="pill draft" title="Set in the Cloudflare ADMIN_EMAILS secret">permanent</span>');
+        if (u.bootstrap) tags.push('<span class="pill completed" title="Set in the Cloudflare ADMIN_EMAILS secret">administrator</span>');
         if (u.disabled) tags.push('<span class="pill voided">disabled</span>');
         if (isMe) tags.push('<span class="pill sent">you</span>');
         var row = el(
@@ -357,12 +358,8 @@
               '<span>' + esc(u.name ? u.email : "") + (u.last_login ? " · last in " + fmtWhen(u.last_login) : "") + '</span></div>' +
             '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' + tags.join("") +
               (u.bootstrap || isMe
-                ? '<span class="pill ' + (u.role === "owner" ? "completed" : "draft") + '">' + u.role + '</span>'
-                : '<select data-role="' + esc(u.email) + '" style="width:auto;padding:5px 8px;font-size:12.5px">' +
-                    '<option value="member"' + (u.role === "member" ? " selected" : "") + '>Member</option>' +
-                    '<option value="owner"' + (u.role === "owner" ? " selected" : "") + '>Owner</option>' +
-                  '</select>' +
-                  '<button class="btn sm ghost" data-toggle="' + esc(u.email) + '">' + (u.disabled ? "Enable" : "Disable") + '</button>' +
+                ? ''
+                : '<button class="btn sm ghost" data-toggle="' + esc(u.email) + '">' + (u.disabled ? "Enable" : "Disable") + '</button>' +
                   '<button class="x" title="Remove" data-del="' + esc(u.email) + '">×</button>') +
             '</div>' +
           '</div>'
@@ -370,11 +367,6 @@
         box.appendChild(row);
       });
 
-      box.querySelectorAll("[data-role]").forEach(function (sel) {
-        sel.addEventListener("change", function () {
-          update({ email: sel.dataset.role, role: sel.value }, "Role updated.");
-        });
-      });
       box.querySelectorAll("[data-toggle]").forEach(function (b) {
         b.addEventListener("click", function () {
           var u = users.filter(function (x) { return x.email === b.dataset.toggle; })[0];
@@ -404,12 +396,11 @@
       var btn = this;
       var email = m.querySelector("#tm-email").value.trim().toLowerCase();
       var name = m.querySelector("#tm-name").value.trim();
-      var role = m.querySelector("#tm-role").value;
       msg.innerHTML = "";
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.innerHTML = '<div class="err">Enter a valid email address.</div>'; return; }
       btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Adding…';
       try {
-        await api("/api/users", { method: "POST", body: { email: email, name: name, role: role } });
+        await api("/api/users", { method: "POST", body: { email: email, name: name } });
         m.querySelector("#tm-email").value = ""; m.querySelector("#tm-name").value = "";
         toast("Account added — we emailed them an invite.");
         load();
