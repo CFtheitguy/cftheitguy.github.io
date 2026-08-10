@@ -84,7 +84,10 @@
     width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--text);
     padding:11px 13px;border-radius:10px;font-size:14px;outline:none;font-family:inherit}
   input:focus,textarea:focus,select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--accent-bg)}
-  label.fld{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em}
+  /* Form field label. Deliberately NOT called .fld — that class belongs to the
+     absolutely-positioned field boxes in the PDF editor, and the collision
+     pulled these labels out of the layout flow, overlapping their input. */
+  label.flbl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px}
   .row{display:flex;gap:12px}
   .row>*{flex:1}
   .note{color:var(--faint);font-size:12.5px;margin-top:8px}

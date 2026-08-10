@@ -157,7 +157,7 @@
 
     function stepEmail() {
       body.innerHTML =
-        '<label class="fld">Email address</label>' +
+        '<label class="flbl">Email address</label>' +
         '<input id="li-email" type="email" placeholder="you@company.com" autocomplete="email" value="' + esc(email) + '" />' +
         '<div id="li-msg"></div>' +
         '<button class="btn primary" id="li-send" style="width:100%;justify-content:center;margin-top:14px">Send code</button>';
@@ -414,9 +414,9 @@
     var m = el(
       '<div class="modal"><div class="mhead"><h2 style="margin:0">New document</h2><button class="x">×</button></div>' +
       '<div class="mbody">' +
-        '<label class="fld">Document title</label>' +
+        '<label class="flbl">Document title</label>' +
         '<input id="up-title" type="text" placeholder="e.g. Service Agreement" />' +
-        '<label class="fld" style="margin-top:16px">PDF file</label>' +
+        '<label class="flbl" style="margin-top:16px">PDF file</label>' +
         '<div id="up-drop" style="border:2px dashed var(--line2);border-radius:12px;padding:34px;text-align:center;cursor:pointer;color:var(--muted)">' +
           '<div style="font-size:34px">📄</div><div style="margin-top:8px">Click to choose a PDF, or drop it here</div>' +
           '<div id="up-fname" class="note"></div>' +
@@ -833,7 +833,7 @@
         '<div class="modal"><div class="mhead"><h2 style="margin:0">Send for signature</h2><button class="x">×</button></div>' +
         '<div class="mbody">' +
           '<p class="sub">Each recipient gets a private link to sign <b>' + esc(ed.doc.title) + '</b>.</p>' +
-          '<label class="fld">Message to recipients (optional)</label>' +
+          '<label class="flbl">Message to recipients (optional)</label>' +
           '<textarea id="send-msg" rows="3" placeholder="Please review and sign at your earliest convenience.">' + esc(ed.doc.message || "") + '</textarea>' +
           '<div style="margin-top:14px">' + ed.recipients.map(function (r, i) {
             return '<div class="recip-item"><span class="dot" style="background:' + r.color + '"></span>' +
