@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Motivation | linear</title>
+<meta name="description" content="A fresh quote on positivity, persistence and motivation — a new one every day, or every hour if you like. From linear, Managed IT &amp; Cybersecurity in Monroe, NY.">
+<link rel="canonical" href="https://www.linearit.co/motivation/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --peri:#6999f5;
+  --peri-deep:#4d7fe8;
+  --aqua:#70f2ff;
+  --ink:#000000;
+  --paper:#ffffff;
+  --mono:'Space Grotesk', system-ui, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+body{min-height:100svh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+
+.kicker{
+  font-family:var(--mono);
+  font-size:.72rem;
+  font-weight:600;
+  letter-spacing:.42em;
+  text-transform:uppercase;
+}
+
+/* ── gradient mesh ── */
+.mesh-light{
+  background:
+    radial-gradient(42% 55% at 12% 78%, rgba(105,153,245,.75) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(45% 60% at 82% 14%, rgba(112,242,255,.8) 0%, rgba(112,242,255,0) 100%),
+    radial-gradient(30% 42% at 55% 55%, rgba(112,242,255,.25) 0%, rgba(112,242,255,0) 100%),
+    linear-gradient(120deg,#fdfdfd 0%,#f4f7fb 100%);
+}
+
+/* ── pattern ── */
+.pattern{position:relative}
+.pattern::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:url("/zurech3/assets/pattern-tile-black.png") repeat;
+  background-size:84px;
+  opacity:.05;
+  pointer-events:none;
+}
+.pattern > *{position:relative}
+
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;height:120px;z-index:1000;
+  display:flex;align-items:center;
+  background:rgba(5,5,7,.82);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  color:#fff;
+  padding:0 24px;
+}
+.nav-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;flex-shrink:0}
+.brand img{height:76px;width:auto;display:block}
+.nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
+.nav-links a{font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75);transition:color .2s}
+.nav-links a:hover{color:var(--aqua)}
+.nav-cta{
+  background:var(--aqua);color:var(--ink) !important;
+  padding:10px 18px;border-radius:999px;font-weight:700 !important;
+  transition:transform .15s, background .2s;
+}
+.nav-cta:hover{background:#8ff5ff;transform:translateY(-1px)}
+
+/* ── STAGE ── */
+.stage{
+  flex:1;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:172px 24px 80px;
+  position:relative;overflow:hidden;
+}
+.stage-inner{max-width:1200px;margin:0 auto;width:100%}
+.stage .kicker{color:var(--peri-deep);margin-bottom:40px;display:block}
+
+.quote{max-width:960px;transition:opacity .35s ease, transform .35s ease}
+.quote.swap{opacity:0;transform:translateY(10px)}
+.quote blockquote{
+  font-family:var(--mono);
+  font-weight:500;
+  font-size:clamp(1.55rem,4.6vw,3.15rem);
+  line-height:1.22;
+  letter-spacing:-.02em;
+  margin-bottom:30px;
+  text-wrap:balance;
+}
+.quote blockquote::before{
+  content:"“";
+  display:block;
+  font-size:clamp(3rem,7vw,5rem);
+  line-height:.6;
+  color:var(--peri-deep);
+  margin-bottom:18px;
+}
+.quote .by{
+  font-size:.72rem;font-weight:600;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--peri-deep);
+}
+
+/* ── CONTROL BAR ── */
+.bar{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-top:56px;padding-top:34px;
+  border-top:1px solid rgba(0,0,0,.12);
+  max-width:960px;
+}
+.countdown{
+  font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(0,0,0,.55);margin-right:auto;
+}
+.countdown b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:700}
+
+.toggle{display:inline-flex;border:1px solid rgba(0,0,0,.18);border-radius:999px;overflow:hidden}
+.toggle button{
+  font-family:var(--mono);font-size:.66rem;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;
+  padding:10px 18px;border:0;background:none;color:rgba(0,0,0,.55);
+  cursor:pointer;transition:background .2s,color .2s;
+}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+.icon-btn{
+  font-family:var(--mono);font-size:.66rem;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;
+  padding:10px 18px;border:1px solid rgba(0,0,0,.18);border-radius:999px;
+  background:none;color:rgba(0,0,0,.6);cursor:pointer;
+  transition:border-color .2s,color .2s,transform .15s;
+}
+.icon-btn:hover{border-color:var(--peri-deep);color:var(--peri-deep);transform:translateY(-1px)}
+.icon-btn:disabled{opacity:.35;cursor:default;transform:none;border-color:rgba(0,0,0,.18);color:rgba(0,0,0,.6)}
+
+.today-link{
+  font-size:.66rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--peri-deep);background:none;border:0;cursor:pointer;padding:10px 4px;
+}
+.today-link[hidden]{display:none}
+
+.note{
+  margin-top:26px;max-width:640px;
+  font-size:.68rem;letter-spacing:.06em;color:rgba(0,0,0,.42);line-height:1.6;
+}
+
+/* ── TICKER ── */
+.ticker{
+  background:var(--peri);color:var(--ink);
+  overflow:hidden;white-space:nowrap;
+  border-top:1px solid rgba(0,0,0,.12);
+  border-bottom:1px solid rgba(0,0,0,.12);
+  padding:14px 0;
+}
+.ticker-track{display:inline-block;animation:tick 30s linear infinite}
+.ticker span{
+  font-family:var(--mono);font-size:.78rem;font-weight:700;
+  letter-spacing:.34em;text-transform:uppercase;
+  margin:0 34px;
+}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── FOOTER ── */
+.footer{background:var(--ink);color:#fff;padding:70px 24px 40px;position:relative;overflow:hidden}
+.footer::before{
+  content:"";position:absolute;inset:0;
+  background:url("/zurech3/assets/pattern-tile-white.png") repeat;background-size:76px;opacity:.045;
+}
+.footer .wrap{max-width:1200px;margin:0 auto;position:relative}
+.footer-top{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;align-items:flex-end;margin-bottom:50px}
+.footer-brand{display:flex;align-items:center}
+.footer-brand img{height:clamp(46px,7vw,64px);width:auto;display:block}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.65);transition:color .2s}
+.footer-links a:hover{color:var(--aqua)}
+.footer-base{
+  border-top:1px solid rgba(255,255,255,.12);padding-top:28px;
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);
+}
+.footer-base .site{color:var(--aqua)}
+
+/* ── RESPONSIVE ── */
+@media (max-width:680px){
+  .nav{height:96px}
+  .brand img{height:56px}
+  .nav-links{display:none}
+  .stage{padding:136px 20px 64px}
+  .bar{margin-top:40px;gap:10px}
+  .countdown{width:100%;margin-right:0;margin-bottom:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  .ticker-track{animation:none}
+  .quote{transition:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/" aria-label="linear home">
+      <img src="/zurech3/assets/logo-white.svg" alt="linear">
+    </a>
+    <div class="nav-links">
+      <a href="/#about">About</a>
+      <a href="/#services">Services</a>
+      <a href="/#faq">FAQ</a>
+      <a class="nav-cta" href="/#contact">Book a consult</a>
+    </div>
+  </div>
+</nav>
+
+<main class="stage mesh-light pattern">
+  <div class="stage-inner">
+    <span class="kicker" id="kicker">Quote of the day</span>
+
+    <figure class="quote" id="quote" aria-live="polite">
+      <blockquote id="quote-text">Loading…</blockquote>
+      <figcaption class="by" id="quote-by"></figcaption>
+    </figure>
+
+    <div class="bar">
+      <div class="countdown">New quote in <b id="countdown">--:--:--</b></div>
+
+      <button class="today-link" id="btn-now" hidden>Back to now</button>
+
+      <button class="icon-btn" id="btn-prev" aria-label="Previous quote">← Prev</button>
+      <button class="icon-btn" id="btn-next" aria-label="Next quote">Next →</button>
+      <button class="icon-btn" id="btn-copy">Copy</button>
+
+      <div class="toggle" role="group" aria-label="Rotation speed">
+        <button id="mode-day" aria-pressed="true">Daily</button>
+        <button id="mode-hour" aria-pressed="false">Hourly</button>
+      </div>
+    </div>
+
+    <p class="note">
+      Everyone visiting today sees the same quote — it's picked from the date, not at random.
+      Attributions follow common usage; a handful of widely circulated lines have contested origins.
+    </p>
+  </div>
+</main>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Not on our watch</span><span>Stay safe</span><span>Stay covered</span><span>linearit.co</span>
+    <span>Not on our watch</span><span>Stay safe</span><span>Stay covered</span><span>linearit.co</span>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="/zurech3/assets/logo-white.svg" alt="linear">
+      </div>
+      <div class="footer-links">
+        <a href="/#about">About</a>
+        <a href="/#services">Services</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#contact">Contact</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>© 2026 linear · Straightforward IT excellence · Monroe, NY</span>
+      <span class="site">linearit.co</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const QUOTES = [
+  ["The only way to do great work is to love what you do.", "Steve Jobs"],
+  ["It always seems impossible until it's done.", "Nelson Mandela"],
+  ["Fall seven times, stand up eight.", "Japanese proverb"],
+  ["The best time to plant a tree was twenty years ago. The second best time is now.", "Proverb"],
+  ["We are what we repeatedly do. Excellence, then, is not an act, but a habit.", "Will Durant"],
+  ["The journey of a thousand miles begins with a single step.", "Lao Tzu"],
+  ["Start where you are. Use what you have. Do what you can.", "Arthur Ashe"],
+  ["You miss one hundred percent of the shots you don't take.", "Wayne Gretzky"],
+  ["I have not failed. I've just found ten thousand ways that won't work.", "Thomas Edison"],
+  ["Act as if what you do makes a difference. It does.", "William James"],
+  ["Perfect is the enemy of good.", "Voltaire"],
+  ["Keep your face always toward the sunshine, and shadows will fall behind you.", "Walt Whitman"],
+  ["What lies behind us and what lies before us are tiny matters compared to what lies within us.", "Henry S. Haskins"],
+  ["Nothing great was ever achieved without enthusiasm.", "Ralph Waldo Emerson"],
+  ["The secret of getting ahead is getting started.", "Mark Twain"],
+  ["Courage is resistance to fear, mastery of fear — not absence of fear.", "Mark Twain"],
+  ["It is not the mountain we conquer, but ourselves.", "Edmund Hillary"],
+  ["Do what you can, with what you have, where you are.", "Theodore Roosevelt"],
+  ["Believe you can and you're halfway there.", "Theodore Roosevelt"],
+  ["Comparison is the thief of joy.", "Theodore Roosevelt"],
+  ["Far better it is to dare mighty things than to live in a gray twilight that knows neither victory nor defeat.", "Theodore Roosevelt"],
+  ["In the middle of difficulty lies opportunity.", "Albert Einstein"],
+  ["Life is like riding a bicycle. To keep your balance, you must keep moving.", "Albert Einstein"],
+  ["A person who never made a mistake never tried anything new.", "Albert Einstein"],
+  ["Try not to become a person of success, but rather try to become a person of value.", "Albert Einstein"],
+  ["Life is really simple, but we insist on making it complicated.", "Confucius"],
+  ["Our greatest glory is not in never falling, but in rising every time we fall.", "Confucius"],
+  ["It does not matter how slowly you go as long as you do not stop.", "Confucius"],
+  ["He who conquers himself is the mightiest warrior.", "Confucius"],
+  ["The man who moves a mountain begins by carrying away small stones.", "Confucius"],
+  ["With the new day comes new strength and new thoughts.", "Eleanor Roosevelt"],
+  ["No one can make you feel inferior without your consent.", "Eleanor Roosevelt"],
+  ["The future belongs to those who believe in the beauty of their dreams.", "Eleanor Roosevelt"],
+  ["Happiness is not something ready made. It comes from your own actions.", "Dalai Lama XIV"],
+  ["If you want to lift yourself up, lift up someone else.", "Booker T. Washington"],
+  ["Success is liking yourself, liking what you do, and liking how you do it.", "Maya Angelou"],
+  ["You may encounter many defeats, but you must not be defeated.", "Maya Angelou"],
+  ["Nothing will work unless you do.", "Maya Angelou"],
+  ["People will forget what you said and what you did, but people will never forget how you made them feel.", "Maya Angelou"],
+  ["Try to be a rainbow in someone's cloud.", "Maya Angelou"],
+  ["The only limit to our realization of tomorrow is our doubts of today.", "Franklin D. Roosevelt"],
+  ["When you reach the end of your rope, tie a knot in it and hang on.", "Franklin D. Roosevelt"],
+  ["Optimism is the faith that leads to achievement.", "Helen Keller"],
+  ["Alone we can do so little; together we can do so much.", "Helen Keller"],
+  ["The best way out is always through.", "Robert Frost"],
+  ["In three words I can sum up everything I've learned about life: it goes on.", "Robert Frost"],
+  ["Whether you think you can, or you think you can't — you're right.", "Henry Ford"],
+  ["Coming together is a beginning; keeping together is progress; working together is success.", "Henry Ford"],
+  ["Obstacles are those frightful things you see when you take your eyes off your goal.", "Henry Ford"],
+  ["Quality means doing it right when no one is looking.", "Henry Ford"],
+  ["You can't build a reputation on what you are going to do.", "Henry Ford"],
+  ["Genius is one percent inspiration and ninety-nine percent perspiration.", "Thomas Edison"],
+  ["Opportunity is missed by most people because it is dressed in overalls and looks like work.", "Thomas Edison"],
+  ["Our greatest weakness lies in giving up. The most certain way to succeed is always to try just one more time.", "Thomas Edison"],
+  ["The way to get started is to quit talking and begin doing.", "Walt Disney"],
+  ["All our dreams can come true, if we have the courage to pursue them.", "Walt Disney"],
+  ["Little by little, one travels far.", "Proverb"],
+  ["Smooth seas do not make skillful sailors.", "Proverb"],
+  ["Fortune favors the bold.", "Latin proverb"],
+  ["If you want to go fast, go alone. If you want to go far, go together.", "African proverb"],
+  ["A river cuts through rock not because of its power but its persistence.", "Jim Watkins"],
+  ["Energy and persistence conquer all things.", "Benjamin Franklin"],
+  ["Well done is better than well said.", "Benjamin Franklin"],
+  ["By failing to prepare, you are preparing to fail.", "Benjamin Franklin"],
+  ["Lost time is never found again.", "Benjamin Franklin"],
+  ["Either write something worth reading or do something worth writing.", "Benjamin Franklin"],
+  ["The harder I work, the luckier I get.", "Samuel Goldwyn"],
+  ["Difficulties strengthen the mind, as labor does the body.", "Seneca"],
+  ["It is not because things are difficult that we do not dare; it is because we do not dare that they are difficult.", "Seneca"],
+  ["We suffer more often in imagination than in reality.", "Seneca"],
+  ["Begin at once to live, and count each separate day as a separate life.", "Seneca"],
+  ["You have power over your mind — not outside events. Realize this, and you will find strength.", "Marcus Aurelius"],
+  ["The happiness of your life depends upon the quality of your thoughts.", "Marcus Aurelius"],
+  ["Waste no more time arguing about what a good person should be. Be one.", "Marcus Aurelius"],
+  ["Very little is needed to make a happy life; it is all within yourself, in your way of thinking.", "Marcus Aurelius"],
+  ["It's not what happens to you, but how you react to it that matters.", "Epictetus"],
+  ["No one is free who is not master of themselves.", "Epictetus"],
+  ["First say to yourself what you would be; and then do what you have to do.", "Epictetus"],
+  ["He who laughs at himself never runs out of things to laugh at.", "Epictetus"],
+  ["Knowing yourself is the beginning of all wisdom.", "Aristotle"],
+  ["Well begun is half done.", "Aristotle"],
+  ["Patience is bitter, but its fruit is sweet.", "Aristotle"],
+  ["Hope is a waking dream.", "Aristotle"],
+  ["The only true wisdom is in knowing you know nothing.", "Socrates"],
+  ["An unexamined life is not worth living.", "Socrates"],
+  ["The secret of change is to focus all of your energy not on fighting the old, but on building the new.", "Dan Millman"],
+  ["What you get by achieving your goals is not as important as what you become by achieving them.", "Zig Ziglar"],
+  ["You don't have to be great to start, but you have to start to be great.", "Zig Ziglar"],
+  ["People often say that motivation doesn't last. Well, neither does bathing — that's why we recommend it daily.", "Zig Ziglar"],
+  ["Your attitude, not your aptitude, will determine your altitude.", "Zig Ziglar"],
+  ["Success is walking from failure to failure with no loss of enthusiasm.", "Winston Churchill"],
+  ["If you're going through hell, keep going.", "Winston Churchill"],
+  ["Attitude is a little thing that makes a big difference.", "Winston Churchill"],
+  ["Continuous effort — not strength or intelligence — is the key to unlocking our potential.", "Winston Churchill"],
+  ["The pessimist sees difficulty in every opportunity. The optimist sees opportunity in every difficulty.", "Winston Churchill"],
+  ["Change your thoughts and you change your world.", "Norman Vincent Peale"],
+  ["Shoot for the moon. Even if you miss, you'll land among the stars.", "Norman Vincent Peale"],
+  ["Great things are done by a series of small things brought together.", "Vincent van Gogh"],
+  ["I am seeking, I am striving, I am in it with all my heart.", "Vincent van Gogh"],
+  ["If you hear a voice within you say 'you cannot paint,' then by all means paint, and that voice will be silenced.", "Vincent van Gogh"],
+  ["Nothing in life is to be feared, it is only to be understood.", "Marie Curie"],
+  ["Life is not easy for any of us. But what of that? We must have perseverance.", "Marie Curie"],
+  ["Do not wait; the time will never be 'just right.'", "Napoleon Hill"],
+  ["Whatever the mind can conceive and believe, it can achieve.", "Napoleon Hill"],
+  ["Strength and growth come only through continuous effort and struggle.", "Napoleon Hill"],
+  ["Don't watch the clock; do what it does. Keep going.", "Sam Levenson"],
+  ["What you do speaks so loudly that I cannot hear what you say.", "Ralph Waldo Emerson"],
+  ["Finish each day and be done with it. You have done what you could.", "Ralph Waldo Emerson"],
+  ["Peace comes from within. Do not seek it without.", "Buddha"],
+  ["No act of kindness, no matter how small, is ever wasted.", "Aesop"],
+  ["Slow and steady wins the race.", "Aesop"],
+  ["A goal without a plan is just a wish.", "Antoine de Saint-Exupéry"],
+  ["As for the future, your task is not to foresee it, but to enable it.", "Antoine de Saint-Exupéry"],
+  ["Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away.", "Antoine de Saint-Exupéry"],
+  ["Twenty years from now you will be more disappointed by the things you didn't do than by the ones you did do.", "H. Jackson Brown Jr."],
+  ["The best preparation for tomorrow is doing your best today.", "H. Jackson Brown Jr."],
+  ["The most difficult thing is the decision to act; the rest is merely tenacity.", "Amelia Earhart"],
+  ["Adventure is worthwhile in itself.", "Amelia Earhart"],
+  ["Courage is the price that life exacts for granting peace.", "Amelia Earhart"],
+  ["You are never too old to set another goal or to dream a new dream.", "Les Brown"],
+  ["Too many of us are not living our dreams because we are living our fears.", "Les Brown"],
+  ["Life has no limitations, except the ones you make.", "Les Brown"],
+  ["Hard work beats talent when talent doesn't work hard.", "Tim Notke"],
+  ["It's not whether you get knocked down; it's whether you get up.", "Vince Lombardi"],
+  ["The price of success is hard work and dedication to the job at hand.", "Vince Lombardi"],
+  ["Champions keep playing until they get it right.", "Billie Jean King"],
+  ["Pressure is a privilege.", "Billie Jean King"],
+  ["The more difficult the victory, the greater the happiness in winning.", "Pelé"],
+  ["Success is no accident. It is hard work, perseverance, learning, studying and sacrifice.", "Pelé"],
+  ["I've failed over and over and over again in my life. And that is why I succeed.", "Michael Jordan"],
+  ["Some people want it to happen, some wish it would happen, others make it happen.", "Michael Jordan"],
+  ["If you run into a wall, don't turn around and give up. Figure out how to climb it.", "Michael Jordan"],
+  ["Do not let what you cannot do interfere with what you can do.", "John Wooden"],
+  ["Make each day your masterpiece.", "John Wooden"],
+  ["It's what you learn after you know it all that counts.", "John Wooden"],
+  ["Things turn out best for the people who make the best of the way things turn out.", "John Wooden"],
+  ["Be so good they can't ignore you.", "Steve Martin"],
+  ["Done is better than perfect.", "Sheryl Sandberg"],
+  ["However difficult life may seem, there is always something you can do and succeed at.", "Stephen Hawking"],
+  ["Look up at the stars and not down at your feet.", "Stephen Hawking"],
+  ["Intelligence is the ability to adapt to change.", "Stephen Hawking"],
+  ["In the depth of winter, I finally learned that within me there lay an invincible summer.", "Albert Camus"],
+  ["Real generosity toward the future lies in giving all to the present.", "Albert Camus"],
+  ["Kindness is a language which the deaf can hear and the blind can see.", "Mark Twain"],
+  ["The two most important days in your life are the day you are born and the day you find out why.", "Mark Twain"],
+  ["Nothing is impossible; the word itself says 'I'm possible!'", "Audrey Hepburn"],
+  ["Everything you've ever wanted is on the other side of fear.", "George Addair"],
+  ["Believe in yourself and all that you are. Know that there is something inside you greater than any obstacle.", "Christian D. Larson"],
+  ["The best way to predict the future is to create it.", "Peter Drucker"],
+  ["What gets measured gets improved.", "Peter Drucker"],
+  ["Motivation is what gets you started. Habit is what keeps you going.", "Jim Ryun"],
+  ["A year from now you may wish you had started today.", "Karen Lamb"]
+];
+
+const DAY = 86400000, HOUR = 3600000;
+const $ = id => document.getElementById(id);
+const els = {
+  quote: $("quote"), text: $("quote-text"), by: $("quote-by"),
+  kicker: $("kicker"), countdown: $("countdown"), now: $("btn-now"),
+  day: $("mode-day"), hour: $("mode-hour"), copy: $("btn-copy")
+};
+
+// A stride coprime with the list length keeps consecutive days far apart in the
+// list while still visiting every quote before any of them repeats.
+const STRIDE = (() => {
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  for (const s of [61, 67, 71, 73, 79, 83, 89, 97, 1]) {
+    if (gcd(s, QUOTES.length) === 1) return s;
+  }
+  return 1;
+})();
+
+let mode = localStorage.getItem("motivation-mode") === "hour" ? "hour" : "day";
+let offset = 0;
+let shown = null;
+
+const period = () => (mode === "hour" ? HOUR : DAY);
+
+// local-time period number, so the quote turns over at local midnight / on the hour
+function periodNow() {
+  const now = Date.now() - new Date().getTimezoneOffset() * 60000;
+  return Math.floor(now / period());
+}
+
+function quoteFor(n) {
+  const i = (((n * STRIDE) % QUOTES.length) + QUOTES.length) % QUOTES.length;
+  return QUOTES[i];
+}
+
+function render(animate) {
+  const n = periodNow() + offset;
+  if (shown === n) return;
+  const [text, author] = quoteFor(n);
+  const paint = () => {
+    els.text.textContent = text; // the big opening mark is drawn by CSS
+    els.by.textContent = author;
+    els.quote.classList.remove("swap");
+  };
+  if (animate && shown !== null) {
+    els.quote.classList.add("swap");
+    setTimeout(paint, 350);
+  } else {
+    paint();
+  }
+  shown = n;
+  els.now.hidden = offset === 0;
+  els.kicker.textContent = mode === "hour" ? "Quote of the hour" : "Quote of the day";
+  document.title = (mode === "hour" ? "Hourly" : "Daily") + " Motivation | linear";
+}
+
+function tick() {
+  const p = period();
+  const now = Date.now() - new Date().getTimezoneOffset() * 60000;
+  const left = p - (now % p);
+  const h = Math.floor(left / HOUR);
+  const m = Math.floor((left % HOUR) / 60000);
+  const s = Math.floor((left % 60000) / 1000);
+  const pad = v => String(v).padStart(2, "0");
+  els.countdown.textContent = (mode === "hour" ? "" : pad(h) + ":") + pad(m) + ":" + pad(s);
+  render(true); // rolls over on its own when the period changes
+}
+
+function setMode(next) {
+  mode = next;
+  offset = 0;
+  shown = null;
+  localStorage.setItem("motivation-mode", mode);
+  els.day.setAttribute("aria-pressed", String(mode === "day"));
+  els.hour.setAttribute("aria-pressed", String(mode === "hour"));
+  render(true);
+  tick();
+}
+
+els.day.addEventListener("click", () => setMode("day"));
+els.hour.addEventListener("click", () => setMode("hour"));
+$("btn-prev").addEventListener("click", () => { offset--; render(true); });
+$("btn-next").addEventListener("click", () => { offset++; render(true); });
+els.now.addEventListener("click", () => { offset = 0; render(true); });
+
+els.copy.addEventListener("click", async () => {
+  const line = "“" + els.text.textContent + "” — " + els.by.textContent;
+  try {
+    if (navigator.share) { await navigator.share({ text: line, url: location.href }); return; }
+    await navigator.clipboard.writeText(line);
+    els.copy.textContent = "Copied";
+    setTimeout(() => { els.copy.textContent = "Copy"; }, 1600);
+  } catch (e) { /* user dismissed the share sheet, or clipboard denied */ }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "BUTTON" || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === "ArrowLeft") { offset--; render(true); }
+  if (e.key === "ArrowRight") { offset++; render(true); }
+});
+
+setMode(mode);
+setInterval(tick, 1000);
+</script>
+
+</body>
+</html>
