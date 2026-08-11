@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Daily Motivation | linear</title>
-<meta name="description" content="A fresh quote on positivity, persistence and motivation — a new one every day, or every hour if you like. From linear, Managed IT &amp; Cybersecurity in Monroe, NY.">
+<title>Hourly Motivation | linear</title>
+<meta name="description" content="A fresh quote on positivity and motivation every hour — from Pirkei Avot, Tanakh, Talmud and beyond. From linear, Managed IT &amp; Cybersecurity in Monroe, NY.">
 <link rel="canonical" href="https://www.linearit.co/motivation/">
 <link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --peri:#6999f5;
@@ -18,6 +18,7 @@
   --ink:#000000;
   --paper:#ffffff;
   --mono:'Space Grotesk', system-ui, sans-serif;
+  --hebrew:'Frank Ruhl Libre', 'Times New Roman', serif;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
@@ -113,6 +114,27 @@ img{max-width:100%;display:block}
   color:var(--peri-deep);
 }
 
+/* ── Hebrew sources: RTL, Hebrew serif, no Latin quote mark ── */
+.quote.he{direction:rtl;text-align:right}
+.quote.he blockquote{
+  font-family:var(--hebrew);
+  font-weight:500;
+  font-size:clamp(1.7rem,5vw,3.4rem);
+  line-height:1.5;
+  letter-spacing:normal;
+}
+.quote.he blockquote::before{
+  content:"";
+  width:64px;height:4px;
+  background:var(--peri-deep);
+  border-radius:2px;
+  margin-bottom:26px;
+}
+.quote.he .by{
+  font-family:var(--hebrew);
+  font-size:1.2rem;font-weight:500;letter-spacing:normal;text-transform:none;
+}
+
 /* ── CONTROL BAR ── */
 .bar{
   display:flex;align-items:center;gap:14px;flex-wrap:wrap;
@@ -126,14 +148,6 @@ img{max-width:100%;display:block}
 }
 .countdown b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:700}
 
-.toggle{display:inline-flex;border:1px solid rgba(0,0,0,.18);border-radius:999px;overflow:hidden}
-.toggle button{
-  font-family:var(--mono);font-size:.66rem;font-weight:700;
-  letter-spacing:.18em;text-transform:uppercase;
-  padding:10px 18px;border:0;background:none;color:rgba(0,0,0,.55);
-  cursor:pointer;transition:background .2s,color .2s;
-}
-.toggle button[aria-pressed="true"]{background:var(--ink);color:#fff}
 
 .icon-btn{
   font-family:var(--mono);font-size:.66rem;font-weight:700;
@@ -225,7 +239,7 @@ img{max-width:100%;display:block}
 
 <main class="stage mesh-light pattern">
   <div class="stage-inner">
-    <span class="kicker" id="kicker">Quote of the day</span>
+    <span class="kicker">Quote of the hour</span>
 
     <figure class="quote" id="quote" aria-live="polite">
       <blockquote id="quote-text">Loading…</blockquote>
@@ -240,16 +254,12 @@ img{max-width:100%;display:block}
       <button class="icon-btn" id="btn-prev" aria-label="Previous quote">← Prev</button>
       <button class="icon-btn" id="btn-next" aria-label="Next quote">Next →</button>
       <button class="icon-btn" id="btn-copy">Copy</button>
-
-      <div class="toggle" role="group" aria-label="Rotation speed">
-        <button id="mode-day" aria-pressed="true">Daily</button>
-        <button id="mode-hour" aria-pressed="false">Hourly</button>
-      </div>
     </div>
 
     <p class="note">
-      Everyone visiting today sees the same quote — it's picked from the date, not at random.
-      Attributions follow common usage; a handful of widely circulated lines have contested origins.
+      A new quote every hour, on the hour. Everyone sees the same one — it's picked from the
+      clock, not at random. English attributions follow common usage; a handful of widely
+      circulated lines have contested origins.
     </p>
   </div>
 </main>
@@ -434,15 +444,125 @@ const QUOTES = [
   ["The best way to predict the future is to create it.", "Peter Drucker"],
   ["What gets measured gets improved.", "Peter Drucker"],
   ["Motivation is what gets you started. Habit is what keeps you going.", "Jim Ryun"],
-  ["A year from now you may wish you had started today.", "Karen Lamb"]
+  ["A year from now you may wish you had started today.", "Karen Lamb"],
+
+  // ── Hebrew sources. Third element marks the entry as RTL loshon kodesh. ──
+  // Pirkei Avot
+  ["אם אין אני לי, מי לי? וכשאני לעצמי, מה אני? ואם לא עכשיו, אימתי?", "הלל, פרקי אבות א׳:י״ד", "he"],
+  ["עשה תורתך קבע, אמור מעט ועשה הרבה, והוי מקבל את כל האדם בסבר פנים יפות", "שמאי, פרקי אבות א׳:ט״ו", "he"],
+  ["איזהו חכם? הלומד מכל אדם", "בן זומא, פרקי אבות ד׳:א׳", "he"],
+  ["איזהו גיבור? הכובש את יצרו", "בן זומא, פרקי אבות ד׳:א׳", "he"],
+  ["איזהו עשיר? השמח בחלקו", "בן זומא, פרקי אבות ד׳:א׳", "he"],
+  ["איזהו מכובד? המכבד את הבריות", "בן זומא, פרקי אבות ד׳:א׳", "he"],
+  ["לא עליך המלאכה לגמור, ולא אתה בן חורין ליבטל ממנה", "רבי טרפון, פרקי אבות ב׳:ט״ז", "he"],
+  ["במקום שאין אנשים, השתדל להיות איש", "הלל, פרקי אבות ב׳:ה׳", "he"],
+  ["אל תדין את חברך עד שתגיע למקומו", "הלל, פרקי אבות ב׳:ד׳", "he"],
+  ["יהי כבוד חברך חביב עליך כשלך", "רבי אליעזר, פרקי אבות ב׳:י׳", "he"],
+  ["עשה לך רב, וקנה לך חבר, והוי דן את כל האדם לכף זכות", "יהושע בן פרחיה, פרקי אבות א׳:ו׳", "he"],
+  ["לפום צערא אגרא", "בן הא הא, פרקי אבות ה׳:כ״ג", "he"],
+  ["סייג לחכמה שתיקה", "רבי עקיבא, פרקי אבות ג׳:י״ג", "he"],
+  ["ולא הביישן למד, ולא הקפדן מלמד", "הלל, פרקי אבות ב׳:ה׳", "he"],
+  ["הוי עז כנמר, וקל כנשר, רץ כצבי, וגיבור כארי — לעשות רצון אביך שבשמים", "יהודה בן תימא, פרקי אבות ה׳:כ׳", "he"],
+  ["על שלושה דברים העולם עומד: על התורה, ועל העבודה, ועל גמילות חסדים", "שמעון הצדיק, פרקי אבות א׳:ב׳", "he"],
+  ["על שלושה דברים העולם קיים: על הדין, ועל האמת, ועל השלום", "רבן שמעון בן גמליאל, פרקי אבות א׳:י״ח", "he"],
+  ["הוי מתלמידיו של אהרן: אוהב שלום ורודף שלום, אוהב את הבריות ומקרבן לתורה", "הלל, פרקי אבות א׳:י״ב", "he"],
+  ["אם למדת תורה הרבה, אל תחזיק טובה לעצמך", "רבן יוחנן בן זכאי, פרקי אבות ב׳:ח׳", "he"],
+  ["יפה תלמוד תורה עם דרך ארץ", "רבן גמליאל, פרקי אבות ב׳:ב׳", "he"],
+  ["אל תאמר לכשאיפנה אשנה, שמא לא תיפנה", "הלל, פרקי אבות ב׳:ד׳", "he"],
+  ["מרבה צדקה, מרבה שלום", "הלל, פרקי אבות ב׳:ז׳", "he"],
+  ["מרבה נכסים, מרבה דאגה", "הלל, פרקי אבות ב׳:ז׳", "he"],
+  ["הכל צפוי, והרשות נתונה", "רבי עקיבא, פרקי אבות ג׳:ט״ו", "he"],
+  ["אל תסתכל בקנקן, אלא במה שיש בו", "רבי מאיר, פרקי אבות ד׳:כ׳", "he"],
+  ["כל שרוח הבריות נוחה הימנו, רוח המקום נוחה הימנו", "פרקי אבות ג׳:י׳", "he"],
+  ["יהי ביתך פתוח לרווחה", "יוסי בן יוחנן, פרקי אבות א׳:ה׳", "he"],
+  ["מצווה גוררת מצווה", "בן עזאי, פרקי אבות ד׳:ב׳", "he"],
+  ["אם אין קמח, אין תורה; אם אין תורה, אין קמח", "רבי אלעזר בן עזריה, פרקי אבות ג׳:י״ז", "he"],
+  ["הוי גולה למקום תורה", "פרקי אבות ד׳:י״ד", "he"],
+  ["עשה רצונו כרצונך", "רבן גמליאל, פרקי אבות ב׳:ד׳", "he"],
+  ["שוב יום אחד לפני מיתתך", "רבי אליעזר, פרקי אבות ב׳:י׳", "he"],
+  ["איזהו חכם? הרואה את הנולד", "תלמוד בבלי, תמיד ל״ב.", "he"],
+
+  // Mishnah, Talmud and Midrash
+  ["כל המקיים נפש אחת מישראל, מעלה עליו הכתוב כאילו קיים עולם מלא", "משנה סנהדרין ד׳:ה׳", "he"],
+  ["חייב אדם לומר: בשבילי נברא העולם", "משנה סנהדרין ד׳:ה׳", "he"],
+  ["תלמוד תורה כנגד כולם", "משנה פאה א׳:א׳", "he"],
+  ["יגעתי ולא מצאתי — אל תאמן; יגעתי ומצאתי — תאמן", "תלמוד בבלי, מגילה ו׳:", "he"],
+  ["כל ישראל ערבים זה בזה", "תלמוד בבלי, שבועות ל״ט.", "he"],
+  ["הבא ליטהר, מסייעין אותו", "תלמוד בבלי, שבת ק״ד.", "he"],
+  ["לעולם ילמד אדם תורה במקום שליבו חפץ", "תלמוד בבלי, עבודה זרה י״ט.", "he"],
+  ["במקום שבעלי תשובה עומדין, צדיקים גמורים אינם עומדין", "תלמוד בבלי, ברכות ל״ד:", "he"],
+  ["הכל בידי שמים חוץ מיראת שמים", "תלמוד בבלי, ברכות ל״ג:", "he"],
+  ["אין השכינה שורה אלא מתוך שמחה", "תלמוד בבלי, שבת ל׳:", "he"],
+  ["כל המרחם על הבריות, מרחמין עליו מן השמים", "תלמוד בבלי, שבת קנ״א:", "he"],
+  ["גדול המעשה יותר מן העושה", "תלמוד בבלי, בבא בתרא ט׳.", "he"],
+  ["כל דעביד רחמנא — לטב עביד", "תלמוד בבלי, ברכות ס׳:", "he"],
+  ["גם זו לטובה", "נחום איש גם זו, תלמוד בבלי תענית כ״א.", "he"],
+  ["במקום שאתה מוצא גדולתו, שם אתה מוצא ענוותנותו", "תלמוד בבלי, מגילה ל״א.", "he"],
+  ["אין אדם עומד על דברי תורה אלא אם כן נכשל בהן", "תלמוד בבלי, גיטין מ״ג.", "he"],
+  ["אין הקדוש ברוך הוא בא בטרוניא עם בריותיו", "תלמוד בבלי, עבודה זרה ג׳.", "he"],
+  ["גדולה תשובה, שמביאה רפואה לעולם", "תלמוד בבלי, יומא פ״ו.", "he"],
+  ["הרוצה להחכים — ידרים, להעשיר — יצפין", "תלמוד בבלי, בבא בתרא כ״ה:", "he"],
+  ["יותר ממה שבעל הבית עושה עם העני, העני עושה עם בעל הבית", "מדרש ויקרא רבה ל״ד:ח׳", "he"],
+  ["דרך ארץ קדמה לתורה", "מדרש ויקרא רבה ט׳:ג׳", "he"],
+  ["כשם שאין פרצופיהן דומין זה לזה, כך אין דעתן שווה", "מדרש במדבר רבה כ״א:ב׳", "he"],
+
+  // Tanakh
+  ["בכל דרכיך דעהו, והוא יישר אורחותיך", "משלי ג׳:ו׳", "he"],
+  ["כי שבע ייפול צדיק וקם", "משלי כ״ד:ט״ז", "he"],
+  ["ברזל בברזל יחד, ואיש יחד פני רעהו", "משלי כ״ז:י״ז", "he"],
+  ["טוב ארך אפיים מגיבור, ומושל ברוחו מלוכד עיר", "משלי ט״ז:ל״ב", "he"],
+  ["דאגה בלב איש ישחנה, ודבר טוב ישמחנה", "משלי י״ב:כ״ה", "he"],
+  ["לב שמח ייטיב גהה", "משלי י״ז:כ״ב", "he"],
+  ["רבות מחשבות בלב איש, ועצת ה׳ היא תקום", "משלי י״ט:כ״א", "he"],
+  ["מענה רך ישיב חמה", "משלי ט״ו:א׳", "he"],
+  ["אל תתהלל ביום מחר, כי לא תדע מה יילד יום", "משלי כ״ז:א׳", "he"],
+  ["שקר החן והבל היופי, אישה יראת ה׳ היא תתהלל", "משלי ל״א:ל׳", "he"],
+  ["עוז והדר לבושה, ותשחק ליום אחרון", "משלי ל״א:כ״ה", "he"],
+  ["ראשית חכמה יראת ה׳", "תהילים קי״א:י׳", "he"],
+  ["גם כי אלך בגיא צלמוות, לא אירא רע כי אתה עמדי", "תהילים כ״ג:ד׳", "he"],
+  ["הזורעים בדמעה, ברינה יקצורו", "תהילים קכ״ו:ה׳", "he"],
+  ["קווה אל ה׳, חזק ויאמץ ליבך, וקווה אל ה׳", "תהילים כ״ז:י״ד", "he"],
+  ["קרוב ה׳ לכל קוראיו, לכל אשר יקראוהו באמת", "תהילים קמ״ה:י״ח", "he"],
+  ["השלך על ה׳ יהבך, והוא יכלכלך", "תהילים נ״ה:כ״ג", "he"],
+  ["טוב לחסות בה׳ מבטוח באדם", "תהילים קי״ח:ח׳", "he"],
+  ["מן המצר קראתי י־ה, ענני במרחב י־ה", "תהילים קי״ח:ה׳", "he"],
+  ["עבדו את ה׳ בשמחה, בואו לפניו ברננה", "תהילים ק׳:ב׳", "he"],
+  ["זה היום עשה ה׳, נגילה ונשמחה בו", "תהילים קי״ח:כ״ד", "he"],
+  ["כי ייפול, לא יוטל, כי ה׳ סומך ידו", "תהילים ל״ז:כ״ד", "he"],
+  ["סור מרע ועשה טוב, בקש שלום ורודפהו", "תהילים ל״ד:ט״ו", "he"],
+  ["עולם חסד ייבנה", "תהילים פ״ט:ג׳", "he"],
+  ["חזק ואמץ, אל תערוץ ואל תחת", "יהושע א׳:ט׳", "he"],
+  ["ואהבת לרעך כמוך", "ויקרא י״ט:י״ח", "he"],
+  ["צדק צדק תרדוף", "דברים ט״ז:כ׳", "he"],
+  ["ובחרת בחיים", "דברים ל׳:י״ט", "he"],
+  ["לא בשמים היא", "דברים ל׳:י״ב", "he"],
+  ["כי קרוב אליך הדבר מאוד, בפיך ובלבבך לעשותו", "דברים ל׳:י״ד", "he"],
+  ["ועשית הישר והטוב בעיני ה׳", "דברים ו׳:י״ח", "he"],
+  ["נעשה ונשמע", "שמות כ״ד:ז׳", "he"],
+  ["לכל זמן, ועת לכל חפץ תחת השמיים", "קהלת ג׳:א׳", "he"],
+  ["כל אשר תמצא ידך לעשות בכוחך — עשה", "קהלת ט׳:י׳", "he"],
+  ["סוף דבר, הכל נשמע: את האלוקים ירא ואת מצוותיו שמור, כי זה כל האדם", "קהלת י״ב:י״ג", "he"],
+  ["טוב שם משמן טוב", "קהלת ז׳:א׳", "he"],
+  ["מים רבים לא יוכלו לכבות את האהבה", "שיר השירים ח׳:ז׳", "he"],
+  ["עזה כמוות אהבה", "שיר השירים ח׳:ו׳", "he"],
+  ["והצנע לכת עם אלוקיך", "מיכה ו׳:ח׳", "he"],
+  ["איש את רעהו יעזורו, ולאחיו יאמר חזק", "ישעיהו מ״א:ו׳", "he"],
+  ["טוב ה׳ לקוויו, לנפש תדרשנו", "איכה ג׳:כ״ה", "he"],
+  ["חדשים לבקרים, רבה אמונתך", "איכה ג׳:כ״ג", "he"],
+
+  // Rishonim and Chassidus
+  ["לעולם יראה אדם עצמו כאילו חציו זכאי וחציו חייב", "רמב״ם, הלכות תשובה ג׳:ד׳", "he"],
+  ["מצווה גדולה להיות בשמחה תמיד", "רבי נחמן מברסלב, ליקוטי מוהר״ן תניינא כ״ד", "he"],
+  ["אין שום ייאוש בעולם כלל", "רבי נחמן מברסלב, ליקוטי מוהר״ן תניינא ע״ח", "he"],
+  ["כל העולם כולו גשר צר מאוד, והעיקר לא לפחד כלל", "רבי נחמן מברסלב, נוסח מקובל", "he"],
+  ["אם אתה מאמין שיכולים לקלקל, תאמין שיכולים לתקן", "רבי נחמן מברסלב", "he"]
 ];
 
-const DAY = 86400000, HOUR = 3600000;
+const HOUR = 3600000;
 const $ = id => document.getElementById(id);
 const els = {
   quote: $("quote"), text: $("quote-text"), by: $("quote-by"),
-  kicker: $("kicker"), countdown: $("countdown"), now: $("btn-now"),
-  day: $("mode-day"), hour: $("mode-hour"), copy: $("btn-copy")
+  countdown: $("countdown"), now: $("btn-now"), copy: $("btn-copy")
 };
 
 // A stride coprime with the list length keeps consecutive days far apart in the
@@ -455,16 +575,13 @@ const STRIDE = (() => {
   return 1;
 })();
 
-let mode = localStorage.getItem("motivation-mode") === "hour" ? "hour" : "day";
 let offset = 0;
 let shown = null;
 
-const period = () => (mode === "hour" ? HOUR : DAY);
-
-// local-time period number, so the quote turns over at local midnight / on the hour
+// local-time hour number, so the quote turns over on the hour wherever you are
 function periodNow() {
   const now = Date.now() - new Date().getTimezoneOffset() * 60000;
-  return Math.floor(now / period());
+  return Math.floor(now / HOUR);
 }
 
 function quoteFor(n) {
@@ -475,10 +592,14 @@ function quoteFor(n) {
 function render(animate) {
   const n = periodNow() + offset;
   if (shown === n) return;
-  const [text, author] = quoteFor(n);
+  const [text, source, lang] = quoteFor(n);
+  const hebrew = lang === "he";
   const paint = () => {
-    els.text.textContent = text; // the big opening mark is drawn by CSS
-    els.by.textContent = author;
+    els.text.textContent = text; // the opening mark / rule is drawn by CSS
+    els.by.textContent = source;
+    els.quote.classList.toggle("he", hebrew);
+    els.quote.setAttribute("dir", hebrew ? "rtl" : "ltr");
+    els.quote.setAttribute("lang", hebrew ? "he" : "en");
     els.quote.classList.remove("swap");
   };
   if (animate && shown !== null) {
@@ -489,35 +610,18 @@ function render(animate) {
   }
   shown = n;
   els.now.hidden = offset === 0;
-  els.kicker.textContent = mode === "hour" ? "Quote of the hour" : "Quote of the day";
-  document.title = (mode === "hour" ? "Hourly" : "Daily") + " Motivation | linear";
 }
 
 function tick() {
-  const p = period();
   const now = Date.now() - new Date().getTimezoneOffset() * 60000;
-  const left = p - (now % p);
-  const h = Math.floor(left / HOUR);
-  const m = Math.floor((left % HOUR) / 60000);
+  const left = HOUR - (now % HOUR);
+  const m = Math.floor(left / 60000);
   const s = Math.floor((left % 60000) / 1000);
   const pad = v => String(v).padStart(2, "0");
-  els.countdown.textContent = (mode === "hour" ? "" : pad(h) + ":") + pad(m) + ":" + pad(s);
-  render(true); // rolls over on its own when the period changes
+  els.countdown.textContent = pad(m) + ":" + pad(s);
+  render(true); // rolls over on its own when the hour changes
 }
 
-function setMode(next) {
-  mode = next;
-  offset = 0;
-  shown = null;
-  localStorage.setItem("motivation-mode", mode);
-  els.day.setAttribute("aria-pressed", String(mode === "day"));
-  els.hour.setAttribute("aria-pressed", String(mode === "hour"));
-  render(true);
-  tick();
-}
-
-els.day.addEventListener("click", () => setMode("day"));
-els.hour.addEventListener("click", () => setMode("hour"));
 $("btn-prev").addEventListener("click", () => { offset--; render(true); });
 $("btn-next").addEventListener("click", () => { offset++; render(true); });
 els.now.addEventListener("click", () => { offset = 0; render(true); });
@@ -538,7 +642,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowRight") { offset++; render(true); }
 });
 
-setMode(mode);
+render(false);
+tick();
 setInterval(tick, 1000);
 </script>
 
