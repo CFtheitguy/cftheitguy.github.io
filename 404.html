@@ -2,198 +2,246 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>404 • Lost in Space</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 — Page not found | linear</title>
+<meta name="description" content="That page isn't here. Head back to linear — Managed IT &amp; Cybersecurity, Monroe, NY.">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-    --black: #000000;
-    --white: #FFFFFF;
-    --aqua: #70F2FF;
-    --peri: #6999F5;
-    --peri-deep: #4D7FE8;
-    --surface: #F4F7FB;
-    --body: #3C3C3C;
+:root{
+  --peri:#6999f5;
+  --peri-deep:#4d7fe8;
+  --aqua:#70f2ff;
+  --ink:#000000;
+  --paper:#ffffff;
+  --mono:'Space Grotesk', system-ui, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+body{min-height:100svh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+
+.kicker{
+  font-family:var(--mono);
+  font-size:.72rem;
+  font-weight:600;
+  letter-spacing:.42em;
+  text-transform:uppercase;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-    font-family: "Space Grotesk", system-ui, -apple-system, sans-serif;
-    background: var(--surface);
-    color: var(--body);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    text-align: center;
-    overflow: hidden;
-    position: relative;
+/* ── gradient mesh ── */
+.mesh-light{
+  background:
+    radial-gradient(42% 55% at 12% 78%, rgba(105,153,245,.75) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(45% 60% at 82% 14%, rgba(112,242,255,.8) 0%, rgba(112,242,255,0) 100%),
+    radial-gradient(30% 42% at 55% 55%, rgba(112,242,255,.25) 0%, rgba(112,242,255,0) 100%),
+    linear-gradient(120deg,#fdfdfd 0%,#f4f7fb 100%);
 }
 
-/* mesh gradient */
-.mesh {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-        radial-gradient(600px 500px at 15% 20%, rgba(112, 242, 255, .35), transparent 60%),
-        radial-gradient(650px 550px at 85% 25%, rgba(105, 153, 245, .35), transparent 60%),
-        radial-gradient(700px 600px at 70% 90%, rgba(77, 127, 232, .28), transparent 60%),
-        radial-gradient(500px 500px at 25% 85%, rgba(112, 242, 255, .22), transparent 60%);
-    filter: blur(10px);
+/* ── pattern ── */
+.pattern{position:relative}
+.pattern::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:url("/zurech3/assets/pattern-tile-black.png") repeat;
+  background-size:84px;
+  opacity:.05;
+  pointer-events:none;
 }
+.pattern > *{position:relative}
 
-/* faint repeating dashed-ring logomark field */
-.rings {
-    position: absolute;
-    inset: -60px;
-    pointer-events: none;
-    opacity: .06;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='60' r='34' fill='none' stroke='%234D7FE8' stroke-width='4' stroke-dasharray='8 8'/%3E%3C/svg%3E");
-    background-size: 120px 120px;
-    animation: drift 22s linear infinite;
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;height:120px;z-index:1000;
+  display:flex;align-items:center;
+  background:rgba(5,5,7,.82);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  color:#fff;
+  padding:0 24px;
 }
-
-@keyframes drift {
-    from { transform: translateY(0); }
-    to   { transform: translateY(-120px); }
+.nav-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;flex-shrink:0}
+.brand img{height:76px;width:auto;display:block}
+.nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
+.nav-links a{font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75);transition:color .2s}
+.nav-links a:hover{color:var(--aqua)}
+.nav-cta{
+  background:var(--aqua);color:var(--ink) !important;
+  padding:10px 18px;border-radius:999px;font-weight:700 !important;
+  transition:transform .15s, background .2s;
 }
+.nav-cta:hover{background:#8ff5ff;transform:translateY(-1px)}
 
-.container {
-    position: relative;
-    z-index: 1;
-    max-width: 640px;
-    padding: 40px;
+/* ── HERO ── */
+.hero{
+  flex:1;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:172px 24px 80px;
+  position:relative;overflow:hidden;
 }
-
-.wordmark {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 48px;
+.hero-inner{max-width:1200px;margin:0 auto;width:100%}
+.hero .kicker{color:var(--peri-deep);margin-bottom:34px}
+.code{
+  font-family:var(--mono);
+  font-weight:700;
+  font-size:clamp(5.5rem,18vw,13rem);
+  line-height:.9;
+  letter-spacing:-.04em;
+  color:var(--peri-deep);
+  margin-bottom:30px;
 }
-
-.wordmark svg { display: block; }
-
-.wordmark .logo-ring { animation: spin 14s linear infinite; transform-origin: 22px 22px; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.wordmark span {
-    font-family: "Instrument Serif", Georgia, serif;
-    font-size: 2rem;
-    line-height: 1;
-    color: var(--black);
-    letter-spacing: .5px;
+.hero h1{
+  font-family:var(--mono);
+  font-weight:600;
+  font-size:clamp(1.25rem,3.2vw,2.1rem);
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  line-height:1.55;
+  max-width:880px;
+  margin-bottom:26px;
 }
-
-.number {
-    font-size: 8rem;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -2px;
-    background: linear-gradient(90deg, var(--aqua), var(--peri-deep));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+.hero h1 .hl{color:var(--peri-deep)}
+.hero p{max-width:600px;color:rgba(0,0,0,.62);font-size:.95rem;margin-bottom:44px}
+.hero-ctas{display:flex;gap:16px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:.78rem;font-weight:700;
+  letter-spacing:.2em;text-transform:uppercase;
+  padding:16px 28px;border-radius:999px;
+  transition:transform .15s, background .2s, color .2s, border-color .2s;
+  cursor:pointer;border:0;
 }
-
-h1 {
-    margin-top: 12px;
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--black);
+.btn-aqua{background:var(--aqua);color:var(--ink)}
+.btn-aqua:hover{background:#8ff5ff;transform:translateY(-2px)}
+.btn-ghost{border:1px solid rgba(0,0,0,.28);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--peri-deep);color:var(--peri-deep);transform:translateY(-2px)}
+.hero-chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:56px}
+.chip{
+  font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;
+  border:1px solid rgba(0,0,0,.18);color:rgba(0,0,0,.6);
+  border-radius:999px;padding:8px 16px;
+  transition:border-color .2s,color .2s;
 }
+a.chip:hover{border-color:var(--peri-deep);color:var(--peri-deep)}
 
-p {
-    margin: 22px 0;
-    font-size: 1.1rem;
-    color: var(--body);
-    line-height: 1.65;
+/* ── TICKER ── */
+.ticker{
+  background:var(--peri);color:var(--ink);
+  overflow:hidden;white-space:nowrap;
+  border-top:1px solid rgba(0,0,0,.12);
+  border-bottom:1px solid rgba(0,0,0,.12);
+  padding:14px 0;
 }
-
-.button {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 15px 30px;
-    background: linear-gradient(90deg, var(--peri), var(--peri-deep));
-    color: var(--white);
-    text-decoration: none;
-    border-radius: 999px;
-    font-family: "Space Grotesk", sans-serif;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all .25s ease;
-    box-shadow: 0 8px 24px rgba(77, 127, 232, .25);
+.ticker-track{display:inline-block;animation:tick 30s linear infinite}
+.ticker span{
+  font-family:var(--mono);font-size:.78rem;font-weight:700;
+  letter-spacing:.34em;text-transform:uppercase;
+  margin:0 34px;
 }
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.ticker-track{animation:none}}
 
-.button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 34px rgba(77, 127, 232, .4);
+/* ── FOOTER ── */
+.footer{background:var(--ink);color:#fff;padding:70px 24px 40px;position:relative;overflow:hidden}
+.footer::before{
+  content:"";position:absolute;inset:0;
+  background:url("/zurech3/assets/pattern-tile-white.png") repeat;background-size:76px;opacity:.045;
 }
-
-.footer {
-    margin-top: 44px;
-    color: #6b7480;
-    font-size: .9rem;
+.footer .wrap{max-width:1200px;margin:0 auto;position:relative}
+.footer-top{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;align-items:flex-end;margin-bottom:50px}
+.footer-brand{display:flex;align-items:center}
+.footer-brand img{height:clamp(46px,7vw,64px);width:auto;display:block}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.65);transition:color .2s}
+.footer-links a:hover{color:var(--aqua)}
+.footer-base{
+  border-top:1px solid rgba(255,255,255,.12);padding-top:28px;
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);
 }
+.footer-base .site{color:var(--aqua)}
 
-.footer a { color: var(--peri-deep); text-decoration: none; font-weight: 500; }
-.footer a:hover { text-decoration: underline; }
-
-@media (max-width: 520px) {
-    .number { font-size: 5.5rem; }
-    h1 { font-size: 1.6rem; }
-    p { font-size: 1rem; }
+/* ── RESPONSIVE ── */
+@media (max-width:680px){
+  .nav{height:96px}
+  .brand img{height:56px}
+  .nav-links{display:none}
+  .hero{padding:140px 20px 70px}
+  .hero-chips{margin-top:40px}
 }
 </style>
 </head>
 <body>
 
-<div class="mesh"></div>
-<div class="rings"></div>
-
-<div class="container">
-
-    <a class="wordmark" href="https://www.linearit.co/" aria-label="linear home">
-        <svg class="logo-ring" width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="22" cy="22" r="18" stroke="#4D7FE8" stroke-width="3" stroke-dasharray="5 5"/>
-            <circle cx="22" cy="22" r="6" fill="#70F2FF"/>
-        </svg>
-        <span>linear</span>
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/" aria-label="linear home">
+      <img src="/zurech3/assets/logo-white.svg" alt="linear">
     </a>
-
-    <div class="number">404</div>
-
-    <h1>Well... this is awkward.</h1>
-
-    <p>
-        We searched every folder, checked every link, looked under the virtual
-        couch cushions, and even asked the server nicely—but the page you're
-        looking for simply isn't here.
-    </p>
-
-    <p>
-        Maybe the URL was mistyped, maybe the page moved to a better
-        neighborhood, or maybe it never existed in the first place.
-        Whatever happened, this isn't the destination you were hoping for.
-    </p>
-
-    <p>
-        The good news? The rest of the site is still perfectly fine.
-        Click below and we'll get you safely back home before anyone notices.
-    </p>
-
-    <a class="button" href="https://www.linearit.co/">Take me home</a>
-
-    <div class="footer">
-        Think this is a mistake? <a href="mailto:chaim@linearit.co">Let us know</a>—we'll rescue it.
+    <div class="nav-links">
+      <a href="/#about">About</a>
+      <a href="/#services">Services</a>
+      <a href="/#faq">FAQ</a>
+      <a class="nav-cta" href="/#contact">Book a consult</a>
     </div>
+  </div>
+</nav>
 
+<header class="hero mesh-light pattern">
+  <div class="hero-inner">
+    <div class="kicker">Error 404&nbsp;&nbsp;/&nbsp;&nbsp;Page not found</div>
+    <div class="code">404</div>
+    <h1>This page is <span class="hl">off the network</span></h1>
+    <p>We checked every folder, followed every link, and asked the server nicely — the page you're looking for isn't here. It may have moved, been renamed, or never existed at all. Everything else is running exactly as it should.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-aqua" href="/">Back to home</a>
+      <a class="btn btn-ghost" href="tel:+18456041462">(845) 604-1462</a>
+    </div>
+    <div class="hero-chips">
+      <a class="chip" href="/#services">Services</a>
+      <a class="chip" href="/#about">About</a>
+      <a class="chip" href="/#faq">FAQ</a>
+      <a class="chip" href="/#contact">Contact</a>
+      <a class="chip" href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">Client login</a>
+      <a class="chip" href="https://linearit.rmmservices.net/connect/#/3147536854" target="_blank" rel="noopener">Remote support</a>
+    </div>
+  </div>
+</header>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Not on our watch</span><span>Stay safe</span><span>Stay covered</span><span>linearit.co</span>
+    <span>Not on our watch</span><span>Stay safe</span><span>Stay covered</span><span>linearit.co</span>
+  </div>
 </div>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="/zurech3/assets/logo-white.svg" alt="linear">
+      </div>
+      <div class="footer-links">
+        <a href="/#about">About</a>
+        <a href="/#services">Services</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#contact">Contact</a>
+        <a href="mailto:chaim@linearit.co">Report a broken link</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>© 2026 linear · Straightforward IT excellence · Monroe, NY</span>
+      <span class="site">linearit.co</span>
+    </div>
+  </div>
+</footer>
 
 </body>
 </html>
