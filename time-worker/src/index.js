@@ -43,6 +43,25 @@
  *   DELETE /api/admin/company-admins (super) remove a company admin
  *   GET  /api/health              -> "ok"
  *
+ * LINEAR TO-DO (see todos.js — same sign-in, same database, own tables)
+ *   GET  /api/todo/state          lists + tasks + steps + counts, in one call
+ *   POST /api/todo/add            add a task (quick-add text or explicit fields)
+ *   POST /api/todo/update         change any field of a task
+ *   POST /api/todo/complete       tick / untick (repeating tasks roll forward)
+ *   POST /api/todo/delete         remove a task
+ *   POST /api/todo/step           add / rename / toggle / delete a sub-step
+ *   POST /api/todo/list           create / update / delete a list
+ *   GET/POST /api/todo/prefs      timezone, default list, receipts, alt addresses
+ *   POST /api/todo/phone          start / remove mobile-number linking
+ *   POST /api/todo/parse          preview what the quick-add box understood
+ *   GET/POST /api/todo/quick      add a task from a personal link (?key=&text=)
+ *                                 — what a phone Shortcut / Siri calls. Free.
+ *   POST /api/sms/inbound         SMS provider webhook (optional, paid number)
+ *   GET  /api/todo/feed.ics       read-only calendar feed of dated tasks (?key=)
+ *   email()                       task@linearit.co -> a task (Email Routing),
+ *                                 including texts sent to that address through
+ *                                 a carrier's text-to-email gateway
+ *
  * ENV (secrets, except the [vars] in wrangler.toml)
  *   DB              D1 database binding (required)
  *   AUTH_SECRET     long random string — pepper for hashes, signs session tokens
@@ -59,11 +78,30 @@
  *   VAPID_PRIVATE_JWK  the matching private key as a JWK JSON string
  *   VAPID_SUBJECT      contact URL, e.g. mailto:admin@linearit.co
  *   (generate all three with: node ../time-worker/gen-vapid.mjs)
- *   A Cron Trigger (see wrangler.toml [triggers]) runs every 5 min and pushes the
- *   30-min check-in / after-5pm wrap-up to whoever is due. If these are unset,
- *   reminders simply fall back to in-app only (the app must be open).
+ *   A Cron Trigger (see wrangler.toml [triggers]) runs every minute and pushes the
+ *   30-min check-in / after-5pm wrap-up / to-do reminders to whoever is due. If
+ *   these are unset, reminders fall back to in-app only (the app must be open).
+ *
+ * TO-DO INTAKE
+ *   The free doors need no secrets at all: the personal quick-add link works as
+ *   soon as the Worker is up, and email (including texts sent to task@… through
+ *   a carrier gateway) needs only an Email Routing rule pointing that address at
+ *   this Worker. See ../time-worker/README.md.
+ *     TODO_EMAIL       var    — the intake address shown in the app (task@…)
+ *   A dedicated SMS number is optional and costs money; wire one up only if you
+ *   want people to text a number instead of an address:
+ *     TWILIO_AUTH_TOKEN  secret — validates the inbound SMS webhook signature
+ *     SMS_INTAKE_SECRET  secret — shared secret for a non-Twilio SMS provider
+ *     SMS_NUMBER         var    — the number people text, shown in the app
+ *     SMS_WEBHOOK_URL    var    — override the URL used for signature checks
  * =============================================================================
  */
+
+import {
+  ensureTodoSchema, handleTodoApi, dueReminders, markReminded, usersWithDueReminders,
+  reminderNotification, icsFeed, getPrefs, quickAdd,
+} from "./todos.js";
+import { handleIncomingEmail, handleSmsInbound, runTaskCommand } from "./intake.js";
 
 // Sessions are effectively permanent: the worker signs in once at setup and the
 // token re-issues on every authed call, so it never expires in normal daily use.
@@ -103,11 +141,25 @@ export default {
     }
   },
 
-  // Cloudflare Cron Trigger (every 5 min): send background reminders (30-min
-  // check-ins + the after-5pm wrap-up) via Web Push, so nudges arrive even when
-  // the app window is closed. Configured by `[triggers] crons` in wrangler.toml.
+  // Cloudflare Cron Trigger (every minute): send background reminders — the
+  // 30-min check-in, the after-5pm wrap-up, and any to-do whose reminder time
+  // has arrived — via Web Push, so they land even when the app window is closed.
+  // Configured by `[triggers] crons` in wrangler.toml.
   async scheduled(event, env, ctx) {
     ctx.waitUntil(runReminders(env));
+  },
+
+  // Inbound mail from Cloudflare Email Routing (task@linearit.co). Anything that
+  // goes wrong is reported back to the sender as an SMTP rejection rather than
+  // swallowed, so a task never disappears quietly.
+  async email(message, env, ctx) {
+    try {
+      await ensureSchema(env);
+      await handleIncomingEmail(message, env, { sendEmail });
+    } catch (err) {
+      console.error("email intake failed", err && err.stack ? err.stack : String(err));
+      try { message.setReject("Linear To-Do couldn't process this message."); } catch (_) {}
+    }
   },
 };
 
@@ -116,6 +168,19 @@ export default {
  * ============================================================ */
 async function handleApi(request, env, url, p, method) {
   await ensureSchema(env);
+
+  // --- Linear To-Do (todos.js) ---
+  // The calendar feed and the SMS webhook authenticate themselves (a feed key /
+  // a provider signature), so they sit ahead of the session-token routes.
+  if (p === "/api/todo/feed.ics" && (method === "GET" || method === "HEAD")) return icsFeed(env, url);
+  if (p === "/api/todo/quick" && (method === "GET" || method === "POST")) {
+    return quickAdd(request, env, url, (e, owner, text) => runTaskCommand(e, owner, text, "link"));
+  }
+  if (p === "/api/sms/inbound" && method === "POST") return handleSmsInbound(request, env, url);
+  if (p.startsWith("/api/todo/")) {
+    const handled = await handleTodoApi(request, env, url, p, method, todoCtx());
+    if (handled) return handled;
+  }
 
   if (p === "/api/auth/start" && method === "POST") return authStart(request, env);
   if (p === "/api/auth/code" && method === "POST") return authCode(request, env);
@@ -421,8 +486,10 @@ async function pushKey(request, env) {
   return json({ key: env.VAPID_PUBLIC || "" });
 }
 
+// Anyone signed in may subscribe — admins don't track time, but they do get
+// to-do reminders, so they need a push subscription just the same.
 async function pushSubscribe(request, env) {
-  const claims = await requireUser(request, env);
+  const claims = await requireAnyone(request, env);
   const body = await readBody(request);
   const sub = body.sub;
   if (!sub || !sub.endpoint) return json({ error: "Bad subscription." }, 400);
@@ -432,20 +499,33 @@ async function pushSubscribe(request, env) {
     "ON CONFLICT(email) DO UPDATE SET endpoint=excluded.endpoint, sub=excluded.sub, tz_offset=excluded.tz_offset, updated_at=excluded.updated_at"
   ).bind(claims.email, String(sub.endpoint), JSON.stringify(sub), tzOffset(body), now).run();
   await env.DB.prepare("UPDATE workers SET tz_offset=? WHERE email=?").bind(tzOffset(body), claims.email).run();
+  await env.DB.prepare("UPDATE todo_prefs SET tz_offset=?, updated_at=? WHERE email=?")
+    .bind(tzOffset(body), now, claims.email).run();
   return json({ token: await reissue(env, claims), ok: true });
 }
 
 // The service worker calls this after a (payload-less) push to learn what to show.
 async function pushPending(request, env) {
-  const claims = await requireUser(request, env);
+  const claims = await requireAnyone(request, env);
+  const now = Date.now();
   const w = await env.DB.prepare("SELECT tz_offset FROM workers WHERE email=?").bind(claims.email).first();
-  const pend = await computePending(env, claims.email, Date.now(), w ? Number(w.tz_offset) || 0 : 0);
+  let tz = w ? Number(w.tz_offset) || 0 : 0;
+  if (!w) tz = (await getPrefs(env, claims.email)).tz_offset;   // admins have no worker row
+  const pend = await computePending(env, claims.email, now, tz);
+  // Showing it counts as delivering it, so it doesn't nag again next minute.
+  if (pend.show && pend.type === "todo" && pend.ids) await markReminded(env, pend.ids, now);
   return json(Object.assign({ token: await reissue(env, claims) }, pend));
 }
 
 // Decide whether a worker is due for a nudge right now (shared by the SW endpoint
 // and the cron sender). Returns { show, type, title, body }.
 async function computePending(env, email, now, tzOff) {
+  // A to-do reminder is the most time-specific thing we have — someone asked to
+  // be nudged at exactly this moment — so it outranks the tracker's nudges.
+  const due = await dueReminders(env, email, now, 5);
+  const note = reminderNotification(due, tzOff, now);
+  if (note) return note;
+
   const running = await env.DB.prepare(
     "SELECT task, checkin_at FROM entries WHERE email=? AND ended_at IS NULL ORDER BY started_at DESC LIMIT 1"
   ).bind(email).first();
@@ -477,24 +557,56 @@ async function runReminders(env) {
     "LEFT JOIN workers w ON w.email=p.email"
   ).all()).results || [];
   const now = Date.now();
+
+  // Whose to-do reminder has come due this minute. Those bypass the tracker's
+  // throttle entirely — a 3:00 reminder has to arrive at 3:00, not whenever the
+  // next nudge window happens to open.
+  const todoDue = new Set(await usersWithDueReminders(env, now));
+
   const minCache = {};
   for (const s of subs) {
     try {
-      // Re-nudge no more often than the company's own interval (floored to the
-      // 5-min cron granularity), so a shorter interval nags sooner, a longer one later.
-      if (!(s.company_id in minCache)) minCache[s.company_id] = (await getCompanySettings(env, s.company_id)).checkinMin;
-      const throttle = Math.max(4, minCache[s.company_id]) * 60000;
-      if (now - Number(s.last_push_at || 0) < throttle) continue;
+      const isTodo = todoDue.has(s.email);
+      if (!isTodo) {
+        // Re-nudge no more often than the company's own interval, so a shorter
+        // interval nags sooner and a longer one later.
+        if (!(s.company_id in minCache)) minCache[s.company_id] = (await getCompanySettings(env, s.company_id)).checkinMin;
+        const throttle = Math.max(4, minCache[s.company_id]) * 60000;
+        if (now - Number(s.last_push_at || 0) < throttle) continue;
+      }
       const pend = await computePending(env, s.email, now, Number(s.tz_offset) || 0);
       if (!pend.show) continue;
+
       const status = await sendPush(env, s.endpoint);
       if (status === 404 || status === 410) {
         await env.DB.prepare("DELETE FROM push_subs WHERE email=?").bind(s.email).run();
-      } else {
-        await env.DB.prepare("UPDATE push_subs SET last_push_at=? WHERE email=?").bind(now, s.email).run();
+        continue;
       }
+      await env.DB.prepare("UPDATE push_subs SET last_push_at=? WHERE email=?").bind(now, s.email).run();
+      // Tick the reminders off so they fire once. They stay readable for a few
+      // more minutes (REMINDER_GRACE_MS) so the service worker can still ask
+      // /api/push/pending what to display after this push wakes it.
+      if (pend.type === "todo" && pend.ids) await markReminded(env, pend.ids, now);
     } catch (_) { /* one bad subscription shouldn't stop the rest */ }
   }
+
+  // Someone with a due reminder but no push subscription (never installed the
+  // app, or denied notifications) would otherwise be retried every minute
+  // forever. Retire those quietly once they're well past due.
+  await retireStaleReminders(env, now);
+}
+
+// A reminder nobody can be pushed about is marked fired once it's an hour old,
+// so the cron's work list doesn't grow without bound. The task itself is
+// untouched — it still shows as due in the app.
+async function retireStaleReminders(env, now) {
+  try {
+    await env.DB.prepare(
+      "UPDATE todos SET reminded_at=? WHERE status='open' AND reminded_at IS NULL " +
+      "AND remind_at IS NOT NULL AND remind_at <= ? " +
+      "AND email NOT IN (SELECT email FROM push_subs)"
+    ).bind(now, now - 60 * 60 * 1000).run();
+  } catch (_) { /* best effort */ }
 }
 
 // Send a payload-less Web Push (a "tickle"); the service worker then fetches
@@ -754,6 +866,19 @@ async function requireUser(request, env) {
   if (!c || c.kind !== "user") throw httpError("Please sign in again.", 401);
   return c;
 }
+// To-Do belongs to a person, not to a role: workers, company admins and super
+// admins all keep their own list behind the same sign-in.
+async function requireAnyone(request, env) {
+  const c = await authClaims(request, env);
+  if (!c || !c.email) throw httpError("Please sign in again.", 401);
+  if (c.kind === "super" && !isAdminEmail(env, c.email)) throw httpError("Please sign in again.", 401);
+  return c;
+}
+// The handful of host helpers todos.js needs, handed over explicitly so that
+// module stays independent of this file's internals.
+function todoCtx() {
+  return { json, readBody, requireAnyone, reissue };
+}
 async function requireAdmin(request, env) {
   const c = await authClaims(request, env);
   if (!c || (c.kind !== "admin" && c.kind !== "super")) throw httpError("Admin sign-in required.", 401);
@@ -896,7 +1021,10 @@ async function proxyApp(request, env, url, method) {
   }
   const origin = env.APP_ORIGIN || "https://www.linearit.co";
   const appPath = env.APP_PATH || "/time/";
-  const path = url.pathname === "/" ? appPath : url.pathname;
+  // "/" and the friendly "/todo" both serve the app shell; the client reads the
+  // path on boot and opens straight into the to-do view for the latter.
+  const isAppRoot = url.pathname === "/" || /^\/todo\/?$/.test(url.pathname);
+  const path = isAppRoot ? appPath : url.pathname;
   const target = origin + path + url.search;
 
   let originResp;
@@ -1029,6 +1157,7 @@ async function ensureSchema(env) {
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_entries_running ON entries(email, ended_at)"),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_codes_email ON login_codes(email)"),
   ]);
+  await ensureTodoSchema(env);
   // Add columns that may be missing on a database created by an earlier version.
   // (On a fresh DB the CREATEs above already include them, so these ALTERs no-op.)
   for (const alt of [

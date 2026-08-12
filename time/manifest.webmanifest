@@ -9,6 +9,15 @@
   "background_color": "#0f1117",
   "theme_color": "#0f1117",
   "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "My To-Do list",
+      "short_name": "To-Do",
+      "description": "Today's tasks, and everything coming up.",
+      "url": "/time/#todo",
+      "icons": [{ "src": "/time/assets/icon.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     { "src": "/time/assets/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/time/assets/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
