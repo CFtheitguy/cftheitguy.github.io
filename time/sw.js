@@ -9,11 +9,12 @@
  * It only touches same-origin GETs inside /time/ — never the /api calls (except
  * the one push/pending fetch, which is a POST it makes itself).
  */
-var CACHE = "linear-time-v2";
+var CACHE = "linear-time-v3";
 var SHELL = [
   "/time/",
   "/time/index.html",
   "/time/app.js",
+  "/time/todo.js",
   "/time/manifest.webmanifest",
   "/time/assets/icon.png",
   "/time/assets/logo-white.png",
@@ -72,7 +73,7 @@ self.addEventListener("push", function (e) { e.waitUntil(onPush()); });
 
 async function onPush() {
   var auth = await readAuth();
-  var title = "Linear Time", body = "Open Linear Time.";
+  var title = "Linear Time", body = "Open Linear Time.", kind = "checkin";
   if (auth && auth.token) {
     try {
       var r = await fetch((auth.base || "") + "/api/push/pending", {
@@ -83,11 +84,14 @@ async function onPush() {
       if (!d || !d.show) return;          // nothing due anymore (user already acted)
       title = d.title || title;
       body = d.body || body;
+      kind = d.type || kind;
     } catch (_) { /* fall through to the generic prompt */ }
   }
+  // A task reminder should land on the to-do list; a tracker nudge on the timer.
+  var url = kind === "todo" ? "/time/#todo" : "/time/";
   await self.registration.showNotification(title, {
     body: body, icon: "/time/assets/icon.png", badge: "/time/assets/icon.png",
-    tag: "linear-time", renotify: true, data: { url: "/time/" },
+    tag: kind === "todo" ? "linear-todo" : "linear-time", renotify: true, data: { url: url },
   });
 }
 
@@ -103,12 +107,18 @@ async function readAuth() {
 /* Focus (or open) the app when a reminder is tapped. */
 self.addEventListener("notificationclick", function (e) {
   e.notification.close();
+  var target = (e.notification.data && e.notification.data.url) || "/time/";
   e.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
       for (var i = 0; i < list.length; i++) {
-        if (list[i].url.indexOf("/time") !== -1 && "focus" in list[i]) return list[i].focus();
+        if (list[i].url.indexOf("/time") === -1) continue;
+        // Focus the window that's already open, and send it to the right view.
+        if ("navigate" in list[i] && target.indexOf("#") !== -1) {
+          return list[i].focus().then(function (c) { return (c || list[i]).navigate(target).catch(function () {}); });
+        }
+        if ("focus" in list[i]) return list[i].focus();
       }
-      if (self.clients.openWindow) return self.clients.openWindow("/time/");
+      if (self.clients.openWindow) return self.clients.openWindow(target);
     })
   );
 });

@@ -37,12 +37,17 @@ routes = [
   { pattern = "time.linearit.co", custom_domain = true }
 ]
 
-# Background reminders: every 5 minutes the Worker's scheduled() handler pushes the
-# 30-minute check-in and the after-5pm wrap-up to anyone due, so nudges arrive even
-# when the app window is closed. Needs the VAPID_* secrets (see gen-vapid.mjs); if
-# those aren't set, the cron runs but sends nothing (reminders stay in-app only).
+# Background reminders: every minute the Worker's scheduled() handler pushes the
+# 30-minute check-in, the after-5pm wrap-up and any to-do whose reminder time has
+# arrived, so nudges land even when the app window is closed. Needs the VAPID_*
+# secrets (see gen-vapid.mjs); if those aren't set, the cron runs but sends
+# nothing (reminders stay in-app only).
+#
+# It's every minute rather than every 5 because a to-do reminder set for 3:00
+# has to arrive at 3:00. The tracker's own nudges are unaffected: they're
+# throttled by each company's interval, not by how often the cron wakes up.
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["* * * * *"]
 
 # --- D1 database (companies, admins, workers, time entries, sign-in codes) ---
 # Run `npx wrangler d1 create linear_time` and paste the returned id here.
@@ -62,3 +67,13 @@ ALLOW_ORIGIN = "https://www.linearit.co"
 # it so time.linearit.co shows the same app, with no second copy to maintain).
 APP_ORIGIN = "https://www.linearit.co"
 APP_PATH = "/time/"
+
+# --- Linear To-Do intake (see README: "Tasks by email" / "Tasks by text") ---
+# The address people email tasks to. Shown in the app's To-Do → Settings screen.
+# Mail only actually arrives once an Email Routing rule sends this address to
+# this Worker; the value here is just what the app tells people to use.
+TODO_EMAIL = "task@linearit.co"
+# The number people text tasks to, in E.164. Leave blank until a number is
+# pointed at /api/sms/inbound. The SMS door stays shut unless TWILIO_AUTH_TOKEN
+# or SMS_INTAKE_SECRET is set as a Secret — those are NOT kept in this file.
+SMS_NUMBER = ""

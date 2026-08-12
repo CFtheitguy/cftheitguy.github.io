@@ -93,15 +93,106 @@ Sign-in is always email + a 6-digit code. There are no passwords to manage.
 | `ADMIN_EMAILS` | **secret** | comma-separated super-admin addresses |
 | `VAPID_PUBLIC` / `VAPID_PRIVATE_JWK` / `VAPID_SUBJECT` | **secret** *(optional)* | Web Push keys for background reminders (`node gen-vapid.mjs`) |
 | `ALLOW_ORIGIN` / `APP_ORIGIN` / `APP_PATH` | `[vars]` | CORS + where to proxy the app from |
+| `TWILIO_AUTH_TOKEN` | **secret** *(optional)* | verifies the inbound SMS webhook signature |
+| `SMS_INTAKE_SECRET` | **secret** *(optional)* | shared secret for a non-Twilio SMS provider |
+| `SMS_NUMBER` | `[vars]` | the number people text, shown in the app (E.164) |
+| `SMS_WEBHOOK_URL` | `[vars]` *(rare)* | override the URL used for signature checks |
+| `TODO_EMAIL` | `[vars]` | the intake address the app tells people to use |
 | `DEV_MODE=1` | var (local only) | returns the code in the API response for testing |
 
+---
+
+## Linear To-Do — setup
+
+The to-do list works the moment you deploy: it shares this Worker's D1 database,
+sign-in and push setup, and its tables create themselves like the rest. The two
+steps below only add the **email** and **text message** front doors.
+
+### Tasks by email (`task@linearit.co`)
+
+Cloudflare **Email Routing** delivers the message straight to this Worker — there
+is no mailbox and no polling.
+
+1. Cloudflare dashboard → the **linearit.co** zone → **Email → Email Routing**.
+   If it's not on yet, enable it and accept the MX/TXT records it adds.
+2. **Routing rules → Create address**
+   - Custom address: **`task`** (`@linearit.co`)
+   - Action: **Send to a Worker** → **`linear-time`**
+3. Save. Mail to `task@linearit.co` now becomes a task.
+4. *(Optional, for `task+groceries@…` list routing to work from every sender)* —
+   plus-addressing is handled by the Worker, but some rule sets don't match a
+   `+tag` address. If yours doesn't, add a **catch-all** rule sending to the same
+   Worker; the Worker ignores anything addressed to something other than `task`.
+
+The address the app *tells people to use* comes from the `TODO_EMAIL` var in
+`wrangler.toml` — change both together if you use a different name.
+
+**Who's allowed to send.** The From: address must belong to a known person (their
+sign-in address, or an extra address they added under To-Do → Settings) and the
+message must not fail SPF/DMARC. Anything else is rejected at SMTP time with a
+reason, so the sender finds out rather than wondering where the task went.
+
+### Tasks by text message
+
+Point any SMS provider's inbound webhook at:
+
+```
+https://time.linearit.co/api/sms/inbound
+```
+
+**With Twilio** (recommended — the reply comes back on the same thread):
+
+1. Twilio Console → **Phone Numbers → your number → Messaging**.
+2. *A message comes in* → **Webhook**, **HTTP POST**, the URL above.
+3. Set the auth token as a secret so the signature is verified:
+   ```bash
+   npx wrangler secret put TWILIO_AUTH_TOKEN
+   ```
+4. Put the number in `wrangler.toml` as `SMS_NUMBER` (E.164, e.g. `+18456041462`)
+   so the app can tell people where to text, and deploy.
+
+**With any other provider**, set a shared secret instead and include it as
+`?secret=…` or an `X-Intake-Secret` header on the webhook:
+
+```bash
+npx wrangler secret put SMS_INTAKE_SECRET
+```
+
+The endpoint answers Twilio-style form posts with TwiML, and JSON posts
+(`{"from":"+1…","body":"…"}`) with `{"reply":"…"}`.
+
+> **The endpoint is closed until one of those two secrets exists.** Without
+> `TWILIO_AUTH_TOKEN` or `SMS_INTAKE_SECRET` every request gets a 401 — an
+> unauthenticated task inbox isn't a useful default.
+
+Numbers are linked by the owner, not by an admin: they enter the number in the
+app, and text back the short code it shows them. Nothing is created for a number
+that hasn't done that.
+
+### Calendar feed
+
+`GET /api/todo/feed.ics?key=…` returns dated tasks as iCalendar. The key is
+per-person, generated on first use, and shown in the app under To-Do → Settings.
+No session is needed — the key *is* the credential — so it's safe to paste into
+Outlook/Google, and rotating it means clearing `feed_key` for that row.
+
+---
+
 ## Background reminders (Cron Trigger + Web Push)
-`wrangler.toml` schedules the Worker every 5 minutes (`[triggers] crons`). On each
-run the `scheduled()` handler finds workers who are due for a 30-minute check-in or
-the after-5pm wrap-up and sends them a **payload-less Web Push**; their service
-worker then asks `/api/push/pending` what to show. This is what makes reminders
-arrive when the app window is closed. It only fires if the `VAPID_*` secrets are
-set — otherwise the cron is a no-op and reminders stay in-app only.
+`wrangler.toml` schedules the Worker **every minute** (`[triggers] crons`). On each
+run the `scheduled()` handler finds who is due for a 30-minute check-in, the
+after-5pm wrap-up, or a **to-do reminder**, and sends them a **payload-less Web
+Push**; their service worker then asks `/api/push/pending` what to show. This is
+what makes reminders arrive when the app window is closed. It only fires if the
+`VAPID_*` secrets are set — otherwise the cron is a no-op and reminders stay
+in-app only.
+
+It runs every minute rather than every five so a task reminder set for 3:00
+arrives at 3:00. That doesn't make the tracker's nudges chattier: those are
+throttled per company by the nudge interval, independent of the cron. A to-do
+reminder is marked fired the moment it's pushed, so it goes out once, and stays
+readable for ten minutes afterwards so the service worker can still fetch what to
+display after the push wakes it.
 
 Generate the keys once with `node gen-vapid.mjs` and set the three printed values
 as secrets. Rotating them just makes every browser re-subscribe on next open.
@@ -117,9 +208,28 @@ npx wrangler dev            # http://localhost:8787
 Cloudflare → `linear-time` → **Deployments** → pick a previous version → **Rollback**.
 
 ## Data model (auto-created)
+
+**Time tracker**
 `companies(id, name, code, created_at)` ·
 `admins(email, company_id, …)` ·
 `workers(email, name, company_id, tz_offset, …)` ·
 `entries(id, email, company_id, day, task, preset, started_at, ended_at, checkin_at, …)` ·
 `day_end(email, day, ended_at)` · `push_subs(email, endpoint, sub, tz_offset, …)` ·
 `login_codes(…)`
+
+**To-Do**
+`todo_lists(id, email, name, emoji, color, position, …)` ·
+`todos(id, email, list_id, title, notes, due_at, due_all_day, remind_at, reminded_at, priority, important, myday, repeat_json, tags, status, completed_at, source, …)` ·
+`todo_steps(id, todo_id, email, title, done, position, …)` ·
+`todo_prefs(email, tz_offset, default_list, phone, phone_pending, phone_code, alt_emails, feed_key, intake_receipt, …)`
+
+Everything is keyed by **email**, not by role — so the same person keeps one list
+whether they sign in as a worker or an admin.
+
+## Source layout
+| File | What's in it |
+|---|---|
+| `src/index.js` | HTTP router, sign-in, the time tracker, cron, app reverse-proxy, `email()` |
+| `src/todos.js` | to-do schema, CRUD, smart-view counts, recurrence, reminders, ICS feed |
+| `src/intake.js` | inbound email (MIME parsing, sender auth) and the SMS webhook |
+| `src/parse.js` | the natural-language quick-add parser, shared by all three doors |

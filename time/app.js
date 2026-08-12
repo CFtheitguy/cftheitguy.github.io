@@ -15,8 +15,10 @@
   "use strict";
 
   /* ---- Config ---- */
-  // Served from GitHub Pages -> talk to the Worker; served by the Worker -> same-origin.
-  var API_BASE = location.hostname === "time.linearit.co" ? "" : "https://time.linearit.co";
+  // Served from the public site -> talk to the Worker across origins. Served by
+  // the Worker itself (time.linearit.co, or a local `wrangler dev`) -> same-origin.
+  var REMOTE_HOSTS = ["www.linearit.co", "linearit.co", "cftheitguy.github.io"];
+  var API_BASE = REMOTE_HOSTS.indexOf(location.hostname) !== -1 ? "https://time.linearit.co" : "";
   var CHECKIN_MS = 30 * 60 * 1000;   // default; overridden per company from /api/day
   // Fallback tiles if the server hasn't sent the company's customized ones yet.
   var DEFAULT_PRESETS_META = [
@@ -140,9 +142,10 @@
    * View switching
    * ============================================================ */
   function showView(which) {
-    ["view-auth", "view-tracker", "view-admin"].forEach(function (v) {
+    ["view-auth", "view-tracker", "view-admin", "view-todo"].forEach(function (v) {
       $(v).classList.toggle("hidden", v !== "view-" + which);
     });
+    if (which !== "todo" && window.LinearTodo) window.LinearTodo.close();
   }
   function routeToAuth() {
     stopTicker(); T = null; A = null;
@@ -153,11 +156,38 @@
     $("err-email").textContent = ""; $("err-code").textContent = "";
     $("in-code").value = "";
   }
+  // Where a signed-in person lands. The to-do list is a peer of the tracker and
+  // the reports, not a sub-page: /todo (or #todo) opens straight into it, and
+  // whichever view you were last in is where you come back to.
   function routeAfterLogin() {
     var p = getProfile();
     if (!p) return routeToAuth();
-    if (p.role === "worker") startTracker();
+    homeView = p.role === "worker" ? "tracker" : "admin";
+    if (wantsTodo()) return openTodo();
+    if (localStorage.getItem("lt_last_view") === "todo") return openTodo();
+    goHome();
+  }
+  function wantsTodo() {
+    return /(^|\/)todo\/?$/.test(location.pathname) || location.hash === "#todo";
+  }
+  var homeView = "tracker";
+  function goHome() {
+    localStorage.setItem("lt_last_view", homeView);
+    // Drop the /todo path (or #todo) so a reload lands back here, not there.
+    // replaceState rather than assigning location.hash, which would re-fire
+    // hashchange and bounce us through this function a second time.
+    if (wantsTodo() && history.replaceState) {
+      history.replaceState(null, "", location.pathname.replace(/(^|\/)todo\/?$/, "$1") + location.search);
+    }
+    if (homeView === "tracker") startTracker();
     else startAdmin();
+  }
+  function openTodo() {
+    if (!window.LinearTodo) { goHome(); return; }   // todo.js hasn't loaded (offline shell)
+    localStorage.setItem("lt_last_view", "todo");
+    stopTicker();
+    $("btn-todo-back").textContent = homeView === "tracker" ? "Time tracker" : "Reports";
+    window.LinearTodo.open();
   }
 
   /* ============================================================
@@ -208,6 +238,7 @@
    * ============================================================ */
   async function startTracker() {
     showView("tracker");
+    localStorage.setItem("lt_last_view", "tracker");
     T = freshTracker();
     maybeShowNotifyBanner();
     await loadDay();
@@ -520,6 +551,7 @@
    * ============================================================ */
   async function startAdmin() {
     showView("admin");
+    localStorage.setItem("lt_last_view", "admin");
     A = { role: null, companies: [], tab: "reports", workers: [], selCompany: "", selDate: todayStr(), selWorker: "" };
     try {
       var s = await api("/api/admin/scope");
@@ -910,6 +942,15 @@
     $("btn-endday").addEventListener("click", endDay);
     $("btn-signout-1").addEventListener("click", signout);
     $("btn-signout-2").addEventListener("click", signout);
+    $("btn-signout-3").addEventListener("click", signout);
+    $("btn-open-todo-1").addEventListener("click", openTodo);
+    $("btn-open-todo-2").addEventListener("click", openTodo);
+    $("btn-todo-back").addEventListener("click", goHome);
+    window.addEventListener("hashchange", function () {
+      if (!getToken()) return;
+      if (location.hash === "#todo") openTodo();
+      else if (location.hash === "" || location.hash === "#") goHome();
+    });
     $("btn-enable-notify").addEventListener("click", enableNotify);
     $("btn-dismiss-notify").addEventListener("click", function () { hide("notify-banner"); localStorage.setItem("lt_notify_dismiss", "1"); });
     document.addEventListener("visibilitychange", function () {
@@ -939,6 +980,19 @@
     else routeToAuth();
     setTimeout(function () { var e = $("in-email"); if (e && !getToken()) e.focus(); }, 60);
   }
+  /* ============================================================
+   * Bridge for todo.js — one session, one fetch wrapper, one set of DOM
+   * helpers. Published before boot so the to-do module can rely on it.
+   * ============================================================ */
+  window.LT = {
+    $: $, el: el, clear: clear, esc: esc, toast: toast, api: api,
+    showView: showView, notify: notify,
+    getProfile: getProfile, getToken: getToken,
+    todayStr: todayStr, fmtTime: fmtTime, fmtDur: fmtDur,
+  };
+
+  // Boot on the next tick, never inline: todo.js is a separate <script> that has
+  // not run yet at this point, and routing may need to open the to-do view.
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-  else boot();
+  else setTimeout(boot, 0);
 })();
