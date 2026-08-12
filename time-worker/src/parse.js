@@ -356,16 +356,21 @@ function parseWhen(ctx, tz, now) {
     }
   }
 
-  /* "8/15", "8/15/26" — US month/day */
+  /* "8/15", "8/15/26" — US month/day. Skipped when it's really a fraction or a
+   * reference rather than a deadline; see looksLikeDate(). */
   if (!w.hasDate) {
-    m = ctx.mask.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/);
-    if (m) {
-      const mo = Number(m[1]) - 1, d = Number(m[2]);
-      if (mo >= 0 && mo <= 11 && d >= 1 && d <= 31) {
-        let y = m[3] ? Number(m[3]) : yearFor(base, mo, d);
-        if (y < 100) y += 2000;
-        if (d <= daysInMonth(y, mo)) { setDate(y, mo, d); cutMatch(ctx, m); }
-      }
+    const re = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g;
+    let hit;
+    while ((hit = re.exec(ctx.mask)) !== null) {
+      const mo = Number(hit[1]) - 1, d = Number(hit[2]);
+      if (!(mo >= 0 && mo <= 11 && d >= 1 && d <= 31)) continue;
+      let y = hit[3] ? Number(hit[3]) : yearFor(base, mo, d);
+      if (y < 100) y += 2000;
+      if (d > daysInMonth(y, mo)) continue;
+      if (!hit[3] && !looksLikeDate(ctx.mask, hit)) continue;
+      setDate(y, mo, d);
+      cutMatch(ctx, hit);
+      break;
     }
   }
 
@@ -424,6 +429,27 @@ function snapToDays(ms, days, tz) {
     }
   }
   return ms;
+}
+
+/**
+ * Is this "5/8" a date, or a fraction someone typed?
+ * ---------------------------------------------------------------------------
+ * Without a year, "N/M" is ambiguous, and guessing wrong is expensive: it both
+ * invents a deadline and deletes a word from a task someone may have typed on a
+ * numeric keypad. Two giveaways that it isn't a date:
+ *
+ *   "order 5/8 inch bolts"      a unit of measure follows it -> a fraction
+ *   "call sam re the 4/9 invoice"  "the" before, a noun after -> a reference
+ *
+ * Anything else keeps the benefit of the doubt, so "pay rent 9/1" still works.
+ */
+function looksLikeDate(text, hit) {
+  const after = text.slice(hit.index + hit[0].length);
+  const before = text.slice(0, hit.index);
+  const UNITS = /^\s*(inch|inches|in|foot|feet|ft|yard|yd|mile|miles|lb|lbs|pound|pounds|oz|ounce|ounces|g|kg|gram|grams|cup|cups|tsp|tbsp|qt|quart|quarts|pt|pint|pints|gal|gallon|gallons|ml|l|liter|liters|litre|mm|cm|m|meter|meters|metre|hp|amp|amps|volt|volts|watt|watts|percent|%)\b/i;
+  if (UNITS.test(after)) return false;
+  if (/\bthe\s*$/i.test(before) && /^\s*\S/.test(after)) return false;
+  return true;
 }
 
 // A month/day with no year: this year if it hasn't passed, otherwise next year.

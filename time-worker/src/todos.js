@@ -230,7 +230,19 @@ export async function createTodo(env, email, input, opts) {
   }
 
   const title = String(input.title != null && input.parse === false ? input.title : parsed.title).slice(0, MAX_TITLE).trim() || "Task";
-  const notes = String(input.notes || parsed.notes || "").slice(0, MAX_NOTES);
+  let notes = String(input.notes || parsed.notes || "").slice(0, MAX_NOTES);
+
+  // Parsing is a guess; the words someone actually sent are the record. When a
+  // task arrived from outside the app and the parser changed the wording, keep
+  // the original with it — on a keypad every character cost something, and a
+  // misread date must never be the only thing left of what they wrote.
+  if (opts && opts.source && opts.source !== "app" && input.parse !== false) {
+    const original = raw.replace(/\s+/g, " ").trim();
+    if (original && original.toLowerCase() !== title.toLowerCase()) {
+      const line = "Original: " + original;
+      notes = (notes ? line + "\n\n" + notes : line).slice(0, MAX_NOTES);
+    }
+  }
   const dueAt = pick(input.due_at, parsed.due_at);
   const allDay = input.due_at !== undefined ? (input.due_all_day ? 1 : 0) : parsed.due_all_day;
   let remindAt = pick(input.remind_at, parsed.remind_at);
