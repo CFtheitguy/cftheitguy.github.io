@@ -86,8 +86,15 @@ export async function handleIncomingEmail(message, env, ctx) {
     return;
   }
 
-  // 2) Who is this? Their sign-in address, or an extra address they registered.
-  const owner = await resolveEmailOwner(env, from);
+  // 1b) Setting up the Google Voice route means pointing a Gmail filter at this
+  //     address, and Gmail proves you own it by mailing a confirmation code
+  //     here first. Nobody would ever see that code — so pass it along to the
+  //     administrator instead of bouncing it.
+  if (await relaySetupMail(env, ctx, from, mail)) return;
+
+  // 2) Who is this? Their sign-in address, an extra address they registered, or
+  //    the handset behind a forwarded text.
+  const owner = await resolveEmailOwner(env, from, mail);
   if (!owner) {
     await safeReject(message, "This address isn't registered with Linear To-Do. Sign in at time.linearit.co and add it under To-Do → Settings.");
     return;
@@ -110,6 +117,25 @@ export async function handleIncomingEmail(message, env, ctx) {
         to: from,
         subject: "",                       // carriers prepend the subject to the text
         text: String(answer).slice(0, 300),
+      });
+    }
+    return;
+  }
+
+  // 2c) A text forwarded on from Google Voice. Same handling, but the answer
+  //     goes to the owner's own inbox rather than back down the wire: replying
+  //     to a Google Voice address only turns into a text when it comes from the
+  //     Google account that owns the number, which this Worker is not.
+  const gvPhone = googleVoiceSender(from, mail);
+  if (gvPhone) {
+    const line = googleVoiceText(mail);
+    if (!line) { await safeReject(message, "That text was empty."); return; }
+    const answer = await runTaskCommand(env, owner, line, "text");
+    if (prefs.intake_receipt && ctx && ctx.sendEmail) {
+      await ctx.sendEmail(env, {
+        to: owner,
+        subject: answer.split("\n")[0].slice(0, 120),
+        text: answer + "\n\nFrom your text to Google Voice.\nhttps://time.linearit.co/todo",
       });
     }
     return;
@@ -159,6 +185,46 @@ export async function handleIncomingEmail(message, env, ctx) {
   }
 }
 
+/**
+ * Setup mail that has to reach a human, not a task list.
+ * ---------------------------------------------------------------------------
+ * To forward Google Voice texts here, Gmail first has to verify it owns the
+ * destination: it mails a confirmation code and link to task@linearit.co. That
+ * address is a Worker, so without this the code would be rejected and the route
+ * could never be switched on — a chicken-and-egg that quietly blocks setup.
+ *
+ * Anything recognisably of that kind is passed straight to the administrators
+ * with its body intact, so the code and the link are readable.
+ * Returns true when the message was handled and should go no further.
+ */
+async function relaySetupMail(env, ctx, from, mail) {
+  const isVerification =
+    /(^|[.@])forwarding-noreply@google\.com$/.test(from) ||
+    (/@google\.com$/.test(from) && /forwarding/i.test(String(mail.subject || "")));
+  if (!isVerification) return false;
+
+  const admins = String(env.ADMIN_EMAILS || "").split(",").map((e) => normEmail(e)).filter(Boolean);
+  if (!admins.length || !ctx || !ctx.sendEmail) return true;   // swallow it either way
+
+  const body = String(mail.text || "").slice(0, 4000);
+  const code = (body.match(/\b\d{6,12}\b/) || [])[0] || "";
+  const link = (body.match(/https?:\/\/mail\.google\.com\/\S+/) || [])[0] || "";
+
+  for (const admin of admins.slice(0, 5)) {
+    await ctx.sendEmail(env, {
+      to: admin,
+      subject: "Confirm Gmail forwarding to " + (env.TODO_EMAIL || "task@linearit.co"),
+      text:
+        "Gmail is asking you to confirm forwarding to your Linear To-Do intake address.\n\n" +
+        (code ? "Confirmation code: " + code + "\n" : "") +
+        (link ? "Confirm link: " + link + "\n" : "") +
+        "\nPaste the code into Gmail (Settings -> Forwarding), or open the link.\n" +
+        "\n--- the message Gmail sent ---\n" + body,
+    });
+  }
+  return true;
+}
+
 // Cloudflare's own verdict on the sender. We only refuse on an explicit fail —
 // missing headers shouldn't lock out a legitimate message.
 function authVerdict(mail, message) {
@@ -182,6 +248,54 @@ function authVerdict(mail, message) {
   return { fail: false, detail: "ok" };
 }
 
+/**
+ * Google Voice — the durable free route, and the one that replaces the
+ * @vtext.com gateway Verizon is retiring.
+ * ---------------------------------------------------------------------------
+ * The handset texts a free Google Voice number. Google Voice's "forward
+ * messages to email" setting mails the text to the account's Gmail, and a Gmail
+ * filter forwards that on to task@linearit.co. Nothing here is scraped or
+ * automated: both halves are documented settings, so it keeps working.
+ *
+ * Those forwards arrive from an address like
+ *   15551234567.19177270405.AbC123@txt.voice.google.com
+ * where the first dotted segment is the number that sent the text and the
+ * second is the Google Voice number it was sent to. That first segment is what
+ * we match against the handset someone registered — Google writes it, not the
+ * sender, and the mail still has to pass the SPF/DMARC check above.
+ */
+const GOOGLE_VOICE_DOMAIN = "txt.voice.google.com";
+
+export function googleVoiceSender(from, mail) {
+  const at = String(from || "").lastIndexOf("@");
+  if (at === -1 || from.slice(at + 1).toLowerCase() !== GOOGLE_VOICE_DOMAIN) return null;
+
+  // Preferred: the first dotted segment of the local part.
+  const first = from.slice(0, at).split(".")[0].replace(/[^\d]/g, "");
+  const byLocal = first.length >= 10 ? normalizePhone(first) : null;
+  if (byLocal) return byLocal;
+
+  // Fallback: "New text message from +1 845 555 0142" in the subject, or the
+  // display name, for the shapes where the local part is opaque.
+  const hay = String((mail && mail.subject) || "") + " " + String((mail && mail.from) || "");
+  const m = hay.match(/\+?1?[\s.-]*\(?(\d{3})\)?[\s.-]*(\d{3})[\s.-]*(\d{4})/);
+  return m ? normalizePhone(m[1] + m[2] + m[3]) : null;
+}
+
+// The message itself, with Google's trailing furniture removed.
+function googleVoiceText(mail) {
+  const body = String((mail && mail.text) || "");
+  const cut = body.search(
+    /^\s*(?:--\s*$|To respond to this text message|YOUR ACCOUNT|This email was sent|Reply to this email to respond)/im
+  );
+  let out = (cut === -1 ? body : body.slice(0, cut));
+  out = out
+    .split(/\r?\n/)
+    .filter((l) => l.indexOf("voice.google.com") === -1)
+    .join("\n");
+  return out.replace(/\s+/g, " ").trim().slice(0, MAX_SMS_LEN);
+}
+
 // A text sent to an email address arrives from "<number>@<carrier gateway>".
 // Pull the number out, if that's what this is.
 export function gatewayPhone(from) {
@@ -195,16 +309,16 @@ export function gatewayPhone(from) {
 }
 
 // Match an incoming From: to a person the Worker knows.
-async function resolveEmailOwner(env, from) {
+async function resolveEmailOwner(env, from, mail) {
   if (!validEmail(from)) return null;
 
-  // A text message that came in through a carrier gateway: the number in the
-  // From address decides whose list it lands on.
-  const phone = gatewayPhone(from);
+  // A text message — through a carrier gateway or forwarded on from Google
+  // Voice. Either way the number that sent it decides whose list it lands on,
+  // and an unregistered number never creates anything.
+  const phone = gatewayPhone(from) || googleVoiceSender(from, mail);
   if (phone) {
     const byPhone = await env.DB.prepare("SELECT email FROM todo_prefs WHERE phone=?").bind(phone).first();
-    if (byPhone) return byPhone.email;
-    return null;                    // an unregistered number never creates tasks
+    return byPhone ? byPhone.email : null;
   }
 
   const worker = await env.DB.prepare("SELECT email FROM workers WHERE email=?").bind(from).first();

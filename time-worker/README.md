@@ -116,7 +116,8 @@ dedicated SMS number is the only paid option, and it's entirely optional.
 |---|---|---|
 | Quick-add link (phone shortcut / Siri) | free | nothing — already live |
 | Email to `task@linearit.co` | free | one Email Routing rule |
-| Text sent to that address (carrier gateway) | free | the same rule |
+| Text via Google Voice → Gmail → that address | free | the same rule + 2 Google settings |
+| Text sent straight to that address (carrier gateway) | free | the same rule (Verizon is retiring theirs) |
 | Text sent to a real phone number | ~$1–2/mo + per message | an SMS provider + secret |
 
 ### Quick-add link (nothing to set up)
@@ -153,7 +154,40 @@ sign-in address, or an extra address they added under To-Do → Settings) and th
 message must not fail SPF/DMARC. Anything else is rejected at SMTP time with a
 reason, so the sender finds out rather than wondering where the task went.
 
-### Tasks by text message — the free way
+### Tasks by text message — via Google Voice (recommended free route)
+
+Works from any handset, including a flip phone, and doesn't depend on a carrier
+feature that's being switched off.
+
+Chain: **handset → Google Voice number → Gmail → `task@linearit.co` → Worker.**
+
+1. In **Google Voice → Settings → Messages**, turn on *"Forward messages to
+   email"*.
+2. In **Gmail → Settings → Forwarding and POP/IMAP**, add `task@linearit.co` as
+   a forwarding address, then create a filter (From contains
+   `txt.voice.google.com`) that forwards to it. Forwarding *everything* also
+   works but sends far more mail than needed.
+3. Each person saves their **handset's** number (not the Google Voice number)
+   under **To-Do → Settings**.
+
+Google Voice forwards arrive from `<sender>.<gvnumber>.<id>@txt.voice.google.com`.
+`googleVoiceSender()` in `src/intake.js` takes the first dotted segment as the
+sending number — written by Google, not the sender, and still subject to the
+SPF/DMARC check — and matches it to a registered handset. An unregistered number
+creates nothing.
+
+> **The chicken-and-egg in step 2:** Gmail proves you own the forwarding address
+> by mailing a confirmation code to it — and that address is this Worker, so
+> nobody would ever read it. `relaySetupMail()` catches those (from
+> `forwarding-noreply@google.com`) and emails the code and link on to
+> `ADMIN_EMAILS` via Resend, so setup can actually complete. This needs
+> `RESEND_API_KEY` and `ADMIN_EMAILS` to be set, which they already are.
+
+Replies go to the owner's inbox, not back as a text: Google Voice only turns a
+reply email into a text when it comes from the Google account that owns the
+number.
+
+### Tasks by text message — via a carrier gateway
 
 Once the Email Routing rule above exists, **texting already works** and there is
 nothing more to configure.
