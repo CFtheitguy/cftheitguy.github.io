@@ -298,9 +298,28 @@ mobile number → **Save my number**. That's how we know a text is yours: your
 carrier stamps your number into the address the message arrives from, so texts
 from any other number never create tasks.
 
-> Carrier support varies — Verizon and T-Mobile handle this well, some carriers
-> and most non-US ones don't. If yours doesn't, the one-tap shortcut above works
-> on every phone.
+> Carrier support varies, and it is shrinking — **Verizon is retiring the
+> `@vtext.com` gateway**. Use the Google Voice route below instead; it relies on
+> documented settings rather than a carrier feature, so it keeps working.
+
+### Tasks by text — via Google Voice (works from any phone, including a flip phone)
+
+The durable free route, and the replacement for the `@vtext.com` gateway. It
+needs no smartphone, no app and no paid number:
+
+1. Your handset texts your **Google Voice number**.
+2. Google Voice mails the text to your Gmail (a setting, not a hack).
+3. A Gmail filter forwards it on to **task@linearit.co**.
+4. It becomes a task, parsed exactly like everything else.
+
+Because the number that sent the text is written into the address by *Google* —
+not by the sender — it's trustworthy: register your handset's number under
+**Settings → Add tasks by text message** and texts from anything else are
+ignored.
+
+The confirmation goes to your inbox rather than back as a text. Replying to a
+Google Voice address only turns into a text when it comes from the Google
+account that owns the number, which this app isn't.
 
 *(If you'd rather people text a real phone number, that's supported too — it
 needs a paid number from an SMS provider. See the Worker README.)*
