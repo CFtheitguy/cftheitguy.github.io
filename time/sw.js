@@ -9,7 +9,7 @@
  * It only touches same-origin GETs inside /time/ — never the /api calls (except
  * the one push/pending fetch, which is a POST it makes itself).
  */
-var CACHE = "linear-time-v3";
+var CACHE = "linear-time-v4";
 var SHELL = [
   "/time/",
   "/time/index.html",
@@ -53,7 +53,25 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  // Other assets: stale-while-revalidate (instant from cache, refresh for next time).
+  // The app's own scripts: network-first, exactly like the HTML that loads them.
+  // Serving these stale is what breaks a deploy — a cached app.js paired with a
+  // freshly fetched index.html runs last week's code against this week's markup,
+  // and the app silently loses whatever the new HTML added. Falling back to cache
+  // only when the network is gone keeps it working offline.
+  if (/\/time\/(app|todo)\.js$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(req).then(function (res) {
+        if (res && res.status === 200 && res.type === "basic") {
+          var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); });
+        }
+        return res;
+      }).catch(function () { return caches.match(req); })
+    );
+    return;
+  }
+
+  // Everything else (icons, the manifest): stale-while-revalidate — instant from
+  // cache, refreshed for next time. These can lag a deploy without harm.
   e.respondWith(
     caches.match(req).then(function (cached) {
       var net = fetch(req).then(function (res) {
