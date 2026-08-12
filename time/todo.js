@@ -16,6 +16,31 @@
 (function () {
   "use strict";
 
+  /* ---- Recover from a half-updated cache -----------------------------------
+   * If app.js is missing its bridge, an old cached copy of it is running against
+   * this newer file — the shape a service-worker update takes when only some of
+   * the shell refreshed. The symptom is the To-Do view never opening and the app
+   * dropping back to the time tracker. Drop the stale shell caches and reload
+   * once (guarded so a genuine failure can't turn into a reload loop). */
+  if (!window.LT) {
+    try {
+      if (!sessionStorage.getItem("lt_shell_healed")) {
+        sessionStorage.setItem("lt_shell_healed", "1");
+        var done = function () { location.reload(); };
+        if (window.caches && caches.keys) {
+          caches.keys()
+            .then(function (keys) {
+              return Promise.all(keys.map(function (k) {
+                return k.indexOf("linear-time") === 0 ? caches.delete(k) : null;
+              }));
+            })
+            .then(done, done);
+        } else { done(); }
+      }
+    } catch (_) { /* nothing more we can do from here */ }
+    return;
+  }
+
   var LT = window.LT;              // bridge from app.js
   var $ = LT.$, el = LT.el, clear = LT.clear, esc = LT.esc, toast = LT.toast, api = LT.api;
 
