@@ -3,9 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>linear — Managed IT &amp; Cybersecurity | Monroe, NY</title>
-<meta name="description" content="linear — Managed IT, security-first, fast response. Proactive monitoring, expert support, and infrastructure that scales. Monroe, NY.">
+<title>Managed IT &amp; Cybersecurity in Monroe, NY | Hudson Valley MSP — linear</title>
+<meta name="description" content="linear is a Monroe, NY managed service provider serving Orange County and the Hudson Valley — proactive monitoring, Microsoft 365, cybersecurity, backup &amp; DR, and fast, human support.">
+<link rel="canonical" href="https://www.linearit.co/">
 <link rel="icon" type="image/png" href="zurech3/assets/favicon.png">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<meta name="theme-color" content="#050507">
+
+<!-- Open Graph / social -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="linear">
+<meta property="og:url" content="https://www.linearit.co/">
+<meta property="og:title" content="Managed IT &amp; Cybersecurity in Monroe, NY | Hudson Valley MSP">
+<meta property="og:description" content="Proactive monitoring, Microsoft 365, cybersecurity, backup &amp; DR, and fast, human support for businesses in Orange County and the Hudson Valley.">
+<meta property="og:image" content="https://www.linearit.co/zurech3/assets/wallpaper/preview-desktop.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="linear — managed IT and cybersecurity, Monroe, NY">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Managed IT &amp; Cybersecurity in Monroe, NY | Hudson Valley MSP">
+<meta name="twitter:description" content="Proactive monitoring, Microsoft 365, cybersecurity, backup &amp; DR, and fast, human support for businesses in Orange County and the Hudson Valley.">
+<meta name="twitter:image" content="https://www.linearit.co/zurech3/assets/wallpaper/preview-desktop.jpg">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -119,6 +139,13 @@ section{scroll-margin-top:128px}
   display:block;margin-top:4px;
   font-size:.62rem;letter-spacing:.08em;text-transform:none;color:rgba(255,255,255,.45);
 }
+/* heading for the drop-down items in the mobile menu, where the button is hidden */
+.nav-drop-label{
+  display:none;
+  font-family:var(--mono);font-size:.66rem;font-weight:600;
+  letter-spacing:.28em;text-transform:uppercase;color:rgba(255,255,255,.4);
+  padding-bottom:14px;
+}
 
 /* ── HERO ── */
 .hero{
@@ -143,6 +170,12 @@ section{scroll-margin-top:128px}
   margin-bottom:26px;
 }
 .hero h1 .hl{color:var(--peri-deep)}
+.hero h1 .h1-sub{
+  display:block;margin-top:18px;
+  font-size:clamp(.78rem,1.5vw,.98rem);
+  font-weight:500;letter-spacing:.14em;line-height:1.8;
+  color:var(--peri-deep);
+}
 .hero p{max-width:600px;color:rgba(0,0,0,.62);font-size:.95rem;margin-bottom:44px}
 .hero-ctas{display:flex;gap:16px;flex-wrap:wrap}
 .btn{
@@ -205,6 +238,7 @@ section{scroll-margin-top:128px}
 }
 .about-card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(20,40,90,.12)}
 .about-card img{height:34px;width:auto;margin-bottom:20px}
+.about-card .ico{width:32px;height:32px;margin-bottom:20px}
 .about-card h3{font-family:var(--mono);font-size:.82rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
 .about-card p{font-size:.82rem;color:#3c3c3c}
 
@@ -264,6 +298,15 @@ section{scroll-margin-top:128px}
 .svc.svc-peri{background:var(--peri);border-color:transparent}
 .svc.svc-ink{background:var(--ink);color:#fff;border-color:transparent}
 .svc img{height:24px;width:auto;align-self:flex-start}
+.svc .ico{width:26px;height:26px;align-self:flex-start}
+
+/* line icons — inherit card colour so they work on light and dark cards */
+.ico{
+  display:block;flex-shrink:0;
+  fill:none;stroke:var(--peri-deep);stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.svc-ink .ico,.poster-dark .ico{stroke:var(--aqua)}
 .svc h3{font-family:var(--mono);font-size:.8rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
 .svc p{font-size:.78rem;line-height:1.65;opacity:.82}
 
@@ -282,6 +325,11 @@ section{scroll-margin-top:128px}
 }
 .stat:nth-child(2n) b{color:var(--peri)}
 .stat span{font-size:.7rem;letter-spacing:.26em;text-transform:uppercase;color:rgba(255,255,255,.65)}
+.stats-note{
+  margin-top:26px;max-width:760px;
+  font-size:.68rem;letter-spacing:.14em;line-height:1.9;
+  color:rgba(255,255,255,.42);
+}
 
 /* ── HAICKERS ── */
 .haickers{
@@ -391,6 +439,7 @@ section{scroll-margin-top:128px}
   .nav-toggle{display:block}
   .nav-drop{width:100%}
   .nav-drop-btn{display:none}
+  .nav-drop-label{display:block}
   .nav-drop-menu{
     display:block;position:static;background:none;border:0;
     box-shadow:none;padding:0;min-width:0;
@@ -409,6 +458,153 @@ section{scroll-margin-top:128px}
 #about .sec-head h2{color:#fff}
 #about .sec-head p{color:rgba(255,255,255,.72)}
 </style>
+
+<!--
+  Structured data. Two things are intentionally left out because they must be
+  factual, not guessed — add them here when ready:
+
+    1. "streetAddress": "<street>, Monroe, NY 10950"  (inside "address")
+       Google needs a real street address for a LocalBusiness to rank in the
+       map pack. Without it the entity still validates, but map coverage is weak.
+
+    2. Business hours, e.g.:
+       "openingHoursSpecification": [{
+         "@type": "OpeningHoursSpecification",
+         "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday"],
+         "opens": "09:00", "closes": "17:00"
+       },{
+         "@type": "OpeningHoursSpecification",
+         "dayOfWeek": "Friday", "opens": "09:00", "closes": "13:00"
+       }]
+
+  The "geo" block below is the Monroe, NY village centroid — replace it with the
+  office coordinates when the street address goes in.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": ["ProfessionalService", "LocalBusiness"],
+      "@id": "https://www.linearit.co/#business",
+      "name": "linear",
+      "alternateName": "Linear Tech",
+      "url": "https://www.linearit.co/",
+      "logo": "https://www.linearit.co/zurech3/assets/logo.svg",
+      "image": "https://www.linearit.co/zurech3/assets/wallpaper/preview-desktop.jpg",
+      "description": "linear is a Monroe, NY managed service provider delivering managed IT, cybersecurity, Microsoft 365, backup and disaster recovery, and network support to businesses across Orange County and the Hudson Valley.",
+      "telephone": "+1-845-604-1462",
+      "email": "support@linearit.co",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Monroe",
+        "addressRegion": "NY",
+        "postalCode": "10950",
+        "addressCountry": "US"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 41.3306,
+        "longitude": -74.1868
+      },
+      "areaServed": [
+        { "@type": "City", "name": "Monroe, New York" },
+        { "@type": "AdministrativeArea", "name": "Orange County, New York" },
+        { "@type": "AdministrativeArea", "name": "Rockland County, New York" },
+        { "@type": "AdministrativeArea", "name": "Hudson Valley, New York" },
+        { "@type": "AdministrativeArea", "name": "New York" }
+      ],
+      "knowsAbout": [
+        "Managed IT services",
+        "Cybersecurity",
+        "Microsoft 365",
+        "Microsoft Intune",
+        "Microsoft Entra ID",
+        "Backup and disaster recovery",
+        "Business networking and Wi-Fi",
+        "Firewall management"
+      ],
+      "contactPoint": [{
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "telephone": "+1-845-604-1462",
+        "email": "support@linearit.co",
+        "areaServed": "US",
+        "availableLanguage": "English"
+      }],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Managed IT and cybersecurity services",
+        "itemListElement": [
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Managed Endpoint", "description": "Windows & macOS hardening, updates, antivirus/EDR, asset & license tracking." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Microsoft 365", "description": "Tenant setup, Intune, Entra ID/MFA, email hygiene, SharePoint & automation." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Backup & Disaster Recovery", "description": "Workstation & server backups (onsite/cloud), restore drills, ransomware resilience." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Networking", "description": "Switching, Wi-Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring & alerts." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Security", "description": "MFA enforcement, phishing defense, security baselines, audits & incident readiness." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Support Desk", "description": "Remote & onsite helpdesk with clear SLAs and simple billing." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "Cloud & Servers", "description": "Server management, virtualization, cloud planning, monitoring, patching & performance." } },
+          { "@type": "Offer", "itemOffered": { "@type": "Service", "name": "IT Advisory", "description": "Road-mapping, budgeting, and audits to keep IT predictable and aligned to your goals." } }
+        ]
+      }
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://www.linearit.co/#website",
+      "url": "https://www.linearit.co/",
+      "name": "linear",
+      "inLanguage": "en-US",
+      "publisher": { "@id": "https://www.linearit.co/#business" }
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://www.linearit.co/#webpage",
+      "url": "https://www.linearit.co/",
+      "name": "Managed IT & Cybersecurity in Monroe, NY | Hudson Valley MSP — linear",
+      "isPartOf": { "@id": "https://www.linearit.co/#website" },
+      "about": { "@id": "https://www.linearit.co/#business" },
+      "primaryImageOfPage": "https://www.linearit.co/zurech3/assets/wallpaper/preview-desktop.jpg"
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://www.linearit.co/#faq",
+      "isPartOf": { "@id": "https://www.linearit.co/#webpage" },
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What does onboarding look like?",
+          "acceptedAnswer": { "@type": "Answer", "text": "We start with a discovery session and a light audit of endpoints, network, and cloud. Then we deploy agents, document your environment, define SLAs, and roll out quick wins in the first 14–30 days." }
+        },
+        {
+          "@type": "Question",
+          "name": "How do you price managed services?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Most clients choose a per-device or per-user monthly plan covering monitoring, patching, security, and support. Project work (migrations, new sites, etc.) is scoped separately with a fixed or hourly quote." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can you support remote and multi-site teams?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. We manage VPNs, Zero Trust access, device compliance via Intune, and provide remote helpdesk across time zones. We also standardize Wi-Fi and switching for consistent performance in each location." }
+        },
+        {
+          "@type": "Question",
+          "name": "What security controls do you implement?",
+          "acceptedAnswer": { "@type": "Answer", "text": "MFA/conditional access, least-privilege accounts, next-gen AV/EDR, email filtering, patch baselines, incident response runbooks, and tested backups. We align to practical CIS controls for SMEs." }
+        },
+        {
+          "@type": "Question",
+          "name": "Do you work with existing IT teams?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Absolutely. We can be your full MSP or an extension to handle helpdesk, patching, or projects while your team focuses on strategy." }
+        },
+        {
+          "@type": "Question",
+          "name": "How fast can we start?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Discovery can begin this week; agent deployment usually the same or next day. Full onboarding typically completes within 2–4 weeks depending on scope." }
+        }
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -425,6 +621,7 @@ section{scroll-margin-top:128px}
       <a href="#contact">Contact</a>
       <div class="nav-drop" id="itdrop">
         <button class="nav-drop-btn" onclick="document.getElementById('itdrop').classList.toggle('open')" aria-haspopup="true">IT Support ▾</button>
+        <span class="nav-drop-label" aria-hidden="true">IT Support</span>
         <div class="nav-drop-menu">
           <a href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">🔒 Client Login<small>Sign in to your client portal</small></a>
           <a href="https://linearit.rmmservices.net/connect/#/3147536854" target="_blank" rel="noopener">🛠 Remote Support<small>Start a remote session with a tech</small></a>
@@ -438,8 +635,8 @@ section{scroll-margin-top:128px}
 <header class="hero mesh-light" id="top">
   <div class="hero-inner">
     <div class="kicker">Managed IT&nbsp;&nbsp;/&nbsp;&nbsp;Security-first&nbsp;&nbsp;/&nbsp;&nbsp;Fast response</div>
-    <h1>Keep your name out of the news</h1>
-    <p>Fast, secure, and hassle-free technology solutions — proactive monitoring, expert support, and infrastructure that scales with you.</p>
+    <h1>Keep your name out of the news<span class="h1-sub">Managed IT &amp; cybersecurity in Monroe, NY — serving Orange County &amp; the Hudson Valley</span></h1>
+    <p>Fast, secure, and hassle-free technology for Hudson Valley businesses — proactive monitoring, expert support, and infrastructure that scales with you.</p>
     <div class="hero-ctas">
       <a class="btn btn-aqua" href="#contact">Book a consult</a>
       <a class="btn btn-ghost" href="tel:+18456041462">(845) 604-1462</a>
@@ -466,26 +663,26 @@ section{scroll-margin-top:128px}
     <div class="sec-head">
       <span class="kicker">About linear</span>
       <h2>Empower your business in the digital age.</h2>
-      <p>linear is a New York–based Managed Service Provider focused on reliability, clear communication, and fast response. We streamline operations through proactive monitoring, strong security, and networks that scale.</p>
+      <p>linear is a Monroe, NY Managed Service Provider serving businesses across Orange County, Rockland County, and the wider Hudson Valley — focused on reliability, clear communication, and fast response. We streamline operations through proactive monitoring, strong security, and networks that scale.</p>
     </div>
     <div class="about-grid">
       <div class="about-card">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8.5 20.5h7M12 17.5v3"/><path d="M6 10.8h2.6L10.2 8l2 5.6 1.4-2.8H18"/></svg>
         <h3>Proactive Managed IT</h3>
         <p>24/7 monitoring, patch management, and helpdesk keep devices healthy and your team productive.</p>
       </div>
       <div class="about-card">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.8 4.6 5.9v5.5c0 4.4 3 8.2 7.4 9.8 4.4-1.6 7.4-5.4 7.4-9.8V5.9z"/><path d="m8.9 11.9 2.2 2.2 4-4.5"/></svg>
         <h3>Security First</h3>
         <p>Endpoint protection, email security, MFA, and policies to defend against today's threats.</p>
       </div>
       <div class="about-card">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7.4 18.2h9a3.8 3.8 0 0 0 .5-7.57 5.5 5.5 0 0 0-10.4-1.2 3.9 3.9 0 0 0 .9 8.77Z"/><path d="M12 11.3v4.6m0 0-1.9-1.9m1.9 1.9 1.9-1.9"/></svg>
         <h3>Cloud &amp; Backup</h3>
         <p>Migrate to Microsoft 365, optimize OneDrive/SharePoint, and implement tested backup &amp; DR.</p>
       </div>
       <div class="about-card">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="4.8" r="2.2"/><circle cx="4.9" cy="19.2" r="2.2"/><circle cx="19.1" cy="19.2" r="2.2"/><path d="M10.9 6.8 6.1 17.2M13.1 6.8l4.8 10.4M7.1 19.2h9.8"/></svg>
         <h3>Networks that Scale</h3>
         <p>Wi-Fi to firewalls and VPNs — we design, deploy, and maintain stable, fast networks.</p>
       </div>
@@ -521,46 +718,46 @@ section{scroll-margin-top:128px}
     <div class="sec-head">
       <span class="kicker">Services</span>
       <h2>Everything your IT needs.</h2>
-      <p>Choose the coverage you need — we can manage your full environment or augment your existing team.</p>
+      <p>Choose the coverage you need — we can manage your full environment or augment your existing team. Remote across the Hudson Valley, onsite around Monroe and Orange County.</p>
     </div>
     <div class="svc-grid">
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.6" y="4.8" width="16.8" height="11" rx="1.8"/><path d="M2 18.8h20"/></svg>
         <h3>Managed Endpoint</h3>
         <p>Windows &amp; macOS hardening, updates, antivirus/EDR, asset &amp; license tracking.</p>
       </div>
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.6" y="3.6" width="7.4" height="7.4" rx="1.2"/><rect x="13" y="3.6" width="7.4" height="7.4" rx="1.2"/><rect x="3.6" y="13" width="7.4" height="7.4" rx="1.2"/><rect x="13" y="13" width="7.4" height="7.4" rx="1.2"/></svg>
         <h3>Microsoft 365</h3>
         <p>Tenant setup, Intune, Entra ID/MFA, email hygiene, SharePoint &amp; automation.</p>
       </div>
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2.8" y="3.8" width="18.4" height="4.6" rx="1.3"/><path d="M4.8 8.4v10.1c0 1 .8 1.7 1.7 1.7h11c1 0 1.7-.8 1.7-1.7V8.4"/><path d="M9.8 12.4h4.4"/></svg>
         <h3>Backup &amp; DR</h3>
         <p>Workstation &amp; server backups (onsite/cloud), restore drills, ransomware resilience.</p>
       </div>
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="13.6" width="18" height="6.6" rx="1.8"/><path d="M6.6 16.9h.01M9.8 16.9h4.2"/><path d="M8.7 9.6a4.7 4.7 0 0 1 6.6 0M6.1 6.9a8.4 8.4 0 0 1 11.8 0"/></svg>
         <h3>Networking</h3>
         <p>Switching, Wi-Fi surveys, SonicWall/UniFi firewalls, VPN, QoS, monitoring &amp; alerts.</p>
       </div>
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="4.2" y="10" width="15.6" height="10.4" rx="2.2"/><path d="M8.2 10V7.7a3.8 3.8 0 0 1 7.6 0V10"/><path d="M12 13.8v2.8"/></svg>
         <h3>Security</h3>
         <p>MFA enforcement, phishing defense, security baselines, audits &amp; incident readiness.</p>
       </div>
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4.4 15.2v-3.1a7.6 7.6 0 0 1 15.2 0v3.1"/><rect x="2.4" y="13.4" width="4.4" height="6.4" rx="2.2"/><rect x="17.2" y="13.4" width="4.4" height="6.4" rx="2.2"/><path d="M19.4 19.8v.4a2.4 2.4 0 0 1-2.4 2.4h-3"/></svg>
         <h3>Support Desk</h3>
         <p>Friendly help when you need it — remote &amp; onsite, clear SLAs, simple billing.</p>
       </div>
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3.4" y="3.8" width="17.2" height="6.2" rx="1.6"/><rect x="3.4" y="14" width="17.2" height="6.2" rx="1.6"/><path d="M7 6.9h.01M7 17.1h.01M10.6 6.9h4.4M10.6 17.1h4.4"/></svg>
         <h3>Cloud &amp; Servers</h3>
         <p>Server management, virtualization, cloud planning, monitoring, patching &amp; performance.</p>
       </div>
       <div class="svc">
-        <img src="zurech3/assets/icon.svg" alt="">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.6 3.8v16.4h16.8"/><path d="m7.2 16.4 3.6-4.4 3 2.6 4.8-6"/><path d="M15.2 8.6h3.4v3.4"/></svg>
         <h3>Advisory</h3>
         <p>Road-mapping, budgeting, and audits to keep IT predictable and aligned to your goals.</p>
       </div>
@@ -571,11 +768,12 @@ section{scroll-margin-top:128px}
 <section class="section stats">
   <div class="wrap">
     <div class="stats-grid">
-      <div class="stat"><b>99.9%</b><span>Uptime targets</span></div>
-      <div class="stat"><b>15 min</b><span>Avg first response</span></div>
+      <div class="stat"><b>99.9%</b><span>Uptime target</span></div>
+      <div class="stat"><b>15 min</b><span>First-response target</span></div>
       <div class="stat"><b>365</b><span>Days monitored</span></div>
       <div class="stat"><b>24/7</b><span>Alerting &amp; support</span></div>
     </div>
+    <p class="stats-note">Uptime and response figures are the service targets we design and staff around — not a guarantee. Committed service levels are defined in your agreement and vary by plan and environment.</p>
   </div>
 </section>
 
@@ -625,20 +823,23 @@ section{scroll-margin-top:128px}
     <div>
       <span class="kicker">Contact</span>
       <h2 class="wordmark">Let's talk.</h2>
-      <p class="contact-lede">Tell us a bit about your environment and we'll get back to you the same day. Typically a same-day response — no phone trees, no ticket purgatory.</p>
+      <p class="contact-lede">Tell us a bit about your environment and we'll take it from there — no phone trees, no ticket purgatory.</p>
       <div class="contact-rows">
         <div class="row"><span class="lbl">Email</span><a href="mailto:support@linearit.co">support@linearit.co</a></div>
         <div class="row"><span class="lbl">Phone</span><a href="tel:+18456041462">(845) 604-1462</a></div>
         <div class="row"><span class="lbl">Client Login</span><a href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">linearit.rmmservices.net</a></div>
         <div class="row"><span class="lbl">Remote Support</span><a href="https://linearit.rmmservices.net/connect/#/3147536854" target="_blank" rel="noopener">Start a session →</a></div>
-        <div class="row"><span class="lbl">Location</span><span>Monroe, NY · United States</span></div>
+        <div class="row"><span class="lbl">Location</span><span>Monroe, NY · Orange County · Hudson Valley</span></div>
       </div>
     </div>
     <div class="contact-card">
       <form action="https://formspree.io/f/mjgzyppb" method="POST">
         <input type="hidden" name="_subject" value="New website request (Linear Tech)">
-        <input type="text" name="_honey" style="display:none">
-        <input type="hidden" name="_captcha" value="true">
+        <!-- Formspree's honeypot is _gotcha; submissions with it filled are dropped silently.
+             (_honey and _captcha are FormSubmit.co syntax and did nothing here.)
+             Spam protection proper — reCAPTCHA and the allowed-domain restriction — is a
+             per-form setting in the Formspree dashboard, not markup. -->
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="display:none">
         <input type="hidden" id="deviceField" name="Device">
         <input type="hidden" id="userField" name="User">
         <input type="hidden" id="orgField" name="Organization">
@@ -683,7 +884,7 @@ section{scroll-margin-top:128px}
       </div>
     </div>
     <div class="footer-base">
-      <span>© 2026 linear · Straightforward IT excellence · Monroe, NY</span>
+      <span>© <span id="year">2026</span> linear · Straightforward IT excellence · Monroe, NY</span>
       <span class="site">linearit.co</span>
     </div>
   </div>
@@ -701,6 +902,9 @@ document.addEventListener('click', e => {
   const drop = document.getElementById('itdrop');
   if (!drop.contains(e.target)) drop.classList.remove('open');
 });
+
+// footer copyright year
+document.getElementById("year").textContent = new Date().getFullYear();
 </script>
 
 </body>
