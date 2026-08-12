@@ -70,7 +70,7 @@ export async function ensureTodoSchema(env) {
       "CREATE TABLE IF NOT EXISTS todo_prefs (" +
       "email TEXT PRIMARY KEY, tz_offset INTEGER NOT NULL DEFAULT 0, default_list TEXT, " +
       "phone TEXT, phone_pending TEXT, phone_code TEXT, phone_verified_at INTEGER, " +
-      "alt_emails TEXT, feed_key TEXT, intake_receipt INTEGER NOT NULL DEFAULT 1, " +
+      "alt_emails TEXT, feed_key TEXT, quick_key TEXT, intake_receipt INTEGER NOT NULL DEFAULT 1, " +
       "created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
     ),
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_todos_email_status ON todos(email, status)"),
@@ -80,6 +80,10 @@ export async function ensureTodoSchema(env) {
     env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_lists_email ON todo_lists(email)"),
     env.DB.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_prefs_phone ON todo_prefs(phone) WHERE phone IS NOT NULL"),
   ]);
+  // Columns added after the first release; no-ops on a fresh database.
+  for (const alt of ["ALTER TABLE todo_prefs ADD COLUMN quick_key TEXT"]) {
+    try { await env.DB.prepare(alt).run(); } catch (_) { /* already there */ }
+  }
 }
 
 /* ============================================================
@@ -521,6 +525,10 @@ async function prefsSet(request, env, ctx) {
     sets.push("default_list=?"); args.push(lid);
   }
   if (body.intake_receipt !== undefined) { sets.push("intake_receipt=?"); args.push(body.intake_receipt ? 1 : 0); }
+  // Rotating a key immediately retires the old one — that's the point of it.
+  if (body.rotate === "quick_key" || body.rotate === "feed_key") {
+    sets.push(body.rotate + "=?"); args.push(genFeedKey());
+  }
   if (body.alt_emails !== undefined) {
     const list = (Array.isArray(body.alt_emails) ? body.alt_emails : String(body.alt_emails || "").split(/[,\s]+/))
       .map((e) => String(e || "").trim().toLowerCase())
@@ -561,6 +569,31 @@ async function phoneSetup(request, env, ctx) {
 
   const taken = await env.DB.prepare("SELECT email FROM todo_prefs WHERE phone=? AND email<>?").bind(phone, claims.email).first();
   if (taken) return ctx.json({ error: "That number is already linked to another account." }, 409);
+
+  // Two ways to own a number, depending on what's actually wired up.
+  //
+  // If there's a real SMS number to text (a paid provider), we can prove
+  // ownership properly: they text a one-time code in from the handset.
+  //
+  // If there isn't — the free setup — the number is only ever used to recognise
+  // texts arriving through a carrier's text-to-email gateway, where the
+  // carrier itself puts the sending number in the From address and the message
+  // still has to pass SPF/DMARC. There's nothing to text a code to, so we save
+  // the number directly. Claiming a number you don't own gains you nothing: no
+  // mail is routed anywhere, it only stops the real owner from claiming it,
+  // which is why the number stays unique across accounts.
+  const canTextUs = !!(env.SMS_NUMBER && (env.TWILIO_AUTH_TOKEN || env.SMS_INTAKE_SECRET));
+  if (!canTextUs) {
+    await env.DB.prepare(
+      "UPDATE todo_prefs SET phone=?, phone_pending=NULL, phone_code=NULL, phone_verified_at=NULL, updated_at=? WHERE email=?"
+    ).bind(phone, now, claims.email).run();
+    return ctx.json({
+      token: await ctx.reissue(env, claims),
+      phone,
+      gateway_only: true,
+      prefs: publicPrefs(await getPrefs(env, claims.email)),
+    });
+  }
 
   const code = "LT-" + String(crypto.getRandomValues(new Uint32Array(1))[0] % 10000).padStart(4, "0");
   await env.DB.prepare(
@@ -639,6 +672,52 @@ export function reminderNotification(rows, tz, now) {
   };
 }
 
+/**
+ * Quick-add by link — the free way to add a task from a phone.
+ * ---------------------------------------------------------------------------
+ * One personal URL that adds a task, with no session and no SMS provider:
+ *
+ *   GET  /api/todo/quick?key=…&text=Buy+milk+tomorrow+9am
+ *   POST /api/todo/quick?key=…      body: raw text, form `text=`, or {"text":…}
+ *
+ * That's all an iOS Shortcut, a Siri phrase, an Android HTTP shortcut or a
+ * smartwatch button needs. It speaks the same commands the SMS door does, so
+ * LIST / DONE 2 / HELP work here too, and it answers in plain text so a
+ * Shortcut can show the reply as-is (add &format=json for a JSON body).
+ *
+ * The key IS the credential — it's long, random, per-person and regenerable.
+ */
+export async function quickAdd(request, env, url, runCommand) {
+  const key = url.searchParams.get("key") || "";
+  const wantsJson = url.searchParams.get("format") === "json";
+  const reply = (msg, status) => wantsJson
+    ? new Response(JSON.stringify({ reply: msg }), {
+        status: status || 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } })
+    : new Response(msg + "\n", {
+        status: status || 200, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(key)) return reply("Not found.", 404);
+  const row = await env.DB.prepare("SELECT email FROM todo_prefs WHERE quick_key=?").bind(key).first();
+  if (!row) return reply("Not found.", 404);
+
+  let text = url.searchParams.get("text") || url.searchParams.get("q") || "";
+  if (!text && request.method === "POST") {
+    const ct = (request.headers.get("content-type") || "").toLowerCase();
+    const raw = await request.text();
+    if (ct.indexOf("application/json") !== -1) {
+      try { const b = JSON.parse(raw || "{}"); text = b.text || b.task || b.body || ""; } catch (_) { text = ""; }
+    } else if (ct.indexOf("application/x-www-form-urlencoded") !== -1) {
+      text = new URLSearchParams(raw).get("text") || new URLSearchParams(raw).get("body") || "";
+    } else {
+      text = raw;                                        // a plain-text body is fine too
+    }
+  }
+  text = String(text || "").trim().slice(0, 1200);
+  if (!text) return reply("Send some text and I'll add it to your list.", 400);
+
+  return reply(await runCommand(env, row.email, text));
+}
+
 /* ============================================================
  * Calendar feed — subscribe to your dated tasks from Outlook / Google / Apple.
  * Read-only, and keyed by a secret only the owner can see.
@@ -707,14 +786,17 @@ export async function getPrefs(env, email) {
     // Start from the timezone the tracker already knows for this person.
     const w = await env.DB.prepare("SELECT tz_offset FROM workers WHERE email=?").bind(email).first();
     await env.DB.prepare(
-      "INSERT OR IGNORE INTO todo_prefs (email, tz_offset, feed_key, intake_receipt, created_at, updated_at) VALUES (?,?,?,1,?,?)"
-    ).bind(email, w ? Number(w.tz_offset) || 0 : 0, genFeedKey(), now, now).run();
+      "INSERT OR IGNORE INTO todo_prefs (email, tz_offset, feed_key, quick_key, intake_receipt, created_at, updated_at) VALUES (?,?,?,?,1,?,?)"
+    ).bind(email, w ? Number(w.tz_offset) || 0 : 0, genFeedKey(), genFeedKey(), now, now).run();
     row = await env.DB.prepare("SELECT * FROM todo_prefs WHERE email=?").bind(email).first();
   }
-  if (row && !row.feed_key) {
-    const key = genFeedKey();
-    await env.DB.prepare("UPDATE todo_prefs SET feed_key=? WHERE email=?").bind(key, email).run();
-    row.feed_key = key;
+  // Backfill keys for rows created before a key existed.
+  for (const col of ["feed_key", "quick_key"]) {
+    if (row && !row[col]) {
+      const key = genFeedKey();
+      await env.DB.prepare("UPDATE todo_prefs SET " + col + "=? WHERE email=?").bind(key, email).run();
+      row[col] = key;
+    }
   }
   return {
     email: email,
@@ -723,8 +805,10 @@ export async function getPrefs(env, email) {
     phone: row.phone || null,
     phone_pending: row.phone_pending || null,
     phone_code: row.phone_code || null,
+    phone_verified_at: row.phone_verified_at ? Number(row.phone_verified_at) : null,
     alt_emails: String(row.alt_emails || "").split(",").filter(Boolean),
     feed_key: row.feed_key,
+    quick_key: row.quick_key,
     intake_receipt: Number(row.intake_receipt) !== 0,
   };
 }
@@ -744,10 +828,12 @@ function publicPrefs(p) {
     default_list: p.default_list,
     phone: p.phone ? maskPhone(p.phone) : null,
     phone_raw: p.phone || null,
+    phone_verified: !!p.phone_verified_at,
     phone_pending: p.phone_pending ? maskPhone(p.phone_pending) : null,
     phone_code: p.phone_pending ? p.phone_code : null,
     alt_emails: p.alt_emails,
     feed_key: p.feed_key,
+    quick_key: p.quick_key,
     intake_receipt: p.intake_receipt,
   };
 }

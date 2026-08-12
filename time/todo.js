@@ -294,8 +294,11 @@
     t.tags.forEach(function (tag) {
       meta.appendChild(el("button", { class: "m tag", text: "#" + tag, onclick: function (e) { e.stopPropagation(); setView("tag:" + tag); } }, []));
     });
-    if (t.source === "email") meta.appendChild(el("span", { class: "m", title: "Added by email", text: "✉️" }, []));
-    if (t.source === "sms") meta.appendChild(el("span", { class: "m", title: "Added by text", text: "💬" }, []));
+    var SRC = { email: ["✉️", "Added by email"], sms: ["💬", "Added by text"],
+                text: ["💬", "Added by text"], link: ["📲", "Added from your phone"] };
+    if (SRC[t.source]) {
+      meta.appendChild(el("span", { class: "m", title: SRC[t.source][1], text: SRC[t.source][0] }, []));
+    }
     if (t.myday === S.today && S.view !== "myday") meta.appendChild(el("span", { class: "m", title: "In My Day", text: "☀️" }, []));
 
     var row = el("div", { class: "titem" + (done ? " done" : "") + (S.selected === t.id ? " sel" : "") }, [
@@ -588,7 +591,8 @@
     body.appendChild(el("div", { class: "dsec" }, [el("span", { class: "lbl", text: "Notes" }, []), notes]));
 
     /* provenance */
-    var srcWord = t.source === "email" ? "Added by email" : t.source === "sms" ? "Added by text message" : "Added in the app";
+    var srcWord = { email: "Added by email", sms: "Added by text message",
+                    text: "Added by text message", link: "Added from your phone" }[t.source] || "Added in the app";
     body.appendChild(el("div", { class: "dmeta" }, [
       el("div", { text: srcWord + " · " + new Date(t.created_at).toLocaleString() }, []),
       t.completed_at ? el("div", { text: "Completed " + new Date(t.completed_at).toLocaleString() }, []) : null,
@@ -697,10 +701,40 @@
         } catch (e) { toast(e.error || "Couldn't save."); }
       } }, [])]));
 
-    /* --- SMS intake --- */
+    /* --- one-tap link (the free way to add from a phone) --- */
+    if (p.quick_key) {
+      var quick = apiOrigin() + "/api/todo/quick?key=" + p.quick_key;
+      body.appendChild(section("📲 One tap from your phone",
+        "Your own private add-a-task link. Put it in an iOS Shortcut or an Android HTTP shortcut and you can add a task from the Home Screen, the Lock Screen or by asking Siri — instantly, and free.",
+        [
+          copyRow(quick + "&text=TASK"),
+          el("div", { class: "sdesc", style: "margin-top:10px", html:
+            "<b>iPhone, once:</b> Shortcuts app → <b>+</b> → <i>Ask for Input</i> (Text, prompt “What's the task?”) → " +
+            "<i>Get Contents of URL</i> → paste the link above, replace <code>TASK</code> with the <i>Provided Input</i> " +
+            "variable → <i>Show Result</i>. Name it “Add task”, then say <i>“Hey Siri, add task”</i> or pin it to your " +
+            "Home Screen. It understands the same wording as the box above, plus <code>LIST</code>, " +
+            "<code>DONE 2</code> and <code>HELP</code>." }, []),
+          el("div", { class: "sdesc", style: "margin-top:8px", html:
+            "Treat the link like a password — anyone with it can add tasks to your list." }, []),
+          el("button", { class: "btn ghost sm", style: "margin-top:10px", text: "Generate a new link", onclick: async function () {
+            if (!confirm("Replace your add-a-task link?\n\nThe old one stops working, so any shortcut using it needs updating.")) return;
+            try {
+              var r = await api("/api/todo/prefs", { method: "POST", body: { rotate: "quick_key" } });
+              S.prefs = r.prefs; openSettings(); toast("New link generated.");
+            } catch (e) { toast(e.error || "Couldn't regenerate."); }
+          } }, []),
+        ]));
+    }
+
+    /* --- text messages --- */
     var smsKids = [];
+    var textsToAddress = !intake.sms_enabled;   // no paid number: texts arrive by email gateway
     if (p.phone) {
-      smsKids.push(el("div", { class: "sdesc", html: "Linked: <b>" + esc(p.phone) + "</b>. Text a task any time. Reply <code>LIST</code> for today, <code>DONE 2</code> to tick one off, <code>HELP</code> for more." }, []));
+      smsKids.push(el("div", { class: "sdesc", html:
+        "Linked: <b>" + esc(p.phone) + "</b>." + (textsToAddress
+          ? " Text your tasks to <b>" + esc(addr) + "</b> straight from Messages — put that address in the To: field."
+          : " Text a task to <b>" + esc(prettyPhone(intake.sms)) + "</b> any time.") +
+        " Reply <code>LIST</code> for today, <code>DONE 2</code> to tick one off, <code>HELP</code> for more." }, []));
       smsKids.push(el("button", { class: "btn ghost sm", style: "margin-top:8px", text: "Unlink this number", onclick: async function () {
         if (!confirm("Unlink " + p.phone + "? Texts from it will no longer create tasks.")) return;
         try { var r = await api("/api/todo/phone", { method: "POST", body: { action: "remove" } }); S.prefs = r.prefs; openSettings(); toast("Unlinked."); }
@@ -715,17 +749,19 @@
     } else {
       var phoneIn = el("input", { type: "text", inputmode: "tel", placeholder: "(845) 604-1462" }, []);
       smsKids.push(phoneIn);
-      smsKids.push(el("button", { class: "btn sm", style: "margin-top:8px", text: "Link this number", onclick: async function () {
+      smsKids.push(el("button", { class: "btn sm", style: "margin-top:8px", text: "Save my number", onclick: async function () {
         try {
           var r = await api("/api/todo/phone", { method: "POST", body: { phone: phoneIn.value, tz_offset: new Date().getTimezoneOffset() } });
           S.prefs = r.prefs;
           if (r.sms_to) S.intake = Object.assign({}, S.intake, { sms: r.sms_to });
           openSettings();
-        } catch (e) { toast(e.error || "Couldn't start linking."); }
+        } catch (e) { toast(e.error || "Couldn't save that number."); }
       } }, []));
     }
     body.appendChild(section("💬 Add tasks by text message",
-      "Text a task to the Linear number and it lands on this list, with a reply confirming what was understood.",
+      textsToAddress
+        ? "Most carriers let you text an email address: put " + addr + " in the To: field of a normal text and it becomes a task, with the confirmation coming back as a text. Tell us your number so we know the text is yours."
+        : "Text a task to the Linear number and it lands on this list, with a reply confirming what was understood.",
       smsKids));
 
     /* --- default list --- */
@@ -751,8 +787,7 @@
 
     /* --- calendar feed --- */
     if (p.feed_key) {
-      var feed = (location.hostname === "time.linearit.co" ? "https://time.linearit.co" : "https://time.linearit.co") +
-        "/api/todo/feed.ics?key=" + p.feed_key;
+      var feed = apiOrigin() + "/api/todo/feed.ics?key=" + p.feed_key;
       body.appendChild(section("📅 Calendar feed",
         "Subscribe in Outlook, Google or Apple Calendar to see dated tasks alongside your meetings. Read-only — keep the link private.",
         [copyRow(feed)]));
@@ -839,6 +874,12 @@
   function listById(id) { for (var i = 0; i < S.lists.length; i++) if (S.lists[i].id === id) return S.lists[i]; return null; }
   function opt(v, t) { return el("option", { value: v, text: t }, []); }
   function hasPush() { return "Notification" in window && Notification.permission === "granted"; }
+  // Where the API actually lives, spelled out in full — these links get pasted
+  // into Shortcuts and calendar apps, so a relative path is no good.
+  function apiOrigin() {
+    var remote = ["www.linearit.co", "linearit.co", "cftheitguy.github.io"];
+    return remote.indexOf(location.hostname) !== -1 ? "https://time.linearit.co" : location.origin;
+  }
   // "+18456041462" -> "(845) 604-1462" so the number is readable when someone
   // has to type it into their phone.
   function prettyPhone(p) {

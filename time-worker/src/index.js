@@ -54,9 +54,13 @@
  *   GET/POST /api/todo/prefs      timezone, default list, receipts, alt addresses
  *   POST /api/todo/phone          start / remove mobile-number linking
  *   POST /api/todo/parse          preview what the quick-add box understood
- *   POST /api/sms/inbound         SMS provider webhook (tasks by text message)
+ *   GET/POST /api/todo/quick      add a task from a personal link (?key=&text=)
+ *                                 — what a phone Shortcut / Siri calls. Free.
+ *   POST /api/sms/inbound         SMS provider webhook (optional, paid number)
  *   GET  /api/todo/feed.ics       read-only calendar feed of dated tasks (?key=)
- *   email()                       task@linearit.co -> a task (Email Routing)
+ *   email()                       task@linearit.co -> a task (Email Routing),
+ *                                 including texts sent to that address through
+ *                                 a carrier's text-to-email gateway
  *
  * ENV (secrets, except the [vars] in wrangler.toml)
  *   DB              D1 database binding (required)
@@ -78,22 +82,26 @@
  *   30-min check-in / after-5pm wrap-up / to-do reminders to whoever is due. If
  *   these are unset, reminders fall back to in-app only (the app must be open).
  *
- * TO-DO INTAKE (optional — turns on the email and text front doors)
- *   TWILIO_AUTH_TOKEN  secret — validates the inbound SMS webhook signature
- *   SMS_INTAKE_SECRET  secret — shared secret for a non-Twilio SMS provider
- *   SMS_NUMBER         var    — the number people text, shown in the app's setup
- *   SMS_WEBHOOK_URL    var    — override the URL used for signature checks
- *   TODO_EMAIL         var    — the intake address shown in the app (task@…)
- *   Inbound email needs an Email Routing rule pointing task@linearit.co at this
- *   Worker; see ../time-worker/README.md.
+ * TO-DO INTAKE
+ *   The free doors need no secrets at all: the personal quick-add link works as
+ *   soon as the Worker is up, and email (including texts sent to task@… through
+ *   a carrier gateway) needs only an Email Routing rule pointing that address at
+ *   this Worker. See ../time-worker/README.md.
+ *     TODO_EMAIL       var    — the intake address shown in the app (task@…)
+ *   A dedicated SMS number is optional and costs money; wire one up only if you
+ *   want people to text a number instead of an address:
+ *     TWILIO_AUTH_TOKEN  secret — validates the inbound SMS webhook signature
+ *     SMS_INTAKE_SECRET  secret — shared secret for a non-Twilio SMS provider
+ *     SMS_NUMBER         var    — the number people text, shown in the app
+ *     SMS_WEBHOOK_URL    var    — override the URL used for signature checks
  * =============================================================================
  */
 
 import {
   ensureTodoSchema, handleTodoApi, dueReminders, markReminded, usersWithDueReminders,
-  reminderNotification, icsFeed, getPrefs,
+  reminderNotification, icsFeed, getPrefs, quickAdd,
 } from "./todos.js";
-import { handleIncomingEmail, handleSmsInbound } from "./intake.js";
+import { handleIncomingEmail, handleSmsInbound, runTaskCommand } from "./intake.js";
 
 // Sessions are effectively permanent: the worker signs in once at setup and the
 // token re-issues on every authed call, so it never expires in normal daily use.
@@ -165,6 +173,9 @@ async function handleApi(request, env, url, p, method) {
   // The calendar feed and the SMS webhook authenticate themselves (a feed key /
   // a provider signature), so they sit ahead of the session-token routes.
   if (p === "/api/todo/feed.ics" && (method === "GET" || method === "HEAD")) return icsFeed(env, url);
+  if (p === "/api/todo/quick" && (method === "GET" || method === "POST")) {
+    return quickAdd(request, env, url, (e, owner, text) => runTaskCommand(e, owner, text, "link"));
+  }
   if (p === "/api/sms/inbound" && method === "POST") return handleSmsInbound(request, env, url);
   if (p.startsWith("/api/todo/")) {
     const handled = await handleTodoApi(request, env, url, p, method, todoCtx());

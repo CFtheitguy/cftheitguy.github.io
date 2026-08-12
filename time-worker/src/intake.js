@@ -1,24 +1,37 @@
 /**
- * intake.js — the two remote front doors into Linear To-Do
+ * intake.js — the remote front doors into Linear To-Do
  * =============================================================================
- * EMAIL  task@linearit.co
+ * EMAIL  task@linearit.co                                             (free)
  *   Cloudflare Email Routing hands the raw message to this Worker's email()
  *   handler. The subject becomes the task (parsed the same way the app's
  *   quick-add box parses it), the body becomes the notes, and "- " lines in the
  *   body become steps. Plus-addressing files it: task+groceries@linearit.co
  *   drops it in the Groceries list, creating that list if it's new.
  *
- * TEXT   the Linear mobile number
- *   The SMS provider POSTs each inbound message to /api/sms/inbound. The reply
- *   goes straight back on the same thread, so texting "milk tomorrow 9am" gets
- *   an immediate "Added: milk — Tomorrow 9:00 AM".
+ * TEXT sent to that same address                                      (free)
+ *   Most carriers let a phone text an email address — you just put
+ *   task@linearit.co in the To: field of a normal text. It arrives here as mail
+ *   from <number>@<carrier gateway>, so we treat it as a text: the body is the
+ *   task, and the answer is mailed back to that gateway address, which the
+ *   carrier delivers to the handset as a reply text. Two-way texting, no SMS
+ *   provider, nothing to pay.
+ *
+ * TEXT sent to a real number                             (optional, costs money)
+ *   If a number is wired up, the provider POSTs each message to
+ *   /api/sms/inbound and we answer with TwiML (or JSON) on the same thread.
+ *
+ * The personal quick-add link (/api/todo/quick, in todos.js) is the third free
+ * door — it shares the command handler below, so a phone shortcut understands
+ * the same words a text does.
  *
  * WHO'S ALLOWED
- *   Both doors are identified, never open. Email is matched to a person by the
+ *   Every door is identified, never open. Email is matched to a person by the
  *   From: address (their sign-in address, or an extra address they added in
  *   settings) and is dropped unless it passes SPF/DMARC, so nobody can file
- *   tasks into someone else's list by forging a From. Text is matched to a
- *   number the person verified themselves by texting a one-time code in.
+ *   tasks into someone else's list by forging a From. A text is matched to the
+ *   number in the gateway address — written by the carrier, not the sender —
+ *   against the number that person registered, or, on a paid number, to one
+ *   they verified with a one-time code.
  * =============================================================================
  */
 
@@ -27,6 +40,33 @@ import { describeDue, repeatLabel, localDayStr, localMidnight } from "./parse.js
 
 const MAX_EMAIL_BYTES = 512 * 1024;   // plenty for a task; ignore the rest
 const MAX_SMS_LEN = 1200;
+
+/**
+ * Carrier text-to-email gateways.
+ * ---------------------------------------------------------------------------
+ * Most US carriers let a phone send a text straight to an email address: you
+ * type task@linearit.co into the To: field of a normal text. It arrives here as
+ * an email whose From is the sending number at one of these domains — e.g.
+ * 8455550123@vtext.com — with the message itself in the body.
+ *
+ * That's a real text message, from the real Messages app, at no cost and with
+ * no SMS provider in the middle. Because the carrier writes that From address
+ * (and the mail still has to pass SPF/DMARC), the number in it is trustworthy
+ * enough to match against the number someone registered in their settings.
+ */
+const CARRIER_GATEWAYS = [
+  "vtext.com", "vzwpix.com",                       // Verizon
+  "txt.att.net", "mms.att.net",                    // AT&T
+  "tmomail.net",                                   // T-Mobile
+  "msg.fi.google.com",                             // Google Fi
+  "messaging.sprintpcs.com", "pm.sprint.com",      // Sprint (legacy)
+  "sms.myboostmobile.com", "myboostmobile.com",    // Boost
+  "vmobl.com", "vmpix.com",                        // Virgin
+  "mailmymobile.net", "text.republicwireless.com", // MVNOs
+  "email.uscc.net", "mms.uscc.net",                // US Cellular
+  "sms.mycricket.com", "mms.cricketwireless.net",  // Cricket
+  "msg.telus.com", "txt.bell.ca", "sms.rogers.com",// Canada
+];
 
 /* ============================================================
  * EMAIL — Cloudflare Email Routing entry point
@@ -55,6 +95,25 @@ export async function handleIncomingEmail(message, env, ctx) {
 
   const prefs = await getPrefs(env, owner);
   const tz = prefs.tz_offset;
+
+  // 2b) A text message that came in through a carrier gateway is handled like a
+  //     text, not like an email: the body IS the task, and the answer goes back
+  //     to the same gateway address — which the carrier delivers to the handset
+  //     as a reply text. Two-way texting, no SMS provider, no cost.
+  const fromPhone = gatewayPhone(from);
+  if (fromPhone) {
+    const line = gatewayText(mail);
+    if (!line) { await safeReject(message, "That text was empty."); return; }
+    const answer = await runTaskCommand(env, owner, line, "text");
+    if (ctx && ctx.sendEmail) {
+      await ctx.sendEmail(env, {
+        to: from,
+        subject: "",                       // carriers prepend the subject to the text
+        text: String(answer).slice(0, 300),
+      });
+    }
+    return;
+  }
 
   // 3) task+groceries@linearit.co -> the Groceries list.
   const listHint = plusTag(to);
@@ -123,9 +182,30 @@ function authVerdict(mail, message) {
   return { fail: false, detail: "ok" };
 }
 
+// A text sent to an email address arrives from "<number>@<carrier gateway>".
+// Pull the number out, if that's what this is.
+export function gatewayPhone(from) {
+  const at = String(from || "").lastIndexOf("@");
+  if (at === -1) return null;
+  const domain = from.slice(at + 1).toLowerCase();
+  if (CARRIER_GATEWAYS.indexOf(domain) === -1) return null;
+  const local = from.slice(0, at).replace(/[^\d]/g, "");
+  if (local.length < 10 || local.length > 15) return null;
+  return normalizePhone(local);
+}
+
 // Match an incoming From: to a person the Worker knows.
 async function resolveEmailOwner(env, from) {
   if (!validEmail(from)) return null;
+
+  // A text message that came in through a carrier gateway: the number in the
+  // From address decides whose list it lands on.
+  const phone = gatewayPhone(from);
+  if (phone) {
+    const byPhone = await env.DB.prepare("SELECT email FROM todo_prefs WHERE phone=?").bind(phone).first();
+    if (byPhone) return byPhone.email;
+    return null;                    // an unregistered number never creates tasks
+  }
 
   const worker = await env.DB.prepare("SELECT email FROM workers WHERE email=?").bind(from).first();
   if (worker) return worker.email;
@@ -157,6 +237,30 @@ function plusTag(addr) {
   if (plus === -1) return null;
   const tag = local.slice(plus + 1).trim().replace(/[._-]+/g, " ").slice(0, 40);
   return tag || null;
+}
+
+/**
+ * The message someone actually typed, out of a carrier-gateway email.
+ * Gateways wrap the text in their own furniture: a "FRM:/SUBJ:/MSG:" header
+ * block on some carriers, the sender's number on others, and a trailing advert.
+ * Whatever's left after that is the task.
+ */
+function gatewayText(mail) {
+  let body = String(mail.text || "").trim();
+
+  // Some gateways use an explicit "MSG:" marker — everything after it is the text.
+  const msgAt = body.search(/^MSG:/im);
+  if (msgAt !== -1) body = body.slice(msgAt).replace(/^MSG:\s*/i, "");
+  body = body
+    .split(/\r?\n/)
+    .filter((l) => !/^(FRM|SUBJ|TO|MSG):/i.test(l.trim()))
+    .join("\n")
+    .replace(/\n?(sent (from|via) .*|this message was sent from .*|download the .* app.*)$/i, "")
+    .trim();
+
+  // Nothing in the body? Some carriers put a short text in the subject instead.
+  if (!body) body = cleanSubject(mail.subject);
+  return body.replace(/\s+/g, " ").trim().slice(0, MAX_SMS_LEN);
 }
 
 // Strip the Re:/Fwd: noise a forwarded task always carries.
@@ -449,19 +553,27 @@ async function twilioSignature(authToken, url, params) {
   return btoa(String.fromCharCode(...new Uint8Array(sig)));
 }
 
-/* ---- The conversation ---------------------------------------------------- */
+/* ---- The conversation ----------------------------------------------------
+ * One command surface, three front doors: an SMS webhook, a text that came in
+ * through a carrier's email gateway, and the personal quick-add link a phone
+ * shortcut calls. They all end up in runTaskCommand.
+ * -------------------------------------------------------------------------- */
 async function runSmsCommand(env, phone, text) {
-  const first = text.split(/\s+/)[0].toUpperCase();
-  const rest = text.slice(first.length).trim();
-
   // A verification code from a number someone is trying to link.
   const codeMatch = text.trim().toUpperCase().match(/^LT-?(\d{4})$/);
   if (codeMatch) return verifyPhone(env, phone, "LT-" + codeMatch[1]);
 
   const owner = await ownerForPhone(env, phone);
   if (!owner) {
-    return "This number isn't linked to a Linear To-Do account yet. Sign in at time.linearit.co → To-Do → Settings, add this number, and text back the code it gives you.";
+    return "This number isn't linked to a Linear To-Do account yet. Sign in at time.linearit.co → To-Do → Settings and add it.";
   }
+  return runTaskCommand(env, owner, text, "sms");
+}
+
+export async function runTaskCommand(env, owner, text, source) {
+  text = String(text || "").trim();
+  const first = (text.split(/\s+/)[0] || "").toUpperCase();
+  const rest = text.slice(first.length).trim();
   const prefs = await getPrefs(env, owner);
   const tz = prefs.tz_offset;
   const now = Date.now();
@@ -501,7 +613,7 @@ async function runSmsCommand(env, phone, text) {
   }
 
   // Anything else is a new task.
-  const created = await createTodo(env, owner, { text: text }, { tz, source: "sms", prefs });
+  const created = await createTodo(env, owner, { text: text }, { tz, source: source || "sms", prefs });
   if (created.error) return created.error;
   const t = created.todo;
   const bits = [];

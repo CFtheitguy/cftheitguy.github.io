@@ -3,7 +3,8 @@
 > **Two apps, one sign-in.** The **day tracker** (below) turns each day into a
 > timesheet. **[Linear To-Do](#linear-to-do)** is the task list — the same thing
 > Microsoft To Do does, with due *times*, repeats, steps, reminders that reach
-> your phone, and two extra ways to get a task in: **email it** or **text it**.
+> your phone, and three extra ways to get a task in: **one tap from your phone**,
+> **email it**, or **text it**. All three are free — no SMS service to pay for.
 > Switch between them with the **✓ To-Do** button in the top bar, or go straight
 > to **[time.linearit.co/todo](https://time.linearit.co/todo)**.
 
@@ -257,10 +258,34 @@ send from another address (a personal account, an alias), add it under
 **To-Do → Settings → Addresses allowed to send**. You get a short confirmation
 email back; turn that off in Settings if you'd rather not.
 
+### One tap from your phone — `📲 Settings → One tap from your phone`
+
+**The fastest way in, and it costs nothing.** Settings gives you a private
+add-a-task link. Drop it into a shortcut and adding a task is one tap — or one
+sentence to Siri — from anywhere.
+
+**iPhone, set up once:**
+1. **Shortcuts** app → **+** → **Ask for Input** (Text, prompt "What's the task?")
+2. **Get Contents of URL** → paste your link, and replace `TASK` at the end with
+   the **Provided Input** variable
+3. **Show Result** → name it **"Add task"** → Done
+
+Now say *"Hey Siri, add task"*, or pin it to the Home Screen, the Lock Screen or
+the Action Button. **Android:** the *HTTP Shortcuts* app (or Tasker) does the
+same thing.
+
+It understands everything the add box does, plus `LIST`, `DONE 2` and `HELP` —
+so the same shortcut can read today's list back to you.
+
+> Treat the link like a password: anyone holding it can add tasks to your list.
+> **Generate a new link** in Settings retires the old one instantly.
+
 ### Tasks by text message
 
-Text a task to the Linear number and it appears on the list, with a reply telling
-you what was understood:
+**No paid phone number needed.** Most carriers let you text an *email address* —
+put **task@linearit.co** in the To: field of a normal text message and send it
+like any other text. It becomes a task, and the confirmation comes **back as a
+text**:
 
 > **You:** `Pick up prescription tomorrow 5pm !high`
 > **Linear:** `Added: Pick up prescription` · `Tomorrow 5:00 PM · high`
@@ -268,10 +293,17 @@ you what was understood:
 Also understood: **`LIST`** (today's tasks, numbered), **`ALL`**, **`DONE 2`**
 (tick off number 2 from that list), **`HELP`**.
 
-**Linking your phone, once:** open **To-Do → Settings → Add tasks by text**,
-type your mobile number, and it shows a short code like `LT-4821`. Text that code
-to the Linear number and you're linked — which also proves the number is yours.
-Texts from an unknown number never create tasks.
+**Set up once:** **To-Do → Settings → Add tasks by text message** → type your
+mobile number → **Save my number**. That's how we know a text is yours: your
+carrier stamps your number into the address the message arrives from, so texts
+from any other number never create tasks.
+
+> Carrier support varies — Verizon and T-Mobile handle this well, some carriers
+> and most non-US ones don't. If yours doesn't, the one-tap shortcut above works
+> on every phone.
+
+*(If you'd rather people text a real phone number, that's supported too — it
+needs a paid number from an SMS provider. See the Worker README.)*
 
 ### Calendar feed
 

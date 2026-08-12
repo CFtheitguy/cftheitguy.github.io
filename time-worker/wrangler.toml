@@ -68,12 +68,17 @@ ALLOW_ORIGIN = "https://www.linearit.co"
 APP_ORIGIN = "https://www.linearit.co"
 APP_PATH = "/time/"
 
-# --- Linear To-Do intake (see README: "Tasks by email" / "Tasks by text") ---
-# The address people email tasks to. Shown in the app's To-Do → Settings screen.
-# Mail only actually arrives once an Email Routing rule sends this address to
-# this Worker; the value here is just what the app tells people to use.
+# --- Linear To-Do intake (see README: "Linear To-Do — setup") ---
+# The address people email tasks to — and, on most carriers, text tasks to
+# straight from Messages. Shown in the app's To-Do → Settings screen. Mail only
+# actually arrives once an Email Routing rule sends this address to this Worker;
+# the value here is just what the app tells people to use.
+#
+# Adding tasks by phone costs nothing: the personal quick-add link works with no
+# setup at all, and texting this address is free on carriers that support it.
 TODO_EMAIL = "task@linearit.co"
-# The number people text tasks to, in E.164. Leave blank until a number is
-# pointed at /api/sms/inbound. The SMS door stays shut unless TWILIO_AUTH_TOKEN
-# or SMS_INTAKE_SECRET is set as a Secret — those are NOT kept in this file.
+# OPTIONAL, and the only part that costs money: a real phone number for people to
+# text, in E.164. Leave blank to stay on the free text-to-email route. Even when
+# set, the webhook stays shut unless TWILIO_AUTH_TOKEN or SMS_INTAKE_SECRET is
+# set as an encrypted Secret — those are NOT kept in this file.
 SMS_NUMBER = ""
