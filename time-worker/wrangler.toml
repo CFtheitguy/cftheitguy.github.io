@@ -76,7 +76,11 @@ APP_PATH = "/time/"
 #
 # Adding tasks by phone costs nothing: the personal quick-add link works with no
 # setup at all, and texting this address is free on carriers that support it.
-TODO_EMAIL = "task@linearit.co"
+# The intake address. It lives on a SUBDOMAIN so that Email Routing's MX records
+# land on todo.linearit.co and never touch the apex, where Microsoft 365 already
+# receives linearit.co mail. Enabling Email Routing on the apex would replace
+# those MX records and stop company mail arriving.
+TODO_EMAIL = "task@todo.linearit.co"
 # OPTIONAL, and the only part that costs money: a real phone number for people to
 # text, in E.164. Leave blank to stay on the free text-to-email route. Even when
 # set, the webhook stays shut unless TWILIO_AUTH_TOKEN or SMS_INTAKE_SECRET is
