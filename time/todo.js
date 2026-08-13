@@ -706,7 +706,7 @@
     var body = el("div", {}, []);
 
     /* --- email intake --- */
-    var addr = intake.email || "task@linearit.co";
+    var addr = intake.email || "task@todo.linearit.co";
     body.appendChild(section("✉️ Add tasks by email",
       "Email or forward anything to this address and it becomes a task — the subject is the task, the body becomes notes, and “- ” lines become steps.",
       [

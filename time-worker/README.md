@@ -109,13 +109,13 @@ sign-in and push setup, and its tables create themselves like the rest.
 
 **Nothing below costs money.** The personal quick-add link works immediately with
 no configuration at all, and email — including text messages sent to
-`task@linearit.co` through a carrier gateway — needs one Email Routing rule. A
+`task@todo.linearit.co` through a carrier gateway — needs one Email Routing rule. A
 dedicated SMS number is the only paid option, and it's entirely optional.
 
 | Door | What it costs | What it needs |
 |---|---|---|
 | Quick-add link (phone shortcut / Siri) | free | nothing — already live |
-| Email to `task@linearit.co` | free | one Email Routing rule |
+| Email to `task@todo.linearit.co` | free | one Email Routing rule |
 | Text via Google Voice → Gmail → that address | free | the same rule + 2 Google settings |
 | Text sent straight to that address (carrier gateway) | free | the same rule (Verizon is retiring theirs) |
 | Text sent to a real phone number | ~$1–2/mo + per message | an SMS provider + secret |
@@ -130,24 +130,48 @@ Shortcut, a Siri phrase, an Android HTTP shortcut or a watch button add a task i
 one tap. It accepts the same commands the text door does (`LIST`, `DONE 2`,
 `HELP`).
 
-### Tasks by email (`task@linearit.co`)
+### Tasks by email (`task@todo.linearit.co`)
 
 Cloudflare **Email Routing** delivers the message straight to this Worker — there
 is no mailbox and no polling.
 
-1. Cloudflare dashboard → the **linearit.co** zone → **Email → Email Routing**.
-   If it's not on yet, enable it and accept the MX/TXT records it adds.
-2. **Routing rules → Create address**
-   - Custom address: **`task`** (`@linearit.co`)
+> ## ⚠️ Read this first if the domain already receives mail
+>
+> `linearit.co` receives company mail through **Microsoft 365** (its apex MX is
+> `linearit-co.mail.protection.outlook.com`). **Enabling Email Routing on the
+> apex replaces that MX record and company mail stops arriving.**
+>
+> So intake runs on the **subdomain `todo.linearit.co`** instead. Email Routing
+> supports subdomains ([announcement](https://blog.cloudflare.com/email-routing-subdomains/),
+> [docs](https://developers.cloudflare.com/email-service/configuration/subdomains/)):
+> its MX records go on the subdomain, the apex keeps pointing at Microsoft, and
+> the two never meet. That is why `TODO_EMAIL` is `task@todo.linearit.co`.
+
+1. Cloudflare dashboard → **Compute → Email Service → Email Routing** → select
+   the **linearit.co** zone → **Settings**.
+2. Under **Subdomains**, enter **`todo`** and submit. Cloudflare adds MX records
+   **on `todo.linearit.co`**.
+   - ⚠️ **Accept only records whose name is `todo.linearit.co`.** If it also
+     offers a `v=spf1` TXT record for the *root*, decline it: the root already
+     has one (`v=spf1 include:_spf.google.com include:spf.protection.outlook.com ~all`),
+     and a second SPF record on the same name is invalid — it would break
+     authentication for Microsoft 365 mail. Inbound routing does not need it.
+3. **Routing rules → Create address**
+   - Custom address: **`task`** (`@todo.linearit.co`)
    - Action: **Send to a Worker** → **`linear-time`**
-3. Save. Mail to `task@linearit.co` now becomes a task.
-4. *(Optional, for `task+groceries@…` list routing to work from every sender)* —
-   plus-addressing is handled by the Worker, but some rule sets don't match a
-   `+tag` address. If yours doesn't, add a **catch-all** rule sending to the same
-   Worker; the Worker ignores anything addressed to something other than `task`.
+4. Save. Mail to `task@todo.linearit.co` now becomes a task.
+
+Verify the apex is untouched afterwards — this must still return the Outlook host:
+
+```bash
+dig +short MX linearit.co        # -> linearit-co.mail.protection.outlook.com
+dig +short MX todo.linearit.co   # -> route*.mx.cloudflare.net
+```
 
 The address the app *tells people to use* comes from the `TODO_EMAIL` var in
-`wrangler.toml` — change both together if you use a different name.
+`wrangler.toml`. The Worker itself never checks the domain — only the local part
+(`task`, plus any `+list` tag) — so changing that one line moves the address
+anywhere without touching code.
 
 **Who's allowed to send.** The From: address must belong to a known person (their
 sign-in address, or an extra address they added under To-Do → Settings) and the
@@ -159,11 +183,11 @@ reason, so the sender finds out rather than wondering where the task went.
 Works from any handset, including a flip phone, and doesn't depend on a carrier
 feature that's being switched off.
 
-Chain: **handset → Google Voice number → Gmail → `task@linearit.co` → Worker.**
+Chain: **handset → Google Voice number → Gmail → `task@todo.linearit.co` → Worker.**
 
 1. In **Google Voice → Settings → Messages**, turn on *"Forward messages to
    email"*.
-2. In **Gmail → Settings → Forwarding and POP/IMAP**, add `task@linearit.co` as
+2. In **Gmail → Settings → Forwarding and POP/IMAP**, add `task@todo.linearit.co` as
    a forwarding address, then create a filter (From contains
    `txt.voice.google.com`) that forwards to it. Forwarding *everything* also
    works but sends far more mail than needed.
@@ -193,7 +217,7 @@ Once the Email Routing rule above exists, **texting already works** and there is
 nothing more to configure.
 
 Most US carriers let a handset send a text to an email address: you put
-`task@linearit.co` in the To: field of an ordinary text. It reaches this Worker
+`task@todo.linearit.co` in the To: field of an ordinary text. It reaches this Worker
 as mail from `<number>@<carrier gateway>` — `8455550123@vtext.com` and friends —
 so `intake.js` treats it as a text rather than an email: the body is the task,
 and the answer is mailed back to that same gateway address, which the carrier

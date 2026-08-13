@@ -241,9 +241,9 @@ it moves to next month and un-ticks its steps, so the reminder keeps coming.
 
 ## Getting tasks in from anywhere
 
-### Tasks by email — `task@linearit.co`
+### Tasks by email — `task@todo.linearit.co`
 
-Email or forward anything to **task@linearit.co**:
+Email or forward anything to **task@todo.linearit.co**:
 
 - the **subject** becomes the task (parsed exactly like the add box, so
   `Order toner tomorrow 9am` gets a due date),
@@ -283,7 +283,7 @@ so the same shortcut can read today's list back to you.
 ### Tasks by text message
 
 **No paid phone number needed.** Most carriers let you text an *email address* —
-put **task@linearit.co** in the To: field of a normal text message and send it
+put **task@todo.linearit.co** in the To: field of a normal text message and send it
 like any other text. It becomes a task, and the confirmation comes **back as a
 text**:
 
@@ -309,7 +309,7 @@ needs no smartphone, no app and no paid number:
 
 1. Your handset texts your **Google Voice number**.
 2. Google Voice mails the text to your Gmail (a setting, not a hack).
-3. A Gmail filter forwards it on to **task@linearit.co**.
+3. A Gmail filter forwards it on to **task@todo.linearit.co**.
 4. It becomes a task, parsed exactly like everything else.
 
 Because the number that sent the text is written into the address by *Google* —
