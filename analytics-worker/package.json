@@ -1,0 +1,14 @@
+{
+  "name": "analytics-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker for www.linearit.co — logs every page view to D1 and can inject the Cloudflare Web Analytics beacon site-wide.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

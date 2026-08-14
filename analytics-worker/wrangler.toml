@@ -1,0 +1,71 @@
+# Cloudflare Worker config for site analytics — www.linearit.co
+# --------------------------------------------------------------
+# Unlike the other Workers in this repo, this one does NOT own a subdomain of
+# its own. It sits on the path of the main site so it can see the traffic that
+# GitHub Pages never tells you about. It fetches the origin, returns it
+# untouched, and records the visit afterwards.
+#
+# It is still a SEPARATE, isolated Worker from linear-chat, linear-vault,
+# linear-time, linear-sign and speed-worker: its own folder, its own config, its
+# own database. It shares NOTHING with them.
+#
+# ---- ONE-TIME SETUP (run from this folder) ----------------------------------
+#   1. cd analytics-worker && npm install
+#   2. npx wrangler login          # once per machine, same account that owns linearit.co
+#   3. npx wrangler d1 create linear_analytics
+#        ...then paste the printed database_id below into `database_id`.
+#   4. npx wrangler d1 execute linear_analytics --remote --file=./schema.sql
+#   5. npx wrangler deploy
+#
+# Validate without deploying first:  npx wrangler deploy --dry-run
+# Back it out at any time:           npx wrangler delete
+# (Deleting the Worker removes the route with it; the site returns to being
+# served straight from GitHub Pages through Cloudflare, exactly as it is today.)
+
+name = "analytics-worker"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# The main site. `/*` means every path, so every page view is seen.
+# NOTE: this is a zone route, not a custom_domain — the hostname already exists
+# and already points at GitHub Pages. This only puts the Worker on the path.
+routes = [
+  { pattern = "www.linearit.co/*", zone_name = "linearit.co" }
+]
+
+# If the bare apex serves pages too (rather than redirecting to www), add:
+#   { pattern = "linearit.co/*", zone_name = "linearit.co" }
+# to the list above. CNAME in this repo is www.linearit.co, so www is the one
+# that matters.
+
+# Nightly prune so the table cannot grow forever. See RETENTION_DAYS.
+[triggers]
+crons = ["17 4 * * *"]
+
+# --- D1 database (one row per page view) ---
+# Run `npx wrangler d1 create linear_analytics` and paste the returned id here.
+# Deploy will fail loudly while this is still the placeholder, which is on
+# purpose — better than deploying a Worker that silently records nothing.
+[[d1_databases]]
+binding = "DB"
+database_name = "linear_analytics"
+database_id = "PASTE_DATABASE_ID_HERE"
+
+[vars]
+# How long to keep rows. The nightly cron deletes anything older.
+RETENTION_DAYS = "90"
+
+# Store a salted one-way hash of each visitor IP instead of the address itself.
+# "false" keeps raw IPs (most useful for identifying a specific visitor, and the
+# thing to think twice about); "true" still lets you count repeat visits.
+HASH_IPS = "false"
+# Only used when HASH_IPS = "true". Change it and old hashes stop matching new
+# ones — pick a value once and leave it alone.
+IP_SALT = "linearit"
+
+# Cloudflare Web Analytics beacon token. Leave EMPTY if you enabled Web
+# Analytics with the *automatic* setup in the dashboard (Cloudflare injects the
+# beacon at the edge for proxied zones, and this Worker should stay out of it).
+# Only set this if you chose manual setup and want the beacon added to all 88
+# HTML pages without editing them one by one.
+WEB_ANALYTICS_TOKEN = ""
