@@ -1,5 +1,5 @@
 {
-  "name": "linear-speed-worker",
+  "name": "speed-worker",
   "version": "1.0.0",
   "private": true,
   "description": "Cloudflare Worker for Linear Speed (speed.linearit.co) — the speed test measurement endpoints.",

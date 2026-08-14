@@ -1,5 +1,5 @@
 /**
- * `linear-speed` — Cloudflare Worker for speed.linearit.co
+ * `speed-worker` — Cloudflare Worker for speed.linearit.co
  * ========================================================
  *
  * The measurement backend for **Linear Speed**, the branded speed test. It does
@@ -178,7 +178,7 @@ async function proxyApp(request, env, url, method) {
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("Referrer-Policy", "no-referrer");
   headers.set("Cache-Control", "no-store, must-revalidate");
-  headers.set("X-Served-By", "linear-speed");
+  headers.set("X-Served-By", "speed-worker");
   const body = method === "HEAD" ? null : originResp.body;
   return new Response(body, { status: originResp.status, statusText: originResp.statusText, headers });
 }

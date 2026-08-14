@@ -1,4 +1,4 @@
-# `linear-speed` — Cloudflare Worker for `speed.linearit.co`
+# `speed-worker` — Cloudflare Worker for `speed.linearit.co`
 
 The measurement backend for **Linear Speed**, the branded speed test. The app
 itself lives in this repo at `/speed/` (served by GitHub Pages at
@@ -27,7 +27,7 @@ npx wrangler deploy
 
 That single `deploy`:
 
-1. Uploads the `linear-speed` Worker.
+1. Uploads the `speed-worker` Worker.
 2. Because `wrangler.toml` has `{ pattern = "speed.linearit.co", custom_domain = true }`,
    it **creates the `speed.linearit.co` Custom Domain and its DNS record**
    automatically in the `linearit.co` zone.
