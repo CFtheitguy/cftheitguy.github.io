@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Every Page on This Site | linear</title>
+<meta name="description" content="A complete index of every page, tool, portal and subdomain on linearit.co. Hover a card to flip it for a short description and a link.">
+<link rel="canonical" href="https://www.linearit.co/pages/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta name="robots" content="noindex, follow">
+<meta name="theme-color" content="#050507">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="linear">
+<meta property="og:url" content="https://www.linearit.co/pages/">
+<meta property="og:title" content="Every Page on This Site">
+<meta property="og:description" content="A complete index of every page, tool, portal and subdomain on linearit.co.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --peri:#6999f5; --peri-deep:#4d7fe8; --aqua:#70f2ff;
+  --ink:#000000; --paper:#ffffff;
+  --mono:'Space Grotesk', system-ui, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:200px}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+body{min-height:100svh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+.kicker{font-size:.72rem;font-weight:600;letter-spacing:.42em;text-transform:uppercase}
+
+.mesh-light{
+  background:
+    radial-gradient(42% 55% at 12% 78%, rgba(105,153,245,.75) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(45% 60% at 82% 14%, rgba(112,242,255,.8) 0%, rgba(112,242,255,0) 100%),
+    radial-gradient(30% 42% at 55% 55%, rgba(112,242,255,.25) 0%, rgba(112,242,255,0) 100%),
+    linear-gradient(120deg,#fdfdfd 0%,#f4f7fb 100%);
+}
+.pattern{position:relative}
+.pattern::before{
+  content:"";position:absolute;inset:0;
+  background:url("/zurech3/assets/pattern-tile-black.png") repeat;background-size:84px;
+  opacity:.05;pointer-events:none;
+}
+.pattern > *{position:relative}
+
+/* NAV */
+.nav{
+  position:fixed;top:0;left:0;right:0;height:120px;z-index:1000;
+  display:flex;align-items:center;
+  background:rgba(5,5,7,.82);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  color:#fff;padding:0 24px;
+}
+.nav-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;flex-shrink:0}
+.brand img{height:76px;width:auto;display:block}
+.nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
+.nav-links a{font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75);transition:color .2s}
+.nav-links a:hover{color:var(--aqua)}
+.nav-cta{background:var(--aqua);color:var(--ink) !important;padding:10px 18px;border-radius:999px;font-weight:700 !important;transition:transform .15s,background .2s}
+.nav-cta:hover{background:#8ff5ff;transform:translateY(-1px)}
+
+/* HERO */
+.hero{padding:172px 24px 56px;position:relative;overflow:hidden}
+.hero-inner{max-width:1200px;margin:0 auto;width:100%}
+.hero .kicker{color:var(--peri-deep);margin-bottom:32px;display:block}
+.hero h1{font-weight:600;font-size:clamp(2.1rem,6vw,4.2rem);line-height:1.06;letter-spacing:-.03em;max-width:16ch;text-wrap:balance;margin-bottom:28px}
+.hero .lede{max-width:64ch;font-size:clamp(1rem,1.6vw,1.15rem);color:rgba(0,0,0,.72)}
+.hero .lede + .lede{margin-top:14px}
+.hero .lede b{font-weight:600;color:var(--ink)}
+.stats{display:flex;flex-wrap:wrap;margin-top:44px;padding-top:32px;border-top:1px solid rgba(0,0,0,.12)}
+.stat{padding-right:48px;margin-right:48px;border-right:1px solid rgba(0,0,0,.12)}
+.stat:last-child{border-right:none;padding-right:0;margin-right:0}
+.stat b{display:block;font-size:clamp(1.5rem,3.2vw,2.3rem);font-weight:700;line-height:1.1;letter-spacing:-.02em}
+.stat span{font-size:.64rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(0,0,0,.5)}
+
+/* TOOLBAR */
+.toolbar{
+  position:sticky;top:120px;z-index:900;
+  background:rgba(255,255,255,.93);
+  backdrop-filter:blur(12px) saturate(140%);
+  -webkit-backdrop-filter:blur(12px) saturate(140%);
+  border-top:1px solid rgba(0,0,0,.08);border-bottom:1px solid rgba(0,0,0,.08);
+  padding:14px 24px;
+}
+.toolbar-inner{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.row1{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.search{
+  font-family:var(--mono);font-size:.9rem;padding:11px 18px;
+  border:1px solid rgba(0,0,0,.18);border-radius:999px;background:#fff;color:var(--ink);
+  width:min(340px,100%);transition:border-color .2s,box-shadow .2s;
+}
+.search::placeholder{color:rgba(0,0,0,.4)}
+.search:focus{outline:none;border-color:var(--peri-deep);box-shadow:0 0 0 3px rgba(105,153,245,.18)}
+.count{font-size:.66rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:rgba(0,0,0,.45);white-space:nowrap}
+.reset{
+  font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  padding:8px 14px;border:1px solid rgba(0,0,0,.16);border-radius:999px;background:none;
+  color:rgba(0,0,0,.55);cursor:pointer;transition:border-color .2s,color .2s;
+}
+.reset:hover{border-color:var(--peri-deep);color:var(--peri-deep)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.chip{
+  font-family:var(--mono);font-size:.62rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  padding:7px 13px;border:1px solid rgba(0,0,0,.16);border-radius:999px;background:none;
+  color:rgba(0,0,0,.6);cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;gap:7px;
+}
+.chip:hover{border-color:var(--peri-deep);color:var(--peri-deep)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--c,var(--peri));flex-shrink:0}
+.chip .n{opacity:.55;font-weight:600}
+
+/* GRID */
+.list{padding:52px 24px 90px;background:#fff}
+.list-inner{max-width:1200px;margin:0 auto}
+.group{margin-top:60px}
+.group:first-child{margin-top:0}
+.group-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;padding-bottom:12px;border-bottom:2px solid var(--ink);margin-bottom:26px}
+.group-head h2{font-size:clamp(1.15rem,2.4vw,1.6rem);font-weight:600;letter-spacing:-.02em}
+.group-head .n{font-size:.64rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:rgba(0,0,0,.4)}
+.group-head .blurb{margin-left:auto;font-size:.8rem;color:rgba(0,0,0,.5);max-width:46ch}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:16px}
+
+/* FLIP CARD */
+.card{perspective:1400px;height:172px}
+.inner{
+  position:relative;width:100%;height:100%;
+  transition:transform .62s cubic-bezier(.22,.9,.3,1);
+  transform-style:preserve-3d;
+}
+.card:hover .inner,
+.card:focus-within .inner,
+.card.flipped .inner{transform:rotateY(180deg)}
+
+.face{
+  position:absolute;inset:0;
+  -webkit-backface-visibility:hidden;backface-visibility:hidden;
+  border-radius:16px;padding:20px;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.front{
+  background:#fff;border:1px solid rgba(0,0,0,.14);
+  box-shadow:0 1px 0 rgba(0,0,0,.03);
+}
+.front::after{
+  content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--c,var(--peri));
+}
+.front .cat{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--c,var(--peri-deep))}
+.front h3{margin-top:auto;font-size:1.18rem;font-weight:600;letter-spacing:-.02em;line-height:1.25;text-wrap:balance}
+.front .path{
+  margin-top:8px;font-size:.72rem;letter-spacing:.02em;color:rgba(0,0,0,.45);
+  word-break:break-all;font-weight:500;
+}
+.front .hint{
+  position:absolute;right:16px;bottom:16px;font-size:.58rem;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:rgba(0,0,0,.22);
+}
+.front .hint::before{content:"Hover"}
+@media (hover:none){ .front .hint::before{content:"Tap to flip"} }
+
+.back{
+  transform:rotateY(180deg);
+  background:var(--ink);color:#fff;border:1px solid var(--ink);
+}
+.back::before{
+  content:"";position:absolute;inset:0;
+  background:url("/zurech3/assets/pattern-tile-white.png") repeat;background-size:76px;opacity:.05;
+}
+.back > *{position:relative}
+.back .cat{font-size:.58rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--c,var(--aqua));margin-bottom:10px}
+.back p{font-size:.82rem;line-height:1.55;color:rgba(255,255,255,.82)}
+.back .go{
+  margin-top:auto;align-self:flex-start;
+  background:var(--aqua);color:var(--ink);
+  padding:9px 16px;border-radius:999px;
+  font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  transition:transform .15s,background .2s;
+}
+.back .go:hover{background:#8ff5ff;transform:translateY(-1px)}
+.back .go:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+.empty{padding:70px 0;text-align:center;color:rgba(0,0,0,.45);font-size:.9rem;display:none}
+
+/* FOOTER */
+.footer{background:var(--ink);color:#fff;padding:70px 24px 40px;position:relative;overflow:hidden;margin-top:auto}
+.footer::before{content:"";position:absolute;inset:0;background:url("/zurech3/assets/pattern-tile-white.png") repeat;background-size:76px;opacity:.045}
+.footer .wrap{max-width:1200px;margin:0 auto;position:relative}
+.footer-top{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;align-items:flex-end;margin-bottom:50px}
+.footer-brand img{height:clamp(46px,7vw,64px);width:auto;display:block}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.65);transition:color .2s}
+.footer-links a:hover{color:var(--aqua)}
+.footer-base{border-top:1px solid rgba(255,255,255,.12);padding-top:28px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.footer-base .site{color:var(--aqua)}
+
+@media (max-width:680px){
+  html{scroll-padding-top:150px}
+  .nav{height:96px}
+  .brand img{height:56px}
+  .nav-links{display:none}
+  .hero{padding:130px 20px 44px}
+  .toolbar{top:96px;padding:12px 20px}
+  .search{width:100%}
+  .list{padding:40px 20px 70px}
+  .stat{padding-right:24px;margin-right:24px}
+  .group-head .blurb{display:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(215px,1fr))}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .inner{transition:none}
+}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/" aria-label="linear home">
+      <img src="/zurech3/assets/logo-white.svg" alt="linear">
+    </a>
+    <div class="nav-links">
+      <a href="/#about">About</a>
+      <a href="/#services">Services</a>
+      <a href="/#faq">FAQ</a>
+      <a class="nav-cta" href="/#contact">Book a consult</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero mesh-light pattern">
+  <div class="hero-inner">
+    <span class="kicker">Site index</span>
+    <h1>Everything on this site, in one place</h1>
+    <p class="lede">
+      Over the years this domain has quietly collected a lot of things — client portals, one-off tools,
+      download pages, a few games, and more homepage rewrites than anyone would admit to. This is all of it.
+    </p>
+    <p class="lede">
+      <b>Hover a card to flip it</b> for a one-line description and a link. On a phone, tap it.
+    </p>
+    <div class="stats">
+      <div class="stat"><b id="s-total">—</b><span>Pages listed</span></div>
+      <div class="stat"><b id="s-live">—</b><span>Live &amp; current</span></div>
+      <div class="stat"><b id="s-sub">—</b><span>Subdomains</span></div>
+      <div class="stat"><b id="s-cats">—</b><span>Categories</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar"><div class="toolbar-inner">
+  <div class="row1">
+    <input type="search" class="search" id="search" placeholder="Search a page, tool or client…" aria-label="Search pages">
+    <span class="count" id="count">— pages</span>
+    <button class="reset" id="reset" type="button">Clear</button>
+  </div>
+  <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+</div></div>
+
+<main class="list">
+  <div class="list-inner">
+    <div id="groups"></div>
+    <p class="empty" id="empty">Nothing matches that. Try a different word.</p>
+    <noscript>
+      <p style="padding:40px 0;color:rgba(0,0,0,.6)">
+        This index is built with JavaScript. With it switched off, start from the
+        <a href="/" style="text-decoration:underline">homepage</a> instead.
+      </p>
+    </noscript>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="/zurech3/assets/logo-white.svg" alt="linear">
+      </div>
+      <div class="footer-links">
+        <a href="/#about">About</a>
+        <a href="/#services">Services</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#contact">Contact</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>&copy; 2026 linear &middot; Straightforward IT excellence &middot; Monroe, NY</span>
+      <span class="site">linearit.co</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Site index data.
+   To add a page: drop a new [name, path, summary] row into the
+   right category below. Everything else — counts, filters,
+   search — updates itself.
+   ───────────────────────────────────────────────────────────── */
+var CATS = [
+  { id:'sub',      name:'Subdomains',      color:'#4d7fe8',
+    blurb:'Apps that live on their own hostname, most of them Cloudflare Workers.' },
+  { id:'tools',    name:'Tools & apps',    color:'#0eb37d',
+    blurb:'Things that actually do something — built in-house.' },
+  { id:'core',     name:'Core site',       color:'#000000',
+    blurb:'The pages the public navigation points at.' },
+  { id:'content',  name:'Guides & content',color:'#e0932a',
+    blurb:'Long-form pages written to be read, not clicked through.' },
+  { id:'fun',      name:'Fun',             color:'#d6519a',
+    blurb:'Toys, games and time-wasters.' },
+  { id:'clients',  name:'Client pages',    color:'#7a5cd6',
+    blurb:'Portals and setup pages built for one company each.' },
+  { id:'downloads',name:'Downloads',       color:'#2a9fb5',
+    blurb:'Installer and download landing pages.' },
+  { id:'archive',  name:'Archive & drafts',color:'#8a8a8a',
+    blurb:'Old homepage rewrites and dated snapshots. Still reachable, no longer current.' }
+];
+
+var PAGES = [
+  /* ── SUBDOMAINS ────────────────────────────────────────── */
+  ['sub','www.linearit.co','https://www.linearit.co/','The main site — this one. Served from GitHub Pages.'],
+  ['sub','chat.linearit.co','https://chat.linearit.co/','Linear Chat — messages, groups, reactions and file attachments. Worker: linear-chat.'],
+  ['sub','time.linearit.co','https://time.linearit.co/','Linear Time — time tracking. Cloudflare Worker (linear-time).'],
+  ['sub','todo.linearit.co','https://todo.linearit.co/','The to-do and email-intake half of the time Worker: mail sent here turns into tasks.'],
+  ['sub','sign.linearit.co','https://sign.linearit.co/','Linear Sign — send a document, collect a signature. Cloudflare Worker (sign-worker).'],
+  ['sub','vault.linearit.co','https://vault.linearit.co/','Linear Vault — encrypted credential storage. Cloudflare Worker (linear-vault).'],
+  ['sub','speed.linearit.co','https://speed.linearit.co/','Linear Speed — internet speed test, no ads and no third-party scripts. Cloudflare Worker (speed-worker).'],
+  ['sub','device.linearit.co','https://device.linearit.co/','Device Report — the backend a scanned machine reports into. Cloudflare Worker (linear-device).'],
+  ['sub','help.linearit.co','https://help.linearit.co/','Linear Desk — the ticket portal. Served from the /docs folder of this repo.'],
+  ['sub','api.linearit.co','https://api.linearit.co/','The backend the Linear Phone app talks to.'],
+
+  /* ── TOOLS & APPS ──────────────────────────────────────── */
+  ['tools','Linear Time','/time/','Time tracking and to-dos. The front end for time.linearit.co.'],
+  ['tools','Linear Vault','/vault/','Encrypted storage for passwords and credentials.'],
+  ['tools','Linear Sign','/sign/','Send a document out for e-signature and get it back signed.'],
+  ['tools','Linear Speed','/speed/','Internet speed test — download, upload, latency. Clean and ad-free.'],
+  ['tools','Device Report','/device/','Full hardware and software report for a machine, paired with a PowerShell scanner.'],
+  ['tools','Linear Phone','/phone/','The softphone client. Talks to api.linearit.co.'],
+  ['tools','File Upload','/uploads/','Drop a file to send it over. For when email bounces the attachment.'],
+  ['tools','Password Generator','/password/','Generates strong passwords in the browser. Nothing is sent anywhere.'],
+  ['tools','AI Computer Doctor','/dr/','Describe what your computer is doing and get a plain-English diagnosis.'],
+  ['tools','Linear Desk','/docs/','Submit a support ticket. This folder is what serves help.linearit.co.'],
+  ['tools','Agent Dashboard','/docs/admin.html','The staff side of Linear Desk — the ticket queue.'],
+  ['tools','Admin','/adminlogin/','Admin sign-in.'],
+  ['tools','Delivery Confirmation','/delivered/','Opens a pre-written "your order was just delivered" text. Meant to be a QR code on a package.'],
+  ['tools','Text Us','/drummer/','Opens your phone’s messaging app with a message already typed. A shortcut for a printed QR code.'],
+  ['tools','Wireshark GUI Wrapper','/wireshark-gui/','A friendlier front end for Wireshark, with a download.'],
+
+  /* ── CORE SITE ─────────────────────────────────────────── */
+  ['core','Home','/','Managed IT and cybersecurity for Monroe, NY, Orange County and the Hudson Valley.'],
+  ['core','About','/about','Who linear is and how the company works.'],
+  ['core','Services','/services','What is on offer — monitoring, Microsoft 365, security, backup and DR.'],
+  ['core','Contact','/contact','Phone, email and the consult booking form.'],
+  ['core','Get Help','/help','The starting point when something is broken — remote support and ticket links.'],
+  ['core','Submit a Ticket','/help1','The support ticket form.'],
+  ['core','Weekly Tech Tip','/news','Newsletter signup — one short, useful, slightly funny email a week.'],
+  ['core','Weekly Tech Tip (popup)','/news1','The same newsletter signup, with a popup variant of the form.'],
+  ['core','Thank You','/thank-you','The confirmation page after a form is submitted.'],
+  ['core','404','/404.html','The not-found page.'],
+
+  /* ── GUIDES & CONTENT ──────────────────────────────────── */
+  ['content','My Projects','/projects/','Everything built here, with a short note on each one.'],
+  ['content','Hourly Motivation','/motivation/','A new line of motivation every hour, all day.'],
+  ['content','Interesting Info','/interestinginfo/','492 record-breaking feats, one year at a time, from the first Guinness Book in 1955 to today.'],
+  ['content','Cybersecurity Guide 2026','/cybersecurity/','What actually protects a small business, written without the sales pitch.'],
+  ['content','Google Without a Phone','/google/','A step-by-step walkthrough for creating a Google account with no smartphone attached.'],
+  ['content','Home Office Deals','/deals/','The full set of gear picks for a working-from-home setup.'],
+  ['content','This Week’s Picks','/today/','A short rotating list of things worth a look this week.'],
+  ['content','Workout Roulette','/exercise/','Generates a no-equipment circuit workout. Press the button, do the thing.'],
+  ['content','Pictures','/pics/','A photo gallery.'],
+
+  /* ── FUN ───────────────────────────────────────────────── */
+  ['fun','Spin the Wheel','/fun1/','Can’t decide? Type the options, spin, blame the wheel.'],
+  ['fun','QR Code Studio','/fun2/','Free QR code generator — links, text, WiFi, whatever you need.'],
+  ['fun','Linear Tech Arcade','/fun3/','A handful of free browser games.'],
+  ['fun','Roast My Setup','/fun4/','Show it your desk setup and let it be unkind about your cable management.'],
+  ['fun','Star Patrol','/fun5/','A space shooter in the arcade.'],
+  ['fun','Jewish Date Converter','/fun6/','Convert between Gregorian and Hebrew dates.'],
+
+  /* ── CLIENT PAGES ──────────────────────────────────────── */
+  ['clients','Friedman Portal','/friedman/','Client portal for Friedman.'],
+  ['clients','Friedman Training','/friedman/training.html','Training material for the Friedman team.'],
+  ['clients','Evergreen Space Portal','/evergreenspace/','Client portal for Evergreen Space.'],
+  ['clients','Evergreen Remote Support','/evergreen/','Install page for the Evergreen remote support agent.'],
+  ['clients','Revenue Eagle Portal','/revenueeagle/','Client portal for Revenue Eagle.'],
+  ['clients','Tri State Solar Portal','/tristatesolar/','Client portal for Tri State Solar.'],
+  ['clients','Tri State Solar Setup','/tristatesolarservices/','IT setup and onboarding page for Tri State Solar Services.'],
+  ['clients','Ben Stern Remote Support','/benstern/','A one-click remote support session for Ben Stern.'],
+  ['clients','Pardes Dist Setup','/pardesdist/','Device setup instructions for Pardes Dist.'],
+  ['clients','Family Video Portal','/family/','Shared video portal.'],
+  ['clients','Google Drive Portal','/googledrive/','Video portal backed by Google Drive.'],
+  ['clients','Rachel Signature','/rachel/','Email signature builder.'],
+  ['clients','Beis Medrash','/shamesh/','בית מדרש ישראל שלום — shul information page.'],
+  ['clients','Secure IT','/secureit/','A separate brand page — reliable IT for growing businesses.'],
+  ['clients','PureFlow Water','/lauferwater/','Site for PureFlow Water Solutions.'],
+  ['clients','Laufer Water','/lauferwater1/','Water filtration and softener site — second version.'],
+  ['clients','Water Wonders','/lauferwater2/','Water filtration site — third and largest version.'],
+
+  /* ── DOWNLOADS ─────────────────────────────────────────── */
+  ['downloads','Content Filters','/filter/','Download page for the content filtering tool.'],
+  ['downloads','Content Filters (diff)','/filter/diff/','An alternate build of the content filter download page.'],
+  ['downloads','Content Filters (install)','/install/diff/','Another variant of the content filter installer page.'],
+  ['downloads','Text Shortcut (diff)','/drummer/diff/','A stub alongside the /drummer text shortcut.'],
+  ['downloads','SMS (diff)','/sms/diff/','A stub alongside the SMS shortcut pages.'],
+  ['downloads','SMS Redirect','/sms.html','A small redirect into the messaging app.'],
+
+  /* ── ARCHIVE & DRAFTS ──────────────────────────────────── */
+  ['archive','Site Assets','/zurech3/','The live design — logo, favicon, patterns, wallpapers. The whole site loads from here.'],
+  ['archive','Wallpapers','/zurech3/wallpaper/','Branded desktop and phone wallpapers.'],
+  ['archive','Email Signature','/zurech3/signature.html','The signature template the current branding uses.'],
+  ['archive','Design v1','/zurech1/','An earlier copy of the current design, kept whole.'],
+  ['archive','Design v2','/zurech2/','A second copy of the current design.'],
+  ['archive','Homepage rewrite 1','/newsite/','An early rewrite of the homepage.'],
+  ['archive','Homepage rewrite 2','/newsite1/','The second homepage rewrite.'],
+  ['archive','Homepage rewrite 3','/newsite2/','The third homepage rewrite — "Friendly IT Support".'],
+  ['archive','Homepage rewrite 4','/newsite3/','The fourth and last of the newsite series.'],
+  ['archive','Snapshot 07/13/26','/071326/','A dated snapshot of the homepage.'],
+  ['archive','Snapshot 03/18/26','/031826.html','A dated homepage draft.'],
+  ['archive','Snapshot 03/18/26 (b)','/0318262.html','Second version of the same day’s draft.'],
+  ['archive','Snapshot 03/18/26 (c)','/0318263.html','Third version of the same day’s draft.'],
+  ['archive','Snapshot 04/22/26','/04222026.html','A dated homepage draft.'],
+  ['archive','Index 8','/index8.html','A numbered homepage draft.'],
+  ['archive','Index (old)','/indexold.html','The homepage as it stood before the current design.'],
+  ['archive','New Index','/newind.html','A homepage draft.'],
+  ['archive','New Index (e)','/newinde.html','A later homepage draft.'],
+  ['archive','Test 123','/test123.html','A homepage test file.'],
+  ['archive','Test 124','/test124.html','A homepage test file.'],
+  ['archive','Test Index','/testindex.html','A homepage test file.']
+];
+
+(function(){
+  var groupsEl = document.getElementById('groups');
+  var chipsEl  = document.getElementById('chips');
+  var countEl  = document.getElementById('count');
+  var emptyEl  = document.getElementById('empty');
+  var input    = document.getElementById('search');
+  var reset    = document.getElementById('reset');
+  var active   = null;
+
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  /* ── build the groups ── */
+  CATS.forEach(function(cat){
+    var rows = PAGES.filter(function(p){ return p[0] === cat.id; });
+    if(!rows.length) return;
+
+    var sec = document.createElement('section');
+    sec.className = 'group';
+    sec.setAttribute('data-cat', cat.id);
+
+    var head = document.createElement('div');
+    head.className = 'group-head';
+    head.innerHTML =
+      '<h2>' + esc(cat.name) + '</h2>' +
+      '<span class="n">' + rows.length + '</span>' +
+      '<span class="blurb">' + esc(cat.blurb) + '</span>';
+    sec.appendChild(head);
+
+    var grid = document.createElement('div');
+    grid.className = 'grid';
+
+    rows.forEach(function(p){
+      var name = p[1], href = p[2], desc = p[3];
+      var external = /^https?:/i.test(href);
+      var shown = external ? href.replace(/^https?:\/\//,'').replace(/\/$/,'') : href;
+
+      var card = document.createElement('article');
+      card.className = 'card';
+      card.style.setProperty('--c', cat.color);
+      card.setAttribute('data-hay', (name + ' ' + shown + ' ' + desc + ' ' + cat.name).toLowerCase());
+      card.innerHTML =
+        '<div class="inner">' +
+          '<div class="face front">' +
+            '<span class="cat">' + esc(cat.name) + '</span>' +
+            '<h3>' + esc(name) + '</h3>' +
+            (shown === name ? '' : '<span class="path">' + esc(shown) + '</span>') +
+            '<span class="hint"></span>' +
+          '</div>' +
+          '<div class="face back">' +
+            '<span class="cat">' + esc(cat.name) + '</span>' +
+            '<p>' + esc(desc) + '</p>' +
+            '<a class="go" href="' + esc(href) + '"' +
+              (external ? ' target="_blank" rel="noopener"' : '') + '>' +
+              'Open' + (external ? ' ↗' : ' →') +
+            '</a>' +
+          '</div>' +
+        '</div>';
+
+      /* touch and click: tap flips, tap again flips back */
+      card.addEventListener('click', function(e){
+        if(e.target.closest('a')) return;
+        card.classList.toggle('flipped');
+      });
+
+      grid.appendChild(card);
+    });
+
+    sec.appendChild(grid);
+    groupsEl.appendChild(sec);
+
+    /* filter chip */
+    var chip = document.createElement('button');
+    chip.className = 'chip';
+    chip.type = 'button';
+    chip.setAttribute('data-cat', cat.id);
+    chip.setAttribute('aria-pressed','false');
+    chip.style.setProperty('--c', cat.color);
+    chip.innerHTML = '<span class="dot"></span>' + esc(cat.name) + ' <span class="n">' + rows.length + '</span>';
+    chipsEl.appendChild(chip);
+  });
+
+  var cards    = [].slice.call(document.querySelectorAll('.card'));
+  var sections = [].slice.call(document.querySelectorAll('.group'));
+  var chips    = [].slice.call(document.querySelectorAll('.chip'));
+
+  /* ── stats ── */
+  var subCount = PAGES.filter(function(p){ return p[0]==='sub'; }).length;
+  var archived = PAGES.filter(function(p){ return p[0]==='archive'; }).length;
+  document.getElementById('s-total').textContent = PAGES.length;
+  document.getElementById('s-live').textContent  = PAGES.length - archived;
+  document.getElementById('s-sub').textContent   = subCount;
+  document.getElementById('s-cats').textContent  = CATS.length;
+
+  /* ── filtering ── */
+  function apply(){
+    var q = input.value.trim().toLowerCase();
+    var shown = 0;
+
+    cards.forEach(function(card){
+      var catOk = !active || card.closest('.group').getAttribute('data-cat') === active;
+      var qOk   = !q || card.getAttribute('data-hay').indexOf(q) !== -1;
+      var ok    = catOk && qOk;
+      card.style.display = ok ? '' : 'none';
+      card.classList.remove('flipped');
+      if(ok) shown++;
+    });
+
+    sections.forEach(function(sec){
+      var any = [].slice.call(sec.querySelectorAll('.card'))
+                  .some(function(c){ return c.style.display !== 'none'; });
+      sec.style.display = any ? '' : 'none';
+    });
+
+    countEl.textContent = shown + (shown === 1 ? ' page' : ' pages');
+    emptyEl.style.display = shown ? 'none' : 'block';
+  }
+
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      var id = chip.getAttribute('data-cat');
+      active = (active === id) ? null : id;
+      chips.forEach(function(c){
+        c.setAttribute('aria-pressed', c.getAttribute('data-cat') === active ? 'true' : 'false');
+      });
+      apply();
+    });
+  });
+
+  input.addEventListener('input', apply);
+  reset.addEventListener('click', function(){
+    input.value = '';
+    active = null;
+    chips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+    apply();
+    input.focus();
+  });
+
+  apply();
+})();
+</script>
+</body>
+</html>
