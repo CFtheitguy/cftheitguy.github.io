@@ -1,0 +1,37 @@
+# Cloudflare Worker config for Linear Speed (the speed test) — speed.linearit.co
+# ------------------------------------------------------------------------------
+# This is a SEPARATE, isolated Worker from linear-chat, linear-vault, linear-time
+# and linear-sign. It lives in its own folder with its own config and shares
+# NOTHING with the other Workers, so it cannot affect the other subdomains.
+#
+# There is no database, no email, and no secret to set: the Worker only streams
+# random bytes down, drains bytes sent up, and answers pings.
+#
+# ---- ONE-TIME SETUP (run from this folder) ----------------------------------
+#   1. cd speed-worker && npm install
+#   2. npx wrangler login        # once per machine, same account that owns linearit.co
+#   3. npx wrangler deploy
+#
+# That single `deploy` also creates the speed.linearit.co Custom Domain AND its
+# DNS record automatically in the linearit.co zone (because of custom_domain =
+# true). Validate without deploying with `npx wrangler deploy --dry-run`.
+
+name = "linear-speed"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# Vanity hostname -> this Worker. Auto-provisions the Custom Domain + DNS on deploy.
+routes = [
+  { pattern = "speed.linearit.co", custom_domain = true }
+]
+
+[vars]
+# CORS origin allowed to call this API. The app is also served from the GitHub
+# Pages site, so a browser sitting on https://www.linearit.co/speed/ sends that
+# as its Origin. Same-origin calls from https://speed.linearit.co never need a
+# CORS header at all. Comma-separated if you ever need more than one.
+ALLOW_ORIGIN = "https://www.linearit.co"
+# Where the front-end lives on the GitHub Pages site (this Worker reverse-proxies
+# it so speed.linearit.co shows the same app, with no second copy to maintain).
+APP_ORIGIN = "https://www.linearit.co"
+APP_PATH = "/speed/"
