@@ -73,15 +73,58 @@ npx wrangler deploy --dry-run                       # validate first
 npx wrangler deploy
 ```
 
-Open the site, click around, then run the first query below. Rows should appear
-within a second or two.
+Open the site, click around, then open **https://www.linearit.co/visits** and log
+in with `yes` / `no`. Rows should appear within a second or two.
 
 ---
 
-## Seeing the data
+## The dashboard — `https://www.linearit.co/visits`
 
-Run these with `npx wrangler d1 execute linear_analytics --remote --command "..."`,
-or paste them into the D1 console in the Cloudflare dashboard.
+Private, password-protected, and served entirely by this Worker. Summary counts,
+which organisations have been on the site, most-read pages, referrers, and the
+last 200 visits, with 24h / 7d / 30d / 90d / 1y ranges and a bots on/off toggle.
+
+**Username `yes`, password `no`.** Your browser shows its own login prompt.
+
+Some things worth understanding about how it is protected:
+
+- The password is checked **at the edge, in the Worker**, before any HTML is
+  generated. Credentials in a page's own markup would be readable through View
+  Source; nothing but a `401` leaves the Worker until you authenticate.
+- `/visits` is **never proxied to GitHub Pages** and no such file exists in this
+  repo. If you delete this Worker the path 404s — it cannot fall open.
+- The page sends `no-store` and `noindex`, so it is never cached or indexed. It
+  is deliberately **not** listed in `robots.txt`, since that file is public and
+  listing it would just advertise where to look.
+- Everything a visitor controls — user agent, referrer, path, organisation — is
+  HTML-escaped on the way out. Without that, a crawler sending a `<script>` tag
+  as its user agent would run code in your browser when you opened this page.
+
+### Change the login
+
+`yes` / `no` are hardcoded in `src/index.js`, so the dashboard works the moment
+you deploy. **This repo is public, so anyone on GitHub can read them.** To move
+them out of the source without editing any code:
+
+```bash
+npx wrangler secret put VISITS_USER
+npx wrangler secret put VISITS_PASS
+```
+
+Secrets override the hardcoded values and survive every deploy. Don't put them
+in `[vars]` — that file is committed in plain text.
+
+There is no rate limiting on the login. With a short username and password that
+is worth knowing; if the URL ever gets out, change the credentials to something
+long via the secrets above.
+
+---
+
+## Or query it directly
+
+Everything on the dashboard is just SQL. Run these with
+`npx wrangler d1 execute linear_analytics --remote --command "..."`, or paste
+them into the D1 console in the Cloudflare dashboard.
 
 **The last 50 real visits**
 

@@ -51,6 +51,21 @@ binding = "DB"
 database_name = "linear_analytics"
 database_id = "PASTE_DATABASE_ID_HERE"
 
+# ---- DASHBOARD LOGIN --------------------------------------------------------
+# https://www.linearit.co/visits is served by this Worker behind HTTP Basic auth
+# and is never proxied to GitHub Pages, so the path does not exist publicly.
+#
+# It falls back to the username/password hardcoded in src/index.js, so it works
+# the moment you deploy with nothing else to set. THIS REPO IS PUBLIC, so those
+# defaults are readable by anyone on GitHub. To move them out of the source
+# without editing a line of code, set them as encrypted secrets instead:
+#
+#   npx wrangler secret put VISITS_USER
+#   npx wrangler secret put VISITS_PASS
+#
+# Secrets override the defaults and survive every deploy. Do NOT put them in
+# [vars] below — anything there is committed to the public repo in plain text.
+
 [vars]
 # How long to keep rows. The nightly cron deletes anything older.
 RETENTION_DAYS = "90"
