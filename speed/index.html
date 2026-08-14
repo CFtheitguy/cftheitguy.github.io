@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Linear Speed — internet speed test</title>
+<meta name="description" content="Check your download speed, upload speed and ping. A quick, honest internet speed test by Linear IT."/>
+<link rel="icon" href="/speed/assets/icon.png"/>
+<link rel="apple-touch-icon" href="/speed/assets/icon.png"/>
+<meta name="theme-color" content="#0f1117"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Linear Speed"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://speed.linearit.co; worker-src 'self';"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ------------------------------------------------------------------
+   Linear IT brand palette (matches vault + time + sign).
+
+   Dark is the default. Light is applied two ways so the page never
+   flashes the wrong theme: automatically when the device asks for it,
+   and explicitly when the visitor picks it with the toggle. Every
+   difference between the two — including which logo and how strongly
+   the brand pattern shows through — travels as a variable, so there is
+   only ever one set of rules below.
+   ------------------------------------------------------------------ */
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--faint:#4e5571;--quote:#8d96b2;
+  --accent:#00b0ec;--accent-h:#009bd2;--accent2:#4fc3f0;--accent-bg:rgba(0,176,236,.16);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --success:#4ade80;--warn:#fbbf24;--danger:#f87171;
+  --track:#232842;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --glow:0 0 34px rgba(0,176,236,.28);
+  --patop:.35;
+  --logo:url("/speed/assets/logo-white.png");
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+    --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;--quote:#4a5170;
+    --accent:#0091c9;--accent-h:#007cae;--accent2:#33a8d6;--accent-bg:rgba(0,145,201,.10);
+    --border:#dde1ee;--border2:#c8cee0;
+    --card:#ffffff;--card2:#f8f9fd;
+    --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+    --track:#e3e8f4;
+    --shadow:0 8px 30px rgba(0,0,0,.10);
+    --glow:0 0 30px rgba(0,145,201,.18);
+    --patop:.5;
+    --logo:url("/speed/assets/logo-dark.png");
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;--quote:#4a5170;
+  --accent:#0091c9;--accent-h:#007cae;--accent2:#33a8d6;--accent-bg:rgba(0,145,201,.10);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+  --track:#e3e8f4;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --glow:0 0 30px rgba(0,145,201,.18);
+  --patop:.5;
+  --logo:url("/speed/assets/logo-dark.png");
+}
+
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100%;
+}
+/* The brand pattern, sitting behind everything in both themes... */
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:center/cover no-repeat url("/speed/assets/pattern.png");opacity:var(--patop)}
+/* ...and a soft wash over it, so the numbers stay readable on top. */
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.82;
+  background:radial-gradient(circle at 50% 30%,transparent 0%,var(--bg) 76%)}
+
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.hidden{display:none!important}
+
+/* ---- Shell ---- */
+.wrap{max-width:760px;margin:0 auto;padding:18px 16px 40px;min-height:100%;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;gap:12px;padding:2px 0 6px}
+.brand{display:flex;align-items:center;gap:11px}
+.brandlogo{display:block;height:26px;width:90px;background:center/contain no-repeat var(--logo)}
+.brandtag{font-size:13px;font-weight:700;color:var(--muted);padding-left:11px;border-left:1px solid var(--border2)}
+.topbar .spacer{flex:1}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;
+  color:var(--muted);border:1px solid transparent;font-size:16px;line-height:1}
+.iconbtn:hover{background:var(--bg3);color:var(--text)}
+
+/* ---- Gauge ---- */
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 4px}
+.gauge{position:relative;width:min(310px,82vw);aspect-ratio:1;margin:2px auto 0}
+.gauge svg{width:100%;height:100%;display:block;overflow:visible}
+.gauge .track{fill:none;stroke:var(--track);stroke-width:10;stroke-linecap:round}
+.gauge .fill{fill:none;stroke:url(#lg);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .18s linear}
+.gauge .tick{stroke:var(--faint);stroke-width:1.6;stroke-linecap:round;opacity:.75}
+.gauge .ticklabel{fill:var(--faint);font-size:8.5px;font-weight:700;text-anchor:middle;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+
+.readout{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.phase{font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);min-height:17px}
+.phase .arrow{color:var(--accent)}
+.bignum{font-size:clamp(44px,14vw,62px);font-weight:800;letter-spacing:-1.5px;line-height:1.1;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.unit{font-size:12px;font-weight:700;letter-spacing:.16em;color:var(--muted);margin-top:-2px}
+
+/* The GO button sits in the middle of the dial until the test starts. */
+.go{width:130px;height:130px;border-radius:50%;background:var(--card);border:2px solid var(--accent);
+  color:var(--accent);font-size:26px;font-weight:800;letter-spacing:2px;
+  display:flex;align-items:center;justify-content:center;box-shadow:var(--glow);
+  transition:transform .12s ease,background .15s,color .15s}
+.go:hover{background:var(--accent);color:#fff;transform:scale(1.03)}
+.go:active{transform:scale(.98)}
+.go:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* ---- Thin phase progress under the dial ---- */
+.progress{width:min(310px,82vw);height:3px;border-radius:99px;background:var(--track);overflow:hidden;
+  margin:14px auto 0;opacity:0;transition:opacity .35s}
+.progress.on{opacity:1}
+.progress i{display:block;height:100%;width:0;border-radius:99px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .25s linear}
+
+/* ---- The quote that keeps you company while it runs ---- */
+.quote{max-width:560px;margin:20px auto 0;text-align:center;min-height:78px;
+  display:flex;align-items:center;justify-content:center;padding:0 6px;
+  transition:min-height .45s ease,margin-top .45s ease}
+/* Once the result is in, the quote has done its job — close the space up. */
+.quote.done{min-height:0;margin-top:0}
+.quote p{font-size:16.5px;line-height:1.55;color:var(--quote);font-style:italic;
+  opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease}
+.quote p.in{opacity:1;transform:none}
+
+/* ---- Result tiles ---- */
+.results{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;max-width:600px;margin:22px auto 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 10px;text-align:center;
+  box-shadow:var(--shadow);transition:border-color .2s,box-shadow .2s}
+.stat .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-size:23px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.stat .u{font-size:10.5px;color:var(--faint);font-weight:600}
+.stat.live{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.stat .v.pending{color:var(--faint)}
+.stat.dn .v{color:var(--accent)}
+@media (max-width:520px){.results{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- Verdict + connection details ---- */
+.verdict{text-align:center;margin:18px auto 0;font-size:14.5px;max-width:520px}
+.verdict b{color:var(--accent)}
+.meta{margin:14px auto 0;max-width:600px;background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:11px 16px;display:flex;flex-wrap:wrap;gap:5px 22px;justify-content:center;font-size:12.5px;color:var(--muted)}
+.meta b{color:var(--text);font-weight:600}
+
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:18px auto 0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:10px;
+  font-weight:600;font-size:14.5px;background:var(--accent);color:#fff;border:1px solid transparent;
+  transition:background .15s,transform .05s}
+.btn:hover{background:var(--accent-h)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--text);border-color:var(--border2)}
+.btn.ghost:hover{background:var(--bg3)}
+
+/* ---- Trouble card (offline, or the test could not run) ---- */
+.trouble{max-width:520px;margin:20px auto 0;background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:22px 24px;text-align:center;box-shadow:var(--shadow)}
+.trouble .emoji{font-size:34px;line-height:1}
+.trouble h2{font-size:17px;margin:10px 0 6px}
+.trouble p{font-size:14px;color:var(--muted)}
+
+.foot{text-align:center;color:var(--faint);font-size:12px;margin-top:26px;padding-top:6px}
+.foot a{color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){
+  .gauge .fill,.progress i,.quote p{transition-duration:.01ms}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brandlogo" role="img" aria-label="Linear IT"></span>
+      <span class="brandtag">Speed</span>
+    </div>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle light or dark theme">🌙</button>
+  </header>
+
+  <main class="stage">
+
+    <div class="gauge">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="var(--accent2)"/>
+            <stop offset="100%" stop-color="var(--accent)"/>
+          </linearGradient>
+        </defs>
+        <g id="ticks"></g>
+        <path class="track" id="arcTrack"/>
+        <path class="fill" id="arcFill"/>
+      </svg>
+
+      <div class="readout">
+        <button class="go" id="goBtn">GO</button>
+        <div id="live" class="hidden">
+          <div class="phase" id="phase">&nbsp;</div>
+          <div class="bignum mono" id="bignum">0.0</div>
+          <div class="unit" id="unit">Mbps</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress" id="progress"><i id="progressBar"></i></div>
+
+    <!-- Something worth reading while the bits are in flight. No countdown and
+         no timer next to it — it simply changes when it changes. -->
+    <div class="quote" id="quote" aria-live="polite"><p id="quoteText"></p></div>
+
+    <section class="results hidden" id="results" aria-label="Results">
+      <div class="stat" id="statPing">
+        <div class="k">Ping</div>
+        <div class="v pending mono" id="vPing">—</div>
+        <div class="u">ms</div>
+      </div>
+      <div class="stat" id="statJitter">
+        <div class="k">Jitter</div>
+        <div class="v pending mono" id="vJitter">—</div>
+        <div class="u">ms</div>
+      </div>
+      <div class="stat dn" id="statDown">
+        <div class="k">↓ Download</div>
+        <div class="v pending mono" id="vDown">—</div>
+        <div class="u">Mbps</div>
+      </div>
+      <div class="stat" id="statUp">
+        <div class="k">↑ Upload</div>
+        <div class="v pending mono" id="vUp">—</div>
+        <div class="u">Mbps</div>
+      </div>
+    </section>
+
+    <p class="verdict hidden" id="verdict"></p>
+
+    <div class="meta hidden" id="meta"></div>
+
+    <div class="actions hidden" id="actions">
+      <button class="btn" id="againBtn">Test again</button>
+      <button class="btn ghost" id="copyBtn">Copy result</button>
+    </div>
+
+    <div class="trouble hidden" id="trouble">
+      <div class="emoji" id="troubleEmoji">📴</div>
+      <h2 id="troubleTitle">No internet right now</h2>
+      <p id="troubleText">Nothing to measure — so go enjoy your day. We'll be here when you get back.</p>
+      <div class="actions"><button class="btn" id="retryBtn">Try again</button></div>
+    </div>
+
+  </main>
+
+  <footer class="foot">
+    Measured against Cloudflare's edge network · <a href="https://www.linearit.co/">Linear IT</a>
+  </footer>
+
+</div>
+<script src="/speed/app.js"></script>
+</body>
+</html>
