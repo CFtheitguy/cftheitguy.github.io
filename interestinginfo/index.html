@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interesting Info: A World Record for Every Year Since 1955 | linear</title>
+<meta name="description" content="One landmark world record for every year from 1955 — when the Guinness Book of Records was first published — through today, with a line or two on what each record breaker actually did.">
+<link rel="canonical" href="https://www.linearit.co/interestinginfo/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta property="og:title" content="A World Record for Every Year Since 1955">
+<meta property="og:description" content="From Sputnik to a sub-two-hour marathon — one landmark record per year, all the way back to the first Guinness Book of Records in 1955.">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://www.linearit.co/interestinginfo/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --peri:#6999f5;
+  --peri-deep:#4d7fe8;
+  --aqua:#70f2ff;
+  --ink:#000000;
+  --paper:#ffffff;
+  --mono:'Space Grotesk', system-ui, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:150px}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+body{min-height:100svh;display:flex;flex-direction:column}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+
+.kicker{
+  font-family:var(--mono);
+  font-size:.72rem;
+  font-weight:600;
+  letter-spacing:.42em;
+  text-transform:uppercase;
+}
+
+/* ── gradient mesh ── */
+.mesh-light{
+  background:
+    radial-gradient(42% 55% at 12% 78%, rgba(105,153,245,.75) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(45% 60% at 82% 14%, rgba(112,242,255,.8) 0%, rgba(112,242,255,0) 100%),
+    radial-gradient(30% 42% at 55% 55%, rgba(112,242,255,.25) 0%, rgba(112,242,255,0) 100%),
+    linear-gradient(120deg,#fdfdfd 0%,#f4f7fb 100%);
+}
+
+/* ── pattern ── */
+.pattern{position:relative}
+.pattern::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:url("/zurech3/assets/pattern-tile-black.png") repeat;
+  background-size:84px;
+  opacity:.05;
+  pointer-events:none;
+}
+.pattern > *{position:relative}
+
+/* ── NAV ── */
+.nav{
+  position:fixed;top:0;left:0;right:0;height:120px;z-index:1000;
+  display:flex;align-items:center;
+  background:rgba(5,5,7,.82);
+  backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  color:#fff;
+  padding:0 24px;
+}
+.nav-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px}
+.brand{display:flex;align-items:center;flex-shrink:0}
+.brand img{height:76px;width:auto;display:block}
+.nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
+.nav-links a{font-family:var(--mono);font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75);transition:color .2s}
+.nav-links a:hover{color:var(--aqua)}
+.nav-cta{
+  background:var(--aqua);color:var(--ink) !important;
+  padding:10px 18px;border-radius:999px;font-weight:700 !important;
+  transition:transform .15s, background .2s;
+}
+.nav-cta:hover{background:#8ff5ff;transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{padding:172px 24px 64px;position:relative;overflow:hidden}
+.hero-inner{max-width:1200px;margin:0 auto;width:100%}
+.hero .kicker{color:var(--peri-deep);margin-bottom:32px;display:block}
+.hero h1{
+  font-weight:600;
+  font-size:clamp(2.1rem,6vw,4.2rem);
+  line-height:1.06;
+  letter-spacing:-.03em;
+  max-width:16ch;
+  text-wrap:balance;
+  margin-bottom:28px;
+}
+.hero .lede{
+  max-width:62ch;font-size:clamp(1rem,1.6vw,1.18rem);
+  color:rgba(0,0,0,.72);
+}
+.hero .lede + .lede{margin-top:16px}
+.hero .lede b{font-weight:600;color:var(--ink)}
+
+.stats{
+  display:flex;gap:0;flex-wrap:wrap;
+  margin-top:48px;padding-top:34px;
+  border-top:1px solid rgba(0,0,0,.12);
+}
+.stat{padding-right:52px;margin-right:52px;border-right:1px solid rgba(0,0,0,.12)}
+.stat:last-child{border-right:none;padding-right:0;margin-right:0}
+.stat b{display:block;font-size:clamp(1.6rem,3.4vw,2.4rem);font-weight:700;line-height:1.1;letter-spacing:-.02em}
+.stat span{font-size:.66rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(0,0,0,.5)}
+
+/* ── TOOLBAR ── */
+.toolbar{
+  position:sticky;top:120px;z-index:900;
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(12px) saturate(140%);
+  -webkit-backdrop-filter:blur(12px) saturate(140%);
+  border-top:1px solid rgba(0,0,0,.08);
+  border-bottom:1px solid rgba(0,0,0,.08);
+  padding:16px 24px;
+}
+.toolbar-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.search{
+  font-family:var(--mono);font-size:.9rem;
+  padding:11px 18px;border:1px solid rgba(0,0,0,.18);border-radius:999px;
+  background:#fff;color:var(--ink);width:min(320px,100%);
+  transition:border-color .2s,box-shadow .2s;
+}
+.search::placeholder{color:rgba(0,0,0,.4)}
+.search:focus{outline:none;border-color:var(--peri-deep);box-shadow:0 0 0 3px rgba(105,153,245,.18)}
+.jumps{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.jumps a{
+  font-size:.64rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  padding:9px 14px;border:1px solid rgba(0,0,0,.16);border-radius:999px;
+  color:rgba(0,0,0,.6);transition:border-color .2s,color .2s,transform .15s;
+}
+.jumps a:hover{border-color:var(--peri-deep);color:var(--peri-deep);transform:translateY(-1px)}
+.count{font-size:.66rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:rgba(0,0,0,.45)}
+
+/* ── TIMELINE ── */
+.list{padding:60px 24px 90px;background:#fff}
+.list-inner{max-width:1200px;margin:0 auto}
+
+.decade{
+  display:flex;align-items:baseline;gap:18px;
+  margin:56px 0 8px;padding-bottom:14px;
+  border-bottom:2px solid var(--ink);
+}
+.decade:first-child{margin-top:0}
+.decade h2{font-size:clamp(1.5rem,3.4vw,2.2rem);font-weight:700;letter-spacing:-.02em}
+.decade span{font-size:.66rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:rgba(0,0,0,.45)}
+
+.entry{
+  display:grid;
+  grid-template-columns:130px 1fr;
+  gap:0 34px;
+  padding:26px 0;
+  border-bottom:1px solid rgba(0,0,0,.1);
+  scroll-margin-top:220px;
+}
+.entry .yr{
+  font-size:clamp(1.5rem,2.6vw,1.95rem);
+  font-weight:700;letter-spacing:-.02em;line-height:1.1;
+  color:var(--peri-deep);
+  font-variant-numeric:tabular-nums;
+}
+.entry h3{
+  font-size:clamp(1.02rem,1.9vw,1.28rem);
+  font-weight:600;letter-spacing:-.01em;line-height:1.3;
+  margin-bottom:8px;text-wrap:balance;
+}
+.entry p{color:rgba(0,0,0,.72);max-width:70ch}
+.entry p .who{font-weight:600;color:var(--ink)}
+.entry .tag{
+  display:inline-block;margin-top:12px;
+  font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--peri-deep);border:1px solid rgba(77,127,232,.35);
+  padding:4px 10px;border-radius:999px;
+}
+.entry.hit{background:linear-gradient(90deg,rgba(112,242,255,.16),rgba(112,242,255,0) 70%)}
+.empty{padding:60px 0;font-size:1.05rem;color:rgba(0,0,0,.5);display:none}
+.empty.show{display:block}
+
+/* ── NOTE ── */
+.note-band{padding:70px 24px;border-top:1px solid rgba(0,0,0,.1)}
+.note-band .wrap{max-width:1200px;margin:0 auto}
+.note-band h2{font-size:clamp(1.3rem,2.6vw,1.8rem);font-weight:600;letter-spacing:-.02em;margin-bottom:18px}
+.note-band p{max-width:74ch;color:rgba(0,0,0,.7)}
+.note-band p + p{margin-top:14px}
+
+/* ── TICKER ── */
+.ticker{background:var(--ink);color:#fff;overflow:hidden;padding:16px 0;white-space:nowrap}
+.ticker-track{display:inline-flex;animation:tick 34s linear infinite}
+.ticker span{
+  font-size:.7rem;font-weight:600;letter-spacing:.32em;text-transform:uppercase;
+  color:rgba(255,255,255,.6);margin:0 34px;
+}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ── FOOTER ── */
+.footer{background:var(--ink);color:#fff;padding:70px 24px 40px;position:relative;overflow:hidden}
+.footer::before{
+  content:"";position:absolute;inset:0;
+  background:url("/zurech3/assets/pattern-tile-white.png") repeat;background-size:76px;opacity:.045;
+}
+.footer .wrap{max-width:1200px;margin:0 auto;position:relative}
+.footer-top{display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;align-items:flex-end;margin-bottom:50px}
+.footer-brand{display:flex;align-items:center}
+.footer-brand img{height:clamp(46px,7vw,64px);width:auto;display:block}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.65);transition:color .2s}
+.footer-links a:hover{color:var(--aqua)}
+.footer-base{
+  border-top:1px solid rgba(255,255,255,.12);padding-top:28px;
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);
+}
+.footer-base .site{color:var(--aqua)}
+
+/* ── RESPONSIVE ── */
+@media (max-width:900px){
+  .jumps{margin-left:0;width:100%}
+}
+@media (max-width:680px){
+  html{scroll-padding-top:120px}
+  .nav{height:96px}
+  .brand img{height:56px}
+  .nav-links{display:none}
+  .hero{padding:132px 20px 48px}
+  .toolbar{top:96px;padding:14px 20px}
+  .search{width:100%}
+  .list{padding:44px 20px 70px}
+  .entry{grid-template-columns:1fr;gap:6px;padding:22px 0;scroll-margin-top:180px}
+  .entry .yr{font-size:1.15rem}
+  .stat{padding-right:26px;margin-right:26px}
+  .note-band{padding:56px 20px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .ticker-track{animation:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/" aria-label="linear home">
+      <img src="/zurech3/assets/logo-white.svg" alt="linear">
+    </a>
+    <div class="nav-links">
+      <a href="/#about">About</a>
+      <a href="/#services">Services</a>
+      <a href="/#faq">FAQ</a>
+      <a class="nav-cta" href="/#contact">Book a consult</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero mesh-light pattern">
+  <div class="hero-inner">
+    <span class="kicker">Interesting info</span>
+    <h1>A world record for every year since 1955</h1>
+    <p class="lede">
+      In 1955, Sir Hugh Beaver — then running the Guinness brewery — lost a pub argument about
+      Europe's fastest game bird and decided somebody should write the answers down. Norris and
+      Ross McWhirter did, and <b>The Guinness Book of Records</b> has been settling arguments ever since.
+    </p>
+    <p class="lede">
+      Guinness doesn't crown an annual champion — it's a book of records, not a contest. So this is
+      the next best thing: <b>one landmark record for every year from 1955 to today</b>, and a line or
+      two on what the person actually did.
+    </p>
+
+    <div class="stats">
+      <div class="stat"><b>72</b><span>Years covered</span></div>
+      <div class="stat"><b>1955</b><span>First edition</span></div>
+      <div class="stat"><b>150m+</b><span>Copies sold</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <input type="search" class="search" id="search" placeholder="Search a year, name or feat…" aria-label="Search records">
+    <span class="count" id="count"></span>
+    <nav class="jumps" aria-label="Jump to decade">
+      <a href="#d2020">2020s</a>
+      <a href="#d2010">2010s</a>
+      <a href="#d2000">2000s</a>
+      <a href="#d1990">1990s</a>
+      <a href="#d1980">1980s</a>
+      <a href="#d1970">1970s</a>
+      <a href="#d1960">1960s</a>
+      <a href="#d1950">1950s</a>
+    </nav>
+  </div>
+</div>
+
+<main class="list">
+  <div class="list-inner" id="list">
+
+    <div class="decade" id="d2020"><h2>2020s</h2><span>Robots, rockets and a two-hour wall that finally fell</span></div>
+
+    <article class="entry" id="y2026">
+      <div class="yr">2026</div>
+      <div>
+        <h3>First sub-two-hour marathon in an actual race</h3>
+        <p><span class="who">Sabastian Sawe (Kenya)</span> ran 1:59:30 at the London Marathon on 26 April 2026 —
+        the first person to break two hours in open competition, not a staged attempt. It took the marathon
+        world record down by more than a minute.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2025">
+      <div class="yr">2025</div>
+      <div>
+        <h3>Longest voluntary breath hold underwater</h3>
+        <p><span class="who">Vitomir Maričić (Croatia)</span> held his breath for 29 minutes 3 seconds in June 2025,
+        beating a record most freedivers assumed was close to the ceiling of human physiology.</p>
+        <span class="tag">Human limits</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2024">
+      <div class="yr">2024</div>
+      <div>
+        <h3>First commercial spacewalk</h3>
+        <p><span class="who">Jared Isaacman and Sarah Gillis</span> opened the hatch of SpaceX's Polaris Dawn capsule
+        in September 2024. Every previous spacewalk in history had been made by a government astronaut.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2023">
+      <div class="yr">2023</div>
+      <div>
+        <h3>Fastest marathon ever run (at the time)</h3>
+        <p><span class="who">Kelvin Kiptum (Kenya)</span> ran 2:00:35 in Chicago in October 2023, aged 23.
+        He was killed in a car crash four months later; his record stood until 2026.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2022">
+      <div class="yr">2022</div>
+      <div>
+        <h3>First deliberate deflection of an asteroid</h3>
+        <p>NASA's <span class="who">DART</span> spacecraft flew into the asteroid moonlet Dimorphos at 22,000 km/h
+        and measurably shortened its orbit — the first proof humanity can move a rock that's coming at us.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2021">
+      <div class="yr">2021</div>
+      <div>
+        <h3>First powered flight on another planet</h3>
+        <p>NASA's <span class="who">Ingenuity</span> helicopter lifted three metres off the Martian surface on
+        19 April 2021 and hovered for 39 seconds. It was supposed to fly five times; it managed 72.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2020">
+      <div class="yr">2020</div>
+      <div>
+        <h3>First crewed orbital launch by a private company</h3>
+        <p><span class="who">Bob Behnken and Doug Hurley</span> rode a SpaceX Crew Dragon to the International
+        Space Station in May 2020 — the first time a commercial firm, not a nation, put people in orbit.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <div class="decade" id="d2010"><h2>2010s</h2><span>The decade humans jumped from the stratosphere</span></div>
+
+    <article class="entry" id="y2019">
+      <div class="yr">2019</div>
+      <div>
+        <h3>First marathon distance covered in under two hours</h3>
+        <p><span class="who">Eliud Kipchoge (Kenya)</span> ran 1:59:40 in Vienna in October 2019. Rotating pacemakers
+        meant it could never be ratified — but the barrier was gone, and he knew it before the finish line.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2018">
+      <div class="yr">2018</div>
+      <div>
+        <h3>Fastest human-made object ever built</h3>
+        <p>NASA's <span class="who">Parker Solar Probe</span> launched in August 2018 to fly through the Sun's outer
+        atmosphere. It keeps breaking its own record on every pass, and has now exceeded 690,000 km/h.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2017">
+      <div class="yr">2017</div>
+      <div>
+        <h3>First rope-free climb of El Capitan</h3>
+        <p><span class="who">Alex Honnold</span> free soloed the 900-metre Freerider route in Yosemite in 3 hours
+        56 minutes, with no rope, no harness and no second chance. It's widely called the greatest solo climb ever made.</p>
+        <span class="tag">Adventure</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2016">
+      <div class="yr">2016</div>
+      <div>
+        <h3>First round-the-world flight by a solar-powered aircraft</h3>
+        <p><span class="who">Bertrand Piccard and André Borschberg</span> flew Solar Impulse 2 roughly 42,000 km
+        across the planet without burning a drop of fuel. One leg over the Pacific lasted five days non-stop.</p>
+        <span class="tag">Aviation</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2015">
+      <div class="yr">2015</div>
+      <div>
+        <h3>Most distant world explored close up</h3>
+        <p>NASA's <span class="who">New Horizons</span> probe swept past Pluto in July 2015 after nine years and
+        five billion kilometres, turning a blurry dot into a world with ice mountains and a nitrogen glacier.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2014">
+      <div class="yr">2014</div>
+      <div>
+        <h3>First soft landing on a comet</h3>
+        <p>ESA's <span class="who">Philae</span> lander touched down on Comet 67P in November 2014, after the Rosetta
+        orbiter spent ten years chasing a four-kilometre lump of ice around the Sun.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2013">
+      <div class="yr">2013</div>
+      <div>
+        <h3>First swim from Cuba to Florida without a shark cage</h3>
+        <p><span class="who">Diana Nyad</span>, aged 64, swam 177 km in just under 53 hours on her fifth attempt,
+        35 years after her first. Box jellyfish stings had ended two of the earlier tries.</p>
+        <span class="tag">Endurance</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2012">
+      <div class="yr">2012</div>
+      <div>
+        <h3>First person to break the sound barrier in freefall</h3>
+        <p><span class="who">Felix Baumgartner</span> stepped off a balloon capsule at 38,969 m and hit 1,357 km/h
+        on the way down — faster than sound, wearing nothing but a pressure suit.</p>
+        <span class="tag">Human limits</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2011">
+      <div class="yr">2011</div>
+      <div>
+        <h3>First Rubik's Cube solve under six seconds</h3>
+        <p><span class="who">Feliks Zemdegs (Australia)</span> solved a scrambled 3×3 cube in 5.66 seconds at the
+        Melbourne Winter Open — quicker than most people can find the right colour to start on.</p>
+        <span class="tag">Speed</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2010">
+      <div class="yr">2010</div>
+      <div>
+        <h3>Tallest building in the world</h3>
+        <p>Dubai's <span class="who">Burj Khalifa</span> opened in January 2010 at 828 m and 163 floors.
+        More than fifteen years later, nothing built anywhere has topped it.</p>
+        <span class="tag">Engineering</span>
+      </div>
+    </article>
+
+    <div class="decade" id="d2000"><h2>2000s</h2><span>Tourists in orbit, and the fastest man who ever lived</span></div>
+
+    <article class="entry" id="y2009">
+      <div class="yr">2009</div>
+      <div>
+        <h3>Fastest 100 m and 200 m ever run</h3>
+        <p><span class="who">Usain Bolt (Jamaica)</span> ran 9.58 and 19.19 at the Berlin World Championships within
+        four days. Both records still stand, and nobody has come close to either.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2008">
+      <div class="yr">2008</div>
+      <div>
+        <h3>Most gold medals at a single Olympics</h3>
+        <p><span class="who">Michael Phelps</span> won eight swimming golds in Beijing, beating a mark that had
+        stood for 36 years — and taking one of them by a hundredth of a second.</p>
+        <span class="tag">Olympics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2007">
+      <div class="yr">2007</div>
+      <div>
+        <h3>Fastest marathon</h3>
+        <p><span class="who">Haile Gebrselassie (Ethiopia)</span> ran 2:04:26 in Berlin, the first of the two world
+        records he set on that course. He'd started out running 10 km to school and back with his books under one arm.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2006">
+      <div class="yr">2006</div>
+      <div>
+        <h3>Most hot dogs eaten in twelve minutes</h3>
+        <p><span class="who">Takeru Kobayashi (Japan)</span> ate 53¾ hot dogs and buns at Nathan's Famous on Coney
+        Island, taking his sixth straight title and roughly doubling what the record had been before he showed up.</p>
+        <span class="tag">Competitive eating</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2005">
+      <div class="yr">2005</div>
+      <div>
+        <h3>Most distant landing on another world</h3>
+        <p>ESA's <span class="who">Huygens</span> probe parachuted onto Titan, Saturn's largest moon, in January 2005 —
+        1.2 billion km from Earth — and sent back photographs of riverbeds carved by liquid methane.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2004">
+      <div class="yr">2004</div>
+      <div>
+        <h3>First privately funded crewed spaceflight</h3>
+        <p><span class="who">SpaceShipOne</span>, funded by Paul Allen and flown by Mike Melvill and Brian Binnie,
+        reached space twice in two weeks to win the $10 m Ansari X Prize — and started the private space industry.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2003">
+      <div class="yr">2003</div>
+      <div>
+        <h3>Third nation to launch a human into space</h3>
+        <p><span class="who">Yang Liwei</span> orbited Earth fourteen times aboard Shenzhou 5 in October 2003,
+        making China the third country — after the USSR and the USA — to do it on its own.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2002">
+      <div class="yr">2002</div>
+      <div>
+        <h3>First solo balloon flight around the world</h3>
+        <p><span class="who">Steve Fossett (USA)</span> circled the globe alone in just under 14 days, on his sixth
+        attempt. The five failures included a 9,000 m fall into the Coral Sea.</p>
+        <span class="tag">Adventure</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2001">
+      <div class="yr">2001</div>
+      <div>
+        <h3>First space tourist</h3>
+        <p><span class="who">Dennis Tito (USA)</span> paid a reported $20 million to spend eight days aboard the
+        International Space Station, over the loud objections of NASA.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y2000">
+      <div class="yr">2000</div>
+      <div>
+        <h3>Longest continuous human presence in space</h3>
+        <p>The <span class="who">Expedition 1 crew</span> — Bill Shepherd, Yuri Gidzenko and Sergei Krikalev — moved
+        into the ISS on 2 November 2000. There has been at least one human off the planet every day since.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <div class="decade" id="d1990"><h2>1990s</h2><span>Supersonic on land, and the first page on the web</span></div>
+
+    <article class="entry" id="y1999">
+      <div class="yr">1999</div>
+      <div>
+        <h3>First non-stop balloon flight around the world</h3>
+        <p><span class="who">Bertrand Piccard and Brian Jones</span> flew Breitling Orbiter 3 from Switzerland to
+        Egypt the long way round — 19 days, 21 hours, and about 40,000 km without touching down.</p>
+        <span class="tag">Adventure</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1998">
+      <div class="yr">1998</div>
+      <div>
+        <h3>First film to gross a billion dollars</h3>
+        <p><span class="who">Titanic</span> passed $1 billion worldwide in March 1998. It was the most expensive film
+        ever made and was widely expected to sink the studio instead.</p>
+        <span class="tag">Film</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1997">
+      <div class="yr">1997</div>
+      <div>
+        <h3>First supersonic land speed record</h3>
+        <p><span class="who">Andy Green (UK)</span> drove ThrustSSC to 1,227.985 km/h across Nevada's Black Rock
+        Desert, becoming the first person to break the sound barrier on the ground. It still stands.</p>
+        <span class="tag">Speed</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1996">
+      <div class="yr">1996</div>
+      <div>
+        <h3>First computer to beat a reigning world chess champion</h3>
+        <p>IBM's <span class="who">Deep Blue</span> took a game off Garry Kasparov under tournament conditions in
+        February 1996. Kasparov won the match — but lost the rematch a year later.</p>
+        <span class="tag">Technology</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1995">
+      <div class="yr">1995</div>
+      <div>
+        <h3>Longest triple jump</h3>
+        <p><span class="who">Jonathan Edwards (UK)</span> jumped 18.29 m in Gothenburg — twice in one afternoon,
+        breaking his own world record on both attempts. Thirty years on, no one has matched it.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1994">
+      <div class="yr">1994</div>
+      <div>
+        <h3>Longest undersea tunnel</h3>
+        <p>The <span class="who">Channel Tunnel</span> opened in May 1994 with a 37.9 km stretch running beneath the
+        seabed — still the longest undersea section anywhere, six years and 13,000 workers in the making.</p>
+        <span class="tag">Engineering</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1993">
+      <div class="yr">1993</div>
+      <div>
+        <h3>Highest high jump</h3>
+        <p><span class="who">Javier Sotomayor (Cuba)</span> cleared 2.45 m in Salamanca — about 30 cm above his own
+        head. The bar hasn't moved since.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1992">
+      <div class="yr">1992</div>
+      <div>
+        <h3>Fastest production car</h3>
+        <p>The <span class="who">Jaguar XJ220</span> hit 349 km/h (217 mph) at Nardò in Italy, taking the title off
+        Ferrari's F40 and holding it for the rest of the decade.</p>
+        <span class="tag">Speed</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1991">
+      <div class="yr">1991</div>
+      <div>
+        <h3>Longest long jump</h3>
+        <p><span class="who">Mike Powell (USA)</span> jumped 8.95 m in Tokyo, finally beating a record that had stood
+        untouched for 23 years — in a head-to-head duel with Carl Lewis that both men called the best of their lives.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1990">
+      <div class="yr">1990</div>
+      <div>
+        <h3>The first website</h3>
+        <p><span class="who">Tim Berners-Lee</span> built the first web server and web page at CERN in December 1990,
+        on a NeXT machine with a note taped to it reading "do not power down". Everything online descends from that page.</p>
+        <span class="tag">Technology</span>
+      </div>
+    </article>
+
+    <div class="decade" id="d1980"><h2>1980s</h2><span>Everest without oxygen, and a man flying free of his ship</span></div>
+
+    <article class="entry" id="y1989">
+      <div class="yr">1989</div>
+      <div>
+        <h3>Only spacecraft to visit all four giant planets</h3>
+        <p><span class="who">Voyager 2</span> swept past Neptune in August 1989, completing a Jupiter–Saturn–Uranus–Neptune
+        grand tour made possible by a planetary alignment that recurs roughly every 175 years.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1988">
+      <div class="yr">1988</div>
+      <div>
+        <h3>Fastest women's 100 m and 200 m</h3>
+        <p><span class="who">Florence Griffith-Joyner (USA)</span> ran 10.49 and 21.34 in a single summer.
+        Nearly four decades later, both records are still standing.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1987">
+      <div class="yr">1987</div>
+      <div>
+        <h3>First swim across the Bering Strait</h3>
+        <p><span class="who">Lynne Cox (USA)</span> swam 4.3 km through 4°C water from Alaska's Little Diomede to
+        Soviet Big Diomede. Reagan and Gorbachev both toasted the swim at the INF Treaty signing.</p>
+        <span class="tag">Endurance</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1986">
+      <div class="yr">1986</div>
+      <div>
+        <h3>First non-stop unrefuelled flight around the world</h3>
+        <p><span class="who">Dick Rutan and Jeana Yeager</span> flew the aircraft <i>Voyager</i> for 9 days without
+        landing, taking turns lying down in a cabin the size of a phone box.</p>
+        <span class="tag">Aviation</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1985">
+      <div class="yr">1985</div>
+      <div>
+        <h3>Largest live television audience of its era</h3>
+        <p><span class="who">Live Aid</span> was broadcast from London and Philadelphia to an estimated 1.9 billion
+        people in 150 countries in July 1985, and raised well over £100 million for famine relief.</p>
+        <span class="tag">Broadcast</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1984">
+      <div class="yr">1984</div>
+      <div>
+        <h3>First untethered spacewalk</h3>
+        <p><span class="who">Bruce McCandless II</span> flew a nitrogen-jet backpack 98 m away from Space Shuttle
+        Challenger in February 1984 — the first human being to orbit Earth as a satellite of his own.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1983">
+      <div class="yr">1983</div>
+      <div>
+        <h3>Best-selling album of all time</h3>
+        <p><span class="who">Michael Jackson's</span> <i>Thriller</i> ran away with 1983, spending 37 weeks at number
+        one in the US. At an estimated 70 million copies, it has never lost the Guinness title.</p>
+        <span class="tag">Music</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1982">
+      <div class="yr">1982</div>
+      <div>
+        <h3>First circumnavigation of the globe via both poles</h3>
+        <p><span class="who">Ranulph Fiennes and Charles Burton</span> finished the three-year Transglobe Expedition
+        in August 1982, having crossed both poles travelling only over the surface of the Earth.</p>
+        <span class="tag">Adventure</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1981">
+      <div class="yr">1981</div>
+      <div>
+        <h3>First reusable spacecraft</h3>
+        <p><span class="who">Space Shuttle Columbia</span> launched in April 1981 and landed on a runway two days
+        later, ready to fly again. It went on to make 27 more flights.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1980">
+      <div class="yr">1980</div>
+      <div>
+        <h3>First solo ascent of Everest without supplemental oxygen</h3>
+        <p><span class="who">Reinhold Messner (Italy)</span> climbed the mountain alone during the monsoon, with no
+        bottled oxygen, no rope team and no fixed camps. He later said he'd felt like "a single narrow gasping lung".</p>
+        <span class="tag">Mountaineering</span>
+      </div>
+    </article>
+
+    <div class="decade" id="d1970"><h2>1970s</h2><span>Pedal-powered across the Channel, and a puzzle from Budapest</span></div>
+
+    <article class="entry" id="y1979">
+      <div class="yr">1979</div>
+      <div>
+        <h3>First human-powered flight across the English Channel</h3>
+        <p><span class="who">Bryan Allen</span> pedalled the Gossamer Albatross 35 km from England to France in
+        2 hours 49 minutes, flying a few feet above the water the whole way.</p>
+        <span class="tag">Aviation</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1978">
+      <div class="yr">1978</div>
+      <div>
+        <h3>First solo journey to the North Pole</h3>
+        <p><span class="who">Naomi Uemura (Japan)</span> travelled 725 km alone by dog sled across the shifting Arctic
+        ice, fending off a polar bear that ate most of his food along the way.</p>
+        <span class="tag">Adventure</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1977">
+      <div class="yr">1977</div>
+      <div>
+        <h3>Most distant human-made object</h3>
+        <p><span class="who">Voyager 1</span> launched in September 1977 carrying a golden record of Earth's sounds.
+        It is now more than 25 billion km away, in interstellar space, and still calling home.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1976">
+      <div class="yr">1976</div>
+      <div>
+        <h3>First perfect 10 in Olympic gymnastics</h3>
+        <p><span class="who">Nadia Comăneci (Romania)</span>, aged 14, scored a flawless 10.0 on the uneven bars in
+        Montreal. The scoreboard hadn't been built to show it and flashed up 1.00 instead. She scored six more.</p>
+        <span class="tag">Olympics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1975">
+      <div class="yr">1975</div>
+      <div>
+        <h3>Highest-grossing film of its time</h3>
+        <p><span class="who">Steven Spielberg's</span> <i>Jaws</i> took over $470 million on a broken mechanical shark
+        and a two-note theme — and invented the idea of the summer blockbuster in the process.</p>
+        <span class="tag">Film</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1974">
+      <div class="yr">1974</div>
+      <div>
+        <h3>Best-selling puzzle toy ever made</h3>
+        <p><span class="who">Ernő Rubik</span>, an architecture lecturer in Budapest, built the first Cube as a teaching
+        aid — then took a month to solve it himself. Over 350 million have sold since.</p>
+        <span class="tag">Toys</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1973">
+      <div class="yr">1973</div>
+      <div>
+        <h3>Fastest mile and a half on dirt</h3>
+        <p><span class="who">Secretariat</span> won the Belmont Stakes by 31 lengths in 2:24 — a margin and a time
+        no thoroughbred has come near in the half-century since.</p>
+        <span class="tag">Racing</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1972">
+      <div class="yr">1972</div>
+      <div>
+        <h3>Most golds at one Olympics (at the time)</h3>
+        <p><span class="who">Mark Spitz (USA)</span> won seven swimming titles in Munich and set a world record in
+        every single one of them. The mark stood for 36 years.</p>
+        <span class="tag">Olympics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1971">
+      <div class="yr">1971</div>
+      <div>
+        <h3>First spacecraft to orbit another planet</h3>
+        <p><span class="who">Mariner 9</span> reached Mars in November 1971, waited out a planet-wide dust storm,
+        then mapped 85% of the surface and found the largest volcano in the solar system.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1970">
+      <div class="yr">1970</div>
+      <div>
+        <h3>Farthest any human has been from Earth</h3>
+        <p>The crippled <span class="who">Apollo 13</span> crew swung 400,171 km out around the far side of the Moon
+        to slingshot home. Nobody has ever been further away, and it wasn't on purpose.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <div class="decade" id="d1960"><h2>1960s</h2><span>The deepest dive, the first spacewalk, the Moon</span></div>
+
+    <article class="entry" id="y1969">
+      <div class="yr">1969</div>
+      <div>
+        <h3>First humans on the Moon</h3>
+        <p><span class="who">Neil Armstrong and Buzz Aldrin</span> walked on the lunar surface on 20 July 1969.
+        Two months earlier, the Apollo 10 crew hit 39,937 km/h coming home — still the fastest humans have ever travelled.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1968">
+      <div class="yr">1968</div>
+      <div>
+        <h3>Longest long jump of its era</h3>
+        <p><span class="who">Bob Beamon (USA)</span> jumped 8.90 m in Mexico City, beating the world record by 55 cm
+        in one go. The officials' measuring device didn't reach far enough. It's still the Olympic record.</p>
+        <span class="tag">Athletics</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1967">
+      <div class="yr">1967</div>
+      <div>
+        <h3>Fastest solo circumnavigation by sail</h3>
+        <p><span class="who">Sir Francis Chichester</span>, aged 65, sailed around the world single-handed with one
+        stop in Australia, in 226 days. He was knighted with the sword used on Sir Francis Drake.</p>
+        <span class="tag">Sailing</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1966">
+      <div class="yr">1966</div>
+      <div>
+        <h3>First spacecraft to reach another planet</h3>
+        <p>The Soviet <span class="who">Venera 3</span> probe struck Venus in March 1966 — the first human-made
+        object to touch the surface of another planet, though its instruments had failed on the way.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1965">
+      <div class="yr">1965</div>
+      <div>
+        <h3>First spacewalk</h3>
+        <p><span class="who">Alexei Leonov (USSR)</span> spent 12 minutes outside Voskhod 2 in March 1965. His suit
+        ballooned in the vacuum and he had to bleed off air to squeeze back through the hatch.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1964">
+      <div class="yr">1964</div>
+      <div>
+        <h3>Only person to set land and water speed records in the same year</h3>
+        <p><span class="who">Donald Campbell (UK)</span> managed 648 km/h on Australia's Lake Eyre salt flats in July
+        and 444 km/h on water in December — a double nobody has repeated.</p>
+        <span class="tag">Speed</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1963">
+      <div class="yr">1963</div>
+      <div>
+        <h3>First woman in space</h3>
+        <p><span class="who">Valentina Tereshkova (USSR)</span>, a 26-year-old textile worker and amateur parachutist,
+        orbited Earth 48 times alone in Vostok 6. She is still the only woman to have flown a solo space mission.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1962">
+      <div class="yr">1962</div>
+      <div>
+        <h3>Most points in an NBA game</h3>
+        <p><span class="who">Wilt Chamberlain</span> scored 100 against the New York Knicks in Hershey, Pennsylvania.
+        There's no film of it, and in 60-odd years nobody has come within 19 points.</p>
+        <span class="tag">Basketball</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1961">
+      <div class="yr">1961</div>
+      <div>
+        <h3>First human in space</h3>
+        <p><span class="who">Yuri Gagarin (USSR)</span> orbited the Earth once in 108 minutes on 12 April 1961,
+        then ejected and parachuted into a field, where a farmer and her daughter found him.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1960">
+      <div class="yr">1960</div>
+      <div>
+        <h3>Deepest ocean descent</h3>
+        <p><span class="who">Jacques Piccard and Don Walsh</span> took the bathyscaphe <i>Trieste</i> 10,916 m down
+        into the Mariana Trench. A window cracked on the way; they carried on anyway.</p>
+        <span class="tag">Exploration</span>
+      </div>
+    </article>
+
+    <div class="decade" id="d1950"><h2>1950s</h2><span>Where all of this started — a pub argument in Ireland</span></div>
+
+    <article class="entry" id="y1959">
+      <div class="yr">1959</div>
+      <div>
+        <h3>First human-made object to reach another world</h3>
+        <p>The Soviet <span class="who">Luna 2</span> probe crashed into the Moon in September 1959, scattering
+        metal pennants stamped with the Soviet coat of arms across the surface.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1958">
+      <div class="yr">1958</div>
+      <div>
+        <h3>Youngest World Cup winner</h3>
+        <p><span class="who">Pelé</span> won the final for Brazil aged 17 years 249 days, scoring twice against Sweden
+        and crying on the pitch afterwards. He'd been a squad afterthought at the start of the tournament.</p>
+        <span class="tag">Football</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1957">
+      <div class="yr">1957</div>
+      <div>
+        <h3>First artificial satellite</h3>
+        <p>The USSR launched <span class="who">Sputnik 1</span> on 4 October 1957. It was a 58 cm metal sphere that
+        did nothing but beep — and amateur radio operators all over the world could hear it going over.</p>
+        <span class="tag">Space</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1956">
+      <div class="yr">1956</div>
+      <div>
+        <h3>Only heavyweight champion to retire undefeated</h3>
+        <p><span class="who">Rocky Marciano</span> walked away in April 1956 at 49 fights, 49 wins, 43 of them
+        knockouts. No heavyweight champion has managed to leave with a clean record since.</p>
+        <span class="tag">Boxing</span>
+      </div>
+    </article>
+
+    <article class="entry" id="y1955">
+      <div class="yr">1955</div>
+      <div>
+        <h3>The book that started it — best-selling copyrighted book of all time</h3>
+        <p><span class="who">Norris and Ross McWhirter</span> published the first Guinness Book of Records on
+        27 August 1955, commissioned by a brewery managing director who'd lost an argument about game birds.
+        It was Britain's number-one bestseller by Christmas and has since sold over 150 million copies.</p>
+        <span class="tag">Publishing</span>
+      </div>
+    </article>
+
+    <p class="empty" id="empty">No records match that search. Try a year, a name, or something like "space" or "marathon".</p>
+
+  </div>
+</main>
+
+<section class="note-band mesh-light pattern">
+  <div class="wrap">
+    <h2>A note on how this list works</h2>
+    <p>
+      Guinness World Records has never had annual winners — it isn't a competition, it's a reference book,
+      and thousands of records are set and broken every year. So rather than invent a champion for each year,
+      this page picks <b>one landmark achievement per year</b>: the record from that year that mattered most, or
+      lasted longest, or is simply the best story.
+    </p>
+    <p>
+      Not every entry is an officially certified Guinness title, and some of these records have since been
+      broken — where that's the case, it says so. Several of them, though, have gone thirty years or more
+      without anybody getting close.
+    </p>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track">
+    <span>Not on our watch</span><span>Stay safe</span><span>Stay covered</span><span>linearit.co</span>
+    <span>Not on our watch</span><span>Stay safe</span><span>Stay covered</span><span>linearit.co</span>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="/zurech3/assets/logo-white.svg" alt="linear">
+      </div>
+      <div class="footer-links">
+        <a href="/#about">About</a>
+        <a href="/#services">Services</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#contact">Contact</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>© 2026 linear · Straightforward IT excellence · Monroe, NY</span>
+      <span class="site">linearit.co</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var input   = document.getElementById('search');
+  var count   = document.getElementById('count');
+  var empty   = document.getElementById('empty');
+  var entries = Array.prototype.slice.call(document.querySelectorAll('.entry'));
+  var decades = Array.prototype.slice.call(document.querySelectorAll('.decade'));
+  var total   = entries.length;
+
+  entries.forEach(function(el){
+    el._text = el.textContent.toLowerCase().replace(/\s+/g,' ');
+  });
+
+  function label(n){
+    count.textContent = n === total ? total + ' records' : n + ' of ' + total;
+  }
+  label(total);
+
+  function run(){
+    var q = input.value.trim().toLowerCase();
+    if(!q){
+      entries.forEach(function(el){ el.hidden = false; el.classList.remove('hit'); });
+      decades.forEach(function(el){ el.hidden = false; });
+      empty.classList.remove('show');
+      label(total);
+      return;
+    }
+    var shown = 0;
+    entries.forEach(function(el){
+      var match = el._text.indexOf(q) !== -1;
+      el.hidden = !match;
+      el.classList.toggle('hit', match);
+      if(match) shown++;
+    });
+    // hide a decade heading when nothing under it survived
+    decades.forEach(function(head){
+      var visible = false, node = head.nextElementSibling;
+      while(node && !node.classList.contains('decade')){
+        if(node.classList.contains('entry') && !node.hidden){ visible = true; break; }
+        node = node.nextElementSibling;
+      }
+      head.hidden = !visible;
+    });
+    empty.classList.toggle('show', shown === 0);
+    label(shown);
+  }
+
+  input.addEventListener('input', run);
+  input.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){ input.value = ''; run(); }
+  });
+})();
+</script>
+
+</body>
+</html>
