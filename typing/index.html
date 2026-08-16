@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linear Type — Learn to Touch Type | linear</title>
+<meta name="description" content="A free typing tutor that runs entirely in your browser. 31 lessons from the home row to full paragraphs, timed tests, weak-key drills and progress that is saved on your device. No account, no sign-in.">
+<link rel="canonical" href="https://www.linearit.co/typing/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta name="theme-color" content="#07080c">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="linear">
+<meta property="og:url" content="https://www.linearit.co/typing/">
+<meta property="og:title" content="Linear Type — Learn to Touch Type">
+<meta property="og:description" content="31 lessons, timed tests and weak-key drills. Your progress is remembered in this browser — no account needed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080c; --panel:#10131c; --panel2:#171b27; --panel3:#1e2331;
+  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.06);
+  --ink:#eef1f7; --ink2:#a5adbf; --ink3:#6d7688;
+  --peri:#6999f5; --peri-dim:#3f66b0; --aqua:#70f2ff;
+  --good:#4ade80; --bad:#ff6b6b; --warn:#f7b955;
+  --f-pinky:#f472b6; --f-ring:#a78bfa; --f-mid:#38bdf8; --f-index:#34d399; --f-thumb:#f7b955;
+  --sans:'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --mono:'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.6;
+  min-height:100svh; -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(46% 40% at 12% 0%, rgba(105,153,245,.16) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(40% 34% at 88% 4%, rgba(112,242,255,.10) 0%, rgba(112,242,255,0) 100%);
+  background-repeat:no-repeat;
+}
+a{color:inherit;text-decoration:none}
+button,input,textarea,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+::selection{background:rgba(112,242,255,.3)}
+.kicker{font-size:.68rem;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--ink3)}
+
+/* ── HEADER ───────────────────────────────────────────── */
+.top{
+  position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:18px;
+  padding:12px 20px;background:rgba(7,8,12,.86);backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand img{height:30px;width:auto;display:block}
+.brand b{font-weight:600;font-size:.95rem;letter-spacing:-.01em}
+.brand span{color:var(--aqua)}
+.tabs{display:flex;gap:4px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  padding:8px 14px;border-radius:999px;font-size:.8rem;font-weight:500;color:var(--ink2);
+  white-space:nowrap;transition:background .18s,color .18s;
+}
+.tab:hover{background:rgba(255,255,255,.06);color:var(--ink)}
+.tab.on{background:var(--peri);color:#050710;font-weight:600}
+.streak-chip{
+  display:flex;align-items:center;gap:6px;flex-shrink:0;padding:7px 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);font-size:.78rem;font-variant-numeric:tabular-nums;
+}
+.streak-chip b{font-weight:600}
+.streak-chip small{color:var(--ink3);font-size:.7rem}
+
+main{max-width:1080px;margin:0 auto;padding:28px 20px 90px}
+.view{display:none}
+.view.on{display:block}
+
+/* ── SHARED BITS ──────────────────────────────────────── */
+.hero{margin-bottom:30px}
+.hero h1{font-size:clamp(1.9rem,4.6vw,2.9rem);font-weight:600;letter-spacing:-.03em;line-height:1.1;margin:14px 0 12px}
+.hero h1 em{font-style:normal;color:var(--aqua)}
+.hero p{color:var(--ink2);max-width:62ch;font-size:.98rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 20px;border-radius:999px;font-size:.85rem;font-weight:600;
+  background:var(--peri);color:#050710;transition:transform .14s,background .18s,opacity .18s;
+}
+.btn:hover{background:#7ea8fa;transform:translateY(-1px)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.ghost:hover{background:rgba(255,255,255,.06)}
+.btn.aqua{background:var(--aqua)}
+.btn.aqua:hover{background:#93f6ff}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--panel)}
+.seg button{padding:7px 14px;border-radius:999px;font-size:.8rem;color:var(--ink2);transition:background .16s,color .16s}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--peri);color:#050710;font-weight:600}
+.switch{display:inline-flex;align-items:center;gap:9px;font-size:.82rem;color:var(--ink2);cursor:pointer}
+.switch input{appearance:none;width:38px;height:22px;border-radius:999px;background:var(--panel3);border:1px solid var(--line);position:relative;transition:background .18s;cursor:pointer;flex-shrink:0}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--ink3);transition:transform .18s,background .18s}
+.switch input:checked{background:rgba(105,153,245,.35);border-color:var(--peri)}
+.switch input:checked::after{transform:translateX(16px);background:var(--peri)}
+
+/* ── LEARN / LESSON GRID ─────────────────────────────── */
+.unit{margin-bottom:32px}
+.unit-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.unit-head h2{font-size:1.05rem;font-weight:600;letter-spacing:-.01em}
+.unit-head span{font-size:.74rem;color:var(--ink3);font-family:var(--mono)}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.lesson{
+  position:relative;text-align:left;padding:16px;border-radius:14px;border:1px solid var(--line);
+  background:var(--panel);transition:transform .16s,border-color .18s,background .18s;overflow:hidden;
+}
+.lesson:hover{transform:translateY(-2px);border-color:rgba(105,153,245,.55)}
+.lesson.locked{opacity:.45;cursor:not-allowed}
+.lesson.locked:hover{transform:none;border-color:var(--line)}
+.lesson.done{border-color:rgba(74,222,128,.3)}
+.lesson .num{font-family:var(--mono);font-size:.68rem;color:var(--ink3);letter-spacing:.08em}
+.lesson h3{font-size:.95rem;font-weight:600;margin:6px 0 4px;letter-spacing:-.01em}
+.lesson .keys{font-family:var(--mono);font-size:.74rem;color:var(--aqua);word-break:break-all}
+.lesson .foot{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:.72rem;color:var(--ink3);font-variant-numeric:tabular-nums}
+.stars{letter-spacing:2px;font-size:.8rem;color:var(--ink3)}
+.stars b{color:var(--warn);font-weight:400}
+.lesson .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--good);opacity:.75}
+
+/* ── RUN SCREEN ──────────────────────────────────────── */
+.run-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.run-head h2{font-size:1.25rem;font-weight:600;letter-spacing:-.02em}
+.run-head p{font-size:.82rem;color:var(--ink3)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.metric b{display:block;font-size:1.5rem;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.metric span{font-size:.64rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3)}
+.metric.wpm b{color:var(--aqua)}
+.metric.acc b{color:var(--good)}
+.metric.acc.low b{color:var(--warn)}
+
+.typebox{
+  position:relative;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:26px 26px 22px;cursor:text;
+}
+.typebox.focus{border-color:rgba(105,153,245,.6);box-shadow:0 0 0 3px rgba(105,153,245,.10)}
+.tviewport{position:relative;overflow:hidden;height:calc(3 * var(--lh))}
+.typebox.single .tviewport{height:var(--lh)}
+.tinner{position:relative;transition:transform .18s ease}
+.ttext{
+  font-family:var(--mono);font-size:var(--tsize);letter-spacing:.02em;color:var(--ink3);
+  display:flex;flex-wrap:wrap;align-content:flex-start;
+}
+:root{--tsize:1.32rem;--lh:2.4rem}
+.ttext .w{display:flex}
+.ttext c{display:flex;align-items:center;height:var(--lh);white-space:pre}
+.ttext c.ok{color:var(--ink)}
+.ttext c.bad{color:var(--bad);background:rgba(255,107,107,.14);border-radius:3px}
+.ttext c.bad.sp{background:rgba(255,107,107,.32)}
+.ttext c[data-sp]{min-width:.55ch}
+.caret{
+  position:absolute;top:0;left:0;width:2px;background:var(--aqua);border-radius:2px;
+  transition:transform .07s linear;box-shadow:0 0 8px rgba(112,242,255,.7);
+}
+.typebox.idle .caret{animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.nextline{margin-top:14px;font-family:var(--mono);font-size:.9rem;color:#4b5364;white-space:pre-wrap}
+.nextline em{font-style:normal;color:var(--ink3);font-family:var(--sans);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;margin-right:8px}
+.blocker{
+  position:absolute;inset:auto 0 0 0;text-align:center;font-size:.76rem;color:var(--warn);
+  padding:8px;display:none;
+}
+.typebox.stuck .blocker{display:block}
+.tapnote{display:none;margin-top:12px;font-size:.76rem;color:var(--ink3);text-align:center}
+.progline{height:4px;border-radius:4px;background:var(--panel3);overflow:hidden;margin:16px 0 4px}
+.progline i{display:block;height:100%;background:linear-gradient(90deg,var(--peri),var(--aqua));width:0;transition:width .25s}
+
+/* ── KEYBOARD ────────────────────────────────────────── */
+.kb{margin-top:22px;padding:14px;border-radius:var(--r);background:var(--panel);border:1px solid var(--line);overflow-x:auto}
+.kb-rows{min-width:660px}
+.krow{display:flex;gap:5px;margin-bottom:5px;justify-content:center}
+.key{
+  flex:1 1 0;min-width:0;height:42px;border-radius:8px;background:var(--panel2);
+  border:1px solid var(--line2);border-bottom-width:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:.78rem;color:var(--ink2);position:relative;
+  transition:background .12s,color .12s,transform .1s,border-color .12s;
+}
+.key small{font-size:.6rem;color:var(--ink3);line-height:1}
+.key.w15{flex-grow:1.5}.key.w175{flex-grow:1.75}.key.w2{flex-grow:2}.key.w225{flex-grow:2.25}
+.key.w275{flex-grow:2.75}.key.w6{flex-grow:6.5}
+.key::after{content:"";position:absolute;left:8px;right:8px;bottom:3px;height:2px;border-radius:2px;background:var(--fc,transparent);opacity:.5}
+.kb.fingers-off .key::after{display:none}
+.key.next{background:var(--fc,var(--peri));color:#05070f;font-weight:600;border-color:transparent;transform:translateY(1px)}
+.key.next small{color:rgba(0,0,0,.55)}
+.key.next::after{opacity:0}
+.key.hold{background:rgba(255,255,255,.12);color:var(--ink)}
+.key.hit{background:rgba(112,242,255,.22)}
+.key.miss{background:rgba(255,107,107,.28)}
+.key.homing::before{content:"";position:absolute;bottom:7px;width:12px;height:2px;border-radius:2px;background:currentColor;opacity:.55}
+.kb-legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:12px;font-size:.7rem;color:var(--ink3)}
+.kb-legend span{display:flex;align-items:center;gap:6px}
+.kb-legend i{width:10px;height:10px;border-radius:3px;display:block}
+.fingertip{margin-top:12px;text-align:center;font-size:.82rem;color:var(--ink2);min-height:1.5em}
+.fingertip b{color:var(--ink);font-weight:600}
+.fingertip i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+
+/* ── MODAL ───────────────────────────────────────────── */
+.modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(4,5,8,.78);backdrop-filter:blur(6px)}
+.modal.on{display:flex}
+.modal-card{
+  width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:28px;
+  text-align:center;animation:pop .26s cubic-bezier(.2,1.3,.5,1);max-height:90svh;overflow:auto;
+}
+@keyframes pop{from{transform:scale(.94) translateY(10px);opacity:0}}
+.modal-card h3{font-size:1.3rem;font-weight:600;letter-spacing:-.02em}
+.modal-card .sub{font-size:.8rem;color:var(--ink3);margin-top:4px}
+.res-stars{font-size:2rem;letter-spacing:6px;margin:14px 0 6px;color:#2b3040}
+.res-stars b{color:var(--warn);font-weight:400}
+.res-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:18px 0}
+.res-grid div{background:var(--panel2);border-radius:12px;padding:12px}
+.res-grid b{display:block;font-size:1.45rem;font-weight:600;font-variant-numeric:tabular-nums}
+.res-grid span{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.pb{display:inline-block;margin-bottom:8px;padding:4px 12px;border-radius:999px;background:rgba(247,185,85,.15);color:var(--warn);font-size:.72rem;font-weight:600}
+.modal .row{justify-content:center;margin-top:6px}
+
+/* ── PROGRESS ────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:26px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.stat b{display:block;font-size:1.75rem;font-weight:600;letter-spacing:-.02em;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:.64rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+.stat small{display:block;font-size:.72rem;color:var(--ink3);margin-top:4px}
+.panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap}
+.panel-head h3{font-size:.98rem;font-weight:600}
+.panel-head p{font-size:.76rem;color:var(--ink3)}
+.chart-wrap{position:relative;margin-top:14px}
+.chart-wrap svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{
+  position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-118%);
+  background:#05070d;border:1px solid var(--line);border-radius:10px;padding:8px 11px;
+  font-size:.74rem;line-height:1.45;white-space:nowrap;transition:opacity .12s;z-index:5;
+}
+.tip b{font-weight:600}
+.tip small{color:var(--ink3)}
+.empty{color:var(--ink3);font-size:.85rem;padding:22px 0;text-align:center}
+.heat-legend{display:flex;align-items:center;gap:8px;font-size:.7rem;color:var(--ink3);justify-content:center;margin-top:12px}
+.heat-legend i{width:22px;height:10px;border-radius:2px;display:block}
+.hist{list-style:none;margin-top:8px}
+.hist li{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line2);font-size:.85rem}
+.hist li:last-child{border-bottom:0}
+.hist .when{color:var(--ink3);font-size:.74rem;margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hist .tagx{font-family:var(--mono);font-size:.7rem;color:var(--aqua);background:rgba(112,242,255,.1);padding:2px 8px;border-radius:6px;white-space:nowrap}
+.hist .val{font-variant-numeric:tabular-nums;color:var(--ink2);font-size:.8rem}
+.stack{display:grid;gap:18px}
+.danger{color:var(--bad);border-color:rgba(255,107,107,.4)}
+.danger:hover{background:rgba(255,107,107,.1)}
+.note{font-size:.78rem;color:var(--ink3);line-height:1.7}
+.note b{color:var(--ink2);font-weight:600}
+textarea.custom{
+  width:100%;min-height:150px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+  padding:14px;font-family:var(--mono);font-size:.9rem;line-height:1.7;resize:vertical;outline:none;
+}
+textarea.custom:focus{border-color:rgba(105,153,245,.6)}
+.weakgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:10px;margin-top:14px}
+.weakkey{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
+.weakkey b{display:block;font-family:var(--mono);font-size:1.25rem;color:var(--bad)}
+.weakkey span{font-size:.66rem;color:var(--ink3);font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+footer{border-top:1px solid var(--line);padding:26px 20px;text-align:center;color:var(--ink3);font-size:.76rem}
+footer a{color:var(--ink2)}
+footer a:hover{color:var(--aqua)}
+
+@media(max-width:720px){
+  :root{--tsize:1.08rem;--lh:2rem}
+  main{padding:20px 14px 70px}
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .typebox{padding:18px 16px 16px}
+  .tapnote{display:block}
+  .top{padding:10px 12px;gap:10px}
+  .brand b{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="/" title="linearit.co">
+    <img src="/zurech3/assets/icon-white.svg" alt="linear" onerror="this.style.display='none'">
+    <b>Linear <span>Type</span></b>
+  </a>
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-view="learn">Lessons</button>
+    <button class="tab" data-view="test">Speed Test</button>
+    <button class="tab" data-view="drill">Weak Keys</button>
+    <button class="tab" data-view="custom">Your Text</button>
+    <button class="tab" data-view="progress">Progress</button>
+  </nav>
+  <div class="streak-chip" id="streakChip" title="Days in a row you have practiced">
+    <span>🔥</span><b id="streakN">0</b><small>day streak</small>
+  </div>
+</header>
+
+<main>
+
+  <!-- ══ LEARN ══ -->
+  <section class="view on" id="view-learn">
+    <div class="hero">
+      <span class="kicker">Free · no sign-in · saved on this device</span>
+      <h1>Learn to type <em>without looking down.</em></h1>
+      <p>Thirty-one lessons that start on the home row and end with real paragraphs, numbers and symbols. Everything you type stays in this browser — your streak, your best speeds and your weak keys are remembered automatically, with no account to create.</p>
+      <div class="row" style="margin-top:18px">
+        <button class="btn" id="continueBtn">Continue where I left off</button>
+        <button class="btn ghost" data-goview="test">Take a speed test</button>
+      </div>
+    </div>
+    <div id="units"></div>
+  </section>
+
+  <!-- ══ TEST ══ -->
+  <section class="view" id="view-test">
+    <div class="hero">
+      <span class="kicker">Timed test</span>
+      <h1>How fast are you <em>right now?</em></h1>
+      <p>Type as much as you can before the clock runs out. The result is saved to your progress chart so you can watch the line climb.</p>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <span class="kicker" style="margin-right:4px">Length</span>
+          <div class="seg" id="durSeg">
+            <button data-dur="15">15s</button>
+            <button data-dur="30" class="on">30s</button>
+            <button data-dur="60">60s</button>
+            <button data-dur="120">2 min</button>
+          </div>
+        </div>
+        <div class="row">
+          <label class="switch"><input type="checkbox" id="hardMode"> Punctuation &amp; numbers</label>
+        </div>
+      </div>
+      <div class="row" style="margin-top:18px">
+        <button class="btn aqua" id="startTest">Start test</button>
+        <span class="note" id="testBest"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ DRILL ══ -->
+  <section class="view" id="view-drill">
+    <div class="hero">
+      <span class="kicker">Weak keys</span>
+      <h1>Drill the keys that <em>keep tripping you up.</em></h1>
+      <p>Every mistake you make is counted per key. This builds a practice run out of the keys you miss most, so you spend your time where it actually helps.</p>
+    </div>
+    <div class="card">
+      <div class="panel-head"><h3>Your least reliable keys</h3><p id="weakSub">Keep typing — a few more lessons and this fills in.</p></div>
+      <div class="weakgrid" id="weakGrid"></div>
+      <div class="row" style="margin-top:20px">
+        <button class="btn" id="startDrill">Start weak-key drill</button>
+        <button class="btn ghost" id="startRandomDrill">Random letter drill</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CUSTOM ══ -->
+  <section class="view" id="view-custom">
+    <div class="hero">
+      <span class="kicker">Your own text</span>
+      <h1>Practice on something <em>you actually type.</em></h1>
+      <p>Paste an email, a code snippet, a paragraph from a book — anything. It never leaves your browser.</p>
+    </div>
+    <div class="card">
+      <textarea class="custom" id="customText" placeholder="Paste or type anything here, then press Start…" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="startCustom">Start</button>
+        <button class="btn ghost" id="sampleCustom">Use a sample</button>
+        <span class="note" id="customCount"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ PROGRESS ══ -->
+  <section class="view" id="view-progress">
+    <div class="hero">
+      <span class="kicker">Progress</span>
+      <h1>Everything you have done, <em>kept on this device.</em></h1>
+      <p>Saved with your browser's local storage. Clearing site data — or opening the site in private browsing or on another device — starts you over, so export a backup if it matters to you.</p>
+    </div>
+
+    <div class="stat-row" id="statRow"></div>
+
+    <div class="stack">
+      <div class="card">
+        <div class="panel-head">
+          <h3>Words per minute, last 20 runs</h3>
+          <p id="chartSub"></p>
+        </div>
+        <div class="chart-wrap" id="chartWrap"></div>
+      </div>
+
+      <div class="card">
+        <div class="panel-head">
+          <h3>Accuracy by key</h3>
+          <p>Darker means you miss it more often. Keys you have not typed yet stay empty.</p>
+        </div>
+        <div style="overflow-x:auto"><div id="heatKb" class="kb-rows"></div></div>
+        <p class="empty" id="heatEmpty" style="display:none">Nothing measured yet — the keys colour in as you practise.</p>
+        <div class="heat-legend">
+          <span>Fewer misses</span>
+          <i style="background:rgba(255,107,107,.10)"></i><i style="background:rgba(255,107,107,.30)"></i>
+          <i style="background:rgba(255,107,107,.55)"></i><i style="background:rgba(255,107,107,.85)"></i>
+          <span>More misses</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="panel-head"><h3>Recent runs</h3><p id="histSub"></p></div>
+        <ul class="hist" id="histList"></ul>
+      </div>
+
+      <div class="card">
+        <div class="panel-head"><h3>Settings &amp; your data</h3></div>
+        <div class="row" style="margin:14px 0 18px;gap:22px">
+          <label class="switch"><input type="checkbox" id="optKb" checked> Show keyboard</label>
+          <label class="switch"><input type="checkbox" id="optFingers" checked> Finger colours</label>
+          <label class="switch"><input type="checkbox" id="optSound"> Sound on mistakes</label>
+        </div>
+        <p class="note">Your progress lives in this browser only — nothing is uploaded and there is no account. <b>Export</b> writes a small JSON file you can keep or move to another computer.</p>
+        <div class="row" style="margin-top:16px">
+          <button class="btn ghost" id="exportBtn">Export backup</button>
+          <button class="btn ghost" id="importBtn">Import backup</button>
+          <button class="btn ghost danger" id="resetBtn">Reset everything</button>
+          <input type="file" id="importFile" accept="application/json,.json" class="sr">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ RUN ══ -->
+  <section class="view" id="view-run">
+    <div class="run-head">
+      <div>
+        <h2 id="runTitle">Lesson</h2>
+        <p id="runSub"></p>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="restartRun">Restart</button>
+        <button class="btn ghost" id="exitRun">Exit</button>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric wpm"><b id="mWpm">0</b><span>WPM</span></div>
+      <div class="metric acc"><b id="mAcc">100%</b><span>Accuracy</span></div>
+      <div class="metric"><b id="mTime">0:00</b><span id="mTimeLbl">Time</span></div>
+      <div class="metric"><b id="mProg">—</b><span id="mProgLbl">Progress</span></div>
+    </div>
+
+    <div class="typebox idle" id="typebox">
+      <div class="tviewport"><div class="tinner" id="tinner">
+        <div class="ttext" id="ttext"></div>
+        <div class="caret" id="caret"></div>
+      </div></div>
+      <div class="nextline" id="nextline"></div>
+      <div class="blocker">Fix the red characters to move on — backspace and try again.</div>
+      <input id="hiddenInput" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+             aria-label="Typing input" style="position:absolute;opacity:0;left:0;top:0;width:100%;height:100%;border:0;background:transparent;font-size:16px;cursor:text">
+    </div>
+    <div class="tapnote">Tap the text above to bring up your keyboard.</div>
+
+    <div class="progline"><i id="progFill"></i></div>
+
+    <div class="kb" id="kb">
+      <div class="kb-rows" id="kbRows"></div>
+      <div class="kb-legend">
+        <span><i style="background:var(--f-pinky)"></i>Pinky</span>
+        <span><i style="background:var(--f-ring)"></i>Ring</span>
+        <span><i style="background:var(--f-mid)"></i>Middle</span>
+        <span><i style="background:var(--f-index)"></i>Index</span>
+        <span><i style="background:var(--f-thumb)"></i>Thumb</span>
+      </div>
+      <div class="fingertip" id="fingertip"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Linear Type — part of <a href="/">linearit.co</a> · <a href="/pages/">every page on this site</a> · nothing you type is sent anywhere.
+</footer>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div id="pbWrap"></div>
+    <h3 id="resTitle">Nice work</h3>
+    <p class="sub" id="resSub"></p>
+    <div class="res-stars" id="resStars"></div>
+    <div class="res-grid">
+      <div><b id="resWpm">0</b><span>WPM</span></div>
+      <div><b id="resAcc">0%</b><span>Accuracy</span></div>
+      <div><b id="resChars">0</b><span>Characters</span></div>
+      <div><b id="resTime">0:00</b><span>Time</span></div>
+    </div>
+    <p class="note" id="resAdvice"></p>
+    <div class="row" style="margin-top:18px">
+      <button class="btn ghost" id="resRetry">Try again</button>
+      <button class="btn" id="resNext">Next</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ══════════════════════════════════════════════════════════
+   1. STORAGE — everything lives in this browser, no account
+   ══════════════════════════════════════════════════════════ */
+var LS_KEY = 'linear.typing.v1';
+var state;
+
+function blankState(){
+  return {
+    v:1,
+    lessons:{},                       // id -> {best:{wpm,acc}, stars, done:true, tries:n}
+    tests:[],                         // recent runs, newest last
+    keys:{},                          // char -> {h:hits, e:errors}
+    totals:{seconds:0, chars:0, runs:0},
+    streak:{last:null, days:0, best:0},
+    daily:{},                         // 'YYYY-MM-DD' -> seconds
+    settings:{keyboard:true, fingers:true, sound:false}
+  };
+}
+function load(){
+  var s = blankState();
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      var p = JSON.parse(raw);
+      if(p && typeof p === 'object'){
+        ['lessons','keys','daily'].forEach(function(k){ if(p[k] && typeof p[k]==='object') s[k]=p[k]; });
+        if(Array.isArray(p.tests)) s.tests = p.tests.slice(-200);
+        ['totals','streak','settings'].forEach(function(k){
+          if(p[k] && typeof p[k]==='object') Object.keys(s[k]).forEach(function(f){
+            if(p[k][f] !== undefined) s[k][f] = p[k][f];
+          });
+        });
+      }
+    }
+  }catch(e){ /* corrupt or blocked storage — start fresh */ }
+  return s;
+}
+var saveTimer = null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+  }, 120);
+}
+function saveNow(){ clearTimeout(saveTimer); try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+
+function dayKey(d){
+  d = d || new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function bumpStreak(){
+  var today = dayKey(), st = state.streak;
+  if(st.last === today) return;
+  var y = new Date(); y.setDate(y.getDate()-1);
+  st.days = (st.last === dayKey(y)) ? (st.days||0)+1 : 1;
+  st.last = today;
+  if(st.days > (st.best||0)) st.best = st.days;
+}
+
+/* ══════════════════════════════════════════════════════════
+   2. CONTENT — words, sentences and the lesson course.
+   Lessons only ever use letters that have already been taught, so the
+   order below is deliberate: v m → b n → c → x → z.
+   ══════════════════════════════════════════════════════════ */
+var COMMON = ('the of and a to in is you that it he was for on are as with his they i at be this have from one had by ' +
+'word but not what all were we when your can said there use an each which she do how their if will up other about out many then ' +
+'them these so some her would make like him into time has look two more write go see number no way could people my than first ' +
+'water been call who oil its now find long down day did get come made may part over new sound take only little work know place ' +
+'year live me back give most very after thing our just name good sentence man think say great where help through much before ' +
+'line right too mean old any same tell boy follow came want show also around form three small set put end does another well ' +
+'large must big even such because turn here why ask went men read need land different home us move try kind hand picture again ' +
+'change off play spell air away animal house point page letter mother answer found study still learn should world high every ' +
+'near add food between own below country plant last school father keep tree never start city earth eye light thought head under ' +
+'story saw left dont few while along might close something seem next hard open example begin life always those both paper together').split(' ');
+
+var HARDBITS = ['(yes)','"hello,"','it\'s','24/7','$1,250','45%','#3','e-mail','2026,','9:30','plan-b','Q4','[note]','A+','x2','...','user@site.com','1,024','v2.1'];
+
+var LESSONS = [
+  /* ── Unit 1 · the home row ── */
+  {u:'Home row', t:'F and J', keys:'f j', tgt:12, drill:['f','j'], review:'', tip:'Rest your index fingers on F and J — feel the little bumps. Everything else is measured from there.'},
+  {u:'Home row', t:'D and K', keys:'d k', tgt:12, drill:['d','k'], review:'fj'},
+  {u:'Home row', t:'S and L', keys:'s l', tgt:13, drill:['s','l'], review:'fjdk'},
+  {u:'Home row', t:'A and ;', keys:'a ;', tgt:13, drill:['a',';'], review:'fjdksl',
+   words:['as','ask','all','add','fall','falls','flask','salad','dad','sad','lad','lads','lass','alas','flak','asks','dads']},
+  {u:'Home row', t:'G and H', keys:'g h', tgt:14, drill:['g','h'], review:'fjdksla;',
+   words:['gash','glad','gall','half','halls','shall','glass','flash','slash','hash','dash','sash','lash','gala','saga','flags','shag','ash','had','has']},
+  {u:'Home row', t:'Home row words', keys:'a s d f g h j k l ;', tgt:16,
+   words:['dad','has','a','glass','half','salad','all','falls','flash','glad','lass','shall','ask','flask','gash','sash','lads','add','dash','saga','gala','hall']},
+
+  /* ── Unit 2 · the top row ── */
+  {u:'Top row', t:'E and I', keys:'e i', tgt:16, drill:['e','i'], review:'asdfghjkl',
+   words:['like','life','file','said','side','hide','deal','heal','jail','feel','fill','hill','sell','else','held','field','shield','slide','glide','shell','flake','aisle','ideal','idea']},
+  {u:'Top row', t:'R and U', keys:'r u', tgt:17, drill:['r','u'], review:'asdfghjkl ei',
+   words:['rule','ruler','sure','real','hurl','drug','guard','rural','urge','user','guide','girl','hair','flair','flush','regular','false','dealer','hurried','fluid']},
+  {u:'Top row', t:'T and Y', keys:'t y', tgt:18, drill:['t','y'], review:'asdfghjkl eiru',
+   words:['that','they','this','style','try','test','tidy','fifty','stay','dirty','tasty','thirty','yet','yield','delight','healthy','safety','tightly','lasted','gritty']},
+  {u:'Top row', t:'W and O', keys:'w o', tgt:19, drill:['w','o'], review:'asdfghjkl eiruty',
+   words:['word','work','would','show','slow','follow','low','world','wool','throw','hollow','without','yellow','allow','doorway','worth','south','toward','today','flow']},
+  {u:'Top row', t:'Q and P', keys:'q p', tgt:19, drill:['q','p'], review:'asdfghjkl eirutywo',
+   words:['quit','quiet','quote','paper','apple','purple','plague','quality','people','please','prepare','equip','plaque','quarter','output','profit','support','pilot','proper','quilt']},
+  {u:'Top row', t:'Top row review', keys:'q w e r t y u i o p', tgt:22, sentences:[
+    'we quit early after a quiet trip',
+    'the older writer kept a full page',
+    'her sister likes to write short letters',
+    'you will get out what you put here',
+    'a fair deal is a quiet reward',
+    'the aisle to the right was quite full']},
+
+  /* ── Unit 3 · the bottom row ── */
+  {u:'Bottom row', t:'V and M', keys:'v m', tgt:20, drill:['v','m'], review:'asdfghjkl qwertyuiop',
+   words:['move','movie','made','must','milk','remove','small','vivid','volume','family','improve','memory','marvel','valid','summer','formal','value','mystery','review','motive']},
+  {u:'Bottom row', t:'B and N', keys:'b n', tgt:21, drill:['b','n'], review:'asdfghjkl qwertyuiop vm',
+   words:['bank','blank','number','robin','bond','bring','nimble','banner','ribbon','benefit','unable','marble','begin','notebook','brain','never','nobody','normal','button','november']},
+  {u:'Bottom row', t:'C and the comma', keys:'c ,', tgt:21, drill:['c',','], review:'asdfghjkl qwertyuiop vmbn',
+   words:['class','click','could','cool','cost','cycle','correct','call','clear','choice','account','office','picture','because','create','service','check','copy','cause','local'],
+   sentences:['coffee, milk, sugar, and ice','we could call, click, or come over','it is clear, correct, and complete']},
+  {u:'Bottom row', t:'X and the period', keys:'x .', tgt:22, drill:['x','.'], review:'asdfghjkl qwertyuiop vmbnc',
+   words:['next','extra','exit','taxi','six','mixed','export','excuse','complex','index','text','fix','box','relax','maximum'],
+   sentences:['the next taxi is six miles out.','fix the box and export the text.','relax. the exit is right here.']},
+  {u:'Bottom row', t:'Z and the slash', keys:'z /', tgt:22, drill:['z','/'], review:'asdfghjkl qwertyuiop vmbncx',
+   words:['zero','size','zone','lazy','quiz','dozen','amaze','prize','freeze','citizen','realize','organize','puzzle','crazy','frozen'],
+   sentences:['and/or he/she yes/no on/off','the quiz has a dozen prizes.','open c:/users/public/zip']},
+  {u:'Bottom row', t:'Whole alphabet', keys:'a — z', tgt:26, sentences:[
+    'the quick brown fox jumps over the lazy dog',
+    'pack my box with five dozen liquor jugs',
+    'sphinx of black quartz, judge my vow',
+    'amazingly few discotheques provide jukeboxes',
+    'how vexingly quick daft zebras jump',
+    'the five boxing wizards jump quickly']},
+
+  /* ── Unit 4 · shift, capitals and punctuation ── */
+  {u:'Capitals', t:'Capital letters', keys:'Shift + A—Z', tgt:24, tip:'Use the opposite hand. Left-hand letter, right Shift — and the other way round.',
+   words:['Alice','Boston','Chicago','Denver','Emma','Friday','Grace','Henry','Israel','James','Kevin','London','Monday','Nathan','Oliver','Paris','Quinn','Rachel','Samuel','Tokyo','Utah','Victor','Wendy','Xavier','York','Zurich']},
+  {u:'Capitals', t:'Real sentences', keys:'Aa .', tgt:26, sentences:[
+    'Anna and David left for Boston on Monday.',
+    'We meet Grace at the Paris airport at noon.',
+    'The Hudson Valley gets cold in November.',
+    'Please call Rachel before you leave Denver.',
+    'James works at Linear on Tuesday and Thursday.',
+    'Every Sunday, Maria walks the long way home.']},
+  {u:'Capitals', t:'! ? : ; " \'', keys:'! ? : ; " \'', tgt:26, sentences:[
+    'Wow! Really? Yes: truly.',
+    'Don\'t stop; it\'s finally working!',
+    '"Come here," she said quietly.',
+    'Who? Me! Why not?',
+    'It\'s Anna\'s turn; then it\'s mine.',
+    'Ready? Set! Go!']},
+
+  /* ── Unit 5 · numbers and symbols ── */
+  {u:'Numbers', t:'1 2 3 4 5', keys:'1 2 3 4 5', tgt:20, drill:['1','2','3','4','5'], review:'', numbers:true,
+   tip:'Reach up from the home row and come straight back. Left hand only for this one.'},
+  {u:'Numbers', t:'6 7 8 9 0', keys:'6 7 8 9 0', tgt:20, drill:['6','7','8','9','0'], review:'12345', numbers:true},
+  {u:'Numbers', t:'Numbers in real life', keys:'0 — 9', tgt:24, sentences:[
+    'Invoice 4821 is due on May 15, 2026.',
+    'Call 845 555 0134 after 9:30 am.',
+    'We ordered 12 laptops and 30 docks.',
+    'Room 402 opens at 8:15 sharp.',
+    'The total came to 1,275 dollars.',
+    'Backups run every 6 hours, 7 days a week.']},
+  {u:'Numbers', t:'Symbols', keys:'@ # $ % & * ( ) - _ + =', tgt:22, sentences:[
+    '@ # $ % ^ & * ( ) - _ = +',
+    'chaim@linearit.co',
+    '50% off - $1,250.00 total',
+    '(845) 555-0134',
+    'file_name = value + 1;',
+    'https://www.linearit.co/typing/']},
+
+  /* ── Unit 6 · real typing ── */
+  {u:'Real text', t:'The 100 most common words', keys:'everything', tgt:32,
+   words:COMMON.slice(0,100)},
+  {u:'Real text', t:'Everyday sentences', keys:'everything', tgt:34, sentences:[
+    'Please send the report before you leave today.',
+    'The meeting moved to Thursday at four.',
+    'I will call you back in about ten minutes.',
+    'Let me know if the printer is still offline.',
+    'Thanks for getting that sorted so quickly.',
+    'We should back up the server before the update.']},
+  {u:'Real text', t:'Punctuation workout', keys:'everything', tgt:34, sentences:[
+    'She asked, "Can it wait until Monday?"',
+    'Bring three things: a laptop, a charger, and patience.',
+    'It works (mostly) - the rest is on my list.',
+    'His reply was short; mine was shorter.',
+    'That\'s the whole plan. Simple, isn\'t it?',
+    'Call at 9:15, 11:30, or 2:45 - whatever suits.']},
+  {u:'Real text', t:'A full paragraph', keys:'everything', tgt:36, para:
+    'Typing well is not about moving faster. It is about moving less. Once your fingers know where the keys are, ' +
+    'your hands stop hunting and your eyes stay on the screen. That is the whole trick, and it only comes from ' +
+    'practising a little every day rather than a lot once a month. Slow down until you stop making mistakes, and ' +
+    'the speed shows up on its own.'},
+  {u:'Real text', t:'A work email', keys:'everything', tgt:38, para:
+    'Hi Sarah, thanks for the quick reply. I looked at the two machines in the front office and both are on the ' +
+    'old build, so I will push the update tonight after 7:00 pm and reboot them. Nothing should change for your ' +
+    'team in the morning, but if a login looks odd, call me at 845 555 0134 and I will sort it out. I have also ' +
+    'added the new laptop to the backup schedule. Best, Chaim'},
+  {u:'Real text', t:'Speed builder', keys:'everything', tgt:42,
+   words:COMMON.slice(0,60), long:true, tip:'Short, common words at a steady rhythm. Do not stop to fix small errors — keep the flow.'}
+];
+LESSONS.forEach(function(l,i){ l.id = 'L' + (i+1); });
+
+/* ── content generators ─────────────────────────────── */
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function shuffled(a){ var b=a.slice(),i,j,t; for(i=b.length-1;i>0;i--){ j=Math.floor(Math.random()*(i+1)); t=b[i];b[i]=b[j];b[j]=t; } return b; }
+
+function drillChunks(newKeys, review){
+  var rev = (review||'').replace(/\s+/g,'').split('');
+  var out = [], i, j, a, b;
+  for(i=0;i<newKeys.length;i++){
+    for(j=0;j<newKeys.length;j++){
+      a = newKeys[i]; b = newKeys[j];
+      out.push(a+a+b+b, a+b+a+b, a+b+b+a);
+      if(i!==j) out.push(a+b, b+a, a+b+a);
+    }
+  }
+  if(rev.length){
+    for(i=0;i<14;i++){
+      var s = '', pool = newKeys.concat(rev);
+      var len = 3 + Math.floor(Math.random()*2);
+      s += pick(newKeys);
+      for(j=1;j<len;j++) s += pick(pool);
+      out.push(s);
+    }
+  }
+  return out;
+}
+function linesFromChunks(chunks, nLines, width){
+  var lines = [], bag = shuffled(chunks), k = 0;
+  while(lines.length < nLines){
+    var line = '';
+    while(line.length < width){
+      if(k >= bag.length){ bag = shuffled(chunks); k = 0; }
+      line += (line ? ' ' : '') + bag[k++];
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+function linesFromWords(words, nLines, width){
+  var lines = [], bag = shuffled(words), k = 0;
+  while(lines.length < nLines){
+    var line = '';
+    while(line.length < width){
+      if(k >= bag.length){ bag = shuffled(words); k = 0; }
+      var w = bag[k++];
+      if(line && line.length + w.length + 1 > width + 6) break;
+      line += (line ? ' ' : '') + w;
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+function wrapText(text, width){
+  var words = text.split(/\s+/), lines = [], line = '';
+  words.forEach(function(w){
+    if(line && (line + ' ' + w).length > width){ lines.push(line); line = w; }
+    else line = line ? line + ' ' + w : w;
+  });
+  if(line) lines.push(line);
+  return lines;
+}
+function buildLesson(l){
+  var width = window.innerWidth < 720 ? 30 : 42;
+  if(l.para) return wrapText(l.para, width + 8);
+  if(l.sentences && !l.drill){
+    var only = shuffled(l.sentences).slice(0,6);
+    return l.words ? linesFromWords(l.words, 3, width).concat(only) : only;
+  }
+  if(l.drill){
+    var lines = linesFromChunks(drillChunks(l.drill, l.review), l.words ? 4 : 5, width);
+    if(l.words) lines = lines.concat(linesFromWords(l.words, 2, width));
+    if(l.sentences) lines = lines.concat(shuffled(l.sentences).slice(0,2));
+    return lines;
+  }
+  if(l.words) return linesFromWords(l.words, l.long ? 7 : 6, width);
+  return ['practice'];
+}
+
+/* ── timed-test text ────────────────────────────────── */
+function testText(hard, wordCount){
+  var out = [], i, w;
+  for(i=0;i<wordCount;i++){
+    w = pick(COMMON);
+    if(hard){
+      var r = Math.random();
+      if(r < 0.10) w = pick(HARDBITS);
+      else if(r < 0.16) w = w.charAt(0).toUpperCase() + w.slice(1);
+      else if(r < 0.22) w = String(Math.floor(Math.random()*9000)+100);
+      else if(r < 0.28) w = w + pick([',','.',';','!','?']);
+    }
+    out.push(w);
+  }
+  return out.join(' ');
+}
+
+/* ══════════════════════════════════════════════════════════
+   3. KEYBOARD MAP
+   ══════════════════════════════════════════════════════════ */
+var FINGERS = {
+  lp:{c:'var(--f-pinky)', n:'left pinky'},  lr:{c:'var(--f-ring)', n:'left ring'},
+  lm:{c:'var(--f-mid)',   n:'left middle'}, li:{c:'var(--f-index)',n:'left index'},
+  ri:{c:'var(--f-index)', n:'right index'}, rm:{c:'var(--f-mid)',  n:'right middle'},
+  rr:{c:'var(--f-ring)',  n:'right ring'},  rp:{c:'var(--f-pinky)',n:'right pinky'},
+  th:{c:'var(--f-thumb)', n:'thumb'}
+};
+var KB_ROWS = [
+  [['`','~','lp'],['1','!','lp'],['2','@','lr'],['3','#','lm'],['4','$','li'],['5','%','li'],
+   ['6','^','ri'],['7','&','ri'],['8','*','rm'],['9','(','rr'],['0',')','rp'],['-','_','rp'],['=','+','rp'],['Back','','rp','w2']],
+  [['Tab','','lp','w15'],['q','','lp'],['w','','lr'],['e','','lm'],['r','','li'],['t','','li'],
+   ['y','','ri'],['u','','ri'],['i','','rm'],['o','','rr'],['p','','rp'],['[','{','rp'],[']','}','rp'],['\\','|','rp','w15']],
+  [['Caps','','lp','w175'],['a','','lp'],['s','','lr'],['d','','lm'],['f','','li','homing'],['g','','li'],
+   ['h','','ri'],['j','','ri','homing'],['k','','rm'],['l','','rr'],[';',':','rp'],['\'','"','rp'],['Enter','','rp','w225']],
+  [['Shift','','lp','w225'],['z','','lp'],['x','','lr'],['c','','lm'],['v','','li'],['b','','li'],
+   ['n','','ri'],['m','','ri'],[',','<','rm'],['.','>','rr'],['/','?','rp'],['Shift','','rp','w275']],
+  [['Space','','th','w6']]
+];
+var CHAR2KEY = {};   // character -> {id, shift, finger}
+(function(){
+  KB_ROWS.forEach(function(row){
+    row.forEach(function(k){
+      var base = k[0], up = k[1], f = k[2];
+      if(base.length === 1){
+        CHAR2KEY[base] = {id:base, shift:false, f:f};
+        if(/[a-z]/.test(base)) CHAR2KEY[base.toUpperCase()] = {id:base, shift:true, f:f};
+        if(up) CHAR2KEY[up] = {id:base, shift:true, f:f};
+      }
+    });
+  });
+  CHAR2KEY[' '] = {id:'Space', shift:false, f:'th'};
+})();
+
+function keyElId(id){ return 'k_' + id.charCodeAt(0) + '_' + id.length; }
+function buildKeyboard(container, opts){
+  opts = opts || {};
+  container.innerHTML = '';
+  KB_ROWS.forEach(function(row){
+    var r = document.createElement('div'); r.className = 'krow';
+    row.forEach(function(k){
+      var el = document.createElement('div');
+      var extra = k[3] || '';
+      el.className = 'key ' + (extra === 'homing' ? 'homing' : extra);
+      el.style.setProperty('--fc', FINGERS[k[2]].c);
+      el.dataset.k = k[0];
+      el.dataset.side = k[2].charAt(0);
+      if(k[1] && k[0].length === 1){
+        el.innerHTML = '<small>' + esc(k[1]) + '</small>' + esc(k[0]);
+      }else{
+        el.textContent = k[0];
+        if(k[0].length > 1) el.style.fontSize = '.62rem';
+      }
+      r.appendChild(el);
+    });
+    container.appendChild(r);
+  });
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ══════════════════════════════════════════════════════════
+   4. TYPING ENGINE
+   ══════════════════════════════════════════════════════════ */
+var el = {};
+['tabs','units','streakN','typebox','ttext','tinner','caret','nextline','hiddenInput','kb','kbRows','fingertip',
+ 'mWpm','mAcc','mTime','mProg','mTimeLbl','mProgLbl','runTitle','runSub','progFill','modal','resTitle','resSub',
+ 'resStars','resWpm','resAcc','resChars','resTime','resAdvice','resRetry','resNext','pbWrap','statRow','chartWrap',
+ 'chartSub','heatKb','histList','histSub','weakGrid','weakSub','customText','customCount','testBest'
+].forEach(function(id){ el[id] = document.getElementById(id); });
+
+var R = null;              // active run
+var charEls = [];
+var tickTimer = null;
+
+function newRun(cfg){
+  R = {
+    mode:cfg.mode,                     // 'lesson' | 'test' | 'drill' | 'custom'
+    lessonId:cfg.lessonId || null,
+    lines:cfg.lines,
+    li:0,
+    target:cfg.lines[0],
+    typed:'',
+    strict:cfg.strict !== false,       // lessons/drills require a correct line
+    duration:cfg.duration || 0,
+    startedAt:0, endedAt:0,
+    strokes:0, hits:0, doneChars:0,
+    label:cfg.label, sub:cfg.sub || '',
+    finished:false, retry:cfg.retry
+  };
+  el.runTitle.textContent = cfg.label;
+  el.runSub.textContent = cfg.sub || '';
+  el.mTimeLbl.textContent = R.duration ? 'Left' : 'Time';
+  el.mProgLbl.textContent = R.mode === 'lesson' || R.mode === 'drill' ? 'Line' : 'Progress';
+  el.typebox.classList.add('idle');
+  el.typebox.classList.toggle('single', R.mode === 'lesson' || R.mode === 'drill');
+  showView('run');
+  renderTarget();
+  updateStats();
+  focusInput();
+  clearInterval(tickTimer);
+  tickTimer = setInterval(tick, 100);
+}
+
+function renderTarget(){
+  var frag = document.createDocumentFragment();
+  charEls = [];
+  var words = R.target.split(' ');
+  words.forEach(function(w, wi){
+    var span = document.createElement('span');
+    span.className = 'w';
+    for(var i=0;i<w.length;i++){
+      var c = document.createElement('c');
+      c.textContent = w[i];
+      span.appendChild(c); charEls.push(c);
+    }
+    // the space belongs to the word so the flex row can wrap between words
+    if(wi < words.length - 1){
+      var sp = document.createElement('c');
+      sp.textContent = ' ';
+      sp.dataset.sp = '1';
+      span.appendChild(sp); charEls.push(sp);
+    }
+    frag.appendChild(span);
+  });
+  el.ttext.innerHTML = '';
+  el.ttext.appendChild(frag);
+  el.hiddenInput.value = '';
+  paint(true);
+  // next-line preview for lesson-style runs
+  if((R.mode === 'lesson' || R.mode === 'drill') && R.lines[R.li+1]){
+    el.nextline.innerHTML = '<em>next</em>' + esc(R.lines[R.li+1]);
+  }else{
+    el.nextline.textContent = '';
+  }
+  requestAnimationFrame(function(){ moveCaret(); highlightNext(); });
+}
+
+function paint(force){
+  var n = R.typed.length, i, cls, c;
+  for(i=0;i<charEls.length;i++){
+    cls = '';
+    if(i < n) cls = (R.typed[i] === R.target[i]) ? 'ok' : 'bad';
+    if(cls === 'bad' && R.target[i] === ' ') cls = 'bad sp';
+    c = charEls[i];
+    if(force || c.className !== cls) c.className = cls;
+  }
+  var stuck = R.strict && n >= R.target.length && R.typed !== R.target;
+  el.typebox.classList.toggle('stuck', stuck);
+}
+
+function moveCaret(){
+  if(!charEls.length) return;
+  var atEnd = R.typed.length >= charEls.length;
+  var c = charEls[Math.min(R.typed.length, charEls.length - 1)];
+  var x = c.offsetLeft + (atEnd ? c.offsetWidth : 0);
+  var y = c.offsetTop;
+  var lh = c.offsetHeight || 28;
+  el.caret.style.transform = 'translate(' + x + 'px,' + (y + 4) + 'px)';
+  el.caret.style.height = Math.max(10, lh - 8) + 'px';
+  // keep the active line on the second row of the viewport
+  var shift = Math.max(0, y - lh);
+  el.tinner.style.transform = 'translateY(' + (-shift) + 'px)';
+}
+
+function highlightNext(){
+  var keys = el.kbRows.querySelectorAll('.key');
+  var i;
+  for(i=0;i<keys.length;i++) keys[i].classList.remove('next','hold');
+  var ch = R.typed.length < R.target.length ? R.target[R.typed.length] : null;
+  if(!ch){ el.fingertip.innerHTML = ''; return; }
+  var map = CHAR2KEY[ch];
+  if(!map){ el.fingertip.innerHTML = ''; return; }
+  var hand = map.f.charAt(0);                  // 'l' or 'r' — 'th' counts as neither
+  for(i=0;i<keys.length;i++){
+    if(keys[i].dataset.k === map.id) keys[i].classList.add('next');
+    // Shift is always pressed with the opposite hand
+    if(map.shift && keys[i].dataset.k === 'Shift' && keys[i].dataset.side !== hand){
+      keys[i].classList.add('hold');
+    }
+  }
+  var f = FINGERS[map.f];
+  var label = ch === ' ' ? 'space' : ch;
+  el.fingertip.innerHTML = '<i style="background:' + f.c + '"></i>Next: <b>' + esc(label) + '</b> — ' +
+    f.n + (map.shift ? ' <b>+ Shift</b> (opposite hand)' : '');
+}
+
+function flashKey(ch, ok){
+  var map = CHAR2KEY[ch];
+  if(!map) return;
+  var keys = el.kbRows.querySelectorAll('.key');
+  for(var i=0;i<keys.length;i++){
+    if(keys[i].dataset.k === map.id){
+      var k = keys[i], cls = ok ? 'hit' : 'miss';
+      k.classList.add(cls);
+      setTimeout(function(){ k.classList.remove('hit','miss'); }, 140);
+      break;
+    }
+  }
+}
+
+var audioCtx = null;
+function beep(){
+  if(!state.settings.sound) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square'; o.frequency.value = 180;
+    g.gain.value = 0.05;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + 0.05);
+  }catch(e){}
+}
+
+function statKey(ch){ return /[A-Z]/.test(ch) ? ch.toLowerCase() : ch; }
+
+function onInput(){
+  if(!R || R.finished) return;
+  var v = el.hiddenInput.value;
+  if(v.length > R.target.length){ v = v.slice(0, R.target.length); el.hiddenInput.value = v; }
+
+  if(v.length > R.typed.length){
+    if(!R.startedAt){ R.startedAt = Date.now(); el.typebox.classList.remove('idle'); }
+    for(var i = R.typed.length; i < v.length; i++){
+      var exp = R.target[i], got = v[i];
+      R.strokes++;
+      var k = statKey(exp);
+      var rec = state.keys[k] || (state.keys[k] = {h:0, e:0});
+      if(got === exp){ R.hits++; rec.h++; flashKey(exp, true); }
+      else { rec.e++; flashKey(exp, false); beep(); }
+    }
+    save();
+  }
+  R.typed = v;
+  paint(); moveCaret(); highlightNext(); updateStats();
+
+  if(R.typed.length >= R.target.length){
+    if(R.strict){
+      if(R.typed === R.target) nextLine();
+    }else{
+      nextLine();
+    }
+  }
+}
+
+function nextLine(){
+  R.doneChars += R.target.length;
+  if(R.li + 1 < R.lines.length){
+    R.li++;
+    R.target = R.lines[R.li];
+    R.typed = '';
+    renderTarget();
+    updateStats();
+  }else{
+    finish();
+  }
+}
+
+function correctSoFar(){
+  var n = 0;
+  for(var i=0;i<R.typed.length && i<R.target.length;i++) if(R.typed[i] === R.target[i]) n++;
+  return R.doneChars + n;
+}
+function runSeconds(){
+  if(!R.startedAt) return 0;
+  return ((R.endedAt || Date.now()) - R.startedAt) / 1000;
+}
+function wpmNow(){
+  var s = runSeconds();
+  if(s < 0.8) return 0;
+  return Math.max(0, Math.round((correctSoFar() / 5) / (s / 60)));
+}
+function accNow(){ return R.strokes ? Math.round((R.hits / R.strokes) * 100) : 100; }
+function fmtTime(s){
+  s = Math.max(0, Math.round(s));
+  return Math.floor(s/60) + ':' + String(s % 60).padStart(2,'0');
+}
+
+function updateStats(){
+  el.mWpm.textContent = wpmNow();
+  var a = accNow();
+  el.mAcc.textContent = a + '%';
+  el.mAcc.parentNode.classList.toggle('low', a < 94);
+  if(R.duration){
+    var left = R.duration - runSeconds();
+    el.mTime.textContent = fmtTime(Math.max(0, left));
+    el.mProg.textContent = correctSoFar();
+    el.mProgLbl.textContent = 'Characters';
+    el.progFill.style.width = Math.min(100, (runSeconds() / R.duration) * 100) + '%';
+  }else{
+    el.mTime.textContent = fmtTime(runSeconds());
+    if(R.mode === 'lesson' || R.mode === 'drill'){
+      el.mProg.textContent = (R.li + 1) + '/' + R.lines.length;
+      el.progFill.style.width = ((R.li + (R.typed.length / Math.max(1, R.target.length))) / R.lines.length * 100) + '%';
+    }else{
+      var pct = R.target.length ? (R.typed.length / R.target.length) : 0;
+      el.mProg.textContent = Math.round(pct * 100) + '%';
+      el.progFill.style.width = (pct * 100) + '%';
+    }
+  }
+}
+
+function tick(){
+  if(!R || R.finished || !R.startedAt) return;
+  if(R.duration && runSeconds() >= R.duration){ finish(); return; }
+  updateStats();
+}
+
+function finish(){
+  if(!R || R.finished) return;
+  R.finished = true;
+  R.endedAt = Date.now();
+  clearInterval(tickTimer);
+  el.hiddenInput.blur();
+
+  var secs = Math.round(runSeconds());
+  var wpm = wpmNow(), acc = accNow(), chars = correctSoFar();
+  if(secs < 2 || R.strokes < 5){ showView(R.mode === 'lesson' ? 'learn' : R.mode === 'test' ? 'test' : R.mode); return; }
+
+  // ── record ──────────────────────────────────────────
+  bumpStreak();
+  state.totals.seconds += secs;
+  state.totals.chars += chars;
+  state.totals.runs += 1;
+  var dk = dayKey();
+  state.daily[dk] = (state.daily[dk] || 0) + secs;
+
+  var tag = R.mode === 'test' ? R.duration + 's test'
+          : R.mode === 'lesson' ? lessonById(R.lessonId).t
+          : R.mode === 'drill' ? 'weak-key drill' : 'your text';
+  state.tests.push({t:Date.now(), tag:tag, mode:R.mode, wpm:wpm, acc:acc, chars:chars, secs:secs});
+  if(state.tests.length > 200) state.tests = state.tests.slice(-200);
+
+  var stars = 0, pb = false, prevBest = 0;
+  if(R.mode === 'lesson'){
+    var L = lessonById(R.lessonId);
+    stars = acc >= 98 && wpm >= L.tgt ? 3 : acc >= 95 && wpm >= L.tgt * 0.8 ? 2 : acc >= 90 ? 1 : 0;
+    var rec = state.lessons[R.lessonId] || (state.lessons[R.lessonId] = {stars:0, tries:0, best:{wpm:0, acc:0}});
+    rec.tries++;
+    prevBest = rec.best.wpm || 0;
+    if(wpm > rec.best.wpm){ rec.best.wpm = wpm; if(rec.tries > 1) pb = true; }
+    if(acc > rec.best.acc) rec.best.acc = acc;
+    if(stars > rec.stars) rec.stars = stars;
+    if(stars >= 1) rec.done = true;
+  }else{
+    var same = state.tests.filter(function(x){ return x.mode === R.mode && (R.mode !== 'test' || x.tag === tag); });
+    prevBest = same.slice(0, -1).reduce(function(m,x){ return Math.max(m, x.wpm); }, 0);
+    pb = wpm > prevBest && same.length > 1;
+  }
+  saveNow();
+  renderAll();
+  showResults({wpm:wpm, acc:acc, chars:chars, secs:secs, stars:stars, pb:pb, prevBest:prevBest});
+}
+
+function lessonById(id){
+  for(var i=0;i<LESSONS.length;i++) if(LESSONS[i].id === id) return LESSONS[i];
+  return null;
+}
+
+/* ══════════════════════════════════════════════════════════
+   5. RESULTS
+   ══════════════════════════════════════════════════════════ */
+function showResults(r){
+  var passed = r.stars >= 1 || R.mode !== 'lesson';
+  el.resTitle.textContent = R.mode === 'lesson'
+    ? (r.stars >= 3 ? 'Perfect run' : r.stars ? 'Lesson complete' : 'Not quite yet')
+    : (r.pb ? 'New personal best' : 'Run complete');
+  el.resSub.textContent = R.label;
+  el.pbWrap.innerHTML = r.pb ? '<span class="pb">★ personal best — was ' + r.prevBest + ' wpm</span>' : '';
+
+  if(R.mode === 'lesson'){
+    var s = '';
+    for(var i=0;i<3;i++) s += i < r.stars ? '<b>★</b>' : '★';
+    el.resStars.innerHTML = s;
+    el.resStars.style.display = '';
+  }else{
+    el.resStars.style.display = 'none';
+  }
+  el.resWpm.textContent = r.wpm;
+  el.resAcc.textContent = r.acc + '%';
+  el.resChars.textContent = r.chars;
+  el.resTime.textContent = fmtTime(r.secs);
+
+  var advice;
+  if(r.acc < 92) advice = 'Accuracy first. Slow down until you are over 95% — speed follows accuracy, never the other way round.';
+  else if(R.mode === 'lesson' && r.stars < 3) advice = 'Solid. Hit ' + lessonById(R.lessonId).tgt + ' wpm at 98% accuracy for all three stars.';
+  else if(r.wpm < 40) advice = 'Good accuracy. Now stop looking at your hands — the keyboard on screen is there for that.';
+  else advice = 'Strong run. Keep your wrists up and let the rhythm stay even.';
+  el.resAdvice.textContent = advice;
+
+  var next = R.mode === 'lesson' ? nextLessonAfter(R.lessonId) : null;
+  el.resNext.textContent = R.mode === 'lesson' ? (passed && next ? 'Next lesson' : 'Back to lessons')
+                        : R.mode === 'test' ? 'Another test' : 'Done';
+  el.resNext.dataset.next = passed && next ? next.id : '';
+  el.modal.classList.add('on');
+}
+function nextLessonAfter(id){
+  for(var i=0;i<LESSONS.length;i++) if(LESSONS[i].id === id) return LESSONS[i+1] || null;
+  return null;
+}
+function closeModal(){ el.modal.classList.remove('on'); }
+
+/* ══════════════════════════════════════════════════════════
+   6. STARTING RUNS
+   ══════════════════════════════════════════════════════════ */
+function startLesson(l){
+  closeModal();
+  newRun({
+    mode:'lesson', lessonId:l.id, lines:buildLesson(l), strict:true,
+    label:'Lesson ' + l.id.slice(1) + ' · ' + l.t,
+    sub:(l.tip || ('Keys: ' + l.keys)) + ' · target ' + l.tgt + ' wpm',
+    retry:function(){ startLesson(l); }
+  });
+}
+function startTest(){
+  closeModal();
+  var dur = +document.querySelector('#durSeg .on').dataset.dur;
+  var hard = document.getElementById('hardMode').checked;
+  var words = Math.max(60, Math.round(dur * 2.2));
+  newRun({
+    mode:'test', lines:[testText(hard, words)], strict:false, duration:dur,
+    label:dur + '-second test' + (hard ? ' · punctuation & numbers' : ''),
+    sub:'Type until the clock runs out. Mistakes are allowed — keep going.',
+    retry:startTest
+  });
+}
+function weakKeys(n){
+  var out = [];
+  Object.keys(state.keys).forEach(function(k){
+    if(k === ' ') return;
+    var r = state.keys[k], total = r.h + r.e;
+    if(total < 8 || !r.e) return;
+    out.push({k:k, rate:r.e / total, total:total, e:r.e});
+  });
+  out.sort(function(a,b){ return b.rate - a.rate; });
+  return out.slice(0, n || 8);
+}
+function startDrill(keys, label){
+  closeModal();
+  var chars = keys.map(function(x){ return x.k; });
+  var lines = linesFromChunks(drillChunks(chars, 'asdfjkl'), 6, window.innerWidth < 720 ? 30 : 42);
+  var words = COMMON.filter(function(w){
+    return chars.some(function(c){ return w.indexOf(c) !== -1; });
+  });
+  if(words.length > 12) lines = lines.slice(0,4).concat(linesFromWords(words, 3, window.innerWidth < 720 ? 30 : 42));
+  newRun({
+    mode:'drill', lines:lines, strict:true,
+    label:label || 'Weak-key drill',
+    sub:'Keys: ' + chars.join(' ') + ' — slow and clean beats fast and messy.',
+    retry:function(){ startDrill(keys, label); }
+  });
+}
+function startCustom(){
+  closeModal();
+  var txt = (el.customText.value || '').replace(/\s+/g,' ').trim();
+  if(txt.length < 10){ el.customText.focus(); return; }
+  if(txt.length > 2000) txt = txt.slice(0, 2000);
+  newRun({
+    mode:'custom', lines:[txt], strict:false,
+    label:'Your text', sub:txt.length + ' characters',
+    retry:startCustom
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   7. RENDERING — lessons, progress, charts
+   ══════════════════════════════════════════════════════════ */
+function isUnlocked(i){
+  if(i === 0) return true;
+  var prev = state.lessons[LESSONS[i-1].id];
+  return !!(prev && prev.done);
+}
+function firstUnfinished(){
+  for(var i=0;i<LESSONS.length;i++){
+    var rec = state.lessons[LESSONS[i].id];
+    if(!rec || !rec.done || rec.stars < 3) if(isUnlocked(i)) return LESSONS[i];
+  }
+  return LESSONS[LESSONS.length-1];
+}
+function renderUnits(){
+  var html = '', unit = null;
+  LESSONS.forEach(function(l, i){
+    if(l.u !== unit){
+      if(unit !== null) html += '</div></section>';
+      unit = l.u;
+      var count = LESSONS.filter(function(x){ return x.u === unit; }).length;
+      var done = LESSONS.filter(function(x){ return x.u === unit && state.lessons[x.id] && state.lessons[x.id].done; }).length;
+      html += '<section class="unit"><div class="unit-head"><h2>' + esc(unit) + '</h2>' +
+              '<span>' + done + '/' + count + ' complete</span></div><div class="lgrid">';
+    }
+    var rec = state.lessons[l.id], open = isUnlocked(i);
+    var stars = '';
+    for(var s=0;s<3;s++) stars += (rec && rec.stars > s) ? '<b>★</b>' : '★';
+    html += '<button class="lesson' + (open ? '' : ' locked') + ((rec && rec.done) ? ' done' : '') + '"' +
+            (open ? ' data-lesson="' + l.id + '"' : ' disabled') + '>' +
+            '<span class="num">' + (open ? 'LESSON ' + (i+1) : '🔒 LESSON ' + (i+1)) + '</span>' +
+            '<h3>' + esc(l.t) + '</h3>' +
+            '<div class="keys">' + esc(l.keys) + '</div>' +
+            '<div class="foot"><span class="stars">' + stars + '</span>' +
+            '<span>' + (rec && rec.best.wpm ? rec.best.wpm + ' wpm · ' + rec.best.acc + '%' : 'target ' + l.tgt + ' wpm') + '</span></div>' +
+            (rec && rec.done ? '<i class="bar" style="width:' + (rec.stars/3*100) + '%"></i>' : '') +
+            '</button>';
+  });
+  html += '</div></section>';
+  el.units.innerHTML = html;
+}
+
+function renderProgress(){
+  var t = state.tests;
+  var best = t.reduce(function(m,x){ return Math.max(m, x.wpm); }, 0);
+  var last10 = t.slice(-10);
+  var avgAcc = last10.length ? Math.round(last10.reduce(function(s,x){ return s + x.acc; }, 0) / last10.length) : 0;
+  var avgWpm = last10.length ? Math.round(last10.reduce(function(s,x){ return s + x.wpm; }, 0) / last10.length) : 0;
+  var doneLessons = LESSONS.filter(function(l){ return state.lessons[l.id] && state.lessons[l.id].done; }).length;
+  var starsTotal = LESSONS.reduce(function(s,l){ return s + ((state.lessons[l.id] && state.lessons[l.id].stars) || 0); }, 0);
+  var secs = Math.round(state.totals.seconds), mins = Math.round(secs / 60);
+  var practised = secs < 60 ? secs + 's' : mins < 60 ? mins + 'm' : Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+
+  el.statRow.innerHTML =
+    stat(best || '—', 'Best WPM', best ? 'across ' + t.length + ' runs' : 'take a test to set one') +
+    stat(avgWpm || '—', 'Recent average', last10.length + ' most recent runs') +
+    stat(avgAcc ? avgAcc + '%' : '—', 'Recent accuracy', 'aim for 97% or better') +
+    stat(doneLessons + '/' + LESSONS.length, 'Lessons done', starsTotal + ' of ' + (LESSONS.length*3) + ' stars') +
+    stat(state.streak.days || 0, 'Day streak', 'best ' + (state.streak.best || 0) + ' days') +
+    stat(practised, 'Time practised', state.totals.chars.toLocaleString() + ' characters');
+
+  el.streakN.textContent = state.streak.days || 0;
+  el.testBest.textContent = best ? 'Your best so far: ' + best + ' wpm.' : 'No tests yet — this is a good place to start.';
+  renderChart();
+  renderHeat();
+  renderHistory();
+  renderWeak();
+}
+function stat(b, label, small){
+  return '<div class="stat"><b>' + b + '</b><span>' + label + '</span><small>' + small + '</small></div>';
+}
+
+/* ── WPM history: one series, one hue, bars anchored to the
+      baseline with 4px rounded tops and a dashed best line ── */
+function renderChart(){
+  var data = state.tests.slice(-20);
+  if(data.length < 2){
+    el.chartWrap.innerHTML = '<p class="empty">Finish two runs and your speed over time shows up here.</p>';
+    el.chartSub.textContent = '';
+    return;
+  }
+  var W = 900, H = 240, padL = 42, padR = 14, padT = 18, padB = 34;
+  var iw = W - padL - padR, ih = H - padT - padB;
+  var best = Math.max.apply(null, data.map(function(d){ return d.wpm; }));
+  var top = Math.max(10, Math.ceil((best * 1.15) / 10) * 10);
+  var gap = 6;
+  var bw = Math.min(46, Math.max(4, (iw - gap * (data.length - 1)) / data.length));
+  var step = bw + gap;
+  var y = function(v){ return padT + ih - (v / top) * ih; };
+
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Words per minute over the last ' + data.length + ' runs">';
+  // grid + y labels (recessive)
+  [0, 0.5, 1].forEach(function(f){
+    var v = Math.round(top * f), yy = y(v);
+    s += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + yy + '" y2="' + yy + '" stroke="rgba(255,255,255,.08)" stroke-width="1"/>';
+    s += '<text x="' + (padL - 10) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="12" fill="#6d7688" font-family="DM Mono, monospace">' + v + '</text>';
+  });
+  // personal-best reference line
+  s += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(best) + '" y2="' + y(best) +
+       '" stroke="#70f2ff" stroke-width="1" stroke-dasharray="4 4" opacity=".55"/>';
+  s += '<text x="' + (padL + 4) + '" y="' + (y(best) - 7) + '" font-size="11" fill="#70f2ff">best ' + best + '</text>';
+  // bars — one series, one hue
+  data.forEach(function(d, i){
+    var x = padL + i * step, h = Math.max(2, (d.wpm / top) * ih), yy = padT + ih - h;
+    var r = Math.min(4, bw / 2, h);
+    s += '<path class="bar" data-i="' + i + '" d="M' + x + ' ' + (yy + h) +
+         ' L' + x + ' ' + (yy + r) + ' Q' + x + ' ' + yy + ' ' + (x + r) + ' ' + yy +
+         ' L' + (x + bw - r) + ' ' + yy + ' Q' + (x + bw) + ' ' + yy + ' ' + (x + bw) + ' ' + (yy + r) +
+         ' L' + (x + bw) + ' ' + (yy + h) + ' Z" fill="#6999f5"/>';
+    s += '<rect x="' + (x - gap/2) + '" y="' + padT + '" width="' + step + '" height="' + ih +
+         '" fill="transparent" data-hit="' + i + '"/>';
+  });
+  // direct label on the most recent bar only
+  var lastI = data.length - 1, lx = padL + lastI * step + bw / 2;
+  s += '<text x="' + lx + '" y="' + (y(data[lastI].wpm) - 8) + '" text-anchor="middle" font-size="12" fill="#eef1f7" font-family="DM Mono, monospace">' + data[lastI].wpm + '</text>';
+  s += '<line x1="' + padL + '" x2="' + (W - padR) + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="rgba(255,255,255,.18)"/>';
+  s += '<text x="' + padL + '" y="' + (H - 10) + '" font-size="11" fill="#6d7688">oldest</text>';
+  s += '<text x="' + (padL + lastI * step + bw) + '" y="' + (H - 10) + '" font-size="11" fill="#6d7688" text-anchor="end">newest</text>';
+  s += '</svg><div class="tip" id="chartTip"></div>';
+  el.chartWrap.innerHTML = s;
+  el.chartSub.textContent = 'Best ' + best + ' wpm · hover a bar for the detail.';
+
+  var tip = document.getElementById('chartTip');
+  var svg = el.chartWrap.querySelector('svg');
+  svg.addEventListener('mousemove', function(e){
+    var t = e.target;
+    if(!t.dataset || t.dataset.hit === undefined){ tip.style.opacity = 0; return; }
+    var d = data[+t.dataset.hit];
+    var box = el.chartWrap.getBoundingClientRect();
+    tip.innerHTML = '<b>' + d.wpm + ' wpm</b> · ' + d.acc + '%<br><small>' + esc(d.tag || d.mode) + ' — ' + when(d.t) + '</small>';
+    tip.style.left = (e.clientX - box.left) + 'px';
+    tip.style.top = (e.clientY - box.top) + 'px';
+    tip.style.opacity = 1;
+  });
+  svg.addEventListener('mouseleave', function(){ tip.style.opacity = 0; });
+}
+
+function when(ts){
+  var d = new Date(ts), now = new Date();
+  var days = Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate()) - new Date(d.getFullYear(),d.getMonth(),d.getDate())) / 86400000);
+  var time = d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+  if(days === 0) return 'today ' + time;
+  if(days === 1) return 'yesterday ' + time;
+  if(days < 7) return days + ' days ago';
+  return d.toLocaleDateString();
+}
+
+function renderHeat(){
+  buildKeyboard(el.heatKb, {});
+  var keys = el.heatKb.querySelectorAll('.key');
+  var any = false;
+  for(var i=0;i<keys.length;i++){
+    var k = keys[i], id = k.dataset.k;
+    var lookup = id.length === 1 ? id : (id === 'Space' ? ' ' : '');
+    var rec = lookup ? state.keys[lookup] : null;
+    k.style.setProperty('--fc','transparent');
+    if(rec && rec.h + rec.e >= 4){
+      any = true;
+      var rate = rec.e / (rec.h + rec.e);
+      var a = Math.min(0.85, 0.08 + rate * 3.2);
+      k.style.background = 'rgba(255,107,107,' + a.toFixed(3) + ')';
+      k.title = (id === 'Space' ? 'space' : id) + ' — ' + Math.round((1 - rate) * 100) +
+                '% accurate over ' + (rec.h + rec.e) + ' presses';
+      if(rate > 0.2) k.style.color = '#fff';
+    }
+  }
+  document.getElementById('heatEmpty').style.display = any ? 'none' : '';
+}
+
+function renderHistory(){
+  var t = state.tests.slice(-15).reverse();
+  if(!t.length){ el.histList.innerHTML = '<li class="empty">Nothing yet.</li>'; el.histSub.textContent=''; return; }
+  el.histSub.textContent = state.tests.length + ' runs saved on this device';
+  el.histList.innerHTML = t.map(function(d){
+    return '<li><span class="tagx">' + esc(d.tag || d.mode) + '</span>' +
+           '<span class="val"><b>' + d.wpm + '</b> wpm · ' + d.acc + '% · ' + fmtTime(d.secs) + '</span>' +
+           '<span class="when">' + when(d.t) + '</span></li>';
+  }).join('');
+}
+
+function renderWeak(){
+  var w = weakKeys(10);
+  if(!w.length){
+    el.weakGrid.innerHTML = '<p class="empty" style="grid-column:1/-1">No problem keys yet — finish a lesson or two and the misses get counted here.</p>';
+    el.weakSub.textContent = 'Needs at least 8 presses of a key before it counts.';
+    return;
+  }
+  el.weakSub.textContent = 'Ranked by how often you miss them.';
+  el.weakGrid.innerHTML = w.map(function(x){
+    return '<div class="weakkey"><b>' + esc(x.k === ' ' ? '␣' : x.k) + '</b><span>' +
+           Math.round((1 - x.rate) * 100) + '% · ' + x.total + '</span></div>';
+  }).join('');
+}
+
+function renderAll(){ renderUnits(); renderProgress(); }
+
+/* ══════════════════════════════════════════════════════════
+   8. WIRING
+   ══════════════════════════════════════════════════════════ */
+function showView(name){
+  if(R && !R.finished && name !== 'run'){ clearInterval(tickTimer); R = null; }
+  ['learn','test','drill','custom','progress','run'].forEach(function(v){
+    document.getElementById('view-' + v).classList.toggle('on', v === name);
+  });
+  var tabs = el.tabs.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle('on', tabs[i].dataset.view === name);
+  if(name !== 'run') window.scrollTo(0, 0);
+  if(name === 'progress' || name === 'drill') renderProgress();
+}
+function focusInput(){ setTimeout(function(){ el.hiddenInput.focus({preventScroll:true}); }, 30); }
+
+el.tabs.addEventListener('click', function(e){
+  var b = e.target.closest('.tab'); if(!b) return;
+  closeModal(); showView(b.dataset.view);
+});
+document.addEventListener('click', function(e){
+  var g = e.target.closest('[data-goview]');
+  if(g){ showView(g.dataset.goview); return; }
+  var l = e.target.closest('[data-lesson]');
+  if(l){ startLesson(lessonById(l.dataset.lesson)); }
+});
+document.getElementById('continueBtn').addEventListener('click', function(){ startLesson(firstUnfinished()); });
+document.getElementById('startTest').addEventListener('click', startTest);
+document.getElementById('durSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+  b.classList.add('on');
+});
+document.getElementById('startDrill').addEventListener('click', function(){
+  var w = weakKeys(8);
+  if(!w.length){ w = shuffled('asdfghjkl'.split('')).slice(0,6).map(function(k){ return {k:k}; }); }
+  startDrill(w);
+});
+document.getElementById('startRandomDrill').addEventListener('click', function(){
+  var w = shuffled('abcdefghijklmnopqrstuvwxyz'.split('')).slice(0,8).map(function(k){ return {k:k}; });
+  startDrill(w, 'Random letter drill');
+});
+document.getElementById('startCustom').addEventListener('click', startCustom);
+document.getElementById('sampleCustom').addEventListener('click', function(){
+  el.customText.value = 'The best way to get faster is to stop making mistakes. Type at the speed where every key lands correctly, hold it there for a week, and the speed arrives on its own. Rushing only teaches your fingers the wrong habits, and habits are the slow part to undo.';
+  el.customText.dispatchEvent(new Event('input'));
+});
+el.customText.addEventListener('input', function(){
+  var n = this.value.trim().length;
+  el.customCount.textContent = n ? n + ' characters' : '';
+});
+
+el.typebox.addEventListener('click', focusInput);
+el.hiddenInput.addEventListener('input', onInput);
+el.hiddenInput.addEventListener('paste', function(e){ e.preventDefault(); });
+el.hiddenInput.addEventListener('focus', function(){ el.typebox.classList.add('focus'); });
+el.hiddenInput.addEventListener('blur', function(){ el.typebox.classList.remove('focus'); });
+el.hiddenInput.addEventListener('keydown', function(e){
+  if(e.key === 'Tab'){ e.preventDefault(); if(R) restart(); }
+  if(e.key === 'Escape'){ e.preventDefault(); exitRun(); }
+});
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && el.modal.classList.contains('on')) closeModal();
+});
+
+function restart(){
+  if(!R) return;
+  var again = R.retry;
+  clearInterval(tickTimer);
+  R.finished = true;
+  if(again) again();
+}
+function exitRun(){
+  clearInterval(tickTimer);
+  var m = R ? R.mode : 'learn';
+  R = null;
+  closeModal();
+  showView(m === 'lesson' ? 'learn' : m === 'test' ? 'test' : m === 'drill' ? 'drill' : m === 'custom' ? 'custom' : 'learn');
+}
+document.getElementById('restartRun').addEventListener('click', restart);
+document.getElementById('exitRun').addEventListener('click', exitRun);
+el.resRetry.addEventListener('click', function(){
+  var again = R && R.retry; closeModal(); if(again) again();
+});
+el.resNext.addEventListener('click', function(){
+  var nid = this.dataset.next, mode = R ? R.mode : null;
+  closeModal();
+  if(nid){ startLesson(lessonById(nid)); return; }
+  if(mode === 'test'){ startTest(); return; }
+  exitRun();
+});
+el.modal.addEventListener('click', function(e){ if(e.target === el.modal) closeModal(); });
+
+/* settings */
+function bindOpt(id, key, after){
+  var box = document.getElementById(id);
+  box.checked = !!state.settings[key];
+  box.addEventListener('change', function(){
+    state.settings[key] = box.checked; saveNow(); if(after) after();
+  });
+}
+function applySettings(){
+  el.kb.style.display = state.settings.keyboard ? '' : 'none';
+  el.kb.classList.toggle('fingers-off', !state.settings.fingers);
+}
+
+/* export / import / reset */
+document.getElementById('exportBtn').addEventListener('click', function(){
+  var blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'linear-typing-progress-' + dayKey() + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+});
+document.getElementById('importBtn').addEventListener('click', function(){ document.getElementById('importFile').click(); });
+document.getElementById('importFile').addEventListener('change', function(e){
+  var f = e.target.files[0]; if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    try{
+      var p = JSON.parse(fr.result);
+      if(!p || typeof p !== 'object') throw 0;
+      localStorage.setItem(LS_KEY, JSON.stringify(p));
+      state = load();
+      applySettings(); renderAll();
+      alert('Progress imported.');
+    }catch(err){ alert('That file could not be read as a progress backup.'); }
+  };
+  fr.readAsText(f);
+  e.target.value = '';
+});
+document.getElementById('resetBtn').addEventListener('click', function(){
+  if(!confirm('Delete all typing progress stored in this browser? This cannot be undone.')) return;
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  state = blankState();
+  saveNow(); applySettings(); renderAll();
+});
+
+window.addEventListener('resize', function(){ if(R) { moveCaret(); } });
+// note: no beforeunload save — every change is written as it happens, and a
+// stale write on unload would clobber progress made in another open tab.
+
+/* ── boot ──────────────────────────────────────────── */
+state = load();
+buildKeyboard(el.kbRows, {});
+bindOpt('optKb','keyboard', applySettings);
+bindOpt('optFingers','fingers', applySettings);
+bindOpt('optSound','sound');
+applySettings();
+renderAll();
+
+})();
+</script>
+</body>
+</html>
