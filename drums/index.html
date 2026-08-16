@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Linear Drums — Play a Drum Set on Your iPad | linear</title>
+<meta name="description" content="A full drum kit you play with your fingers. Multi-touch, real velocity, a metronome, built-in grooves and a two-bar loop recorder. Everything runs in the browser — no app, no account, no sound files to download.">
+<link rel="canonical" href="https://www.linearit.co/drums/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta name="theme-color" content="#07080c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Linear Drums">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="linear">
+<meta property="og:url" content="https://www.linearit.co/drums/">
+<meta property="og:title" content="Linear Drums — Play a Drum Set on Your iPad">
+<meta property="og:description" content="Multi-touch drum kit for the iPad. Metronome, grooves and a loop recorder, all in the browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080c; --panel:#10131c; --panel2:#171b27; --panel3:#1e2331;
+  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.06);
+  --ink:#eef1f7; --ink2:#a5adbf; --ink3:#6d7688;
+  --peri:#6999f5; --aqua:#70f2ff; --good:#4ade80; --rec:#ff5f5f; --warn:#f7b955;
+  --sans:'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --r:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+  background-image:
+    radial-gradient(50% 40% at 10% 0%, rgba(105,153,245,.14) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(44% 36% at 92% 6%, rgba(112,242,255,.09) 0%, rgba(112,242,255,0) 100%);
+  background-repeat:no-repeat;
+  display:flex; flex-direction:column;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;touch-action:manipulation}
+
+/* ── TOP BAR ──────────────────────────────────────────── */
+.top{
+  display:flex;align-items:center;gap:12px;padding:8px 14px;flex-shrink:0;
+  background:rgba(7,8,12,.82);backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.brand img{height:24px;width:auto;display:block}
+.brand b{font-weight:600;font-size:.92rem;letter-spacing:-.01em;white-space:nowrap}
+.brand span{color:var(--aqua)}
+.spacer{margin-left:auto}
+.btn{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:999px;
+  font-size:.8rem;font-weight:500;color:var(--ink2);border:1px solid var(--line);
+  background:var(--panel2);white-space:nowrap;transition:color .15s,border-color .15s,background .15s;
+}
+.btn:hover{color:var(--ink);border-color:rgba(255,255,255,.2)}
+.btn.on{color:#07080c;background:var(--aqua);border-color:var(--aqua);font-weight:600}
+.btn.rec-on{color:#fff;background:var(--rec);border-color:var(--rec);font-weight:600}
+.btn.sm{padding:7px 10px;font-size:.74rem}
+.btn svg{width:14px;height:14px;display:block}
+.vol{display:flex;align-items:center;gap:8px;color:var(--ink3)}
+.vol input{width:96px}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;height:26px;background:transparent;touch-action:manipulation;
+}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:var(--panel3)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--ink);
+  margin-top:-7px;box-shadow:0 1px 4px rgba(0,0,0,.5);
+}
+input[type=range]::-moz-range-track{height:4px;border-radius:99px;background:var(--panel3)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:var(--ink)}
+
+/* ── STAGE ────────────────────────────────────────────── */
+.stage{flex:1;position:relative;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.kit{
+  position:relative;width:1000px;height:640px;flex:none;
+  transform-origin:center center;touch-action:none;
+}
+.pad{
+  position:absolute;padding:0;border:0;background:none;display:block;
+  -webkit-tap-highlight-color:transparent;
+}
+.pad *{pointer-events:none}
+.zone{pointer-events:auto}
+
+/* round pads */
+.pad.round{border-radius:50%}
+.pad.round .body{position:absolute;inset:0;border-radius:50%;overflow:hidden}
+.pad .body{
+  transition:transform .22s cubic-bezier(.2,.9,.3,1), filter .28s ease;
+  will-change:transform,filter;
+}
+/* only the struck pad lights up — never its inner zone, and never its parent */
+.hit > .body{transition:none;transform:scale(.955);filter:brightness(1.75) saturate(1.1)}
+
+/* drum shells */
+.pad.drum .body{
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255,255,255,.30) 0%, rgba(255,255,255,0) 46%),
+    radial-gradient(circle at 50% 55%, #333a4e 0%, #22283a 55%, #171b28 100%);
+  box-shadow:
+    0 0 0 7px #0d1017,
+    0 0 0 13px #414a60,
+    0 0 0 15px #0b0d13,
+    0 22px 40px rgba(0,0,0,.55),
+    inset 0 -18px 34px rgba(0,0,0,.5);
+}
+.pad.drum.snare .body{background:
+    radial-gradient(circle at 38% 28%, rgba(255,255,255,.34) 0%, rgba(255,255,255,0) 46%),
+    radial-gradient(circle at 50% 55%, #3c4459 0%, #262d40 55%, #1a1f2c 100%);}
+.pad.drum.kick .body{box-shadow:
+    0 0 0 8px #0d1017,
+    0 0 0 16px #4a556e,
+    0 0 0 18px #0b0d13,
+    0 26px 46px rgba(0,0,0,.6),
+    inset 0 -22px 40px rgba(0,0,0,.5);}
+
+/* cymbals */
+.pad.cym .body{
+  background:
+    repeating-conic-gradient(from 0deg, rgba(0,0,0,.15) 0deg 1.6deg, rgba(255,255,255,.045) 1.6deg 3.2deg),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.06) 0 3px, rgba(0,0,0,.11) 3px 7px),
+    radial-gradient(circle at 40% 30%, #e2cf94 0%, #c3a865 38%, #97803f 72%, #6f5c2c 100%);
+  box-shadow:0 18px 34px rgba(0,0,0,.5), inset 0 0 30px rgba(0,0,0,.35);
+}
+.pad.cym::after{
+  content:"";position:absolute;left:50%;top:50%;width:16%;height:16%;transform:translate(-50%,-50%);
+  border-radius:50%;background:radial-gradient(circle at 40% 35%,#f2e3ae,#8a7335);opacity:.9;
+  pointer-events:none;   /* the mounting bolt must never eat a hit meant for the zone under it */
+}
+.pad.cym.haslab::after{display:none}   /* pads with their own centre zone draw their own */
+.pad.cym.hat .body{
+  background:
+    repeating-conic-gradient(from 0deg, rgba(0,0,0,.17) 0deg 1.2deg, rgba(255,255,255,.05) 1.2deg 2.4deg),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.07) 0 2px, rgba(0,0,0,.12) 2px 6px),
+    radial-gradient(circle at 42% 32%, #d8d3c0 0%, #b3ab92 40%, #857f68 74%, #5d5847 100%);
+}
+
+/* inner zones */
+.zone{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:0;background:none}
+.zone .body{position:absolute;inset:0;border-radius:50%}
+.zone.bell .body{
+  background:radial-gradient(circle at 40% 34%, #f6e7b0 0%, #cbae64 45%, #97803f 100%);
+  box-shadow:inset 0 -6px 14px rgba(0,0,0,.4), 0 0 0 2px rgba(0,0,0,.25);
+}
+.zone.center .body{
+  background:radial-gradient(circle at 40% 32%, rgba(255,255,255,.16), rgba(255,255,255,0) 60%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.13);
+}
+
+/* rectangular aux pads */
+.pad.rect{border-radius:16px}
+.pad.rect .body{
+  position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(180deg,#252c3d 0%,#171c28 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 10px 22px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.07);
+}
+.pad.rect.pedal .body{background:linear-gradient(180deg,#2b3242 0%,#1b2130 100%)}
+
+/* labels */
+.lab{
+  position:absolute;left:0;right:0;text-align:center;font-size:15px;font-weight:600;letter-spacing:.02em;
+  color:rgba(255,255,255,.86);text-shadow:0 2px 6px rgba(0,0,0,.85);pointer-events:none;
+}
+.pad.round > .lab{top:50%;transform:translateY(-50%)}
+.pad.round.haslab > .lab{top:auto;bottom:11%;transform:none;font-size:13px;color:rgba(255,255,255,.72)}
+.pad.cym > .lab{
+  color:rgba(20,15,0,.72);text-shadow:0 1px 2px rgba(255,255,255,.25);
+  top:auto;bottom:13%;transform:none;   /* clear of the bright bolt in the middle */
+}
+.pad.rect > .lab{top:50%;transform:translateY(-50%);font-size:14px}
+.zone > .lab{top:50%;transform:translateY(-50%);font-size:14px}
+.zone.bell > .lab{font-size:12px;color:rgba(20,15,0,.75);text-shadow:none}
+.lab i{display:block;font-style:normal;font-size:10px;font-weight:600;letter-spacing:.16em;opacity:.5;margin-top:2px}
+body.touch .lab i{display:none}
+
+/* hit ring */
+.ring{
+  position:absolute;inset:-4%;border-radius:50%;border:2px solid var(--aqua);
+  opacity:0;transform:scale(.9);pointer-events:none;
+}
+.pad.rect .ring{border-radius:18px;inset:-6px}
+.hit > .ring{animation:ring .42s ease-out}
+@keyframes ring{
+  0%{opacity:.85;transform:scale(.92)}
+  100%{opacity:0;transform:scale(1.13)}
+}
+
+/* ── TRANSPORT ────────────────────────────────────────── */
+.bar{
+  flex-shrink:0;display:flex;align-items:center;gap:10px;padding:9px 14px;
+  background:rgba(7,8,12,.86);backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);border-top:1px solid var(--line);
+}
+/* the groove list is the only part allowed to scroll, so the tempo and the
+   record button stay put no matter how narrow the screen gets */
+.grp{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.grp.flex{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.grp.flex::-webkit-scrollbar{display:none}
+.grp + .grp{padding-left:10px;border-left:1px solid var(--line2)}
+.bpm{
+  display:flex;align-items:center;gap:2px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:999px;padding:3px;
+}
+.bpm button{width:30px;height:30px;border-radius:50%;color:var(--ink2);font-size:1.05rem;line-height:1}
+.bpm button:hover{color:var(--ink);background:var(--panel3)}
+.bpm b{min-width:62px;text-align:center;font-size:.85rem;font-weight:600;font-variant-numeric:tabular-nums}
+.bpm b small{font-size:.6rem;font-weight:500;color:var(--ink3);letter-spacing:.08em;margin-left:3px}
+.beats{display:flex;gap:5px;align-items:center}
+.beats i{width:9px;height:9px;border-radius:50%;background:var(--panel3);transition:background .09s,transform .09s}
+.beats i.on{background:var(--aqua);transform:scale(1.35)}
+.beats i.on.acc{background:var(--peri)}
+.chips{display:flex;gap:6px}
+.chip{
+  padding:7px 12px;border-radius:999px;font-size:.76rem;font-weight:500;color:var(--ink2);
+  border:1px solid var(--line);background:var(--panel2);white-space:nowrap;
+}
+.chip.on{color:#07080c;background:var(--peri);border-color:var(--peri);font-weight:600}
+.status{font-size:.74rem;color:var(--ink3);white-space:nowrap;min-width:104px}
+.status b{color:var(--rec)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor}
+
+/* ── OVERLAYS ─────────────────────────────────────────── */
+.veil{
+  position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  background:rgba(4,5,8,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:22px;
+}
+.veil[hidden]{display:none}
+.card{
+  width:min(560px,100%);max-height:86svh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:26px 24px;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+.card h1{font-size:1.5rem;font-weight:600;letter-spacing:-.02em;margin-bottom:6px}
+.card h2{font-size:.72rem;font-weight:600;letter-spacing:.24em;text-transform:uppercase;color:var(--ink3);margin:20px 0 8px}
+.card p{color:var(--ink2);font-size:.92rem;margin-bottom:12px}
+.card ul{list-style:none;display:grid;gap:7px}
+.card li{color:var(--ink2);font-size:.88rem;display:flex;gap:9px;align-items:flex-start}
+.card li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--peri);margin-top:8px;flex-shrink:0}
+.card kbd{
+  display:inline-block;min-width:20px;padding:1px 6px;border-radius:5px;background:var(--panel3);
+  border:1px solid var(--line);font-size:.76rem;font-family:var(--sans);color:var(--ink);text-align:center;
+}
+.big{
+  display:block;width:100%;margin-top:22px;padding:16px;border-radius:16px;text-align:center;
+  font-size:1rem;font-weight:600;color:#07080c;
+  background:linear-gradient(135deg,var(--aqua),var(--peri));
+}
+.rowb{display:flex;gap:10px;margin-top:18px}
+.rowb .btn{flex:1;justify-content:center;padding:12px}
+.tiny{font-size:.76rem;color:var(--ink3);margin-top:14px;text-align:center}
+.tiny a{color:var(--ink2);text-decoration:underline;text-underline-offset:3px}
+
+@media (max-width:1120px){ .status{display:none} }
+@media (max-width:820px){
+  .brand b{display:none}
+  .vol{display:none}
+}
+/* on a phone nothing fits side by side, so the whole bar swipes instead */
+@media (max-width:700px){
+  .bar{overflow-x:auto;scrollbar-width:none}
+  .bar::-webkit-scrollbar{display:none}
+  .grp.flex{flex:0 0 auto;overflow:visible}
+  .beats{display:none}
+  .grp + .grp{padding-left:8px}
+}
+@media (max-height:520px){
+  .top{padding:5px 12px}
+  .bar{padding:6px 12px}
+  .btn{padding:6px 11px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="/" title="linearit.co">
+    <img src="/zurech3/assets/icon-white.svg" alt="linear" onerror="this.style.display='none'">
+    <b>Linear <span>Drums</span></b>
+  </a>
+
+  <div class="spacer"></div>
+
+  <label class="vol">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8a5 5 0 0 1 0 8"/></svg>
+    <input id="vol" type="range" min="0" max="100" value="85" aria-label="Volume">
+  </label>
+  <button class="btn sm" id="fsBtn" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    Full screen
+  </button>
+  <button class="btn sm" id="helpBtn">How to play</button>
+</header>
+
+<main class="stage" id="stage">
+  <div class="kit" id="kit"></div>
+</main>
+
+<footer class="bar">
+  <div class="grp">
+    <div class="bpm">
+      <button id="bpmDown" aria-label="Slower">−</button>
+      <b id="bpmVal">100<small>BPM</small></b>
+      <button id="bpmUp" aria-label="Faster">+</button>
+    </div>
+    <button class="btn sm" id="metroBtn">Metronome</button>
+    <div class="beats" id="beats"><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <div class="grp flex">
+    <div class="chips" id="grooves"></div>
+  </div>
+
+  <div class="grp">
+    <button class="btn sm" id="recBtn"><span class="dot" style="color:var(--rec)"></span> Record</button>
+    <button class="btn sm" id="clearBtn">Clear</button>
+    <button class="btn sm on" id="quantBtn">Snap to beat</button>
+    <span class="status" id="status">Loop empty</span>
+  </div>
+</footer>
+
+<!-- start / help -->
+<div class="veil" id="veil">
+  <div class="card">
+    <h1 id="cardTitle">Linear Drums</h1>
+    <p id="cardLead">A real kit you play with your fingers. Use as many fingers at once as you like — the pads all fire independently.</p>
+
+    <h2>On an iPad</h2>
+    <ul>
+      <li>Hit near the middle of a drum for a hard hit, near the edge for a soft one.</li>
+      <li>The snare has two zones: the wide ring is a rim click, the inner circle is the snare itself. The hi-hat is open on the outside, closed in the middle. The ride has a bell.</li>
+      <li>Drag a finger across the cymbals for a swell, or across the toms for a fill.</li>
+      <li>Turn on a groove, then play over the top of it. Hit <b>Record</b> for a one-bar count-in and a two-bar loop that plays back while you keep drumming.</li>
+      <li>Hearing nothing? Check the side switch and Control Center — Safari respects the mute switch. Then raise the volume.</li>
+      <li>Share &rarr; <b>Add to Home Screen</b> gives you the kit full screen with no browser bars.</li>
+    </ul>
+
+    <h2>On a computer</h2>
+    <ul>
+      <li><kbd>A</kbd> crash &nbsp; <kbd>S</kbd> closed hat &nbsp; <kbd>D</kbd> open hat &nbsp; <kbd>F</kbd> snare &nbsp; <kbd>G</kbd> rim</li>
+      <li><kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> toms &nbsp; <kbd>L</kbd> ride &nbsp; <kbd>;</kbd> bell &nbsp; <kbd>space</kbd> kick</li>
+      <li><kbd>X</kbd> hat pedal &nbsp; <kbd>C</kbd> clap &nbsp; <kbd>V</kbd> cowbell &nbsp; <kbd>B</kbd> splash &nbsp; <kbd>N</kbd> sticks</li>
+    </ul>
+
+    <button class="big" id="startBtn">Tap to play</button>
+    <p class="tiny">Every sound is built in the browser as you hit it — nothing is downloaded and nothing is sent anywhere. <a href="/pages/">More tools on linearit.co</a></p>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ══════════════════════════════════════════════════════════
+   KIT LAYOUT — coordinates live in a fixed 1000 × 640 space
+   that is scaled to fit whatever screen it lands on.
+   ══════════════════════════════════════════════════════════ */
+var LAND = {w:1000, h:640};   // holding the iPad the normal way
+var PORT = {w:640, h:1000};   // and turned upright
+
+var PADS = [
+  {s:'crash',  cls:'cym',       x:128, y:118, r:108,  px:108, py:128, pr:98,  name:'Crash', key:'A'},
+  {s:'tom1',   cls:'drum',      x:392, y:108, r:86,   px:300, py:118, pr:86,  name:'Tom 1', key:'H'},
+  {s:'tom2',   cls:'drum',      x:582, y:102, r:92,   px:300, py:345, pr:92,  name:'Tom 2', key:'J'},
+  {s:'ride',   cls:'cym',       x:868, y:126, r:118,  px:516, py:148, pr:114, name:'Ride',  key:'L',
+     zone:{s:'bell', r:42, cls:'bell', name:'Bell', key:';'}},
+  {s:'hho',    cls:'cym hat',   x:122, y:352, r:96,   px:105, py:360, pr:95,  name:'Open',  key:'D',
+     zone:{s:'hhc', r:46, cls:'center', name:'Hat', key:'S'}},
+  {s:'rim',    cls:'drum snare',x:330, y:372, r:110,  px:165, py:600, pr:115, name:'Rim',   key:'G',
+     zone:{s:'snare', r:70, cls:'center', name:'Snare', key:'F'}},
+  {s:'kick',   cls:'drum kick', x:578, y:392, r:132,  px:455, py:640, pr:138, name:'Kick',  key:'space'},
+  {s:'tom3',   cls:'drum',      x:836, y:378, r:112,  px:525, py:375, pr:108, name:'Floor', key:'K'},
+
+  {s:'pedal',  cls:'rect pedal',rect:[24,548,190,76],  prect:[20,820,190,76],  name:'Hat pedal', key:'X'},
+  {s:'clap',   cls:'rect',      rect:[232,548,190,76], prect:[225,820,190,76], name:'Clap',      key:'C'},
+  {s:'cowbell',cls:'rect',      rect:[440,548,190,76], prect:[430,820,190,76], name:'Cowbell',   key:'V'},
+  {s:'splash', cls:'rect',      rect:[648,548,190,76], prect:[122,910,190,76], name:'Splash',    key:'B'},
+  {s:'stick',  cls:'rect',      rect:[856,548,120,76], prect:[327,910,190,76], name:'Sticks',    key:'N'}
+];
+
+var KEYMAP = {};
+PADS.forEach(function(p){
+  KEYMAP[p.key.toLowerCase()] = p.s;
+  if(p.zone) KEYMAP[p.zone.key.toLowerCase()] = p.zone.s;
+});
+
+/* ══════════════════════════════════════════════════════════
+   AUDIO — every drum is synthesised, so there are no samples
+   to download and the first hit is never late.
+   ══════════════════════════════════════════════════════════ */
+var ctx=null, master=null, comp=null, verbSend=null, noiseBuf=null, ready=false;
+
+function makeNoise(){
+  var n = ctx.sampleRate*2, b = ctx.createBuffer(1,n,ctx.sampleRate), d = b.getChannelData(0);
+  for(var i=0;i<n;i++) d[i] = Math.random()*2-1;
+  return b;
+}
+function makeRoom(){
+  var dur=1.5, n=Math.floor(ctx.sampleRate*dur), b=ctx.createBuffer(2,n,ctx.sampleRate);
+  for(var c=0;c<2;c++){
+    var d=b.getChannelData(c);
+    for(var i=0;i<n;i++){
+      var t=i/n;
+      d[i] = (Math.random()*2-1) * Math.pow(1-t,3.2) * 0.7;
+    }
+  }
+  return b;
+}
+function initAudio(){
+  if(ctx) return;
+  var AC = window.AudioContext || window.webkitAudioContext;
+  ctx = new AC({latencyHint:'interactive'});
+  master = ctx.createGain();
+  master.gain.value = 0.85;
+  comp = ctx.createDynamicsCompressor();
+  comp.threshold.value=-14; comp.knee.value=14; comp.ratio.value=6;
+  comp.attack.value=0.002; comp.release.value=0.16;
+
+  /* A ten-finger slam on the whole kit would otherwise clip the output, so
+     everything lands on a soft limiter rather than a hard digital ceiling. */
+  var shaper = ctx.createWaveShaper();
+  var n = 4096, curve = new Float32Array(n), k = Math.tanh(1.6);
+  for(var i=0;i<n;i++) curve[i] = Math.tanh(((i/(n-1))*2-1) * 1.6) / k;
+  shaper.curve = curve;
+  shaper.oversample = '2x';
+  var out = ctx.createGain();
+  out.gain.value = 0.9;
+
+  master.connect(comp); comp.connect(shaper); shaper.connect(out); out.connect(ctx.destination);
+
+  var verb = ctx.createConvolver();
+  verb.buffer = makeRoom();
+  verbSend = ctx.createGain(); verbSend.gain.value = 0.16;
+  verbSend.connect(verb); verb.connect(master);
+
+  noiseBuf = makeNoise();
+  ready = true;
+}
+function unlock(){
+  initAudio();
+  if(ctx.state === 'suspended') ctx.resume();
+  var s = ctx.createBufferSource();
+  s.buffer = ctx.createBuffer(1,1,ctx.sampleRate);
+  s.connect(ctx.destination); s.start(0);
+}
+
+/* small helpers ------------------------------------------------------- */
+function gain(v,t,a,d,to){
+  var g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.linearRampToValueAtTime(v,t+a);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+a+d);
+  g.connect(to||master);
+  return g;
+}
+function osc(type,f,t,stop){
+  var o = ctx.createOscillator();
+  o.type=type; o.frequency.setValueAtTime(f,t);
+  o.start(t); o.stop(stop);
+  return o;
+}
+function noise(t,dur){
+  var s = ctx.createBufferSource();
+  s.buffer = noiseBuf;
+  s.playbackRate.value = 1;
+  s.loop = true;
+  s.start(t, Math.random()*1.5);
+  s.stop(t+dur+0.05);
+  return s;
+}
+function filt(type,f,q){
+  var b = ctx.createBiquadFilter();
+  b.type=type; b.frequency.value=f; if(q!=null) b.Q.value=q;
+  return b;
+}
+function send(node,amt,t,dur){
+  var g = ctx.createGain(); g.gain.value = amt;
+  node.connect(g); g.connect(verbSend);
+}
+
+/* metallic partials shared by hats, ride, crash, splash --------------- */
+var RATIOS = [2, 3, 4.16, 5.43, 6.79, 8.21];
+function metal(t,o){
+  var out = ctx.createGain();
+  out.gain.value = 1;
+  var bp = filt('bandpass', o.bp||10000, 0.7);
+  var hp = filt('highpass', o.hp||7000);
+  var g = gain(o.v, t, 0.001, o.decay, master);
+  out.connect(bp); bp.connect(hp); hp.connect(g);
+  send(g, o.verb==null?0.5:o.verb);
+  for(var i=0;i<RATIOS.length;i++){
+    var o1 = osc('square', o.fund*RATIOS[i], t, t+o.decay+0.06);
+    o1.connect(out);
+  }
+  return g;
+}
+
+/* the kit ------------------------------------------------------------- */
+var openHat = null;   // ringing open hi-hat, so a closed hit can choke it
+
+function chokeHat(t){
+  if(openHat){
+    try{
+      openHat.gain.cancelScheduledValues(t);
+      openHat.gain.setValueAtTime(Math.max(openHat.gain.value,0.0001), t);
+      openHat.gain.exponentialRampToValueAtTime(0.0001, t+0.035);
+    }catch(e){}
+    openHat = null;
+  }
+}
+
+var SOUNDS = {
+  kick: function(t,v){
+    var g = gain(v*1.0, t, 0.004, 0.44);
+    var o = osc('sine', 150, t, t+0.55);
+    o.frequency.exponentialRampToValueAtTime(46, t+0.13);
+    o.connect(g);
+    var c = noise(t,0.03), cf = filt('lowpass',2600), cg = gain(v*0.5,t,0.001,0.028);
+    c.connect(cf); cf.connect(cg);
+    send(g,0.10);
+  },
+  snare: function(t,v){
+    var body = gain(v*0.45, t, 0.002, 0.13);
+    osc('triangle',188,t,t+0.2).connect(body);
+    osc('triangle',332,t,t+0.2).connect(body);
+    var n = noise(t,0.24);
+    var bp = filt('bandpass',1900,0.6), hp = filt('highpass',780);
+    var g = gain(v*0.72, t, 0.002, 0.19);
+    n.connect(bp); bp.connect(hp); hp.connect(g);
+    send(g,0.42); send(body,0.2);
+  },
+  rim: function(t,v){
+    var n = noise(t,0.06);
+    var bp = filt('bandpass',2600,3.4);
+    var g = gain(v*0.7,t,0.001,0.05);
+    n.connect(bp); bp.connect(g);
+    var o = osc('triangle',420,t,t+0.09);
+    var og = gain(v*0.4,t,0.001,0.07);
+    o.connect(og);
+    send(g,0.5);
+  },
+  tom1: function(t,v){ tom(t,v,232,0.42); },
+  tom2: function(t,v){ tom(t,v,178,0.5); },
+  tom3: function(t,v){ tom(t,v,116,0.72); },
+  hhc: function(t,v){
+    chokeHat(t);
+    metal(t,{fund:40, hp:8200, bp:11500, decay:0.055, v:v*0.52, verb:0.2});
+  },
+  hho: function(t,v){
+    chokeHat(t);
+    openHat = metal(t,{fund:40, hp:7600, bp:10500, decay:0.62, v:v*0.46, verb:0.5});
+  },
+  pedal: function(t,v){
+    chokeHat(t);
+    metal(t,{fund:40, hp:7000, bp:9000, decay:0.075, v:v*0.42, verb:0.15});
+    var n = noise(t,0.05), lp = filt('lowpass',900), g = gain(v*0.3,t,0.001,0.05);
+    n.connect(lp); lp.connect(g);
+  },
+  ride: function(t,v){
+    metal(t,{fund:38, hp:5200, bp:7200, decay:1.7, v:v*0.20, verb:0.7});
+    var n = noise(t,0.1), bp = filt('bandpass',3400,2.2), g = gain(v*0.16,t,0.001,0.09);
+    n.connect(bp); bp.connect(g);
+  },
+  bell: function(t,v){
+    metal(t,{fund:56, hp:3200, bp:5200, decay:1.1, v:v*0.28, verb:0.6});
+    var o = osc('triangle',880,t,t+0.5), g = gain(v*0.14,t,0.002,0.42);
+    o.connect(g);
+  },
+  crash: function(t,v){
+    metal(t,{fund:33, hp:4200, bp:8200, decay:2.4, v:v*0.26, verb:0.8});
+    var n = noise(t,1.9), hp = filt('highpass',5200), g = gain(v*0.2,t,0.006,1.7);
+    n.connect(hp); hp.connect(g);
+    send(g,0.6);
+  },
+  splash: function(t,v){
+    metal(t,{fund:62, hp:6200, bp:11000, decay:0.72, v:v*0.28, verb:0.7});
+    var n = noise(t,0.5), hp = filt('highpass',6800), g = gain(v*0.18,t,0.004,0.42);
+    n.connect(hp); hp.connect(g);
+  },
+  clap: function(t,v){
+    var offs = [0, 0.011, 0.023, 0.036];
+    for(var i=0;i<offs.length;i++){
+      var last = i===offs.length-1;
+      var n = noise(t+offs[i], last?0.24:0.03);
+      var bp = filt('bandpass',1150,1.1);
+      var g = gain(v*(last?0.72:0.6), t+offs[i], 0.001, last?0.2:0.022);
+      n.connect(bp); bp.connect(g);
+      if(last) send(g,0.5);
+    }
+  },
+  cowbell: function(t,v){
+    var bp = filt('bandpass',2400,1.4);
+    var g = gain(v*0.34,t,0.002,0.32);
+    bp.connect(g);
+    osc('square',552,t,t+0.4).connect(bp);
+    osc('square',830,t,t+0.4).connect(bp);
+    send(g,0.35);
+  },
+  stick: function(t,v){
+    var n = noise(t,0.03), bp = filt('bandpass',1750,1.6), g = gain(v*0.85,t,0.001,0.024);
+    n.connect(bp); bp.connect(g);
+    send(g,0.3);
+  }
+};
+function tom(t,v,f,d){
+  var g = gain(v*0.72, t, 0.003, d);
+  var o = osc('sine', f*1.5, t, t+d+0.1);
+  o.frequency.exponentialRampToValueAtTime(f*0.72, t+d*0.55);
+  o.connect(g);
+  var o2 = osc('triangle', f*0.5, t, t+d+0.1);
+  var g2 = gain(v*0.2, t, 0.003, d*0.8);
+  o2.connect(g2);
+  var n = noise(t,0.035), bp = filt('bandpass', f*4, 0.9), ng = gain(v*0.16,t,0.001,0.03);
+  n.connect(bp); bp.connect(ng);
+  send(g,0.35);
+}
+
+function play(sound, t, v){
+  if(!ready) return;
+  var fn = SOUNDS[sound];
+  if(fn) fn(t, Math.max(0.05, Math.min(1.35, v)));
+}
+
+/* ══════════════════════════════════════════════════════════
+   PADS — build the kit, then handle every finger separately
+   ══════════════════════════════════════════════════════════ */
+var kit = document.getElementById('kit');
+var stage = document.getElementById('stage');
+var padOf = {};   // sound -> element
+
+function build(){
+  var html = '';
+  PADS.forEach(function(p){
+    var cls = p.rect ? 'pad ' + p.cls
+                     : 'pad round ' + p.cls + (p.zone ? ' haslab' : '');
+    html += '<button class="'+cls+'" data-s="'+p.s+'">';
+    html +=   '<span class="body"></span><span class="ring"></span>';
+    html +=   '<span class="lab">'+p.name+'<i>'+p.key+'</i></span>';
+    if(p.zone){
+      var z = p.zone;
+      html += '<span class="zone '+z.cls+'" data-s="'+z.s+'" style="width:'+(z.r*2)+'px;height:'+(z.r*2)+'px">'+
+              '<span class="body"></span><span class="ring"></span>'+
+              '<span class="lab">'+z.name+'<i>'+z.key+'</i></span></span>';
+    }
+    html += '</button>';
+  });
+  kit.innerHTML = html;
+  Array.prototype.forEach.call(kit.querySelectorAll('[data-s]'), function(el){
+    padOf[el.getAttribute('data-s')] = el;
+  });
+}
+build();
+
+/* Two arrangements of the same kit: wide when the iPad is on its side,
+   stacked when it is upright. Whichever fits gets scaled up to fill. */
+var mode = '';
+function place(m){
+  if(m === mode) return;
+  mode = m;
+  var box = m === 'p' ? PORT : LAND;
+  kit.style.width = box.w + 'px';
+  kit.style.height = box.h + 'px';
+  PADS.forEach(function(p){
+    var el = padOf[p.s], st = el.style;
+    var rect = m === 'p' ? (p.prect || p.rect) : p.rect;
+    if(rect){
+      st.left = rect[0]+'px'; st.top = rect[1]+'px';
+      st.width = rect[2]+'px'; st.height = rect[3]+'px';
+    }else{
+      var x = m === 'p' ? p.px : p.x, y = m === 'p' ? p.py : p.y, r = m === 'p' ? p.pr : p.r;
+      st.left = (x-r)+'px'; st.top = (y-r)+'px';
+      st.width = st.height = (r*2)+'px';
+    }
+  });
+}
+function fit(){
+  var w = stage.clientWidth, h = stage.clientHeight;
+  place(w/h < 1.05 ? 'p' : 'l');
+  var box = mode === 'p' ? PORT : LAND;
+  var s = Math.min(w/box.w, h/box.h) * 0.98;
+  kit.style.transform = 'scale(' + s + ')';
+}
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', function(){ setTimeout(fit, 250); });
+fit();
+
+function flash(el){
+  el.classList.remove('hit');
+  void el.offsetWidth;
+  el.classList.add('hit');
+  clearTimeout(el._ht);
+  el._ht = setTimeout(function(){ el.classList.remove('hit'); }, 420);
+}
+
+/* how hard the hit was: middle of the pad is loud, the edge is soft,
+   and a stylus/force-capable screen overrides both. */
+function velocity(el, x, y, force){
+  if(force && force > 0) return 0.45 + force*0.75;
+  var r = el.getBoundingClientRect();
+  var dx = (x - (r.left+r.width/2)) / (r.width/2 || 1);
+  var dy = (y - (r.top+r.height/2)) / (r.height/2 || 1);
+  var d = Math.min(1, Math.sqrt(dx*dx+dy*dy));
+  return 1.05 - d*0.35;
+}
+
+var lastHit = {};
+function strike(sound, el, v){
+  if(!ready) return;
+  var now = ctx.currentTime;
+  if(lastHit[sound] && now - lastHit[sound] < 0.028) return;  // ignore double-fires
+  lastHit[sound] = now;
+  play(sound, now + 0.001, v);
+  if(el) flash(el);
+  if(recState === 'rec') capture(sound, v, now);
+}
+
+function padAt(x, y){
+  var el = document.elementFromPoint(x, y);
+  return el ? el.closest('[data-s]') : null;
+}
+
+/* touch: every finger is tracked on its own, and sliding onto a new pad
+   hits it — that is what makes cymbal swells and tom fills work. */
+var fingers = {};
+kit.addEventListener('touchstart', function(e){
+  e.preventDefault();
+  for(var i=0;i<e.changedTouches.length;i++){
+    var t = e.changedTouches[i];
+    var el = padAt(t.clientX, t.clientY);
+    if(!el) continue;
+    fingers[t.identifier] = el;
+    strike(el.getAttribute('data-s'), el, velocity(el, t.clientX, t.clientY, t.force));
+  }
+}, {passive:false});
+
+kit.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  for(var i=0;i<e.changedTouches.length;i++){
+    var t = e.changedTouches[i];
+    var el = padAt(t.clientX, t.clientY);
+    if(el && fingers[t.identifier] !== el){
+      fingers[t.identifier] = el;
+      strike(el.getAttribute('data-s'), el, velocity(el, t.clientX, t.clientY, t.force) * 0.8);
+    }
+  }
+}, {passive:false});
+
+function endTouch(e){
+  for(var i=0;i<e.changedTouches.length;i++) delete fingers[e.changedTouches[i].identifier];
+}
+kit.addEventListener('touchend', endTouch);
+kit.addEventListener('touchcancel', endTouch);
+
+/* mouse, for anyone on a laptop */
+kit.addEventListener('mousedown', function(e){
+  if(e.button !== 0) return;
+  var el = padAt(e.clientX, e.clientY);
+  if(el) strike(el.getAttribute('data-s'), el, velocity(el, e.clientX, e.clientY, 0));
+});
+kit.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+document.addEventListener('dblclick', function(e){ e.preventDefault(); }, {passive:false});
+document.addEventListener('touchmove', function(e){
+  if(e.target.closest && e.target.closest('.card')) return;
+  e.preventDefault();
+}, {passive:false});
+
+/* keyboard */
+var held = {};
+document.addEventListener('keydown', function(e){
+  if(e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  if(e.target.tagName === 'INPUT') return;
+  var k = e.key === ' ' ? 'space' : e.key.toLowerCase();
+  var s = KEYMAP[k];
+  if(!s) return;
+  e.preventDefault();
+  if(veil.hidden === false){ start(); return; }
+  if(held[k]) return;
+  held[k] = 1;
+  strike(s, padOf[s], 1);
+});
+document.addEventListener('keyup', function(e){
+  var k = e.key === ' ' ? 'space' : e.key.toLowerCase();
+  delete held[k];
+});
+if(('ontouchstart' in window) || navigator.maxTouchPoints > 0) document.body.classList.add('touch');
+
+/* ══════════════════════════════════════════════════════════
+   TRANSPORT — one 16th-note clock drives the metronome, the
+   grooves and the loop, scheduled ahead of time so nothing
+   drifts when the browser gets busy.
+   ══════════════════════════════════════════════════════════ */
+var bpm = 100, swing = 0, metroOn = false, groove = null, quantize = true;
+var step = 0, nextTime = 0, timer = null, running = false;
+
+function stepDur(){ return 60 / bpm / 4; }
+
+function startClock(){
+  if(running) return;
+  running = true;
+  step = 0;
+  nextTime = ctx.currentTime + 0.08;
+  timer = setInterval(tick, 25);
+}
+function stopClockIfIdle(){
+  if(metroOn || groove || recState !== 'idle') return;
+  running = false;
+  clearInterval(timer);
+  timer = null;
+}
+function tick(){
+  var ahead = 0.16;
+  while(nextTime < ctx.currentTime + ahead){
+    schedule(step, nextTime);
+    step++;
+    nextTime += stepDur();
+  }
+}
+function at(t, fn){
+  var ms = (t - ctx.currentTime) * 1000;
+  setTimeout(fn, Math.max(0, ms));
+}
+
+function click(t, accent){
+  var g = gain(accent ? 0.5 : 0.3, t, 0.001, 0.045);
+  osc('square', accent ? 1600 : 1100, t, t+0.07).connect(g);
+}
+
+var beatEls = document.getElementById('beats').children;
+function schedule(k, t){
+  var counting = (recState === 'countin' || recState === 'rec');
+
+  /* metronome */
+  if((metroOn || counting) && k % 4 === 0){
+    var accent = (k % 16 === 0);
+    click(t, accent);
+    var idx = (k / 4) % 4;
+    at(t, function(){
+      for(var i=0;i<4;i++) beatEls[i].className = '';
+      beatEls[idx].className = 'on' + (accent ? ' acc' : '');
+    });
+  }
+
+  /* built-in groove */
+  if(groove){
+    var sw = (k % 2) ? swing * stepDur() * 0.62 : 0;
+    for(var s in groove.steps){
+      var c = groove.steps[s].charAt(k % 16);
+      if(c === '.' || c === '') continue;
+      var v = c === 'X' ? 1.05 : (c === 'o' ? 0.55 : 0.82);
+      play(s, t + sw, v);
+      (function(sound){ at(t+sw, function(){ if(padOf[sound]) flash(padOf[sound]); }); })(s);
+    }
+  }
+
+  /* recorder state changes land exactly on the beat */
+  if(recState === 'countin' && k === armStep){
+    recStartStep = k; recStartTime = t;
+    at(t, function(){ recState = 'rec'; paint(); });
+  }
+  if(recState === 'rec' && k === recStartStep + LOOP_STEPS){
+    at(t, finish);
+  }
+
+  /* loop playback */
+  if(recState === 'play' && loopBuckets){
+    var pos = ((k - recStartStep) % LOOP_STEPS + LOOP_STEPS) % LOOP_STEPS;
+    var bucket = loopBuckets[pos];
+    if(bucket){
+      for(var i=0;i<bucket.length;i++){
+        var ev = bucket[i];
+        var when = t + (ev.t - pos*loopStep);
+        if(when < ctx.currentTime) when = ctx.currentTime;
+        play(ev.s, when, ev.v);
+        (function(sound){ at(when, function(){ if(padOf[sound]) flash(padOf[sound]); }); })(ev.s);
+      }
+    }
+  }
+}
+
+/* ── loop recorder ─────────────────────────────────────── */
+var LOOP_STEPS = 32;                 // two bars of 4/4
+var recState = 'idle';               // idle | countin | rec | play
+var armStep = 0, recStartStep = 0, recStartTime = 0;
+var events = [], loopBuckets = null, loopStep = 0, loopLen = 0;
+
+function capture(sound, v, now){
+  var t = now - recStartTime;
+  var len = LOOP_STEPS * stepDur();
+  t = ((t % len) + len) % len;
+  events.push({s:sound, v:v, t:t});
+}
+function finish(){
+  loopStep = stepDur();
+  loopLen = LOOP_STEPS * loopStep;
+  if(quantize){
+    events.forEach(function(ev){
+      ev.t = (Math.round(ev.t / loopStep) * loopStep) % loopLen;
+    });
+  }
+  events.sort(function(a,b){ return a.t - b.t; });
+  loopBuckets = [];
+  for(var i=0;i<LOOP_STEPS;i++) loopBuckets[i] = [];
+  events.forEach(function(ev){
+    var b = Math.min(LOOP_STEPS-1, Math.floor(ev.t / loopStep));
+    loopBuckets[b].push(ev);
+  });
+  recState = events.length ? 'play' : 'idle';
+  if(!events.length) loopBuckets = null;
+  paint();
+  stopClockIfIdle();
+}
+function record(){
+  unlock();
+  if(recState === 'countin' || recState === 'rec'){ cancelRec(); return; }
+  events = []; loopBuckets = null;
+  startClock();
+  recState = 'countin';
+  /* count in from the next bar line */
+  armStep = (Math.floor(step / 16) + 1) * 16;
+  if(armStep - step < 4) armStep += 16;
+  paint();
+}
+function cancelRec(){
+  recState = 'idle';
+  events = []; loopBuckets = null;
+  paint();
+  stopClockIfIdle();
+}
+function clearLoop(){
+  recState = 'idle';
+  events = []; loopBuckets = null;
+  paint();
+  stopClockIfIdle();
+}
+
+/* ── grooves ───────────────────────────────────────────── */
+var GROOVES = [
+  {name:'Rock',    swing:0,   steps:{hhc:'X.x.x.x.X.x.x.x.', kick:'x.......x.......', snare:'....x.......x...'}},
+  {name:'Pop',     swing:0,   steps:{hhc:'X.x.x.x.X.x.x.x.', kick:'x.....x.x.......', snare:'....x.......x...'}},
+  {name:'Funk',    swing:.12, steps:{hhc:'Xxxoxxoxxxoxxxox', kick:'x..x..x...x.x...', snare:'....x.......x..x'}},
+  {name:'Hip-Hop', swing:.28, steps:{hhc:'x.x.x.x.x.x.x.x.', kick:'x..x....x.x.....', snare:'....x.......x...'}},
+  {name:'Shuffle', swing:.5,  steps:{hhc:'x.x.x.x.x.x.x.x.', kick:'x.......x...x...', snare:'....x.......x...'}},
+  {name:'Metal',   swing:0,   steps:{hhc:'xxxxxxxxxxxxxxxx', kick:'x.x.x.x.x.x.x.x.', snare:'....x.......x...', crash:'X...............'}},
+  {name:'Latin',   swing:0,   steps:{ride:'x.xx..x.x.xx..x.', kick:'x..x..x.x..x..x.', rim:'..x...x...x..x..'}}
+];
+
+var chipWrap = document.getElementById('grooves');
+GROOVES.forEach(function(g, i){
+  var b = document.createElement('button');
+  b.className = 'chip'; b.textContent = g.name; b.dataset.i = i;
+  b.addEventListener('click', function(){ pickGroove(i); });
+  chipWrap.appendChild(b);
+});
+function pickGroove(i){
+  unlock();
+  if(groove === GROOVES[i]){
+    groove = null; swing = 0;
+    stopClockIfIdle();
+  }else{
+    groove = GROOVES[i];
+    swing = groove.swing;
+    startClock();
+  }
+  paint();
+}
+
+/* ══════════════════════════════════════════════════════════
+   CONTROLS
+   ══════════════════════════════════════════════════════════ */
+var metroBtn = document.getElementById('metroBtn');
+var recBtn   = document.getElementById('recBtn');
+var quantBtn = document.getElementById('quantBtn');
+var statusEl = document.getElementById('status');
+var bpmVal   = document.getElementById('bpmVal');
+
+function setBpm(v){
+  bpm = Math.max(40, Math.min(220, v));
+  bpmVal.innerHTML = bpm + '<small>BPM</small>';
+  save();
+}
+document.getElementById('bpmDown').addEventListener('click', function(){ setBpm(bpm-5); });
+document.getElementById('bpmUp').addEventListener('click', function(){ setBpm(bpm+5); });
+
+metroBtn.addEventListener('click', function(){
+  unlock();
+  metroOn = !metroOn;
+  if(metroOn) startClock(); else stopClockIfIdle();
+  paint();
+});
+recBtn.addEventListener('click', record);
+document.getElementById('clearBtn').addEventListener('click', clearLoop);
+quantBtn.addEventListener('click', function(){ quantize = !quantize; paint(); save(); });
+
+var volEl = document.getElementById('vol');
+volEl.addEventListener('input', function(){
+  var v = volEl.value/100;
+  if(master) master.gain.setTargetAtTime(v, ctx.currentTime, 0.02);
+  save();
+});
+
+function paint(){
+  metroBtn.classList.toggle('on', metroOn);
+  quantBtn.classList.toggle('on', quantize);
+  Array.prototype.forEach.call(chipWrap.children, function(c){
+    c.classList.toggle('on', groove === GROOVES[+c.dataset.i]);
+  });
+  recBtn.classList.toggle('rec-on', recState === 'countin' || recState === 'rec');
+  recBtn.innerHTML = (recState === 'countin' || recState === 'rec')
+    ? '<span class="dot"></span> Stop'
+    : '<span class="dot" style="color:var(--rec)"></span> Record';
+  statusEl.innerHTML =
+    recState === 'countin' ? '<b>Count in…</b>' :
+    recState === 'rec'     ? '<b>Recording 2 bars</b>' :
+    recState === 'play'    ? 'Loop playing · ' + events.length + ' hits' :
+                             'Loop empty';
+  if(!running){ for(var i=0;i<4;i++) beatEls[i].className = ''; }
+}
+
+/* remembered between visits */
+function save(){
+  try{
+    localStorage.setItem('linear-drums', JSON.stringify({bpm:bpm, vol:+volEl.value, q:quantize}));
+  }catch(e){}
+}
+function load(){
+  try{
+    var s = JSON.parse(localStorage.getItem('linear-drums') || '{}');
+    if(s.bpm) bpm = s.bpm;
+    if(typeof s.vol === 'number') volEl.value = s.vol;
+    if(typeof s.q === 'boolean') quantize = s.q;
+  }catch(e){}
+  bpmVal.innerHTML = bpm + '<small>BPM</small>';
+}
+load();
+paint();
+
+/* full screen, where the browser allows it */
+var fsBtn = document.getElementById('fsBtn');
+if(document.documentElement.requestFullscreen){
+  fsBtn.hidden = false;
+  fsBtn.addEventListener('click', function(){
+    if(document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(function(){});
+    setTimeout(fit, 300);
+  });
+}
+
+/* start screen — iOS needs a real tap before it will make a sound */
+var veil = document.getElementById('veil');
+var helpBtn = document.getElementById('helpBtn');
+function start(){
+  unlock();
+  veil.hidden = true;
+  fit();
+  if(master) master.gain.value = volEl.value/100;
+}
+document.getElementById('startBtn').addEventListener('click', start);
+helpBtn.addEventListener('click', function(){
+  document.getElementById('startBtn').textContent = ready ? 'Back to the kit' : 'Tap to play';
+  veil.hidden = false;
+});
+
+/* browsers suspend audio in a background tab */
+document.addEventListener('visibilitychange', function(){
+  if(!ctx) return;
+  if(document.visibilityState === 'visible' && ctx.state === 'suspended') ctx.resume();
+});
+
+})();
+</script>
+</body>
+</html>
