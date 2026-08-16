@@ -1,0 +1,56 @@
+# Cloudflare Worker config for Linear Board (shared whiteboard) — board.linearit.co
+# -----------------------------------------------------------------------------
+# A SEPARATE, isolated Worker from linear-chat / linear-vault / linear-time /
+# linear-sign / speed-worker. It lives in its own folder with its own config and
+# shares NOTHING with the other Workers, so it cannot affect chat.linearit.co,
+# vault.linearit.co, sign.linearit.co, etc.
+#
+# ---- ONE-TIME SETUP (run from THIS folder) ----------------------------------
+#   1. cd board-worker && npm install
+#   2. npx wrangler login          # once per machine (skip if already logged in)
+#   3. npx wrangler deploy
+#
+# That single `deploy` uploads the Worker, creates the BoardRoom Durable Object
+# class, and provisions the board.linearit.co Custom Domain AND its DNS record
+# in the linearit.co zone (because of custom_domain = true).
+#
+# There is NO database, NO email, and NO secret to set. Rooms live inside their
+# own Durable Object's storage and delete themselves 24 hours after the last
+# change, so there is nothing to back up and nothing to clean out.
+#
+# NOTE ON BILLING: Durable Objects require the paid Workers plan ($5/month).
+# Nothing about this app approaches any usage tier beyond that base charge —
+# a busy board is a few hundred kilobytes and a handful of sockets.
+
+# Worker/script name. Kept as "board-worker" to match the Cloudflare Workers
+# Builds application name (derived from the repo's root directory), so
+# Git-connected deploys don't hit a name mismatch. The public hostname is set
+# by the `routes` custom domain below, not by this name.
+name = "board-worker"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# Vanity hostname -> this Worker. Auto-provisions the Custom Domain + DNS on deploy.
+routes = [
+  { pattern = "board.linearit.co", custom_domain = true }
+]
+
+# --- Durable Objects (one room per board name) ---
+# This is the piece that makes the whole thing work: Cloudflare guarantees a
+# given room name resolves to exactly ONE instance, in ONE place, worldwide.
+# Without that, two people could connect to two different machines and never
+# see each other.
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "BoardRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["BoardRoom"]
+
+# Non-secret vars only. This Worker has no secrets at all.
+[vars]
+# Where the front-end lives on the GitHub Pages site (this Worker reverse-proxies
+# it so board.linearit.co shows the same app, with no second copy to maintain).
+APP_ORIGIN = "https://www.linearit.co"
+APP_PATH = "/board/"

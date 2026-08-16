@@ -1,0 +1,14 @@
+{
+  "name": "linear-board",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker + Durable Object backend for the Linear IT shared whiteboard at board.linearit.co (relays strokes between people in a room; rooms delete themselves 24 hours after the last change).",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<title>Linear Board — a whiteboard two people can share</title>
+<meta name="description" content="A blank board you can share with a link. Whatever you draw or type, the other person sees appear as you do it. No signup, no app. Save it as a picture; the board wipes itself a day later."/>
+<link rel="icon" href="/board/assets/icon.png"/>
+<link rel="apple-touch-icon" href="/board/assets/icon.png"/>
+<meta name="theme-color" content="#0f1117"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Linear Board"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://board.linearit.co wss://board.linearit.co;"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ------------------------------------------------------------------
+   Linear IT brand palette (matches vault + time + sign + speed).
+
+   Dark is the default. Light is applied two ways so the page never
+   flashes the wrong theme: automatically when the device asks for it,
+   and explicitly when the visitor picks it with the toggle.
+
+   One thing does NOT follow the theme: the board itself. It is always
+   white, because it is paper — and because the exported PNG has to
+   look like what you were just drawing on.
+   ------------------------------------------------------------------ */
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--faint:#4e5571;
+  --accent:#00b0ec;--accent-h:#009bd2;--accent-bg:rgba(0,176,236,.16);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --success:#4ade80;--warn:#fbbf24;--danger:#f87171;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --paper-shadow:0 10px 40px rgba(0,0,0,.5);
+  --patop:.35;
+  --logo:url("/board/assets/logo-white.png");
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+    --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+    --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+    --border:#dde1ee;--border2:#c8cee0;
+    --card:#ffffff;--card2:#f8f9fd;
+    --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+    --shadow:0 8px 30px rgba(0,0,0,.10);
+    --paper-shadow:0 10px 34px rgba(0,0,0,.16);
+    --patop:.5;
+    --logo:url("/board/assets/logo-dark.png");
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+  --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --paper-shadow:0 10px 34px rgba(0,0,0,.16);
+  --patop:.5;
+  --logo:url("/board/assets/logo-dark.png");
+}
+
+html,body{height:100%;overscroll-behavior:none}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;
+  overflow:hidden;                 /* the board is the page; nothing scrolls */
+  -webkit-tap-highlight-color:transparent;
+}
+/* The brand pattern, sitting behind everything in both themes... */
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:center/cover no-repeat url("/board/assets/pattern.png");opacity:var(--patop)}
+/* ...and a soft wash over it, so the board reads as the thing in focus. */
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.86;
+  background:radial-gradient(circle at 50% 35%,transparent 0%,var(--bg) 78%)}
+
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.hidden{display:none!important}
+
+/* ---- Shell: top bar, board, toolbar — three rows, no scrolling ---- */
+.app{height:100%;display:flex;flex-direction:column;
+  padding:max(8px,env(safe-area-inset-top)) 10px max(8px,env(safe-area-inset-bottom))}
+
+.topbar{display:flex;align-items:center;gap:10px;padding:2px 2px 8px;flex:0 0 auto;min-width:0}
+.brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.brandlogo{display:block;height:24px;width:82px;background:center/contain no-repeat var(--logo)}
+.brandtag{font-size:13px;font-weight:700;color:var(--muted);padding-left:10px;border-left:1px solid var(--border2)}
+.topbar .spacer{flex:1;min-width:0}
+
+/* The room name doubles as the copy-the-link button, because sending that
+   link to someone is the entire setup step for this app. */
+.room{display:inline-flex;align-items:center;gap:8px;max-width:100%;
+  background:var(--card);border:1px solid var(--border);border-radius:999px;
+  padding:6px 13px;font-size:13px;font-weight:600;color:var(--text);
+  transition:border-color .15s,background .15s}
+.room:hover{border-color:var(--accent);background:var(--card2)}
+.room .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room .hint{color:var(--muted);font-weight:600;font-size:12px;flex:0 0 auto}
+
+.status{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);
+  font-weight:600;flex:0 0 auto;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:0 0 auto;
+  transition:background .2s,box-shadow .2s}
+.status.live .dot{background:var(--success);box-shadow:0 0 0 3px rgba(74,222,128,.18)}
+.status.wait .dot{background:var(--warn);box-shadow:0 0 0 3px rgba(251,191,36,.18)}
+.status.down .dot{background:var(--danger);box-shadow:0 0 0 3px rgba(248,113,113,.18)}
+
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  border-radius:9px;color:var(--muted);border:1px solid transparent;font-size:15px;line-height:1;flex:0 0 auto}
+.iconbtn:hover{background:var(--bg3);color:var(--text)}
+
+/* ---- The board ------------------------------------------------------
+   The paper is a fixed square fitted into whatever space is left over.
+   Fitting it — rather than stretching it to the window — is what makes a
+   circle drawn on a 27-inch monitor still look round on a phone, and it
+   means both people are always looking at the whole board rather than
+   one of them seeing a cropped piece of it. Square, because a landscape
+   board leaves a phone held upright showing a thin strip.
+   -------------------------------------------------------------------- */
+.stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0;position:relative}
+.paper{position:relative;background:#fff;border-radius:12px;box-shadow:var(--paper-shadow);
+  overflow:hidden;touch-action:none}
+.paper canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.paper.text-tool canvas{cursor:text}
+
+/* The live text box: a real input sitting on top of the canvas, because
+   drawing your own blinking cursor inside a canvas is a lot of work for
+   nothing. What you type is only painted on when you finish. */
+.textbox{position:absolute;z-index:3;background:transparent;border:none;outline:none;padding:0;margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-weight:600;white-space:pre;overflow:hidden;caret-color:currentColor;
+  box-shadow:0 0 0 1.5px rgba(0,145,201,.55);border-radius:3px;min-width:2ch}
+
+/* ---- Toolbar ---- */
+.toolbar{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;
+  margin-top:10px;padding:8px;background:var(--card);border:1px solid var(--border);
+  border-radius:14px;box-shadow:var(--shadow)}
+.group{display:flex;align-items:center;gap:5px;padding:0 6px;border-right:1px solid var(--border)}
+.group:last-child{border-right:none}
+
+.tool{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:9px;
+  font-size:13.5px;font-weight:600;color:var(--muted);border:1px solid transparent;white-space:nowrap}
+.tool:hover{background:var(--bg3);color:var(--text)}
+.tool[aria-pressed="true"]{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+
+/* The colours sit on a light plate. Without it the near-black pen is a dark
+   circle on a dark toolbar and reads as an empty ring rather than a colour. */
+#colors{background:rgba(125,135,165,.16);border-radius:999px;padding:4px 8px;margin:0 2px}
+.swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.28);transition:transform .1s}
+.swatch:hover{transform:scale(1.12)}
+.swatch[aria-pressed="true"]{border-color:var(--accent);transform:scale(1.12)}
+
+.size{width:32px;height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid transparent}
+.size:hover{background:var(--bg3)}
+.size[aria-pressed="true"]{background:var(--accent-bg);border-color:var(--accent)}
+.size i{display:block;border-radius:50%;background:var(--text)}
+.size[aria-pressed="true"] i{background:var(--accent)}
+
+.act{height:34px;padding:0 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--muted);
+  border:1px solid transparent;white-space:nowrap}
+.act:hover{background:var(--bg3);color:var(--text)}
+.act:disabled{opacity:.4;cursor:not-allowed}
+.act:disabled:hover{background:none;color:var(--muted)}
+.act.primary{background:var(--accent);color:#fff}
+.act.primary:hover{background:var(--accent-h)}
+.act.danger:hover{background:rgba(248,113,113,.14);color:var(--danger)}
+
+.note{flex:0 0 auto;text-align:center;color:var(--faint);font-size:11.5px;padding:7px 4px 2px}
+.note b{color:var(--muted);font-weight:600}
+
+/* ---- Toast: brief, one line, never in the way ---- */
+.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,10px);
+  background:var(--card2);color:var(--text);border:1px solid var(--border2);border-radius:10px;
+  padding:9px 16px;font-size:13.5px;font-weight:600;box-shadow:var(--shadow);
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:20;max-width:88vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---- Narrow screens: shrink the chrome, keep the board as big as possible ---- */
+@media (max-width:720px){
+  .app{padding-left:7px;padding-right:7px}
+  .brandtag,.room .hint{display:none}
+  .toolbar{gap:5px;padding:7px 5px;border-radius:12px}
+  .group{padding:0 4px;gap:4px}
+  .tool,.act{height:32px;padding:0 9px;font-size:12.5px}
+  .swatch{width:24px;height:24px}
+  .size{width:29px;height:29px}
+  .note{font-size:10.5px;padding:6px 4px 0}
+}
+@media (max-width:420px){
+  .tool span,.act span{display:none}      /* labels fall away, glyphs remain */
+  .tool,.act{padding:0 10px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .toast,.swatch,.dot{transition-duration:.01ms}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brandlogo" role="img" aria-label="Linear IT"></span>
+      <span class="brandtag">Board</span>
+    </div>
+
+    <button class="room" id="roomBtn" title="Copy the link to this board">
+      <span class="name" id="roomName">…</span>
+      <span class="hint">copy link</span>
+    </button>
+
+    <div class="spacer"></div>
+
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Connecting…</span></div>
+    <button class="iconbtn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle light or dark theme">🌙</button>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="paper" id="paper">
+      <canvas id="board"></canvas>
+    </div>
+  </main>
+
+  <div class="toolbar">
+    <div class="group">
+      <button class="tool" id="toolPen" aria-pressed="true" title="Draw">✏️ <span>Pen</span></button>
+      <button class="tool" id="toolText" aria-pressed="false" title="Place text">🅣 <span>Text</span></button>
+    </div>
+
+    <div class="group" id="colors"></div>
+
+    <div class="group" id="sizes"></div>
+
+    <div class="group">
+      <button class="act" id="undoBtn" title="Undo your last stroke or text" disabled>↶ <span>Undo</span></button>
+      <button class="act danger" id="clearBtn" title="Erase the whole board for everyone">✕ <span>Clear</span></button>
+      <button class="act primary" id="saveBtn" title="Save the board as a PNG image">⬇ <span>Save</span></button>
+    </div>
+  </div>
+
+  <p class="note" id="note">This board deletes <b>24 hours after the last change</b>. No signup, no account — anyone with the link can draw on it.</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/board/app.js"></script>
+</body>
+</html>
