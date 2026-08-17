@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Linear Race — Air Racing in Your Browser | linear</title>
+<meta name="description" content="A pylon air racing game you play in the browser. Hold your line, round the pylons clean and climb the ranks to unlock faster aircraft — biplane, Formula One, Sport, T-6, Unlimited and Jet. No app, no account, nothing to download.">
+<link rel="canonical" href="https://www.linearit.co/race/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta name="theme-color" content="#07080c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Linear Race">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="linear">
+<meta property="og:url" content="https://www.linearit.co/race/">
+<meta property="og:title" content="Linear Race — Air Racing in Your Browser">
+<meta property="og:description" content="Round the pylons, hold your line, unlock faster aircraft. A pylon air racing game that runs entirely in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07080c; --panel:#10131c; --panel2:#171b27; --panel3:#1e2331;
+  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.06);
+  --ink:#eef1f7; --ink2:#a5adbf; --ink3:#6d7688;
+  --peri:#6999f5; --aqua:#70f2ff; --good:#4ade80; --bad:#ff6b6b; --warn:#f7b955;
+  --sans:'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --mono:'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.6;
+  min-height:100svh; -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  background-image:
+    radial-gradient(46% 40% at 12% 0%, rgba(105,153,245,.16) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(40% 34% at 88% 4%, rgba(112,242,255,.10) 0%, rgba(112,242,255,0) 100%);
+  background-repeat:no-repeat;
+}
+body.racing{overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;touch-action:manipulation}
+::selection{background:rgba(112,242,255,.3)}
+.kicker{font-size:.68rem;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--ink3)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ── HEADER ───────────────────────────────────────────── */
+.top{
+  position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:16px;
+  padding:12px 20px;background:rgba(7,8,12,.86);backdrop-filter:blur(14px) saturate(140%);
+  -webkit-backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.brand img{height:30px;width:auto;display:block}
+.brand b{font-weight:600;font-size:.95rem;letter-spacing:-.01em}
+.brand span{color:var(--aqua)}
+.top .spacer{margin-left:auto}
+.top-links{display:flex;gap:4px}
+.top-links a{padding:8px 13px;border-radius:999px;font-size:.8rem;color:var(--ink2);transition:background .18s,color .18s}
+.top-links a:hover{background:rgba(255,255,255,.06);color:var(--ink)}
+body.racing .top,body.racing footer{display:none}
+
+/* ── LAYOUT ───────────────────────────────────────────── */
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.screen{display:none}
+.screen.show{display:block}
+.hero{padding:44px 0 26px;text-align:center}
+.hero h1{font-size:clamp(2rem,6vw,3.1rem);font-weight:600;letter-spacing:-.03em;line-height:1.06}
+.hero h1 em{font-style:normal;color:var(--aqua)}
+.hero p{color:var(--ink2);max-width:56ch;margin:12px auto 0;font-size:1rem}
+
+/* rank bar */
+.rank{
+  display:flex;align-items:center;gap:14px;margin:8px auto 30px;max-width:520px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;
+}
+.rank .num{
+  width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--peri),#3f66b0);font-weight:700;font-size:1.15rem;color:#fff;
+}
+.rank .meta{flex:1;min-width:0}
+.rank .meta b{display:block;font-size:.9rem;font-weight:600}
+.rank .meta small{color:var(--ink3);font-size:.74rem}
+.bar{height:6px;border-radius:99px;background:var(--panel3);margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--peri),var(--aqua));border-radius:99px;transition:width .5s cubic-bezier(.2,.9,.3,1)}
+
+h2.sec{font-size:.72rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);margin:0 0 12px}
+.grid{display:grid;gap:12px;margin-bottom:30px}
+.grid.planes{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.grid.courses{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+
+.card{
+  position:relative;text-align:left;width:100%;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:14px;transition:border-color .18s,background .18s,transform .18s;
+}
+.card:hover{border-color:rgba(255,255,255,.2)}
+.card.on{border-color:var(--aqua);background:var(--panel2);box-shadow:0 0 0 1px rgba(112,242,255,.35)}
+.card.locked{opacity:.42;cursor:not-allowed}
+.card .cname{font-weight:600;font-size:.98rem;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.card .cdesc{color:var(--ink3);font-size:.78rem;line-height:1.45;margin-top:4px}
+.card canvas.thumb{display:block;width:100%;height:74px;margin:2px 0 6px}
+.card .lockpill{
+  position:absolute;top:12px;right:12px;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--warn);border:1px solid rgba(247,185,85,.4);border-radius:99px;padding:3px 8px;
+}
+.stats{display:flex;gap:10px;margin-top:9px}
+.stat{flex:1}
+.stat small{display:block;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:3px}
+.stat .sbar{height:4px;border-radius:99px;background:var(--panel3);overflow:hidden}
+.stat .sbar i{display:block;height:100%;background:var(--peri)}
+.best{margin-top:9px;font-size:.72rem;color:var(--ink3);font-family:var(--mono)}
+.best b{color:var(--aqua);font-weight:500}
+
+.go{
+  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:420px;margin:0 auto 14px;
+  padding:16px 22px;border-radius:999px;background:var(--aqua);color:#07080c;font-weight:700;font-size:1.02rem;
+  letter-spacing:-.01em;transition:transform .15s,filter .15s;
+}
+.go:hover{filter:brightness(1.08)}
+.go:active{transform:scale(.985)}
+.go svg{width:19px;height:19px}
+.opts{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:34px}
+.chip{
+  padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--ink2);font-size:.78rem;transition:color .15s,border-color .15s;
+}
+.chip:hover{color:var(--ink);border-color:rgba(255,255,255,.22)}
+.chip.on{color:#07080c;background:var(--aqua);border-color:var(--aqua);font-weight:600}
+
+.how{border-top:1px solid var(--line2);padding:26px 0 34px;display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.how h3{font-size:.86rem;font-weight:600;margin-bottom:5px}
+.how p{color:var(--ink3);font-size:.82rem;line-height:1.6}
+.how kbd{
+  font-family:var(--mono);font-size:.72rem;background:var(--panel3);border:1px solid var(--line);
+  border-radius:5px;padding:1px 6px;color:var(--ink2);
+}
+
+/* ── RACE ─────────────────────────────────────────────── */
+#scr-race{position:fixed;inset:0;z-index:100;background:#0a0b10}
+#scr-race.show{display:block}
+#cv{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;inset:0;pointer-events:none;font-family:var(--mono);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.hud .tl{position:absolute;top:12px;left:14px;display:flex;gap:8px;align-items:flex-start}
+.hud .tr{position:absolute;top:12px;right:14px;text-align:right}
+.hud .bl{position:absolute;bottom:12px;left:14px}
+.hud .br{position:absolute;bottom:12px;right:14px}
+.tile{
+  background:rgba(10,12,18,.68);border:1px solid var(--line);border-radius:12px;padding:7px 11px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.tile small{display:block;font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);font-family:var(--sans)}
+.tile b{font-size:1.15rem;font-weight:500;letter-spacing:-.02em;display:block;line-height:1.2}
+.tile.big b{font-size:1.5rem}
+.hud .pos b{color:var(--aqua)}
+#mini{display:block;width:132px;height:132px;opacity:.92}
+.icon-btn{
+  pointer-events:auto;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  background:rgba(10,12,18,.68);border:1px solid var(--line);color:var(--ink2);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+}
+.icon-btn:hover{color:var(--ink)}
+.icon-btn svg{width:17px;height:17px}
+.msg{
+  position:absolute;top:24%;left:50%;transform:translateX(-50%);text-align:center;
+  font-family:var(--sans);font-weight:700;letter-spacing:-.02em;white-space:nowrap;
+}
+#cd{font-size:clamp(3rem,14vw,6rem);text-shadow:0 6px 30px rgba(0,0,0,.6)}
+#flash{font-size:clamp(1.1rem,4.4vw,1.7rem);top:38%;opacity:0;transition:opacity .2s}
+#flash.on{opacity:1}
+#flash.warn{color:var(--warn)}
+#flash.good{color:var(--good)}
+.stickhint{
+  position:absolute;left:50%;bottom:26px;transform:translateX(-50%);font-family:var(--sans);
+  font-size:.76rem;color:var(--ink3);background:rgba(10,12,18,.6);padding:6px 14px;border-radius:99px;
+  border:1px solid var(--line2);
+}
+.pausewrap{
+  position:absolute;inset:0;display:none;place-items:center;background:rgba(7,8,12,.82);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:auto;
+}
+.pausewrap.show{display:grid}
+.pausebox{text-align:center;padding:26px}
+.pausebox h3{font-size:1.4rem;font-weight:600;margin-bottom:16px;letter-spacing:-.02em}
+.pausebox .chip{margin:4px}
+
+/* ── RESULTS ──────────────────────────────────────────── */
+.resbox{max-width:560px;margin:0 auto;padding:34px 0 40px;text-align:center}
+.place{font-size:clamp(2.4rem,9vw,3.6rem);font-weight:700;letter-spacing:-.03em;line-height:1}
+.place.p1{color:var(--aqua)}
+.resline{color:var(--ink2);margin-top:6px}
+.rtable{
+  margin:24px 0;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-align:left;
+}
+.rrow{display:flex;align-items:center;gap:12px;padding:11px 15px;border-bottom:1px solid var(--line2);font-size:.88rem}
+.rrow:last-child{border-bottom:0}
+.rrow .rp{width:26px;color:var(--ink3);font-family:var(--mono);font-size:.8rem}
+.rrow .rn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrow .rt{font-family:var(--mono);color:var(--ink2);font-size:.82rem}
+.rrow.me{background:rgba(112,242,255,.07)}
+.rrow.me .rn{font-weight:600}
+.rrow .dot{width:9px;height:9px;border-radius:50%;flex:none}
+.sumgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 8px}
+.sum small{display:block;font-size:.58rem;letter-spacing:.13em;text-transform:uppercase;color:var(--ink3)}
+.sum b{font-family:var(--mono);font-size:1.02rem;font-weight:500;letter-spacing:-.02em}
+.unlock{
+  background:rgba(112,242,255,.09);border:1px solid rgba(112,242,255,.35);border-radius:12px;
+  padding:12px 15px;margin-bottom:18px;font-size:.86rem;
+}
+.unlock b{color:var(--aqua)}
+.rbtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.rbtns .chip{padding:12px 20px;font-size:.86rem}
+
+footer{border-top:1px solid var(--line);padding:26px 20px;text-align:center;color:var(--ink3);font-size:.76rem}
+footer a{color:var(--ink2)}
+footer a:hover{color:var(--aqua)}
+
+@media (max-width:560px){
+  .hero{padding:30px 0 20px}
+  .grid{margin-bottom:24px}
+  #mini{width:96px;height:96px}
+  .tile b{font-size:1rem}
+  .tile.big b{font-size:1.2rem}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="/" title="linearit.co">
+    <img src="/zurech3/assets/icon-white.svg" alt="linear" onerror="this.style.display='none'">
+    <b>Linear <span>Race</span></b>
+  </a>
+  <nav class="top-links spacer">
+    <a href="/drums/">Drums</a>
+    <a href="/noise/">Noise</a>
+    <a href="/typing/">Type</a>
+    <a href="/pages/">All pages</a>
+  </nav>
+</header>
+
+<!-- ══ HANGAR ══════════════════════════════════════════ -->
+<main class="wrap screen show" id="scr-hangar">
+  <section class="hero">
+    <p class="kicker">Pylon Air Racing</p>
+    <h1>Fly low. Turn hard.<br><em>Don't cut the pylons.</em></h1>
+    <p>Six aircraft, three courses, and one rule that decides every race — the tighter your line, the faster you go, right up until you cut inside a pylon and hand back the seconds. Win races, climb the ranks, unlock something quicker.</p>
+  </section>
+
+  <div class="rank">
+    <div class="num" id="rankNum">1</div>
+    <div class="meta">
+      <b id="rankName">Rookie</b>
+      <small id="rankSub">0 XP</small>
+      <div class="bar"><i id="rankBar" style="width:0%"></i></div>
+    </div>
+  </div>
+
+  <h2 class="sec">Aircraft</h2>
+  <div class="grid planes" id="planeGrid"></div>
+
+  <h2 class="sec">Course</h2>
+  <div class="grid courses" id="courseGrid"></div>
+
+  <button class="go" id="btnRace">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+    Start race
+  </button>
+  <div class="opts">
+    <button class="chip" id="optSound">Sound: on</button>
+    <button class="chip" id="optTilt">Tilt steering: off</button>
+    <button class="chip" id="optReset">Reset progress</button>
+  </div>
+
+  <section class="how">
+    <div>
+      <h3>Steering</h3>
+      <p>On a phone or iPad, touch and hold anywhere — a stick appears where your thumb lands, and sliding left or right banks the aircraft. On a computer use <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd>. Throttle is always wide open; the only thing you control is the line.</p>
+    </div>
+    <div>
+      <h3>The pylons</h3>
+      <p>Every pylon has to be rounded on the <b>outside</b> — clip inside one and it's a two second penalty on your race time. Hard banking scrubs speed, so the quick way round is the smooth line, not the tightest one.</p>
+    </div>
+    <div>
+      <h3>Nobody crashes</h3>
+      <p>There are no wrecks in this game — a bad line costs you seconds, never an aircraft. Ranks, best laps and unlocks are saved in this browser only. No account, no server, nothing to download.</p>
+    </div>
+  </section>
+</main>
+
+<!-- ══ RACE ════════════════════════════════════════════ -->
+<div class="screen" id="scr-race">
+  <canvas id="cv"></canvas>
+  <div class="hud">
+    <div class="tl">
+      <button class="icon-btn" id="btnPause" aria-label="Pause">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <div class="tile pos"><small>Position</small><b id="hPos">1/6</b></div>
+      <div class="tile"><small>Lap</small><b id="hLap">1/4</b></div>
+    </div>
+    <div class="tr">
+      <div class="tile big"><small>Race time</small><b id="hTime">0:00.00</b></div>
+      <div class="tile" style="margin-top:8px"><small>Best lap</small><b id="hBest">—</b></div>
+    </div>
+    <div class="bl">
+      <div class="tile big"><small>Ground speed</small><b id="hSpd">0 <span style="font-size:.6em;color:var(--ink3)">MPH</span></b></div>
+    </div>
+    <div class="br"><canvas id="mini" width="264" height="264"></canvas></div>
+    <div class="msg" id="cd"></div>
+    <div class="msg" id="flash"></div>
+    <div class="stickhint" id="stickhint">Touch and hold to steer</div>
+  </div>
+  <div class="pausewrap" id="pausewrap">
+    <div class="pausebox">
+      <h3>Paused</h3>
+      <button class="chip on" id="btnResume">Resume</button>
+      <button class="chip" id="btnRestart">Restart</button>
+      <button class="chip" id="btnQuit">Back to hangar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULTS ═════════════════════════════════════════ -->
+<div class="wrap screen" id="scr-results">
+  <div class="resbox">
+    <p class="kicker" id="resCourse">Sagebrush Oval</p>
+    <div class="place" id="resPlace">P1</div>
+    <p class="resline" id="resLine">Race won</p>
+
+    <div class="sumgrid">
+      <div class="sum"><small>Race time</small><b id="resTime">—</b></div>
+      <div class="sum"><small>Best lap</small><b id="resBest">—</b></div>
+      <div class="sum"><small>Penalties</small><b id="resPen">—</b></div>
+    </div>
+
+    <div id="resUnlock"></div>
+    <div class="rtable" id="resTable"></div>
+
+    <div class="sumgrid" style="grid-template-columns:1fr">
+      <div class="sum"><small>Experience earned</small><b id="resXp">+0 XP</b></div>
+    </div>
+
+    <div class="rbtns">
+      <button class="chip on" id="btnAgain">Race again</button>
+      <button class="chip" id="btnHangar">Hangar</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Linear Race — part of <a href="/">linearit.co</a> · <a href="/pages/">every page on this site</a> · runs entirely in your browser, nothing is uploaded.
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ══ helpers ═══════════════════════════════════════════ */
+var $ = function(s){ return document.querySelector(s); };
+var TAU = Math.PI * 2;
+function clamp(v,a,b){ return v < a ? a : v > b ? b : v; }
+function lerp(a,b,t){ return a + (b - a) * t; }
+function norm(a){ while(a > Math.PI) a -= TAU; while(a < -Math.PI) a += TAU; return a; }
+function fmt(t){
+  if(t == null || !isFinite(t)) return '—';
+  var m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+}
+function fmtGap(t){ return (t >= 0 ? '+' : '') + t.toFixed(2); }
+/* deterministic pseudo-random, so scenery is identical every run */
+function rnd(n){ var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+/* ══ aircraft ══════════════════════════════════════════ */
+/* vmax  — top speed in world units/sec (also the MPH shown)
+   turn  — turn rate multiplier
+   roll  — how fast it banks
+   accel — how hard it pulls speed back after a corner
+   drag  — speed scrubbed by a full-bank turn                        */
+var PLANES = [
+  { id:'biplane', name:'Biplane', rank:1, vmax:300, turn:1.52, roll:3.3, accel:105, drag:.40,
+    desc:'Slow down the straights, glued to the pylons. The friendliest thing to learn a line in.',
+    art:{ span:78, len:66, tail:.52, biplane:true, delta:false, nose:.30 }, col:'#f2c14e' },
+  { id:'formula', name:'Formula One', rank:1, vmax:345, turn:1.36, roll:3.05, accel:110, drag:.42,
+    desc:'A little engine and a lot of nerve. Rewards a clean, patient arc more than muscle.',
+    art:{ span:70, len:70, tail:.48, biplane:false, delta:false, nose:.26 }, col:'#7ee787' },
+  { id:'sport', name:'Sport', rank:2, vmax:385, turn:1.20, roll:2.85, accel:112, drag:.45,
+    desc:'The modern composite class. Quick everywhere, forgiving nowhere in particular.',
+    art:{ span:82, len:78, tail:.50, biplane:false, delta:false, nose:.30 }, col:'#70f2ff' },
+  { id:'t6', name:'T-6', rank:3, vmax:405, turn:1.08, roll:2.5, accel:92, drag:.50,
+    desc:'A heavy old trainer. Carries speed beautifully and hates being asked to turn.',
+    art:{ span:96, len:88, tail:.55, biplane:false, delta:false, nose:.36 }, col:'#f59e6b' },
+  { id:'unlimited', name:'Unlimited', rank:4, vmax:470, turn:.96, roll:2.25, accel:125, drag:.55,
+    desc:'Warbird power. Enormous on the straights, and you pay for every degree of bank.',
+    art:{ span:104, len:104, tail:.56, biplane:false, delta:false, nose:.42 }, col:'#ff6b6b' },
+  { id:'jet', name:'Jet', rank:6, vmax:530, turn:.86, roll:2.0, accel:145, drag:.58,
+    desc:'The fastest thing on the course by a distance. Start braking your line early.',
+    art:{ span:86, len:110, tail:.44, biplane:false, delta:true, nose:.30 }, col:'#6999f5' }
+];
+function planeById(id){
+  for(var i = 0; i < PLANES.length; i++) if(PLANES[i].id === id) return PLANES[i];
+  return PLANES[0];
+}
+
+/* ══ courses ═══════════════════════════════════════════ */
+/* radii are per-pylon multipliers around an ellipse, which is what gives
+   each course its shape while keeping it convex — that keeps "outside the
+   pylon" a well defined direction everywhere on the circuit.          */
+var COURSES = [
+  { id:'sagebrush', name:'Sagebrush Oval', rank:1, laps:3, a:1350, b:800, n:8,
+    shape:[1,1,1,1,1,1,1,1], rot:0, hue:32,
+    desc:'The classic eight-pylon oval. Long straights, two big sweeping turns.' },
+  { id:'drylake', name:'Dry Lake', rank:2, laps:4, a:1750, b:900, n:10,
+    shape:[1.06,.98,.92,1,1.08,1.06,.98,.92,1,1.08], rot:.22, hue:44,
+    desc:'Wider and faster, with an egg-shaped north end that tightens on you late.' },
+  { id:'cinder', name:'Cinder Ridge', rank:4, laps:4, a:1150, b:820, n:12,
+    shape:[1,.9,1.02,.88,1,.94,1,.9,1.02,.88,1,.94], rot:.1, hue:12,
+    desc:'Twelve pylons packed tight. Almost no straight anywhere — pure line-holding.' }
+];
+
+/* build the geometry once: pylon positions, the outward normal at each
+   pylon, the tangent (direction of travel) and a racing line for the AI */
+function buildCourse(c){
+  var i, k, pts = [];
+  for(i = 0; i < c.n; i++){
+    /* negative angle so the circuit runs anti-clockwise on screen — left
+       hand turns, the way real pylon courses are flown */
+    var th = -(i / c.n) * TAU + c.rot;
+    var s = c.shape[i % c.shape.length];
+    pts.push({ x: Math.cos(th) * c.a * s, y: Math.sin(th) * c.b * s });
+  }
+  var cx = 0, cy = 0;
+  for(i = 0; i < pts.length; i++){ cx += pts[i].x; cy += pts[i].y; }
+  cx /= pts.length; cy /= pts.length;
+
+  var pylons = [];
+  for(i = 0; i < pts.length; i++){
+    var prev = pts[(i - 1 + pts.length) % pts.length], next = pts[(i + 1) % pts.length];
+    var tx = next.x - prev.x, ty = next.y - prev.y;
+    var tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+    /* outward = tangent rotated 90°, flipped to point away from centre */
+    var ox = -ty, oy = tx;
+    if(ox * (pts[i].x - cx) + oy * (pts[i].y - cy) < 0){ ox = -ox; oy = -oy; }
+    pylons.push({ x:pts[i].x, y:pts[i].y, tx:tx, ty:ty, ox:ox, oy:oy });
+  }
+  /* racing line: sit a little outside each pylon and smooth the result */
+  var line = [];
+  for(i = 0; i < pylons.length; i++){
+    var p = pylons[i], off = 105;
+    line.push({ x: p.x + p.ox * off, y: p.y + p.oy * off });
+  }
+  for(k = 0; k < 3; k++){
+    var sm = [];
+    for(i = 0; i < line.length; i++){
+      var a = line[(i - 1 + line.length) % line.length], b = line[i], d = line[(i + 1) % line.length];
+      sm.push({ x:(a.x + b.x * 2 + d.x) / 4, y:(a.y + b.y * 2 + d.y) / 4 });
+    }
+    line = sm;
+  }
+  /* push the smoothed line back outside any pylon it cut through */
+  for(i = 0; i < line.length; i++){
+    var py = pylons[i];
+    var t = (line[i].x - py.x) * py.ox + (line[i].y - py.y) * py.oy;
+    if(t < 60){ line[i].x += py.ox * (60 - t); line[i].y += py.oy * (60 - t); }
+  }
+  var len = 0;
+  for(i = 0; i < line.length; i++){
+    var q = line[(i + 1) % line.length];
+    len += Math.hypot(q.x - line[i].x, q.y - line[i].y);
+  }
+  return { def:c, pylons:pylons, line:line, cx:cx, cy:cy, len:len };
+}
+var BUILT = {};
+function course(id){
+  if(!BUILT[id]){
+    for(var i = 0; i < COURSES.length; i++) if(COURSES[i].id === id) BUILT[id] = buildCourse(COURSES[i]);
+  }
+  return BUILT[id];
+}
+
+/* ══ ranks & save data ═════════════════════════════════ */
+var RANKS = [
+  { xp:0,    name:'Rookie' },
+  { xp:160,  name:'Qualified' },
+  { xp:420,  name:'Bronze' },
+  { xp:820,  name:'Silver' },
+  { xp:1400, name:'Gold' },
+  { xp:2200, name:'Platinum' },
+  { xp:3200, name:'Champion' }
+];
+var KEY = 'linear-race-v1';
+var save = { xp:0, best:{}, sound:true, tilt:false, plane:'biplane', course:'sagebrush' };
+
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(!raw) return;
+    var o = JSON.parse(raw);
+    if(o && typeof o === 'object'){
+      if(typeof o.xp === 'number' && isFinite(o.xp)) save.xp = Math.max(0, o.xp);
+      if(o.best && typeof o.best === 'object') save.best = o.best;
+      if(typeof o.sound === 'boolean') save.sound = o.sound;
+      if(typeof o.tilt === 'boolean') save.tilt = o.tilt;
+      if(typeof o.plane === 'string') save.plane = o.plane;
+      if(typeof o.course === 'string') save.course = o.course;
+    }
+  }catch(e){ /* private mode, corrupt data — start fresh */ }
+}
+function store(){
+  try{ localStorage.setItem(KEY, JSON.stringify(save)); }catch(e){}
+}
+function rankOf(xp){
+  var r = 1;
+  for(var i = 0; i < RANKS.length; i++) if(xp >= RANKS[i].xp) r = i + 1;
+  return r;
+}
+function bestKey(cid, pid){ return cid + '|' + pid; }
+
+/* ══ sound ═════════════════════════════════════════════
+   Everything is synthesised — engine drone, wind, the whoosh as a pylon
+   goes by. No audio files, same as the rest of the site.              */
+var AC = null, engOsc = null, engOsc2 = null, engGain = null, engFilt = null,
+    windSrc = null, windGain = null, noiseBuf = null;
+
+function audioOn(){
+  if(!save.sound) return false;
+  if(AC) { if(AC.state === 'suspended') AC.resume(); return true; }
+  try{
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return false;
+    AC = new Ctx();
+  }catch(e){ return false; }
+  noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+  var d = noiseBuf.getChannelData(0);
+  for(var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return true;
+}
+function engineStart(){
+  if(!audioOn() || engOsc) return;
+  engFilt = AC.createBiquadFilter(); engFilt.type = 'lowpass'; engFilt.frequency.value = 950;
+  engGain = AC.createGain(); engGain.gain.value = 0;
+  engOsc = AC.createOscillator(); engOsc.type = 'sawtooth'; engOsc.frequency.value = 90;
+  engOsc2 = AC.createOscillator(); engOsc2.type = 'square'; engOsc2.frequency.value = 45;
+  var g2 = AC.createGain(); g2.gain.value = .35;
+  engOsc.connect(engFilt); engOsc2.connect(g2); g2.connect(engFilt);
+  engFilt.connect(engGain); engGain.connect(AC.destination);
+  engOsc.start(); engOsc2.start();
+
+  windSrc = AC.createBufferSource(); windSrc.buffer = noiseBuf; windSrc.loop = true;
+  var bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 620; bp.Q.value = .7;
+  windGain = AC.createGain(); windGain.gain.value = 0;
+  windSrc.connect(bp); bp.connect(windGain); windGain.connect(AC.destination);
+  windSrc.start();
+}
+function engineSet(ratio, jet){
+  if(!engGain || !AC) return;
+  var t = AC.currentTime;
+  engOsc.frequency.setTargetAtTime((jet ? 130 : 78) + ratio * (jet ? 120 : 105), t, .08);
+  engOsc2.frequency.setTargetAtTime((jet ? 62 : 39) + ratio * 52, t, .08);
+  engFilt.frequency.setTargetAtTime(700 + ratio * 1500, t, .1);
+  engGain.gain.setTargetAtTime(.055, t, .2);
+  windGain.gain.setTargetAtTime(.016 + ratio * .03, t, .2);
+}
+function engineStop(){
+  if(!AC) return;
+  try{
+    if(engGain) engGain.gain.setTargetAtTime(0, AC.currentTime, .08);
+    if(windGain) windGain.gain.setTargetAtTime(0, AC.currentTime, .08);
+    setTimeout(function(){
+      try{ if(engOsc){ engOsc.stop(); engOsc2.stop(); windSrc.stop(); } }catch(e){}
+      engOsc = engOsc2 = windSrc = engGain = windGain = engFilt = null;
+    }, 260);
+  }catch(e){}
+}
+function blip(freq, dur, type, vol){
+  if(!audioOn()) return;
+  try{
+    var o = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime;
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol == null ? .12 : vol, t + .012);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + .02);
+  }catch(e){}
+}
+function whoosh(){
+  if(!audioOn() || !noiseBuf) return;
+  try{
+    var s = AC.createBufferSource(); s.buffer = noiseBuf;
+    var bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
+    var g = AC.createGain(), t = AC.currentTime;
+    bp.frequency.setValueAtTime(380, t);
+    bp.frequency.exponentialRampToValueAtTime(2400, t + .18);
+    g.gain.setValueAtTime(.001, t);
+    g.gain.linearRampToValueAtTime(.10, t + .04);
+    g.gain.exponentialRampToValueAtTime(.0001, t + .22);
+    s.connect(bp); bp.connect(g); g.connect(AC.destination);
+    s.start(t); s.stop(t + .25);
+  }catch(e){}
+}
+
+/* ══ aircraft artwork ══════════════════════════════════
+   One vector routine drives both the hangar thumbnails and the racers on
+   course. Nose points along +x; bank squashes the wings.              */
+/* darken a #rrggbb by a factor, leaving anything else untouched */
+function shade(col, f){
+  if(col.charAt(0) !== '#' || col.length !== 7) return col;
+  var r = Math.round(parseInt(col.substr(1, 2), 16) * f);
+  var gg = Math.round(parseInt(col.substr(3, 2), 16) * f);
+  var b = Math.round(parseInt(col.substr(5, 2), 16) * f);
+  return 'rgb(' + r + ',' + gg + ',' + b + ')';
+}
+function drawPlane(g, art, col, bank, k){
+  var len = art.len * k, span = art.span * k;
+  var sq = Math.max(.18, Math.cos(bank * 1.05));          /* wings foreshorten as it rolls */
+  var half = span * .5 * sq;
+
+  function wing(yOff, scale, alpha){
+    g.globalAlpha = alpha;
+    g.beginPath();
+    if(art.delta){
+      g.moveTo(len * .34, 0);
+      g.lineTo(-len * .22, -half * scale);
+      g.lineTo(-len * .34, -half * scale);
+      g.lineTo(-len * .30, 0);
+      g.lineTo(-len * .34, half * scale);
+      g.lineTo(-len * .22, half * scale);
+      g.closePath();
+    }else{
+      var x0 = len * .16 + yOff, x1 = -len * .06 + yOff;
+      g.moveTo(x0, -half * scale);
+      g.lineTo(x0 - len * .04, -half * scale);
+      g.lineTo(x1, -half * scale * .96);
+      g.lineTo(x1, half * scale * .96);
+      g.lineTo(x0 - len * .04, half * scale);
+      g.lineTo(x0, half * scale);
+      g.closePath();
+    }
+    g.fill();
+    g.globalAlpha = 1;
+  }
+
+  /* wings */
+  g.fillStyle = col;
+  wing(0, 1, 1);
+  if(art.biplane){ g.fillStyle = col; wing(-len * .06, .88, .72); }
+
+  /* fuselage — a shade darker than the wings so the shape reads as an
+     aircraft rather than a cross at small sizes */
+  g.fillStyle = shade(col, .68);
+  g.beginPath();
+  g.moveTo(len * .5, 0);
+  g.quadraticCurveTo(len * .34, -len * .09, -len * .10, -len * .085);
+  g.quadraticCurveTo(-len * .40, -len * .06, -len * .5, 0);
+  g.quadraticCurveTo(-len * .40, len * .06, -len * .10, len * .085);
+  g.quadraticCurveTo(len * .34, len * .09, len * .5, 0);
+  g.closePath();
+  g.fill();
+
+  /* tailplane */
+  var th = span * .5 * art.tail * sq;
+  g.beginPath();
+  g.moveTo(-len * .36, -th); g.lineTo(-len * .48, -th * .9);
+  g.lineTo(-len * .48, th * .9); g.lineTo(-len * .36, th);
+  g.closePath(); g.fill();
+
+  /* canopy */
+  g.fillStyle = 'rgba(12,16,26,.72)';
+  g.beginPath();
+  g.ellipse(len * (art.delta ? .02 : .06), 0, len * .13, Math.max(1.2, len * .055 * sq + len * .022), 0, 0, TAU);
+  g.fill();
+
+  /* nose / prop disc */
+  if(!art.delta){
+    g.strokeStyle = 'rgba(255,255,255,.30)';
+    g.lineWidth = Math.max(1, k * 2.4);
+    g.beginPath();
+    g.arc(len * .5, 0, span * .17, -1.15, 1.15);
+    g.stroke();
+  }else{
+    g.fillStyle = 'rgba(255,220,150,.55)';
+    g.beginPath();
+    g.ellipse(-len * .52, 0, len * .06, Math.max(1, len * .035), 0, 0, TAU);
+    g.fill();
+  }
+}
+
+/* ══ hangar ════════════════════════════════════════════ */
+function planeUnlocked(p){ return rankOf(save.xp) >= p.rank; }
+function courseUnlocked(c){ return rankOf(save.xp) >= c.rank; }
+
+function thumb(cv, p){
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  var w = cv.clientWidth || 190, h = 74;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  var g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  g.save();
+  g.translate(w * .5, h * .5);
+  g.rotate(-Math.PI / 2);                                  /* nose up in the hangar */
+  var k = Math.min(1, (h - 12) / (p.art.span * .9));
+  drawPlane(g, p.art, planeUnlocked(p) ? p.col : '#59617a', 0, k);
+  g.restore();
+}
+
+function paintRank(){
+  var xp = save.xp, r = rankOf(xp), R = RANKS[r - 1], nxt = RANKS[r];
+  $('#rankNum').textContent = r;
+  $('#rankName').textContent = R.name;
+  if(nxt){
+    $('#rankSub').textContent = Math.round(xp) + ' XP · ' + Math.max(0, Math.ceil(nxt.xp - xp)) + ' to ' + nxt.name;
+    $('#rankBar').style.width = clamp((xp - R.xp) / (nxt.xp - R.xp) * 100, 0, 100) + '%';
+  }else{
+    $('#rankSub').textContent = Math.round(xp) + ' XP · top rank';
+    $('#rankBar').style.width = '100%';
+  }
+}
+
+function paintHangar(){
+  paintRank();
+  var pg = $('#planeGrid'), cg = $('#courseGrid'), i;
+  pg.innerHTML = ''; cg.innerHTML = '';
+
+  /* if a saved choice is now out of reach (progress reset), fall back */
+  if(!planeUnlocked(planeById(save.plane))) save.plane = 'biplane';
+  var cdef = null;
+  for(i = 0; i < COURSES.length; i++) if(COURSES[i].id === save.course) cdef = COURSES[i];
+  if(!cdef || !courseUnlocked(cdef)) save.course = 'sagebrush';
+
+  PLANES.forEach(function(p){
+    var ok = planeUnlocked(p);
+    var b = document.createElement('button');
+    b.className = 'card' + (save.plane === p.id ? ' on' : '') + (ok ? '' : ' locked');
+    b.innerHTML =
+      '<canvas class="thumb"></canvas>' +
+      '<div class="cname">' + p.name + '</div>' +
+      '<div class="cdesc">' + (ok ? p.desc : 'Reach rank ' + p.rank + ' to fly this class.') + '</div>' +
+      '<div class="stats">' +
+        '<div class="stat"><small>Speed</small><div class="sbar"><i style="width:' + Math.round((p.vmax - 270) / 2.7) + '%"></i></div></div>' +
+        '<div class="stat"><small>Agility</small><div class="sbar"><i style="width:' + Math.round((p.turn - .78) / .0085) + '%"></i></div></div>' +
+      '</div>' +
+      (ok ? '' : '<span class="lockpill">Rank ' + p.rank + '</span>');
+    if(ok){
+      var bk = save.best[bestKey(save.course, p.id)];
+      if(bk && bk.lap){
+        var d = document.createElement('div');
+        d.className = 'best';
+        d.innerHTML = 'Best lap here <b>' + fmt(bk.lap) + '</b>';
+        b.appendChild(d);
+      }
+      b.addEventListener('click', function(){ save.plane = p.id; store(); paintHangar(); });
+    }
+    pg.appendChild(b);
+    thumb(b.querySelector('canvas'), p);
+  });
+
+  COURSES.forEach(function(c){
+    var ok = courseUnlocked(c);
+    var b = document.createElement('button');
+    b.className = 'card' + (save.course === c.id ? ' on' : '') + (ok ? '' : ' locked');
+    var bk = save.best[bestKey(c.id, save.plane)];
+    b.innerHTML =
+      '<div class="cname">' + c.name + '</div>' +
+      '<div class="cdesc">' + (ok ? c.desc : 'Reach rank ' + c.rank + ' to race here.') + '</div>' +
+      '<div class="best">' + c.laps + ' laps · ' + c.n + ' pylons' +
+        (ok && bk && bk.race ? ' · best <b>' + fmt(bk.race) + '</b>' : '') + '</div>' +
+      (ok ? '' : '<span class="lockpill">Rank ' + c.rank + '</span>');
+    if(ok) b.addEventListener('click', function(){ save.course = c.id; store(); paintHangar(); });
+    cg.appendChild(b);
+  });
+
+  $('#optSound').textContent = 'Sound: ' + (save.sound ? 'on' : 'off');
+  $('#optSound').classList.toggle('on', save.sound);
+  $('#optTilt').textContent = 'Tilt steering: ' + (save.tilt ? 'on' : 'off');
+  $('#optTilt').classList.toggle('on', save.tilt);
+}
+
+function show(id){
+  ['#scr-hangar', '#scr-race', '#scr-results'].forEach(function(s){
+    $(s).classList.toggle('show', s === '#scr-' + id);
+  });
+  document.body.classList.toggle('racing', id === 'race');
+}
+
+/* ══ race state ════════════════════════════════════════ */
+var cv = $('#cv'), ctx = cv.getContext('2d'), mini = $('#mini'), mctx = mini.getContext('2d');
+var VIEW = { w:0, h:0, dpr:1 };
+var R = null;                                             /* the live race, or null */
+var AI_NAMES = ['Vega', 'Marchetti', 'Okonkwo', 'Ríos', 'Halvorsen', 'Tanaka', 'Brenner', 'Cassar'];
+var AI_COLS = ['#f2c14e', '#7ee787', '#ff9ecb', '#f59e6b', '#b98cff', '#70f2ff', '#ff6b6b', '#6999f5'];
+
+function denseLine(C){
+  if(C.dense) return C.dense;
+  var pts = C.line.map(function(p){ return { x:p.x, y:p.y }; }), it, i, out;
+  for(it = 0; it < 4; it++){                              /* Chaikin — rounds the corners */
+    out = [];
+    for(i = 0; i < pts.length; i++){
+      var a = pts[i], b = pts[(i + 1) % pts.length];
+      out.push({ x:a.x * .75 + b.x * .25, y:a.y * .75 + b.y * .25 });
+      out.push({ x:a.x * .25 + b.x * .75, y:a.y * .25 + b.y * .75 });
+    }
+    pts = out;
+  }
+  /* corner-cutting can pull the line inside a pylon — push it back out */
+  for(i = 0; i < pts.length; i++){
+    for(var j = 0; j < C.pylons.length; j++){
+      var py = C.pylons[j];
+      var dx = pts[i].x - py.x, dy = pts[i].y - py.y;
+      if(Math.hypot(dx, dy) > 420) continue;
+      var t = dx * py.ox + dy * py.oy;
+      if(t < 55){ pts[i].x += py.ox * (55 - t); pts[i].y += py.oy * (55 - t); }
+    }
+  }
+  /* spacing lets the pilots aim a real distance up the road rather than a
+     number of points, which is meaningless once a course changes size */
+  var tot = 0;
+  for(i = 0; i < pts.length; i++){
+    var nx = pts[(i + 1) % pts.length];
+    tot += Math.hypot(nx.x - pts[i].x, nx.y - pts[i].y);
+  }
+  C.spacing = tot / pts.length;
+  C.dense = pts;
+  return pts;
+}
+
+function racer(plane, col, name, isPlayer){
+  return {
+    plane:plane, col:col, name:name, me:!!isPlayer,
+    x:0, y:0, h:0, spd:0, bank:0, bankT:0,
+    lap:1, next:0, prog:0, li:0,
+    laps:[], lapStart:0, pen:0, cuts:0, cleanLaps:0, lapClean:true,
+    finished:false, time:null, side:0
+  };
+}
+
+function startRace(){
+  var C = course(save.course), def = C.def, dense = denseLine(C);
+  var p0 = planeById(save.plane);
+  var field = [racer(p0, '#eef1f7', 'You', true)];
+
+  /* five rivals in the same class, spread across a range of skill */
+  var used = 0;
+  for(var i = 0; i < 5; i++){
+    var r = racer(p0, AI_COLS[i % AI_COLS.length], AI_NAMES[(used + i * 3) % AI_NAMES.length], false);
+    /* skill sets both pace and how tidily they hold the line. it never
+       reaches 1, so a clean lap in your own aircraft always beats them */
+    r.skill = clamp(.875 + i * .019 + (Math.random() * .020 - .010), .85, .965);
+    r.wander = (1.15 - (r.skill - .90) * 8) * (18 + Math.random() * 30);
+    r.phase = Math.random() * TAU;
+    /* each rival favours its own line, so the field spreads across the
+       course instead of six aircraft flying through each other */
+    r.lineOff = (i - 2) * 46 + (Math.random() * 30 - 15);
+    field.push(r);
+  }
+
+  /* air start: strung out behind the start pylon, staggered left and right */
+  var startIdx = 0, sp = C.pylons[startIdx];
+  /* you start fourth of six — there's a field in front of you to pass */
+  var slots = [3, 0, 1, 2, 4, 5];
+  for(i = 0; i < field.length; i++){
+    var f = field[i], slot = slots[i];
+    var back = 300 + slot * 150, lat = (slot % 2 ? 1 : -1) * (110 + Math.floor(slot / 2) * 75);
+    f.x = sp.x - sp.tx * back + sp.ox * (130 + lat);
+    f.y = sp.y - sp.ty * back + sp.oy * (130 + lat);
+    f.h = Math.atan2(sp.ty, sp.tx);
+    f.spd = f.plane.vmax * .78;
+    f.next = startIdx;
+    f.li = nearestIdxFull(dense, f.x, f.y);
+  }
+
+  R = {
+    C:C, def:def, dense:dense, field:field, me:field[0],
+    t:0, state:'count', count:3.2, laps:def.laps,
+    parts:[], msgT:0, hudT:0, wl:null
+  };
+  $('#hLap').textContent = '1/' + def.laps;
+  $('#hBest').textContent = '—';
+  $('#flash').className = 'msg';
+  $('#cd').textContent = '3';
+  $('#stickhint').style.display = '';
+  $('#stickhint').textContent = hasTouch ? 'Touch and hold to steer' : 'Steer with ← and →';
+  $('#pausewrap').classList.remove('show');
+  show('race');
+  resize();
+  engineStart();
+  requestWake();
+}
+
+function nearestIdxFull(pts, x, y){
+  var best = 0, bd = Infinity;
+  for(var i = 0; i < pts.length; i++){
+    var d = (pts[i].x - x) * (pts[i].x - x) + (pts[i].y - y) * (pts[i].y - y);
+    if(d < bd){ bd = d; best = i; }
+  }
+  return best;
+}
+function nearestIdx(pts, x, y, from){
+  var best = from, bd = Infinity;
+  for(var k = 0; k < 26; k++){
+    var i = (from + k) % pts.length;
+    var d = (pts[i].x - x) * (pts[i].x - x) + (pts[i].y - y) * (pts[i].y - y);
+    if(d < bd){ bd = d; best = i; }
+  }
+  return best;
+}
+
+/* ══ input ═════════════════════════════════════════════ */
+var hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+var keyL = false, keyR = false, stick = null, tiltBank = 0, everSteered = false;
+
+function steerInput(){
+  if(keyL && !keyR) return -1;
+  if(keyR && !keyL) return 1;
+  if(stick) return clamp(stick.dx / 78, -1, 1);
+  if(save.tilt) return tiltBank;
+  return 0;
+}
+function markSteered(){
+  if(everSteered) return;
+  everSteered = true;
+  var h = $('#stickhint');
+  h.style.transition = 'opacity .4s'; h.style.opacity = '0';
+  setTimeout(function(){ h.style.display = 'none'; }, 420);
+}
+
+cv.addEventListener('pointerdown', function(e){
+  if(!R || R.state === 'paused') return;
+  cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
+  stick = { id:e.pointerId, x0:e.clientX, dx:0 };
+  markSteered();
+  e.preventDefault();
+});
+cv.addEventListener('pointermove', function(e){
+  if(stick && e.pointerId === stick.id){ stick.dx = e.clientX - stick.x0; e.preventDefault(); }
+});
+function endPointer(e){ if(stick && e.pointerId === stick.id) stick = null; }
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+cv.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+document.addEventListener('keydown', function(e){
+  if(e.target && e.target.matches && e.target.matches('input,textarea,select')) return;
+  if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A'){ keyL = true; markSteered(); e.preventDefault(); }
+  else if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D'){ keyR = true; markSteered(); e.preventDefault(); }
+  else if((e.key === 'Escape' || e.key === 'p' || e.key === 'P') && R && (R.state === 'run' || R.state === 'count')) togglePause(true);
+  else if(e.key === 'Escape' && R && R.state === 'paused') togglePause(false);
+});
+document.addEventListener('keyup', function(e){
+  if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keyL = false;
+  if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keyR = false;
+});
+window.addEventListener('deviceorientation', function(e){
+  if(!save.tilt || e.gamma == null) return;
+  var g = e.gamma;
+  /* held in landscape the useful axis flips, so use whichever is larger */
+  if(Math.abs(window.orientation || 0) === 90 && e.beta != null) g = (window.orientation === 90 ? -e.beta : e.beta);
+  tiltBank = clamp(g / 26, -1, 1);
+  if(Math.abs(tiltBank) > .25) markSteered();
+});
+
+/* ══ simulation ════════════════════════════════════════ */
+function gateCheck(r, C, px, py, live){
+  var n = C.pylons.length, p = C.pylons[r.next];
+  var s0 = (px - p.x) * p.tx + (py - p.y) * p.ty;
+  var s1 = (r.x - p.x) * p.tx + (r.y - p.y) * p.ty;
+  if(!(s0 < 0 && s1 >= 0)) return;                        /* haven't crossed this pylon's line */
+
+  /* the field is already flying during the countdown, so pylons passed
+     before the flag drops just move the marker on — no times, no penalties */
+  if(!live){ r.next = (r.next + 1) % n; return; }
+
+  var f = s1 - s0 !== 0 ? -s0 / (s1 - s0) : 0;
+  var ix = px + (r.x - px) * f, iy = py + (r.y - py) * f;
+  var t = (ix - p.x) * p.ox + (iy - p.y) * p.oy;          /* + = outside the pylon, - = cut it */
+
+  if(r.me){
+    if(t < 0){
+      r.pen += 2; r.cuts++; r.lapClean = false;
+      flash('PYLON CUT  +2.00', 'warn'); blip(150, .28, 'square', .16);
+    }else{
+      whoosh();
+    }
+  }
+  r.next++;
+  if(r.next >= n){
+    r.next = 0;
+    /* the run down to the start line isn't a lap — crossing it the first
+       time after the flag is what actually starts lap one */
+    if(r.warm){
+      r.warm = false;
+      r.lapStart = R.t;
+      r.lapClean = true;
+      if(r.me){ flash('GREEN — LAP 1', 'good'); blip(820, .14, 'sine', .10); }
+      return;
+    }
+    var lapT = R.t - r.lapStart;
+    r.lapStart = R.t;
+    r.laps.push(lapT);
+    if(r.lapClean) r.cleanLaps++;
+    r.lapClean = true;
+    r.lap++;
+    if(r.me){
+      var bl = bestLap(r);
+      $('#hBest').textContent = fmt(bl);
+      if(r.lap <= R.laps){
+        $('#hLap').textContent = r.lap + '/' + R.laps;
+        flash('LAP ' + lapT.toFixed(2), 'good'); blip(760, .12, 'sine', .10);
+      }
+    }
+    if(r.lap > R.laps){
+      r.finished = true;
+      r.time = R.t + r.pen;
+      if(r.me) finishRace();
+    }
+  }
+}
+function bestLap(r){
+  var b = null;
+  for(var i = 0; i < r.laps.length; i++) if(b === null || r.laps[i] < b) b = r.laps[i];
+  return b;
+}
+function progress(r, C){
+  var n = C.pylons.length, p = C.pylons[r.next];
+  var prev = C.pylons[(r.next - 1 + n) % n];
+  var total = Math.hypot(p.x - prev.x, p.y - prev.y) || 1;
+  var left = Math.hypot(p.x - r.x, p.y - r.y);
+  return (r.lap - 1) * n + r.next + clamp(1 - left / total, 0, 1);
+}
+
+function stepRacer(r, dt, C){
+  var px = r.x, py = r.y, P = r.plane;
+
+  if(r.me){
+    r.bankT = steerInput();
+    /* how far off the racing line you are — drives the off-course warning */
+    r.li = nearestIdxFull(R.dense, r.x, r.y);
+    r.off = Math.hypot(R.dense[r.li].x - r.x, R.dense[r.li].y - r.y);
+  }else{
+    /* aim at a point up the racing line — further ahead the faster it goes.
+       measured in world units, so it behaves the same on every course */
+    var dense = R.dense;
+    r.li = nearestIdx(dense, r.x, r.y, r.li);
+    var look = clamp(Math.round((150 + r.spd * .62) / R.C.spacing), 1, Math.floor(dense.length / 4));
+    var tgt = dense[(r.li + look) % dense.length];
+    /* a slow wander keeps the field from flying like one rigid formation */
+    var w = Math.sin(R.t * .55 + r.phase) * r.wander + r.lineOff;
+    var ni = (r.li + look) % dense.length, nj = (ni + 1) % dense.length;
+    var dx = dense[nj].x - dense[ni].x, dy = dense[nj].y - dense[ni].y;
+    var dl = Math.hypot(dx, dy) || 1;
+    var tx = tgt.x + (-dy / dl) * w, ty = tgt.y + (dx / dl) * w;
+    var want = Math.atan2(ty - r.y, tx - r.x);
+    r.bankT = clamp(norm(want - r.h) * 2.1, -1, 1);
+  }
+
+  /* roll toward the commanded bank */
+  var rollRate = P.roll * dt;
+  r.bank += clamp(r.bankT - r.bank, -rollRate, rollRate);
+  r.bank = clamp(r.bank, -1, 1);
+
+  /* turn rate falls off with speed, the way a real aircraft does */
+  var vr = r.spd / P.vmax;
+  var turn = r.bank * P.turn * (1.28 - .5 * vr) * dt;
+  r.h = norm(r.h + turn);
+
+  /* hard banking scrubs speed — the whole game is here */
+  var cap = P.vmax * (1 - P.drag * Math.abs(r.bank)) * (r.me ? 1 : r.skill);
+  if(r.spd < cap) r.spd = Math.min(cap, r.spd + P.accel * dt);
+  else r.spd = Math.max(cap, r.spd - P.accel * 1.7 * dt);
+
+  r.x += Math.cos(r.h) * r.spd * dt;
+  r.y += Math.sin(r.h) * r.spd * dt;
+
+  if(!r.finished) gateCheck(r, C, px, py, R.state === 'run');
+  r.prog = progress(r, C);
+
+  /* wingtip vortices when it's really working */
+  if(Math.abs(r.bank) > .55 && R.parts.length < 160 && Math.random() < (r.me ? .5 : .12)){
+    var s = Math.sign(r.bank), sp = r.plane.art.span * .5;
+    R.parts.push({
+      x: r.x - Math.cos(r.h) * 8 + Math.cos(r.h + Math.PI / 2) * sp * s,
+      y: r.y - Math.sin(r.h) * 8 + Math.sin(r.h + Math.PI / 2) * sp * s,
+      life:1, col:r.me ? 'rgba(255,255,255,' : 'rgba(190,205,230,'
+    });
+  }
+}
+
+function update(dt){
+  if(!R || R.state === 'paused' || R.state === 'done') return;
+
+  if(R.state === 'count'){
+    var was = Math.ceil(R.count);
+    R.count -= dt;
+    var now = Math.ceil(R.count);
+    if(now !== was && now > 0){ $('#cd').textContent = now; blip(620, .12, 'sine', .11); }
+    if(R.count <= 0){
+      R.state = 'run'; R.t = 0;
+      for(var i = 0; i < R.field.length; i++){ R.field[i].lapStart = 0; R.field[i].warm = true; }
+      $('#cd').textContent = 'RACE!';
+      blip(990, .3, 'sine', .13);
+      setTimeout(function(){ if($('#cd')) $('#cd').textContent = ''; }, 700);
+    }
+  }else{
+    R.t += dt;
+  }
+
+  for(var j = 0; j < R.field.length; j++){
+    var r = R.field[j];
+    if(r.finished && !r.me) continue;                     /* rivals park once they're home */
+    stepRacer(r, dt, R.C);
+  }
+
+  for(j = R.parts.length - 1; j >= 0; j--){
+    R.parts[j].life -= dt * 1.5;
+    if(R.parts[j].life <= 0) R.parts.splice(j, 1);
+  }
+
+  if(R.msgT > 0){
+    R.msgT -= dt;
+    if(R.msgT <= 0) $('#flash').classList.remove('on');
+  }
+  engineSet(clamp(R.me.spd / R.me.plane.vmax, 0, 1), R.me.plane.id === 'jet');
+}
+
+function flash(text, kind){
+  var f = $('#flash');
+  f.textContent = text;
+  f.className = 'msg on ' + (kind || '');
+  R.msgT = 1.5;
+}
+function standings(){
+  var f = R.field.slice();
+  f.sort(function(a, b){
+    if(a.finished && b.finished) return a.time - b.time;
+    if(a.finished) return -1;
+    if(b.finished) return 1;
+    return b.prog - a.prog;
+  });
+  return f;
+}
+
+/* ══ rendering ═════════════════════════════════════════ */
+function resize(){
+  VIEW.dpr = Math.min(2, window.devicePixelRatio || 1);
+  VIEW.w = cv.clientWidth || window.innerWidth;
+  VIEW.h = cv.clientHeight || window.innerHeight;
+  cv.width = Math.round(VIEW.w * VIEW.dpr);
+  cv.height = Math.round(VIEW.h * VIEW.dpr);
+}
+
+function render(){
+  if(!R) return;
+  var g = ctx, me = R.me, C = R.C, def = R.def;
+  var w = VIEW.w, h = VIEW.h;
+  g.setTransform(VIEW.dpr, 0, 0, VIEW.dpr, 0, 0);
+
+  /* wide enough to see the next pylon coming, close enough to feel fast */
+  var scale = Math.min(w, h) / (h < 520 ? 1250 : 1500) * (1 - .08 * clamp(me.spd / me.plane.vmax, 0, 1));
+  var camx = me.x + Math.cos(me.h) * me.spd * .55;
+  var camy = me.y + Math.sin(me.h) * me.spd * .55;
+
+  /* ground */
+  var hue = def.hue;
+  var sky = g.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, 'hsl(' + hue + ',24%,27%)');
+  sky.addColorStop(1, 'hsl(' + hue + ',22%,20%)');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, w, h);
+
+  g.save();
+  g.translate(w * .5, h * .5);
+  g.scale(scale, scale);
+  g.translate(-camx, -camy);
+
+  var half = { x: w * .5 / scale, y: h * .5 / scale };
+  var x0 = camx - half.x, x1 = camx + half.x, y0 = camy - half.y, y1 = camy + half.y;
+
+  /* desert scrub — deterministic, so the ground never shimmers */
+  var CELL = 240;
+  var ci0 = Math.floor(x0 / CELL), ci1 = Math.ceil(x1 / CELL);
+  var cj0 = Math.floor(y0 / CELL), cj1 = Math.ceil(y1 / CELL);
+  for(var ci = ci0; ci <= ci1; ci++){
+    for(var cj = cj0; cj <= cj1; cj++){
+      var seed = ci * 7919 + cj * 104729;
+      var n = rnd(seed) < .55 ? 1 : 2;
+      for(var q = 0; q < n; q++){
+        var sx = ci * CELL + rnd(seed + q * 13) * CELL;
+        var sy = cj * CELL + rnd(seed + q * 29 + 5) * CELL;
+        var sr = 7 + rnd(seed + q * 41) * 22;
+        g.fillStyle = rnd(seed + q * 57) > .6
+          ? 'hsla(' + hue + ',22%,35%,.5)'
+          : 'hsla(' + (hue + 14) + ',18%,31%,.45)';
+        g.beginPath(); g.ellipse(sx, sy, sr, sr * .72, 0, 0, TAU); g.fill();
+      }
+    }
+  }
+
+  /* the line to fly, drawn faintly */
+  var dense = R.dense;
+  g.strokeStyle = 'rgba(112,242,255,.12)';
+  g.lineWidth = 10; g.lineJoin = 'round'; g.lineCap = 'round';
+  g.beginPath();
+  g.moveTo(dense[0].x, dense[0].y);
+  for(var i = 1; i < dense.length; i++) g.lineTo(dense[i].x, dense[i].y);
+  g.closePath(); g.stroke();
+
+  /* start / finish */
+  var sp = C.pylons[0];
+  g.save();
+  g.translate(sp.x, sp.y);
+  g.rotate(Math.atan2(sp.oy, sp.ox));
+  for(var b = 0; b < 9; b++){
+    g.fillStyle = b % 2 ? 'rgba(255,255,255,.5)' : 'rgba(20,22,30,.5)';
+    g.fillRect(b * 44, -26, 44, 52);
+  }
+  g.restore();
+
+  /* pylons */
+  for(i = 0; i < C.pylons.length; i++){
+    var p = C.pylons[i], isNext = (i === me.next);
+    g.fillStyle = 'rgba(0,0,0,.34)';
+    g.beginPath(); g.ellipse(p.x + 26, p.y + 30, 30, 16, 0, 0, TAU); g.fill();
+    /* the pylon body, checkered */
+    for(var s = 0; s < 4; s++){
+      g.fillStyle = s % 2 ? '#f4f6fa' : '#ff7a2f';
+      g.beginPath();
+      g.moveTo(p.x, p.y);
+      g.arc(p.x, p.y, 26, s * TAU / 4, (s + 1) * TAU / 4);
+      g.closePath(); g.fill();
+    }
+    g.strokeStyle = 'rgba(10,12,18,.75)'; g.lineWidth = 3;
+    g.beginPath(); g.arc(p.x, p.y, 26, 0, TAU); g.stroke();
+    if(isNext){
+      g.strokeStyle = 'rgba(112,242,255,.85)'; g.lineWidth = 5;
+      g.beginPath(); g.arc(p.x, p.y, 44, 0, TAU); g.stroke();
+    }
+  }
+
+  /* vortices */
+  for(i = 0; i < R.parts.length; i++){
+    var pa = R.parts[i];
+    g.fillStyle = pa.col + (pa.life * .13).toFixed(3) + ')';
+    g.beginPath(); g.arc(pa.x, pa.y, 4 + (1 - pa.life) * 11, 0, TAU); g.fill();
+  }
+
+  /* aircraft — rivals first so the player is always on top */
+  var order = R.field.slice().sort(function(a, bb){ return (a.me ? 1 : 0) - (bb.me ? 1 : 0); });
+  for(i = 0; i < order.length; i++){
+    var r = order[i];
+    g.save();
+    g.translate(r.x + 17, r.y + 20);                      /* shadow on the desert floor */
+    g.rotate(r.h);
+    g.globalAlpha = .26;
+    drawPlane(g, r.plane.art, '#05060a', r.bank, 1);
+    g.globalAlpha = 1;
+    g.restore();
+
+    g.save();
+    g.translate(r.x, r.y);
+    g.rotate(r.h);
+    drawPlane(g, r.plane.art, r.col, r.bank, 1);
+    g.restore();
+  }
+  g.restore();
+
+  /* stray off the circuit and the next pylon can leave the screen, so put
+     an arrow on the edge pointing at it — you can always find your way back */
+  var np = C.pylons[me.next];
+  var sx = (np.x - camx) * scale + w * .5, sy = (np.y - camy) * scale + h * .5;
+  if(sx < 30 || sx > w - 30 || sy < 30 || sy > h - 30){
+    var ang = Math.atan2(np.y - camy, np.x - camx);
+    var rad = Math.min(w, h) * .34;
+    g.save();
+    g.translate(w * .5 + Math.cos(ang) * rad, h * .5 + Math.sin(ang) * rad);
+    g.rotate(ang);
+    g.fillStyle = 'rgba(112,242,255,.92)';
+    g.beginPath(); g.moveTo(20, 0); g.lineTo(-13, -13); g.lineTo(-13, 13); g.closePath(); g.fill();
+    g.restore();
+  }
+  /* the words only when you're genuinely lost, not every time a pylon
+     happens to sit off the edge of the screen */
+  if(me.off > 620){
+    g.fillStyle = 'rgba(247,185,85,.95)';
+    g.font = '600 15px "Space Grotesk", system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.fillText('OFF COURSE — follow the arrow back', w * .5, h * .78);
+  }
+
+  /* HUD text, throttled — the numbers don't need 60 updates a second */
+  R.hudT -= 1;
+  if(R.hudT <= 0){
+    R.hudT = 4;
+    var st = standings(), pos = st.indexOf(me) + 1;
+    $('#hPos').textContent = pos + '/' + R.field.length;
+    $('#hTime').textContent = fmt(R.t + me.pen);
+    $('#hSpd').innerHTML = Math.round(me.spd) + ' <span style="font-size:.6em;color:var(--ink3)">MPH</span>';
+  }
+  drawMini();
+}
+
+function drawMini(){
+  var g = mctx, C = R.C, m = mini.width, pad = 16;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, m, m);
+  g.fillStyle = 'rgba(10,12,18,.6)';
+  g.beginPath(); g.roundRect ? g.roundRect(0, 0, m, m, 22) : g.rect(0, 0, m, m); g.fill();
+
+  var bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity, i;
+  for(i = 0; i < C.pylons.length; i++){
+    bx0 = Math.min(bx0, C.pylons[i].x); bx1 = Math.max(bx1, C.pylons[i].x);
+    by0 = Math.min(by0, C.pylons[i].y); by1 = Math.max(by1, C.pylons[i].y);
+  }
+  var s = Math.min((m - pad * 2) / (bx1 - bx0 || 1), (m - pad * 2) / (by1 - by0 || 1));
+  var ox = m / 2 - (bx0 + bx1) / 2 * s, oy = m / 2 - (by0 + by1) / 2 * s;
+  function MX(x){ return x * s + ox; }
+  function MY(y){ return y * s + oy; }
+
+  g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 3;
+  g.beginPath();
+  for(i = 0; i < C.pylons.length; i++){
+    var p = C.pylons[i];
+    if(i === 0) g.moveTo(MX(p.x), MY(p.y)); else g.lineTo(MX(p.x), MY(p.y));
+  }
+  g.closePath(); g.stroke();
+
+  for(i = 0; i < C.pylons.length; i++){
+    g.fillStyle = i === R.me.next ? '#70f2ff' : '#ff7a2f';
+    g.beginPath(); g.arc(MX(C.pylons[i].x), MY(C.pylons[i].y), i === R.me.next ? 6 : 4, 0, TAU); g.fill();
+  }
+  for(i = 0; i < R.field.length; i++){
+    var r = R.field[i];
+    g.fillStyle = r.me ? '#ffffff' : r.col;
+    g.beginPath(); g.arc(MX(r.x), MY(r.y), r.me ? 7 : 5, 0, TAU); g.fill();
+    if(r.me){ g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 2; g.stroke(); }
+  }
+}
+
+/* ══ finish & progression ══════════════════════════════ */
+function finishRace(){
+  R.state = 'done';
+  engineStop();
+  releaseWake();
+  var me = R.me, C = R.C, def = R.def;
+
+  /* rivals still out on course get an estimated time so the sheet is complete */
+  var i, r;
+  for(i = 0; i < R.field.length; i++){
+    r = R.field[i];
+    if(r.finished) continue;
+    var lapsLeft = (R.laps - r.lap) + (1 - (r.prog - Math.floor(r.prog / C.pylons.length) * C.pylons.length) / C.pylons.length);
+    var avg = r.laps.length ? r.laps.reduce(function(a, b){ return a + b; }, 0) / r.laps.length : R.t / Math.max(1, r.lap);
+    r.time = R.t + Math.max(.4, lapsLeft * avg);
+    r.est = true;
+  }
+  var st = standings(), pos = st.indexOf(me) + 1;
+  var bl = bestLap(me), total = R.t + me.pen;
+
+  /* XP: place, clean laps, a bonus for a spotless race, scaled by the
+     class and course you chose to do it in */
+  var placeXp = [110, 82, 60, 44, 32, 24];
+  var pIdx = 0, cIdx = 0;
+  for(i = 0; i < PLANES.length; i++) if(PLANES[i].id === me.plane.id) pIdx = i;
+  for(i = 0; i < COURSES.length; i++) if(COURSES[i].id === def.id) cIdx = i;
+  var mult = 1 + pIdx * .08 + cIdx * .07;
+  var xp = Math.round((placeXp[Math.min(pos - 1, 5)] + me.cleanLaps * 12 + (me.cuts === 0 ? 45 : 0)) * mult);
+
+  var before = rankOf(save.xp);
+  save.xp += xp;
+  var after = rankOf(save.xp);
+
+  var k = bestKey(def.id, me.plane.id);
+  var rec = save.best[k] || {};
+  var newLap = bl != null && (rec.lap == null || bl < rec.lap);
+  var newRace = rec.race == null || total < rec.race;
+  if(newLap) rec.lap = bl;
+  if(newRace) rec.race = total;
+  save.best[k] = rec;
+  store();
+
+  /* results sheet */
+  $('#resCourse').textContent = def.name + ' · ' + me.plane.name;
+  $('#resPlace').textContent = 'P' + pos;
+  $('#resPlace').className = 'place' + (pos === 1 ? ' p1' : '');
+  $('#resLine').textContent = pos === 1 ? 'Race won' :
+    pos === 2 ? 'Second — that was close' :
+    pos <= 3 ? 'On the podium' : 'Finished ' + pos + 'th of ' + R.field.length;
+  $('#resTime').textContent = fmt(total);
+  $('#resBest').textContent = fmt(bl) + (newLap ? ' ★' : '');
+  $('#resPen').textContent = me.cuts ? '+' + me.pen.toFixed(2) + 's' : 'none';
+
+  var un = [];
+  if(after > before){
+    for(i = 0; i < PLANES.length; i++) if(PLANES[i].rank > before && PLANES[i].rank <= after) un.push(PLANES[i].name + ' class');
+    for(i = 0; i < COURSES.length; i++) if(COURSES[i].rank > before && COURSES[i].rank <= after) un.push(COURSES[i].name);
+  }
+  var ub = '';
+  if(after > before) ub += '<div class="unlock">Promoted to <b>rank ' + after + ' — ' + RANKS[after - 1].name + '</b>' +
+    (un.length ? '. Unlocked: <b>' + un.join('</b>, <b>') + '</b>.' : '.') + '</div>';
+  if(newRace && !ub) ub += '<div class="unlock">New best race time on <b>' + def.name + '</b>.</div>';
+  else if(newLap && !ub) ub += '<div class="unlock">New best lap on <b>' + def.name + '</b>.</div>';
+  $('#resUnlock').innerHTML = ub;
+
+  var rows = '';
+  for(i = 0; i < st.length; i++){
+    r = st[i];
+    rows += '<div class="rrow' + (r.me ? ' me' : '') + '">' +
+      '<span class="rp">P' + (i + 1) + '</span>' +
+      '<span class="dot" style="background:' + r.col + '"></span>' +
+      '<span class="rn">' + r.name + '</span>' +
+      '<span class="rt">' + (r.est ? '~' : '') + fmt(r.time) +
+        (r.me && me.cuts ? ' <span style="color:var(--warn)">(+' + me.pen.toFixed(0) + ')</span>' : '') +
+      '</span></div>';
+  }
+  $('#resTable').innerHTML = rows;
+  $('#resXp').textContent = '+' + xp + ' XP';
+
+  blip(pos === 1 ? 880 : 520, .5, 'sine', .12);
+  setTimeout(function(){ if(pos === 1) blip(1180, .5, 'sine', .1); }, 160);
+
+  paintHangar();
+  setTimeout(function(){ show('results'); }, 900);
+}
+
+/* ══ pause / wake lock ═════════════════════════════════ */
+function togglePause(on){
+  if(!R) return;
+  if(on){
+    if(R.state === 'done') return;
+    R.pauseFrom = R.state;
+    R.state = 'paused';
+    $('#pausewrap').classList.add('show');
+    engineStop();
+    releaseWake();
+  }else{
+    R.state = R.pauseFrom || 'run';
+    $('#pausewrap').classList.remove('show');
+    engineStart();
+    requestWake();
+  }
+}
+function requestWake(){
+  if(!('wakeLock' in navigator) || !R) return;
+  try{
+    navigator.wakeLock.request('screen').then(function(l){ if(R) R.wl = l; }).catch(function(){});
+  }catch(e){}
+}
+function releaseWake(){
+  try{ if(R && R.wl){ R.wl.release(); R.wl = null; } }catch(e){}
+}
+function quitRace(){
+  engineStop(); releaseWake();
+  R = null;
+  paintHangar();
+  show('hangar');
+}
+
+/* ══ loop ══════════════════════════════════════════════ */
+var last = 0, acc = 0, STEP = 1 / 120;
+function frame(ts){
+  requestAnimationFrame(frame);
+  if(!last) last = ts;
+  var dt = Math.min(.25, (ts - last) / 1000);
+  last = ts;
+  if(!R) return;
+  acc += dt;
+  var guard = 0;
+  while(acc >= STEP && guard++ < 40){ update(STEP); acc -= STEP; }
+  render();
+}
+requestAnimationFrame(frame);
+
+/* ══ wiring ════════════════════════════════════════════ */
+$('#btnRace').addEventListener('click', function(){ audioOn(); startRace(); });
+$('#btnPause').addEventListener('click', function(){ togglePause(R && R.state !== 'paused'); });
+$('#btnResume').addEventListener('click', function(){ togglePause(false); });
+$('#btnRestart').addEventListener('click', function(){ engineStop(); releaseWake(); startRace(); });
+$('#btnQuit').addEventListener('click', quitRace);
+$('#btnAgain').addEventListener('click', function(){ startRace(); });
+$('#btnHangar').addEventListener('click', quitRace);
+
+$('#optSound').addEventListener('click', function(){
+  save.sound = !save.sound; store();
+  if(!save.sound) engineStop(); else if(R && R.state === 'run') engineStart();
+  paintHangar();
+});
+$('#optTilt').addEventListener('click', function(){
+  if(!save.tilt && window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function'){
+    DeviceOrientationEvent.requestPermission().then(function(res){
+      save.tilt = (res === 'granted'); store(); paintHangar();
+    }).catch(function(){ save.tilt = false; store(); paintHangar(); });
+    return;
+  }
+  save.tilt = !save.tilt; store(); paintHangar();
+});
+$('#optReset').addEventListener('click', function(){
+  if(!window.confirm('Reset rank, unlocks and every best time on this device?')) return;
+  save.xp = 0; save.best = {}; save.plane = 'biplane'; save.course = 'sagebrush';
+  store(); paintHangar();
+});
+
+window.addEventListener('resize', function(){ resize(); if(R) render(); });
+window.addEventListener('orientationchange', function(){ setTimeout(resize, 250); });
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden && R && R.state === 'run') togglePause(true);
+});
+
+/* ── go ── */
+load();
+paintHangar();
+resize();
+
+})();
+</script>
+
+</body>
+</html>
