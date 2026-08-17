@@ -148,8 +148,28 @@ h2.sec{font-size:.72rem;font-weight:600;letter-spacing:.22em;text-transform:uppe
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .hud .tl{position:absolute;top:12px;left:14px;display:flex;gap:8px;align-items:flex-start}
 .hud .tr{position:absolute;top:12px;right:14px;text-align:right}
-.hud .bl{position:absolute;bottom:12px;left:14px}
-.hud .br{position:absolute;bottom:12px;right:14px}
+.hud .bc{
+  position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+
+/* ── BANK BUTTONS ─────────────────────────────────────── */
+.pads{
+  position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;
+  padding:0 16px 16px;pointer-events:none;
+}
+.pad-btn{
+  pointer-events:auto;width:104px;height:104px;flex:none;border-radius:50%;
+  background:rgba(16,19,28,.60);border:1px solid var(--line);color:var(--ink2);
+  display:grid;place-items:center;touch-action:none;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:background .1s,color .1s,transform .1s,border-color .1s;
+}
+.pad-btn svg{width:42px;height:42px;display:block}
+.pad-btn.down{
+  background:var(--aqua);color:#07080c;border-color:var(--aqua);transform:scale(.94);
+}
+@media (hover:hover){ .pad-btn:hover{color:var(--ink);border-color:rgba(255,255,255,.24)} }
 .tile{
   background:rgba(10,12,18,.68);border:1px solid var(--line);border-radius:12px;padding:7px 11px;
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
@@ -176,9 +196,8 @@ h2.sec{font-size:.72rem;font-weight:600;letter-spacing:.22em;text-transform:uppe
 #flash.warn{color:var(--warn)}
 #flash.good{color:var(--good)}
 .stickhint{
-  position:absolute;left:50%;bottom:26px;transform:translateX(-50%);font-family:var(--sans);
-  font-size:.76rem;color:var(--ink3);background:rgba(10,12,18,.6);padding:6px 14px;border-radius:99px;
-  border:1px solid var(--line2);
+  font-family:var(--sans);font-size:.76rem;color:var(--ink3);background:rgba(10,12,18,.6);
+  padding:6px 14px;border-radius:99px;border:1px solid var(--line2);white-space:nowrap;
 }
 .pausewrap{
   position:absolute;inset:0;display:none;place-items:center;background:rgba(7,8,12,.82);
@@ -224,9 +243,17 @@ footer a:hover{color:var(--aqua)}
 @media (max-width:560px){
   .hero{padding:30px 0 20px}
   .grid{margin-bottom:24px}
-  #mini{width:96px;height:96px}
   .tile b{font-size:1rem}
   .tile.big b{font-size:1.2rem}
+}
+/* landscape on a phone — keep the thumbs clear and the map small */
+@media (max-height:520px){
+  #mini{width:92px;height:92px}
+  .pad-btn{width:88px;height:88px}
+  .pad-btn svg{width:34px;height:34px}
+  .hud .bc{bottom:8px}
+  .tile b{font-size:1rem}
+  .tile.big b{font-size:1.18rem}
 }
 </style>
 </head>
@@ -281,7 +308,7 @@ footer a:hover{color:var(--aqua)}
   <section class="how">
     <div>
       <h3>Steering</h3>
-      <p>On a phone or iPad, touch and hold anywhere — a stick appears where your thumb lands, and sliding left or right banks the aircraft. On a computer use <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd>. Throttle is always wide open; the only thing you control is the line.</p>
+      <p>Two buttons, bottom corners: hold the left one to bank left, the right one to bank right, and let go to level off. Hold both and they cancel out. On a computer <kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> do the same job. Throttle is always wide open; the only thing you control is the line.</p>
     </div>
     <div>
       <h3>The pylons</h3>
@@ -308,14 +335,24 @@ footer a:hover{color:var(--aqua)}
     <div class="tr">
       <div class="tile big"><small>Race time</small><b id="hTime">0:00.00</b></div>
       <div class="tile" style="margin-top:8px"><small>Best lap</small><b id="hBest">—</b></div>
+      <div class="tile" style="margin-top:8px"><small>Ground speed</small><b id="hSpd">0 <span style="font-size:.6em;color:var(--ink3)">MPH</span></b></div>
     </div>
-    <div class="bl">
-      <div class="tile big"><small>Ground speed</small><b id="hSpd">0 <span style="font-size:.6em;color:var(--ink3)">MPH</span></b></div>
+    <div class="bc">
+      <div class="stickhint" id="stickhint">Hold a button to bank</div>
+      <canvas id="mini" width="264" height="264"></canvas>
     </div>
-    <div class="br"><canvas id="mini" width="264" height="264"></canvas></div>
     <div class="msg" id="cd"></div>
     <div class="msg" id="flash"></div>
-    <div class="stickhint" id="stickhint">Touch and hold to steer</div>
+
+    <!-- hold to bank. these are the primary control -->
+    <div class="pads">
+      <button class="pad-btn" id="padL" aria-label="Bank left">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14.5 4.5 7 12l7.5 7.5V4.5z"/></svg>
+      </button>
+      <button class="pad-btn" id="padR" aria-label="Bank right">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 4.5 17 12l-7.5 7.5V4.5z"/></svg>
+      </button>
+    </div>
   </div>
   <div class="pausewrap" id="pausewrap">
     <div class="pausebox">
@@ -384,22 +421,22 @@ function rnd(n){ var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Ma
    accel — how hard it pulls speed back after a corner
    drag  — speed scrubbed by a full-bank turn                        */
 var PLANES = [
-  { id:'biplane', name:'Biplane', rank:1, vmax:300, turn:1.52, roll:3.3, accel:105, drag:.40,
+  { id:'biplane', name:'Biplane', rank:1, vmax:300, turn:.76, roll:3.3, accel:105, drag:.40,
     desc:'Slow down the straights, glued to the pylons. The friendliest thing to learn a line in.',
     art:{ span:78, len:66, tail:.52, biplane:true, delta:false, nose:.30 }, col:'#f2c14e' },
-  { id:'formula', name:'Formula One', rank:1, vmax:345, turn:1.36, roll:3.05, accel:110, drag:.42,
+  { id:'formula', name:'Formula One', rank:1, vmax:345, turn:.68, roll:3.05, accel:110, drag:.42,
     desc:'A little engine and a lot of nerve. Rewards a clean, patient arc more than muscle.',
     art:{ span:70, len:70, tail:.48, biplane:false, delta:false, nose:.26 }, col:'#7ee787' },
-  { id:'sport', name:'Sport', rank:2, vmax:385, turn:1.20, roll:2.85, accel:112, drag:.45,
+  { id:'sport', name:'Sport', rank:2, vmax:385, turn:.60, roll:2.85, accel:112, drag:.45,
     desc:'The modern composite class. Quick everywhere, forgiving nowhere in particular.',
     art:{ span:82, len:78, tail:.50, biplane:false, delta:false, nose:.30 }, col:'#70f2ff' },
-  { id:'t6', name:'T-6', rank:3, vmax:405, turn:1.08, roll:2.5, accel:92, drag:.50,
+  { id:'t6', name:'T-6', rank:3, vmax:405, turn:.54, roll:2.5, accel:92, drag:.50,
     desc:'A heavy old trainer. Carries speed beautifully and hates being asked to turn.',
     art:{ span:96, len:88, tail:.55, biplane:false, delta:false, nose:.36 }, col:'#f59e6b' },
-  { id:'unlimited', name:'Unlimited', rank:4, vmax:470, turn:.96, roll:2.25, accel:125, drag:.55,
+  { id:'unlimited', name:'Unlimited', rank:4, vmax:470, turn:.48, roll:2.25, accel:125, drag:.55,
     desc:'Warbird power. Enormous on the straights, and you pay for every degree of bank.',
     art:{ span:104, len:104, tail:.56, biplane:false, delta:false, nose:.42 }, col:'#ff6b6b' },
-  { id:'jet', name:'Jet', rank:6, vmax:530, turn:.86, roll:2.0, accel:145, drag:.58,
+  { id:'jet', name:'Jet', rank:6, vmax:530, turn:.43, roll:2.0, accel:145, drag:.58,
     desc:'The fastest thing on the course by a distance. Start braking your line early.',
     art:{ span:86, len:110, tail:.44, biplane:false, delta:true, nose:.30 }, col:'#6999f5' }
 ];
@@ -851,7 +888,7 @@ function startRace(){
     var r = racer(p0, AI_COLS[i % AI_COLS.length], AI_NAMES[(used + i * 3) % AI_NAMES.length], false);
     /* skill sets both pace and how tidily they hold the line. it never
        reaches 1, so a clean lap in your own aircraft always beats them */
-    r.skill = clamp(.875 + i * .019 + (Math.random() * .020 - .010), .85, .965);
+    r.skill = clamp(.855 + i * .017 + (Math.random() * .020 - .010), .83, .93);
     r.wander = (1.15 - (r.skill - .90) * 8) * (18 + Math.random() * 30);
     r.phase = Math.random() * TAU;
     /* each rival favours its own line, so the field spreads across the
@@ -885,7 +922,7 @@ function startRace(){
   $('#flash').className = 'msg';
   $('#cd').textContent = '3';
   $('#stickhint').style.display = '';
-  $('#stickhint').textContent = hasTouch ? 'Touch and hold to steer' : 'Steer with ← and →';
+  $('#stickhint').textContent = hasTouch ? 'Hold a button to bank' : 'Hold a button, or use ← and →';
   $('#pausewrap').classList.remove('show');
   show('race');
   resize();
@@ -914,13 +951,54 @@ function nearestIdx(pts, x, y, from){
 /* ══ input ═════════════════════════════════════════════ */
 var hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 var keyL = false, keyR = false, stick = null, tiltBank = 0, everSteered = false;
+var pads = { l:false, r:false };
 
+var digDir = 0, digT0 = 0;
 function steerInput(){
-  if(keyL && !keyR) return -1;
-  if(keyR && !keyL) return 1;
+  var v = 0;
+  if(keyL || pads.l) v -= 1;
+  if(keyR || pads.r) v += 1;
+  if(v){
+    /* a button is on or off, but a bank shouldn't be: a tap gives a gentle
+       correction and holding rolls it in progressively, so two buttons
+       still give you the whole range between a nudge and a hard turn */
+    if(v !== digDir){ digDir = v; digT0 = (window.performance ? performance.now() : Date.now()); }
+    var held = ((window.performance ? performance.now() : Date.now()) - digT0) / 1000;
+    return v * clamp(.42 + held * .55, 0, 1);
+  }
+  digDir = 0;
   if(stick) return clamp(stick.dx / 78, -1, 1);
   if(save.tilt) return tiltBank;
   return 0;
+}
+
+/* the bank buttons. pointer capture means a thumb that slides off the
+   button still releases it, and a lost pointer can never stick the bank on */
+function bindPad(el, key){
+  var ids = [];
+  function press(e){
+    if(ids.indexOf(e.pointerId) < 0) ids.push(e.pointerId);
+    try{ el.setPointerCapture(e.pointerId); }catch(err){}
+    pads[key] = true;
+    el.classList.add('down');
+    markSteered();
+    e.preventDefault();
+  }
+  function release(e){
+    var i = ids.indexOf(e.pointerId);
+    if(i >= 0) ids.splice(i, 1);
+    if(!ids.length){ pads[key] = false; el.classList.remove('down'); }
+  }
+  el.addEventListener('pointerdown', press);
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('lostpointercapture', release);
+  el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+}
+function padsOff(){
+  pads.l = pads.r = false;
+  $('#padL').classList.remove('down');
+  $('#padR').classList.remove('down');
 }
 function markSteered(){
   if(everSteered) return;
@@ -1434,6 +1512,7 @@ function togglePause(on){
     if(R.state === 'done') return;
     R.pauseFrom = R.state;
     R.state = 'paused';
+    padsOff(); stick = null;
     $('#pausewrap').classList.add('show');
     engineStop();
     releaseWake();
@@ -1504,10 +1583,17 @@ $('#optReset').addEventListener('click', function(){
   store(); paintHangar();
 });
 
+bindPad($('#padL'), 'l');
+bindPad($('#padR'), 'r');
+window.addEventListener('blur', function(){ padsOff(); keyL = keyR = false; });
+
 window.addEventListener('resize', function(){ resize(); if(R) render(); });
 window.addEventListener('orientationchange', function(){ setTimeout(resize, 250); });
 document.addEventListener('visibilitychange', function(){
-  if(document.hidden && R && R.state === 'run') togglePause(true);
+  if(document.hidden){
+    padsOff(); keyL = keyR = false; stick = null;
+    if(R && R.state === 'run') togglePause(true);
+  }
 });
 
 /* ── go ── */
