@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<!--
+  ┌──────────────────────────────────────────────────────────────┐
+  │   linearOS — a desktop that happens to be a website.         │
+  │                                                              │
+  │   Everything here is hand-written HTML/CSS/JS. No frameworks │
+  │   no build step, no backend. Drop it on any static host.     │
+  │                                                              │
+  │   linear  ·  (845) 604-1462  ·  support@linearit.co          │
+  └──────────────────────────────────────────────────────────────┘
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>linearOS — Support Desktop | linear</title>
+<meta name="description" content="The linear support desktop. Open a ticket, start a remote session, run a speed test, or browse the linear toolbox — all from a desktop that runs in your browser.">
+<link rel="canonical" href="https://www.linearit.co/desktop/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta name="theme-color" content="#0a0a0f">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="linear">
+<meta property="og:url" content="https://www.linearit.co/desktop/">
+<meta property="og:title" content="linearOS — the linear support desktop">
+<meta property="og:description" content="Open a ticket, start a remote session, run a speed test, or browse the toolbox — from a desktop that runs in your browser.">
+<meta property="og:image" content="https://www.linearit.co/zurech3/assets/wallpaper/preview-desktop.jpg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   TOKENS
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --peri:#6999f5;
+  --peri-deep:#4d7fe8;
+  --aqua:#70f2ff;
+  --ink:#0a0a0f;
+
+  --ui:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",sans-serif;
+  --brand:"Space Grotesk",var(--ui);
+
+  /* Acrylic surfaces — light "Mica" look */
+  --chrome:rgba(243,245,249,.78);
+  --chrome-solid:#f3f5f9;
+  --surface:rgba(252,252,254,.86);
+  --card:#fff;
+  --line:rgba(0,0,0,.09);
+  --line-strong:rgba(0,0,0,.16);
+  --txt:#16161c;
+  --txt-dim:#5b5f6b;
+  --hover:rgba(0,0,0,.05);
+  --active:rgba(0,0,0,.09);
+
+  --r-win:9px;
+  --r-card:8px;
+  --taskbar-h:52px;
+
+  --shadow-win:0 0 0 1px rgba(0,0,0,.06), 0 18px 44px -8px rgba(10,12,24,.34), 0 6px 14px -6px rgba(10,12,24,.22);
+  --shadow-pop:0 0 0 1px rgba(0,0,0,.07), 0 14px 34px -6px rgba(10,12,24,.3);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--ui);
+  color:var(--txt);
+  background:var(--ink);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+a{color:inherit;text-decoration:none}
+input,textarea,select{font:inherit;color:inherit}
+svg{display:block}
+::selection{background:var(--peri);color:#fff}
+
+/* Scrollbars — thin, Windows-ish */
+*::-webkit-scrollbar{width:12px;height:12px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-thumb{background:rgba(0,0,0,.22);border:4px solid transparent;background-clip:content-box;border-radius:8px}
+*::-webkit-scrollbar-thumb:hover{background:rgba(0,0,0,.38);border:3px solid transparent;background-clip:content-box}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP + WALLPAPER
+   ═══════════════════════════════════════════════════════════════ */
+#screen{position:fixed;inset:0;display:flex;flex-direction:column}
+
+#wallpaper{
+  position:absolute;inset:0;z-index:0;
+  background-size:cover;background-position:center;
+  transition:opacity .5s ease, filter .5s ease;
+}
+#wallpaper.dim{filter:brightness(.62) saturate(1.05)}
+
+body[data-wall="linear"]  #wallpaper{background-image:url("/zurech3/assets/wallpaper/linear-wallpaper-desktop.png")}
+/* The 16:9 desktop wallpaper crops to nothing in portrait — use the phone cut. */
+@media (max-aspect-ratio:1/1){
+  body[data-wall="linear"] #wallpaper{background-image:url("/zurech3/assets/wallpaper/linear-wallpaper-phone.png")}
+}
+body[data-wall="aurora"]  #wallpaper{
+  background:
+    radial-gradient(58% 62% at 78% 18%, rgba(112,242,255,.55) 0%, rgba(112,242,255,0) 62%),
+    radial-gradient(52% 58% at 16% 82%, rgba(105,153,245,.62) 0%, rgba(105,153,245,0) 64%),
+    radial-gradient(38% 44% at 52% 46%, rgba(160,120,255,.30) 0%, rgba(160,120,255,0) 70%),
+    linear-gradient(140deg,#07080f 0%,#0d1020 46%,#101a33 100%);
+}
+body[data-wall="peri"]    #wallpaper{
+  background:
+    radial-gradient(42% 55% at 12% 78%, rgba(105,153,245,.78) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(45% 60% at 82% 14%, rgba(112,242,255,.82) 0%, rgba(112,242,255,0) 100%),
+    radial-gradient(30% 42% at 55% 55%, rgba(112,242,255,.28) 0%, rgba(112,242,255,0) 100%),
+    linear-gradient(120deg,#fdfdfd 0%,#f4f7fb 100%);
+}
+body[data-wall="ink"]     #wallpaper{
+  background:
+    radial-gradient(46% 50% at 50% 108%, rgba(105,153,245,.34) 0%, rgba(105,153,245,0) 70%),
+    radial-gradient(30% 34% at 88% 6%, rgba(112,242,255,.18) 0%, rgba(112,242,255,0) 70%),
+    #050507;
+}
+body[data-wall="grid"]    #wallpaper{
+  background:
+    radial-gradient(50% 60% at 26% 20%, rgba(105,153,245,.42) 0%, rgba(105,153,245,0) 70%),
+    radial-gradient(46% 56% at 82% 88%, rgba(112,242,255,.34) 0%, rgba(112,242,255,0) 70%),
+    repeating-linear-gradient(0deg,  rgba(255,255,255,.055) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.055) 0 1px, transparent 1px 46px),
+    #070810;
+}
+
+#desk{
+  position:relative;z-index:1;flex:1;min-height:0;
+  padding:14px;
+}
+
+/* ── Desktop icons ─────────────────────────────────────────── */
+#icons{
+  display:grid;
+  grid-auto-flow:column;
+  grid-template-rows:repeat(auto-fill, 104px);
+  justify-content:start;
+  gap:2px 2px;
+  height:100%;
+}
+.dicon{
+  width:92px;padding:9px 4px 7px;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  border-radius:5px;border:1px solid transparent;
+  text-align:center;cursor:default;
+  transition:background .1s;
+}
+.dicon:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.14)}
+.dicon[aria-selected="true"]{background:rgba(105,153,245,.42);border-color:rgba(255,255,255,.42)}
+.dicon:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.dicon .glyph{width:44px;height:44px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+/* The wallpaper can be light or dark, so a plain white label is a coin flip.
+   A soft dark scrim keeps the text readable on every background. */
+.dicon .label{
+  display:block;width:100%;
+  font-size:12px;line-height:1.28;color:#fff;
+  padding:3px 4px;border-radius:4px;
+  background:rgba(14,16,24,.3);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  word-break:break-word;
+}
+.dicon[aria-selected="true"] .label{background:rgba(20,44,96,.7)}
+.dicon .ext{display:inline-block;vertical-align:-1px;width:9px;height:9px;margin-left:3px;opacity:.85}
+
+/* ── Activation watermark ──────────────────────────────────── */
+#watermark{
+  position:absolute;right:26px;bottom:26px;z-index:2;
+  padding:9px 13px;border-radius:6px;
+  background:rgba(14,16,24,.32);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  color:rgba(255,255,255,.82);text-shadow:0 1px 3px rgba(0,0,0,.5);
+  text-align:right;pointer-events:none;user-select:none;
+  font-size:13px;line-height:1.45;
+}
+#watermark b{display:block;font-size:19px;font-weight:400;letter-spacing:-.01em;color:#fff}
+#watermark em{font-style:normal;pointer-events:auto;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+/* ═══════════════════════════════════════════════════════════════
+   TASKBAR
+   ═══════════════════════════════════════════════════════════════ */
+#taskbar{
+  position:relative;z-index:60;
+  height:var(--taskbar-h);flex:0 0 var(--taskbar-h);
+  display:flex;align-items:center;
+  padding:0 8px;
+  background:var(--chrome);
+  backdrop-filter:blur(34px) saturate(1.7);
+  -webkit-backdrop-filter:blur(34px) saturate(1.7);
+  border-top:1px solid rgba(255,255,255,.5);
+  box-shadow:0 -1px 0 rgba(0,0,0,.07);
+}
+#tb-left,#tb-right{display:flex;align-items:center;gap:2px;flex:1;min-width:0}
+#tb-right{justify-content:flex-end}
+#tb-center{display:flex;align-items:center;gap:3px}
+
+.tb-btn{
+  position:relative;
+  width:44px;height:40px;border-radius:5px;
+  display:grid;place-items:center;
+  transition:background .12s;
+}
+.tb-btn:hover{background:var(--hover)}
+.tb-btn:active{background:var(--active)}
+.tb-btn svg{width:23px;height:23px}
+.tb-btn.on{background:var(--active)}
+/* running / active underline pip */
+.tb-btn[data-run]::after{
+  content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);
+  height:3px;width:7px;border-radius:2px;background:var(--peri-deep);
+  transition:width .18s ease, opacity .18s;
+}
+.tb-btn[data-run="focus"]::after{width:17px}
+.tb-btn[data-run="min"]::after{opacity:.55}
+
+#tb-search{
+  width:auto;padding:0 12px 0 10px;gap:8px;
+  display:flex;align-items:center;height:34px;border-radius:17px;
+  border:1px solid var(--line);background:rgba(255,255,255,.6);
+  color:var(--txt-dim);font-size:13px;
+}
+#tb-search svg{width:15px;height:15px}
+#tb-search:hover{background:#fff}
+@media (max-width:720px){#tb-search span{display:none}#tb-search{padding:0 9px;gap:0}}
+
+#tray{display:flex;align-items:center;gap:2px;padding:0 4px;border-radius:5px;height:40px;transition:background .12s}
+#tray:hover{background:var(--hover)}
+#tray svg{width:16px;height:16px;opacity:.82}
+#clock{
+  padding:0 10px;height:40px;border-radius:5px;
+  display:flex;flex-direction:column;justify-content:center;align-items:flex-end;
+  font-size:12px;line-height:1.35;letter-spacing:.005em;transition:background .12s;
+}
+#clock:hover{background:var(--hover)}
+#showdesk{width:8px;height:40px;margin-left:4px;border-left:1px solid var(--line-strong)}
+#showdesk:hover{background:var(--hover)}
+@media (max-width:560px){#showdesk{display:none}}
+
+/* ═══════════════════════════════════════════════════════════════
+   START MENU
+   ═══════════════════════════════════════════════════════════════ */
+#start{
+  position:fixed;z-index:70;
+  left:50%;bottom:calc(var(--taskbar-h) + 9px);
+  width:min(620px, calc(100vw - 20px));
+  transform:translate(-50%, 14px) scale(.985);
+  opacity:0;pointer-events:none;visibility:hidden;
+  background:var(--chrome);
+  backdrop-filter:blur(44px) saturate(1.8);
+  -webkit-backdrop-filter:blur(44px) saturate(1.8);
+  border:1px solid rgba(255,255,255,.6);
+  border-radius:10px;
+  box-shadow:var(--shadow-pop);
+  padding:26px 26px 0;
+  transition:opacity .16s ease, transform .16s cubic-bezier(.2,.9,.3,1), visibility .16s;
+}
+#start.open{opacity:1;pointer-events:auto;visibility:visible;transform:translate(-50%,0) scale(1)}
+
+#start-search{
+  width:100%;height:36px;border-radius:18px;
+  border:1px solid var(--line-strong);background:rgba(255,255,255,.72);
+  padding:0 14px 0 38px;font-size:13.5px;outline:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b5f6b' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:13px center;background-size:15px;
+}
+#start-search:focus{border-color:var(--peri-deep);box-shadow:0 2px 0 -1px var(--peri-deep)}
+
+.start-head{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 10px}
+.start-head h2{font-size:13.5px;font-weight:600;letter-spacing:.005em}
+.start-head .hint{font-size:11.5px;color:var(--txt-dim)}
+
+#start-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+@media (max-width:560px){#start-grid{grid-template-columns:repeat(4,1fr)}}
+.sapp{
+  padding:12px 4px 10px;border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center;
+  transition:background .1s;
+}
+.sapp:hover{background:var(--hover)}
+.sapp svg{width:30px;height:30px}
+.sapp span{font-size:11.5px;line-height:1.3;color:var(--txt)}
+.sapp[hidden]{display:none}
+#start-empty{padding:24px 4px;text-align:center;font-size:13px;color:var(--txt-dim)}
+
+#start-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:22px -26px 0;padding:12px 22px;
+  background:rgba(0,0,0,.035);border-top:1px solid var(--line);
+  border-radius:0 0 10px 10px;
+}
+#start-user{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:5px;transition:background .1s}
+#start-user:hover{background:var(--hover)}
+#start-user .av{
+  width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--peri),var(--aqua));
+}
+#start-user .av svg{width:17px;height:17px}
+#start-user b{font-size:13px;font-weight:600;display:block;line-height:1.25}
+#start-user small{font-size:11px;color:var(--txt-dim)}
+#start-foot .pw{width:36px;height:36px;border-radius:5px;display:grid;place-items:center;transition:background .1s}
+#start-foot .pw:hover{background:var(--hover)}
+#start-foot .pw svg{width:18px;height:18px}
+
+/* ═══════════════════════════════════════════════════════════════
+   WINDOWS
+   ═══════════════════════════════════════════════════════════════ */
+#winlayer{position:absolute;inset:0;z-index:10;pointer-events:none}
+.win{
+  position:absolute;pointer-events:auto;
+  display:flex;flex-direction:column;
+  min-width:300px;min-height:200px;
+  background:var(--surface);
+  backdrop-filter:blur(38px) saturate(1.7);
+  -webkit-backdrop-filter:blur(38px) saturate(1.7);
+  border:1px solid rgba(255,255,255,.5);
+  border-radius:var(--r-win);
+  box-shadow:var(--shadow-win);
+  overflow:hidden;
+  animation:winIn .17s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes winIn{from{opacity:0;transform:scale(.975) translateY(8px)}to{opacity:1;transform:none}}
+.win.min{display:none}
+.win.max{border-radius:0;border-color:transparent}
+.win:not(.focus){box-shadow:0 0 0 1px rgba(0,0,0,.05), 0 10px 26px -8px rgba(10,12,24,.26)}
+.win:not(.focus) .titlebar{opacity:.72}
+
+.titlebar{
+  flex:none;height:34px;display:flex;align-items:center;
+  padding-left:12px;cursor:default;user-select:none;touch-action:none;
+  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.34);
+}
+.titlebar .tico{width:15px;height:15px;flex:none;margin-right:9px}
+.titlebar .ttl{font-size:12.5px;font-weight:600;letter-spacing:.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.wbtns{display:flex;flex:none;align-self:stretch}
+.wbtn{width:44px;display:grid;place-items:center;transition:background .1s}
+.wbtn svg{width:10px;height:10px;stroke:var(--txt);stroke-width:1.4}
+.wbtn:hover{background:var(--hover)}
+.wbtn.x:hover{background:#c42b1c}
+.wbtn.x:hover svg{stroke:#fff}
+
+.wbody{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.wpad{padding:26px 30px 32px}
+@media (max-width:560px){.wpad{padding:20px 18px 26px}}
+
+.grip{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;touch-action:none}
+.win.max .grip{display:none}
+
+/* ═══════════════════════════════════════════════════════════════
+   WINDOW CONTENT — shared building blocks
+   ═══════════════════════════════════════════════════════════════ */
+.eyebrow{
+  font-family:var(--brand);font-size:10.5px;font-weight:600;
+  letter-spacing:.34em;text-transform:uppercase;color:var(--peri-deep);
+  margin-bottom:10px;
+}
+.wtitle{font-family:var(--brand);font-size:27px;font-weight:500;letter-spacing:-.025em;line-height:1.12}
+.wsub{font-size:14px;line-height:1.62;color:var(--txt-dim);margin-top:10px;max-width:56ch}
+.rule{height:1px;background:var(--line);margin:24px 0;border:0}
+
+.cards{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(216px,1fr));margin-top:20px}
+.card{
+  display:flex;gap:13px;align-items:flex-start;text-align:left;
+  padding:15px 16px;border-radius:var(--r-card);
+  background:var(--card);border:1px solid var(--line);
+  transition:border-color .14s, transform .14s, box-shadow .14s;
+}
+.card:hover{border-color:var(--peri);transform:translateY(-1px);box-shadow:0 6px 16px -8px rgba(77,127,232,.5)}
+.card .ci{width:26px;height:26px;flex:none;margin-top:1px}
+.card b{display:block;font-size:13.5px;font-weight:600;margin-bottom:3px}
+.card small{display:block;font-size:12px;line-height:1.5;color:var(--txt-dim)}
+
+.rows{margin-top:18px;border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden;background:var(--card)}
+.row{display:flex;gap:14px;align-items:center;padding:13px 16px;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.row:last-child{border-bottom:0}
+.row:hover{background:rgba(105,153,245,.07)}
+.row .ci{width:22px;height:22px;flex:none}
+.row .rt{flex:1;min-width:0}
+.row b{display:block;font-size:13.5px;font-weight:600}
+.row small{display:block;font-size:12px;color:var(--txt-dim);margin-top:2px}
+.row .chev{width:14px;height:14px;flex:none;opacity:.4}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  height:38px;padding:0 20px;border-radius:5px;
+  font-size:13.5px;font-weight:600;
+  background:var(--peri-deep);color:#fff;
+  border:1px solid rgba(0,0,0,.08);
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.14);
+  transition:filter .12s, transform .06s;
+}
+.btn:hover{filter:brightness(1.1)}
+.btn:active{transform:translateY(.5px);filter:brightness(.95)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn svg{width:15px;height:15px}
+.btn.ghost{background:var(--card);color:var(--txt);border-color:var(--line-strong);box-shadow:inset 0 -1px 0 rgba(0,0,0,.05)}
+.btn.ghost:hover{background:#fff;border-color:var(--txt-dim)}
+.btns{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+
+.field{margin-top:15px}
+.field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+.field input,.field textarea,.field select{
+  width:100%;padding:9px 12px;border-radius:5px;
+  border:1px solid var(--line-strong);background:var(--card);
+  font-size:13.5px;outline:none;
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.16);
+}
+.field textarea{min-height:96px;resize:vertical;line-height:1.55}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--peri-deep);box-shadow:inset 0 -2px 0 -0.5px var(--peri-deep)}
+.field .err{display:none;font-size:12px;color:#c42b1c;margin-top:5px}
+.field.bad input,.field.bad textarea{border-color:#c42b1c}
+.field.bad .err{display:block}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+@media (max-width:540px){.two{grid-template-columns:1fr}}
+
+.note{
+  display:flex;gap:11px;align-items:flex-start;
+  margin-top:22px;padding:13px 15px;border-radius:var(--r-card);
+  background:rgba(105,153,245,.09);border:1px solid rgba(105,153,245,.3);
+  font-size:12.5px;line-height:1.6;color:#2f4370;
+}
+.note.warn{background:rgba(255,185,0,.12);border-color:rgba(190,140,0,.34);color:#6b4a00}
+.note svg{width:16px;height:16px;flex:none;margin-top:1px}
+.note a{font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+.kv{display:grid;grid-template-columns:auto 1fr;gap:9px 20px;margin-top:18px;font-size:13.5px}
+.kv dt{color:var(--txt-dim)}
+.kv dd{font-weight:600}
+
+/* ── Ticket wizard ─────────────────────────────────────────── */
+.steps{display:flex;align-items:center;gap:7px;margin-bottom:22px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--txt-dim)}
+.step i{
+  width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;
+  font-size:11px;font-weight:700;background:rgba(0,0,0,.07);color:var(--txt-dim);
+}
+.step.on i{background:var(--peri-deep);color:#fff}
+.step.done i{background:rgba(105,153,245,.22);color:var(--peri-deep)}
+.step.on{color:var(--txt);font-weight:600}
+.step .bar{width:16px;height:1px;background:var(--line-strong)}
+@media (max-width:560px){.step span{display:none}.step .bar{width:10px}}
+
+.pane[hidden]{display:none}
+
+.idbox{
+  display:flex;gap:9px;margin-top:18px;
+}
+.idbox input{
+  flex:1;min-width:0;padding:11px 14px;border-radius:5px;
+  border:1px solid var(--line-strong);background:var(--card);
+  font-size:17px;font-family:ui-monospace,"Cascadia Mono",Menlo,monospace;
+  letter-spacing:.22em;text-transform:uppercase;outline:none;
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.16);
+}
+.idbox input:focus{border-color:var(--peri-deep);box-shadow:inset 0 -2px 0 -0.5px var(--peri-deep)}
+.idbox .btn{height:auto;padding:0 26px}
+
+.choices{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:20px}
+.choice{
+  padding:20px 16px;border-radius:var(--r-card);text-align:center;
+  background:var(--card);border:1px solid var(--line);
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  transition:border-color .14s, transform .14s, box-shadow .14s;
+}
+.choice:hover{border-color:var(--peri);transform:translateY(-2px);box-shadow:0 8px 20px -10px rgba(77,127,232,.55)}
+.choice[aria-pressed="true"]{border-color:var(--peri-deep);background:rgba(105,153,245,.08);box-shadow:inset 0 0 0 1px var(--peri-deep)}
+.choice svg{width:32px;height:32px}
+.choice b{font-size:13.5px;font-weight:600}
+.choice small{font-size:11.5px;color:var(--txt-dim);line-height:1.45}
+
+.done-mark{
+  width:60px;height:60px;border-radius:50%;margin:6px auto 18px;
+  display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--peri),var(--aqua));
+  box-shadow:0 8px 22px -8px rgba(77,127,232,.75);
+}
+.done-mark svg{width:30px;height:30px;stroke:#fff;stroke-width:2.6}
+.center{text-align:center}
+.center .wsub{margin-left:auto;margin-right:auto}
+.center .btns{justify-content:center}
+.tno{
+  font-family:ui-monospace,"Cascadia Mono",Menlo,monospace;
+  font-size:19px;letter-spacing:.14em;margin-top:16px;font-weight:600;
+}
+
+/* ── Settings / personalization ────────────────────────────── */
+.walls{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:20px}
+.wall{border-radius:var(--r-card);overflow:hidden;border:2px solid transparent;background:none;transition:border-color .14s,transform .14s}
+.wall:hover{transform:translateY(-2px)}
+.wall[aria-pressed="true"]{border-color:var(--peri-deep)}
+.wall .sw{height:86px;border-radius:5px;border:1px solid var(--line);background-size:cover;background-position:center}
+.wall span{display:block;font-size:12px;padding:7px 2px 3px;text-align:left;font-weight:600}
+.sw-linear{background-image:url("/zurech3/assets/wallpaper/preview-desktop.jpg")}
+.sw-aurora{background:radial-gradient(58% 62% at 78% 18%, rgba(112,242,255,.55) 0%, rgba(112,242,255,0) 62%),radial-gradient(52% 58% at 16% 82%, rgba(105,153,245,.62) 0%, rgba(105,153,245,0) 64%),linear-gradient(140deg,#07080f,#101a33)}
+.sw-peri{background:radial-gradient(42% 55% at 12% 78%, rgba(105,153,245,.78) 0%, rgba(105,153,245,0) 100%),radial-gradient(45% 60% at 82% 14%, rgba(112,242,255,.82) 0%, rgba(112,242,255,0) 100%),linear-gradient(120deg,#fdfdfd,#f4f7fb)}
+.sw-ink{background:radial-gradient(46% 50% at 50% 108%, rgba(105,153,245,.34) 0%, rgba(105,153,245,0) 70%),#050507}
+.sw-grid{background:radial-gradient(50% 60% at 26% 20%, rgba(105,153,245,.42) 0%, rgba(105,153,245,0) 70%),repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 1px,transparent 1px 14px),repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 1px,transparent 1px 14px),#070810}
+
+.about-band{
+  margin:-26px -30px 24px;padding:30px;
+  background:linear-gradient(135deg,var(--peri) 0%,var(--aqua) 100%);
+  color:#08131f;
+}
+@media (max-width:560px){.about-band{margin:-20px -18px 22px;padding:24px 18px}}
+.about-band .wtitle{font-size:24px}
+.legal{font-size:11.5px;line-height:1.7;color:var(--txt-dim);margin-top:20px}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTEXT MENU
+   ═══════════════════════════════════════════════════════════════ */
+#ctx{
+  position:fixed;z-index:80;min-width:212px;padding:5px;
+  background:var(--chrome);
+  backdrop-filter:blur(38px) saturate(1.8);
+  -webkit-backdrop-filter:blur(38px) saturate(1.8);
+  border:1px solid rgba(255,255,255,.6);border-radius:8px;
+  box-shadow:var(--shadow-pop);
+  display:none;
+}
+#ctx.open{display:block;animation:winIn .12s ease}
+.ctx-i{display:flex;align-items:center;gap:11px;width:100%;padding:8px 11px;border-radius:5px;font-size:13px;text-align:left}
+.ctx-i:hover{background:var(--hover)}
+.ctx-i svg{width:15px;height:15px;flex:none;opacity:.75}
+.ctx-i .kbd{margin-left:auto;font-size:11px;color:var(--txt-dim)}
+.ctx-sep{height:1px;background:var(--line);margin:4px 8px}
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL LAYER — UAC dialog
+   ═══════════════════════════════════════════════════════════════ */
+#modal{
+  position:fixed;inset:0;z-index:90;display:none;
+  align-items:center;justify-content:center;padding:18px;
+  background:rgba(0,0,0,.45);
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+}
+#modal.open{display:flex;animation:fade .18s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.uac{
+  width:min(440px,100%);border-radius:var(--r-win);overflow:hidden;
+  background:var(--chrome-solid);box-shadow:0 24px 60px -12px rgba(0,0,0,.6);
+  animation:winIn .2s cubic-bezier(.2,.9,.3,1);
+}
+.uac-head{
+  padding:22px 24px;color:#fff;
+  background:linear-gradient(135deg,#1d2a44 0%,#27407a 100%);
+}
+.uac-head h2{font-size:19px;font-weight:400;line-height:1.35}
+.uac-head p{font-size:12px;opacity:.72;margin-top:9px;letter-spacing:.12em;text-transform:uppercase}
+.uac-body{padding:22px 24px}
+.uac-app{display:flex;gap:13px;align-items:flex-start}
+.uac-app .ci{width:32px;height:32px;flex:none}
+.uac-app b{display:block;font-size:13.5px;font-weight:600}
+.uac-app small{display:block;font-size:12.5px;color:var(--txt-dim);line-height:1.6;margin-top:3px}
+.uac-more{font-size:12.5px;color:var(--peri-deep);margin-top:16px;text-decoration:underline;text-underline-offset:2px}
+.uac-detail{display:none;margin-top:12px;font-size:12px;line-height:1.65;color:var(--txt-dim);padding-left:45px}
+.uac-detail.open{display:block}
+.uac-foot{display:flex;gap:10px;justify-content:flex-end;padding:0 24px 22px}
+.uac-foot .btn{min-width:104px}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOASTS
+   ═══════════════════════════════════════════════════════════════ */
+/* Sits above the activation watermark rather than on top of it. */
+#toasts{position:fixed;right:14px;bottom:calc(var(--taskbar-h) + 104px);z-index:85;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+.toast{
+  display:flex;gap:11px;align-items:flex-start;
+  width:min(330px,calc(100vw - 28px));padding:14px 16px;
+  background:var(--chrome-solid);border:1px solid var(--line);border-radius:8px;
+  box-shadow:var(--shadow-pop);
+  animation:toastIn .2s cubic-bezier(.2,.9,.3,1);
+}
+.toast.out{animation:toastOut .22s ease forwards}
+@keyframes toastIn{from{opacity:0;transform:translateX(22px)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateX(22px)}}
+.toast svg{width:19px;height:19px;flex:none;margin-top:1px}
+.toast b{display:block;font-size:13px;font-weight:600}
+.toast small{display:block;font-size:12px;color:var(--txt-dim);line-height:1.5;margin-top:2px}
+
+/* ═══════════════════════════════════════════════════════════════
+   SMALL SCREENS — windows go full-bleed
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width:720px){
+  :root{--taskbar-h:56px}
+  .dicon{width:80px}
+  .dicon .glyph{width:38px;height:38px}
+  #icons{grid-template-rows:repeat(auto-fill,94px)}
+  #watermark{right:14px;bottom:14px;font-size:11px}
+  #watermark b{font-size:15px}
+  .win{
+    left:0!important;top:0!important;
+    width:100%!important;height:100%!important;
+    border-radius:0;border-color:transparent;
+  }
+  .grip{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* Accessible-only helper */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body data-wall="linear">
+
+<!-- ═══════════════════════════════════════════════════════════
+     ICON SPRITE
+     ═══════════════════════════════════════════════════════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#70f2ff"/><stop offset="1" stop-color="#6999f5"/>
+  </linearGradient>
+  <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#6999f5"/><stop offset="1" stop-color="#4d7fe8"/>
+  </linearGradient>
+  <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffd166"/><stop offset="1" stop-color="#f79d3c"/>
+  </linearGradient>
+
+  <!-- linear mark, simplified from the brand icon -->
+  <symbol id="i-linear" viewBox="0 0 100 100">
+    <g fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round">
+      <path d="M28 38 L38 21 L55 31"/><path d="M62 22 L72 39 L62 56" opacity=".85"/>
+      <path d="M72 62 L62 79 L45 69" opacity=".7"/><path d="M38 78 L28 61 L38 44" opacity=".55"/>
+    </g>
+  </symbol>
+
+  <symbol id="i-portal" viewBox="0 0 32 32">
+    <rect x="2.5" y="5" width="27" height="18" rx="2.6" fill="url(#g2)"/>
+    <rect x="5" y="7.6" width="22" height="12.8" rx="1.4" fill="#fff" opacity=".92"/>
+    <path d="M8 11h9M8 14.4h13M8 17.8h6" stroke="#4d7fe8" stroke-width="1.7" stroke-linecap="round"/>
+    <path d="M11 27h10M16 23v4" stroke="url(#g2)" stroke-width="2.4" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="i-ticket" viewBox="0 0 32 32">
+    <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h19A2.5 2.5 0 0 1 28 8.5V13a3 3 0 0 0 0 6v4.5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 4 23.5V19a3 3 0 0 0 0-6z" fill="url(#g2)"/>
+    <path d="M11 12h10M11 16h10M11 20h6.5" stroke="#fff" stroke-width="1.9" stroke-linecap="round" opacity=".95"/>
+  </symbol>
+
+  <symbol id="i-remote" viewBox="0 0 32 32">
+    <rect x="2.5" y="5" width="27" height="18" rx="2.6" fill="url(#g2)"/>
+    <rect x="5" y="7.6" width="22" height="12.8" rx="1.4" fill="#fff" opacity=".93"/>
+    <path d="M11.5 17.2a5.4 5.4 0 1 1 5 1.6" fill="none" stroke="#4d7fe8" stroke-width="2" stroke-linecap="round"/>
+    <path d="M17.6 15.6l-1.2 3.6 3.6-.5z" fill="#4d7fe8"/>
+    <path d="M11 27h10M16 23v4" stroke="url(#g2)" stroke-width="2.4" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="i-speed" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="12.5" fill="url(#g1)"/>
+    <circle cx="16" cy="16" r="9.4" fill="#fff" opacity=".93"/>
+    <path d="M16 16 L22.4 10.6" stroke="#4d7fe8" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="16" cy="16" r="2.1" fill="#4d7fe8"/>
+    <path d="M8.6 19.2h1.9M21.5 19.2h1.9M9.9 12.4l1.4 1.3" stroke="#6999f5" stroke-width="1.7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="i-billing" viewBox="0 0 32 32">
+    <path d="M6 3.5h20v25l-3.3-2.2-3.4 2.2-3.3-2.2-3.4 2.2L9.3 26.3 6 28.5z" fill="url(#g2)"/>
+    <path d="M11 10.5h10M11 15h10M11 19.5h6" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="i-tools" viewBox="0 0 32 32">
+    <path d="M3 8.2a2.2 2.2 0 0 1 2.2-2.2h6.9l3 3.4h9.7A2.2 2.2 0 0 1 27 11.6v1.4H3z" fill="#f7b955"/>
+    <path d="M3 12.4h24.6a1.9 1.9 0 0 1 1.85 2.35l-2.4 10.4A2.4 2.4 0 0 1 24.7 27H6.1a2.4 2.4 0 0 1-2.35-1.9L2 14.6A1.9 1.9 0 0 1 3 12.4z" fill="url(#g3)"/>
+  </symbol>
+
+  <symbol id="i-contact" viewBox="0 0 32 32">
+    <rect x="3" y="5.5" width="26" height="21" rx="2.6" fill="url(#g2)"/>
+    <rect x="5.6" y="8.1" width="20.8" height="15.8" rx="1.4" fill="#fff" opacity=".93"/>
+    <circle cx="13" cy="14.4" r="3.1" fill="#6999f5"/>
+    <path d="M8.4 21.2c.6-2.5 2.4-3.8 4.6-3.8s4 1.3 4.6 3.8z" fill="#6999f5"/>
+    <path d="M20 13h4M20 16.4h4M20 19.8h2.6" stroke="#4d7fe8" stroke-width="1.7" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="i-pc" viewBox="0 0 32 32">
+    <rect x="8" y="3" width="16" height="26" rx="2.4" fill="url(#g2)"/>
+    <rect x="10.6" y="6" width="10.8" height="7.4" rx="1.2" fill="#fff" opacity=".9"/>
+    <circle cx="16" cy="19.4" r="2.3" fill="#70f2ff"/>
+    <path d="M12.4 25h7.2" stroke="#fff" stroke-width="1.7" stroke-linecap="round" opacity=".8"/>
+  </symbol>
+
+  <symbol id="i-settings" viewBox="0 0 32 32">
+    <path d="M16 3.6l2.9 1.2 3-.9 1.7 2.6 3.1.6.2 3.1 2.4 2-1.5 2.8 1.5 2.8-2.4 2-.2 3.1-3.1.6-1.7 2.6-3-.9L16 28.4l-2.9-1.2-3 .9-1.7-2.6-3.1-.6-.2-3.1-2.4-2 1.5-2.8L2.7 14l2.4-2 .2-3.1 3.1-.6 1.7-2.6 3 .9z" fill="url(#g2)"/>
+    <circle cx="16" cy="16" r="5.4" fill="#fff" opacity=".94"/>
+    <circle cx="16" cy="16" r="2.5" fill="#4d7fe8"/>
+  </symbol>
+
+  <symbol id="i-shield" viewBox="0 0 32 32">
+    <path d="M16 2.6l11 4v9.1c0 6.7-4.5 12.4-11 14.3-6.5-1.9-11-7.6-11-14.3V6.6z" fill="url(#g2)"/>
+    <path d="M10.6 16.2l3.8 3.8 7-7.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="i-install" viewBox="0 0 32 32">
+    <rect x="4" y="4" width="24" height="24" rx="4" fill="url(#g2)"/>
+    <path d="M16 9.5v10M11.6 15.4l4.4 4.4 4.4-4.4M10.5 23h11" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+
+  <symbol id="i-cart" viewBox="0 0 32 32">
+    <path d="M3 5h3.4l3.4 14.4h13.5" fill="none" stroke="url(#g2)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8.4 8.6h20l-2.6 8.6H10.4z" fill="url(#g2)"/>
+    <circle cx="11.4" cy="25.4" r="2.4" fill="#4d7fe8"/><circle cx="22.4" cy="25.4" r="2.4" fill="#4d7fe8"/>
+  </symbol>
+
+  <symbol id="i-broken" viewBox="0 0 32 32">
+    <rect x="2.5" y="5" width="27" height="18" rx="2.6" fill="url(#g2)"/>
+    <rect x="5" y="7.6" width="22" height="12.8" rx="1.4" fill="#fff" opacity=".93"/>
+    <path d="M14 9l-3 5.2h4L13 20l6-6.6h-4L17.5 9z" fill="#f79d3c"/>
+    <path d="M11 27h10M16 23v4" stroke="url(#g2)" stroke-width="2.4" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- Line icons -->
+  <symbol id="l-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+  <symbol id="l-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <path d="M2.5 8.6a14 14 0 0 1 19 0M6 12.4a9 9 0 0 1 12 0M9.4 16.1a4.2 4.2 0 0 1 5.2 0"/><circle cx="12" cy="19.4" r="1.1" fill="currentColor"/></symbol>
+  <symbol id="l-vol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 4.5L6.2 8.6H3v6.8h3.2L11 19.5z" fill="currentColor" stroke-width="1.4"/><path d="M15.4 9.2a4 4 0 0 1 0 5.6M18.4 6.4a8 8 0 0 1 0 11.2"/></symbol>
+  <symbol id="l-chevup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 14.5L12 8l6.5 6.5"/></symbol>
+  <symbol id="l-chevr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5L15.5 12 9 18.5"/></symbol>
+  <symbol id="l-power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+    <path d="M12 3v8"/><path d="M18 6.4a8 8 0 1 1-12 0"/></symbol>
+  <symbol id="l-user" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="8.4" r="4.1"/><path d="M3.8 21c.9-4.5 4.2-6.8 8.2-6.8s7.3 2.3 8.2 6.8z"/></symbol>
+  <symbol id="l-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.6 4.6L19 6.8"/></symbol>
+  <symbol id="l-x" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9"/></symbol>
+  <symbol id="l-min" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M1.5 6h9"/></symbol>
+  <symbol id="l-max" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-linecap="round"><rect x="1.6" y="1.6" width="8.8" height="8.8" rx="1.2"/></symbol>
+  <symbol id="l-restore" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="1.4" y="3.4" width="7.2" height="7.2" rx="1.1"/><path d="M3.9 3.4V2.5a1.1 1.1 0 0 1 1.1-1.1h4.5a1.1 1.1 0 0 1 1.1 1.1V7a1.1 1.1 0 0 1-1.1 1.1h-.9"/></symbol>
+  <symbol id="l-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.3 4.5v4.3H16"/></symbol>
+  <symbol id="l-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+    <rect x="3" y="4.5" width="18" height="15" rx="2.2"/><circle cx="8.6" cy="10" r="1.7"/><path d="M3.6 17.2l5-4.6 4.2 3.8 3-2.6 4.6 4"/></symbol>
+  <symbol id="l-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <circle cx="12" cy="12" r="9"/><path d="M12 11v5.4"/><circle cx="12" cy="7.9" r="1.1" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="l-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.6l9.2 16H2.8z"/><path d="M12 9.6v4.6"/><circle cx="12" cy="17" r="1.05" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="l-phone" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M6.2 2.8a1.8 1.8 0 0 1 2.5.5l1.9 2.9a1.8 1.8 0 0 1-.3 2.3L9 9.7a11.5 11.5 0 0 0 5.3 5.3l1.2-1.3a1.8 1.8 0 0 1 2.3-.3l2.9 1.9a1.8 1.8 0 0 1 .5 2.5l-1.3 2a2.4 2.4 0 0 1-2.6 1C11.4 19.5 4.5 12.6 3.2 6.7a2.4 2.4 0 0 1 1-2.6z"/></symbol>
+  <symbol id="l-mail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
+    <rect x="2.6" y="5" width="18.8" height="14" rx="2.4"/><path d="M3.4 7l8.6 6 8.6-6"/></symbol>
+  <symbol id="l-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 21.5s7-6.4 7-11.2a7 7 0 1 0-14 0c0 4.8 7 11.2 7 11.2z"/><circle cx="12" cy="10.1" r="2.6"/></symbol>
+  <symbol id="l-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 5h10v10"/><path d="M19 5L6 18"/></symbol>
+  <symbol id="l-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5.5L8.5 12 15 18.5"/></symbol>
+</defs></svg>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN
+     ═══════════════════════════════════════════════════════════ -->
+<div id="screen">
+
+  <div id="wallpaper"></div>
+
+  <main id="desk">
+    <div id="icons" role="listbox" aria-label="Desktop shortcuts"><!-- built by JS --></div>
+
+    <div id="winlayer"></div>
+
+    <div id="watermark">
+      <b>Activate linear</b>
+      Go to Settings to activate a support plan.
+      <em id="wm-link">Learn more</em>
+    </div>
+  </main>
+
+  <nav id="taskbar" aria-label="Taskbar">
+    <div id="tb-left"></div>
+
+    <div id="tb-center">
+      <button class="tb-btn" id="tb-start" aria-label="Start" aria-expanded="false" title="Start">
+        <svg viewBox="0 0 100 100" style="color:var(--peri-deep)"><use href="#i-linear"/></svg>
+      </button>
+      <button class="tb-btn" id="tb-search" aria-label="Search" title="Search">
+        <svg style="width:15px;height:15px"><use href="#l-search"/></svg><span>Search</span>
+      </button>
+      <div id="tb-apps" style="display:flex;gap:3px"></div>
+    </div>
+
+    <div id="tb-right">
+      <button id="tray" aria-label="Network, sound and updates" title="You're online. Probably.">
+        <svg><use href="#l-chevup"/></svg>
+        <svg><use href="#l-wifi"/></svg>
+        <svg><use href="#l-vol"/></svg>
+      </button>
+      <button id="clock" aria-label="Date and time">
+        <span id="clock-t">--:--</span><span id="clock-d">—</span>
+      </button>
+      <button id="showdesk" aria-label="Show desktop" title="Show desktop"></button>
+    </div>
+  </nav>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     START MENU
+     ═══════════════════════════════════════════════════════════ -->
+<div id="start" role="dialog" aria-label="Start menu" aria-modal="false">
+  <input id="start-search" type="search" placeholder="Search apps and support" autocomplete="off" spellcheck="false">
+
+  <div class="start-head">
+    <h2>Pinned</h2>
+    <span class="hint">Everything linear can do for you</span>
+  </div>
+  <div id="start-grid"></div>
+  <p id="start-empty" hidden>Nothing matches that. Try <b>ticket</b>, <b>remote</b>, or just call us.</p>
+
+  <div id="start-foot">
+    <button id="start-user">
+      <span class="av"><svg style="color:#fff"><use href="#l-user"/></svg></span>
+      <span>
+        <b>Guest</b>
+        <small>Not signed in</small>
+      </span>
+    </button>
+    <button class="pw" id="start-power" aria-label="Power" title="Power">
+      <svg><use href="#l-power"/></svg>
+    </button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     CONTEXT MENU
+     ═══════════════════════════════════════════════════════════ -->
+<div id="ctx" role="menu" aria-label="Desktop menu">
+  <button class="ctx-i" data-ctx="refresh" role="menuitem"><svg><use href="#l-refresh"/></svg>Refresh<span class="kbd">F5</span></button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-i" data-ctx="ticket" role="menuitem"><svg><use href="#l-mail"/></svg>New support ticket</button>
+  <button class="ctx-i" data-ctx="call" role="menuitem"><svg><use href="#l-phone"/></svg>Call linear</button>
+  <div class="ctx-sep"></div>
+  <button class="ctx-i" data-ctx="personalize" role="menuitem"><svg><use href="#l-image"/></svg>Personalize</button>
+  <button class="ctx-i" data-ctx="about" role="menuitem"><svg><use href="#l-info"/></svg>About this PC</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     UAC MODAL
+     ═══════════════════════════════════════════════════════════ -->
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="uac-q">
+  <div class="uac">
+    <div class="uac-head">
+      <h2 id="uac-q">Do you want to allow this app to make changes to your device?</h2>
+      <p>User Account Control</p>
+    </div>
+    <div class="uac-body">
+      <div class="uac-app">
+        <svg class="ci"><use href="#i-remote"/></svg>
+        <div>
+          <b id="uac-app">linear Remote Assist</b>
+          <small>Verified publisher: <b style="display:inline">linear IT</b><br>File origin: linearit.co</small>
+        </div>
+      </div>
+      <button class="uac-more" id="uac-toggle">Show more details</button>
+      <div class="uac-detail" id="uac-detail">
+        Program location: <code>https://www.linearit.co/desktop/</code><br>
+        Publisher certificate: linear IT, Monroe NY<br>
+        Nothing is installed and nothing runs on your machine — this is a web page having a bit of fun.
+      </div>
+    </div>
+    <div class="uac-foot">
+      <button class="btn" id="uac-yes">Yes</button>
+      <button class="btn ghost" id="uac-no">No</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     WINDOW CONTENT TEMPLATES
+     ═══════════════════════════════════════════════════════════ -->
+
+<template id="t-portal">
+<div class="wpad">
+  <p class="eyebrow">linear support</p>
+  <h1 class="wtitle">What can we take off your plate?</h1>
+  <p class="wsub">You reach a person in Monroe, NY — not a queue in another time zone. Pick the fastest route below, or just call. Most of the time, calling is the fastest route.</p>
+
+  <div class="cards">
+    <button class="card" data-open="ticket">
+      <svg class="ci"><use href="#i-ticket"/></svg>
+      <span><b>Open a ticket</b><small>Tell us what's wrong. We'll pick it up from there.</small></span>
+    </button>
+    <button class="card" data-open="remote">
+      <svg class="ci"><use href="#i-remote"/></svg>
+      <span><b>Remote session</b><small>Let a tech drive your screen while you watch.</small></span>
+    </button>
+    <a class="card" href="/speed/" target="_blank" rel="noopener">
+      <svg class="ci"><use href="#i-speed"/></svg>
+      <span><b>Test your connection</b><small>Before you blame the Wi-Fi, measure it.</small></span>
+    </a>
+    <button class="card" data-open="contact">
+      <svg class="ci"><use href="#i-contact"/></svg>
+      <span><b>Talk to a human</b><small>Phone, email, and where to find us.</small></span>
+    </button>
+  </div>
+
+  <hr class="rule">
+
+  <p class="eyebrow">What we look after</p>
+  <div class="rows">
+    <div class="row"><svg class="ci"><use href="#i-shield"/></svg><span class="rt"><b>Cybersecurity &amp; backup</b><small>Endpoint protection, patching, and backups you can actually restore from.</small></span></div>
+    <div class="row"><svg class="ci"><use href="#i-portal"/></svg><span class="rt"><b>Microsoft 365 &amp; cloud</b><small>Mail, files, identity, and the licensing headache that comes with them.</small></span></div>
+    <div class="row"><svg class="ci"><use href="#i-pc"/></svg><span class="rt"><b>Proactive monitoring</b><small>We'd rather find the failing drive than hear about it from you.</small></span></div>
+    <div class="row"><svg class="ci"><use href="#i-install"/></svg><span class="rt"><b>Hardware &amp; onboarding</b><small>Spec'd, imaged, labelled, and on the desk before the new hire is.</small></span></div>
+  </div>
+
+  <div class="btns">
+    <a class="btn" href="tel:+18456041462"><svg><use href="#l-phone"/></svg>(845) 604-1462</a>
+    <a class="btn ghost" href="/services" target="_blank" rel="noopener">Full service list<svg><use href="#l-ext"/></svg></a>
+  </div>
+</div>
+</template>
+
+
+<template id="t-ticket">
+<div class="wpad">
+
+  <div class="steps" id="tk-steps">
+    <span class="step" data-s="0"><i>1</i><span>Device</span></span><span class="bar"></span>
+    <span class="step" data-s="1"><i>2</i><span>You</span></span><span class="bar"></span>
+    <span class="step" data-s="2"><i>3</i><span>Issue</span></span><span class="bar"></span>
+    <span class="step" data-s="3"><i>4</i><span>Details</span></span>
+  </div>
+
+  <!-- STEP 0 — support ID -->
+  <section class="pane" data-p="0">
+    <p class="eyebrow">Step one</p>
+    <h1 class="wtitle">Enter your support ID</h1>
+    <p class="wsub">It's on the sticker we put on your machine — usually on the top edge of a laptop, or the side of a tower. Looks like <code>LIN-4820</code>.</p>
+
+    <div class="idbox">
+      <input id="tk-id" type="text" placeholder="LIN-0000" maxlength="12" autocomplete="off" spellcheck="false" aria-label="Support ID">
+      <button class="btn" id="tk-go">Go</button>
+    </div>
+    <div class="field bad" id="tk-id-err" style="margin-top:8px;display:none">
+      <span class="err" style="display:block">That ID doesn't look right. Check the sticker, or continue without one.</span>
+    </div>
+
+    <div class="btns">
+      <button class="btn ghost" id="tk-noid">I don't have a support ID</button>
+    </div>
+
+    <div class="note">
+      <svg><use href="#l-info"/></svg>
+      <span>No sticker? No problem — you can still open a ticket. The ID just saves us a few questions about which machine we're looking at.</span>
+    </div>
+  </section>
+
+  <!-- STEP 1 — contact -->
+  <section class="pane" data-p="1" hidden>
+    <p class="eyebrow">Step two</p>
+    <h1 class="wtitle">How do we reach you?</h1>
+    <p class="wsub">So we know who's asking and where to call back.</p>
+
+    <div class="two">
+      <div class="field"><label for="tk-name">Your name</label><input id="tk-name" autocomplete="name"><span class="err">We need a name.</span></div>
+      <div class="field"><label for="tk-co">Company</label><input id="tk-co" autocomplete="organization" placeholder="Optional"></div>
+      <div class="field"><label for="tk-email">Email</label><input id="tk-email" type="email" autocomplete="email"><span class="err">That email doesn't look right.</span></div>
+      <div class="field"><label for="tk-phone">Phone</label><input id="tk-phone" type="tel" autocomplete="tel"><span class="err">We need a number to call you back on.</span></div>
+    </div>
+
+    <div class="btns">
+      <button class="btn ghost" data-back><svg><use href="#l-back"/></svg>Back</button>
+      <button class="btn" data-next="2">Continue</button>
+    </div>
+  </section>
+
+  <!-- STEP 2 — issue type -->
+  <section class="pane" data-p="2" hidden>
+    <p class="eyebrow">Step three</p>
+    <h1 class="wtitle">What's this about?</h1>
+    <p class="wsub">Pick the closest one. We'll sort out the rest when we read it.</p>
+
+    <div class="choices" id="tk-types">
+      <button class="choice" data-type="Something's broken" aria-pressed="false">
+        <svg><use href="#i-broken"/></svg><b>Something's broken</b>
+        <small>It worked yesterday and it doesn't today</small>
+      </button>
+      <button class="choice" data-type="Install software" aria-pressed="false">
+        <svg><use href="#i-install"/></svg><b>Install software</b>
+        <small>New app, licence, or a machine that needs setting up</small>
+      </button>
+      <button class="choice" data-type="Buy hardware" aria-pressed="false">
+        <svg><use href="#i-cart"/></svg><b>Buy hardware</b>
+        <small>Laptop, monitor, switch, or a whole new desk</small>
+      </button>
+    </div>
+
+    <div class="btns">
+      <button class="btn ghost" data-back><svg><use href="#l-back"/></svg>Back</button>
+      <button class="btn" data-next="3" id="tk-type-next" disabled>Continue</button>
+    </div>
+  </section>
+
+  <!-- STEP 3 — detail -->
+  <section class="pane" data-p="3" hidden>
+    <p class="eyebrow">Last step</p>
+    <h1 class="wtitle">Tell us what's going on</h1>
+    <p class="wsub">Short is fine. "Outlook won't open, started this morning" gets us moving faster than three paragraphs.</p>
+
+    <div class="field">
+      <label for="tk-sub">One-line summary</label>
+      <input id="tk-sub" placeholder="Outlook won't open on the front desk PC">
+      <span class="err">Give us a line to go on.</span>
+    </div>
+    <div class="field">
+      <label for="tk-body">Details</label>
+      <textarea id="tk-body" placeholder="When did it start? Anything change recently? Who else is affected?"></textarea>
+    </div>
+    <div class="field">
+      <label for="tk-urg">How urgent?</label>
+      <select id="tk-urg">
+        <option>Whenever you get to it</option>
+        <option selected>Today would be good</option>
+        <option>I can't work — this is stopping me</option>
+        <option>Everyone is down</option>
+      </select>
+    </div>
+
+    <div class="note warn">
+      <svg><use href="#l-warn"/></svg>
+      <span><b>Heads up — this desktop is a demo.</b> Submitting below doesn't send anything to us. For a real ticket, call <a href="tel:+18456041462">(845) 604-1462</a> or email <a href="mailto:support@linearit.co">support@linearit.co</a>.</span>
+    </div>
+
+    <div class="btns">
+      <button class="btn ghost" data-back><svg><use href="#l-back"/></svg>Back</button>
+      <button class="btn" id="tk-submit">Submit ticket</button>
+    </div>
+  </section>
+
+  <!-- STEP 4 — done -->
+  <section class="pane center" data-p="4" hidden>
+    <div class="done-mark"><svg><use href="#l-check"/></svg></div>
+    <h1 class="wtitle">Ticket submitted</h1>
+    <p class="wsub" id="tk-recap">A tech picks this up and calls you back. If it's stopping you working, call us rather than waiting.</p>
+    <p class="tno" id="tk-num">LIN-000000</p>
+
+    <div class="note warn" style="text-align:left">
+      <svg><use href="#l-warn"/></svg>
+      <span><b>Nothing was actually sent.</b> This desktop is a demo of what a linear support portal looks like — the ticket number above is made up. To reach us for real, call <a href="tel:+18456041462">(845) 604-1462</a> or email <a href="mailto:support@linearit.co">support@linearit.co</a>.</span>
+    </div>
+
+    <div class="btns">
+      <a class="btn" href="tel:+18456041462"><svg><use href="#l-phone"/></svg>Call us for real</a>
+      <button class="btn ghost" id="tk-again">Start over</button>
+    </div>
+  </section>
+</div>
+</template>
+
+
+<template id="t-remote">
+<div class="wpad">
+  <p class="eyebrow">Remote assist</p>
+  <h1 class="wtitle">Let us drive for a minute</h1>
+  <p class="wsub">A remote session puts a linear tech on your screen while you watch every click. You can end it at any time, and we can't get back in afterwards without you starting a new one.</p>
+
+  <div class="rows">
+    <div class="row"><svg class="ci"><use href="#i-remote"/></svg><span class="rt"><b>1 — Call us first</b><small>We'll give you a six-digit code over the phone.</small></span></div>
+    <div class="row"><svg class="ci"><use href="#i-install"/></svg><span class="rt"><b>2 — Run the helper</b><small>A small file downloads. It runs once and doesn't install.</small></span></div>
+    <div class="row"><svg class="ci"><use href="#i-shield"/></svg><span class="rt"><b>3 — Watch the whole thing</b><small>Your screen stays yours. Close the window to cut us off instantly.</small></span></div>
+  </div>
+
+  <div class="field" style="max-width:280px">
+    <label for="rm-code">Session code</label>
+    <input id="rm-code" placeholder="000000" maxlength="6" inputmode="numeric"
+           style="font-family:ui-monospace,Menlo,monospace;font-size:19px;letter-spacing:.3em;text-align:center">
+  </div>
+
+  <div class="btns">
+    <button class="btn" id="rm-join">Join session</button>
+    <a class="btn ghost" href="tel:+18456041462"><svg><use href="#l-phone"/></svg>Get a code</a>
+  </div>
+
+  <div class="note">
+    <svg><use href="#l-info"/></svg>
+    <span>Don't have a code? We never cold-call asking for remote access. If someone rings you claiming to be linear and you didn't call us first, hang up and ring <a href="tel:+18456041462">(845) 604-1462</a>.</span>
+  </div>
+</div>
+</template>
+
+
+<template id="t-billing">
+<div class="wpad">
+  <p class="eyebrow">Billing</p>
+  <h1 class="wtitle">Invoices &amp; agreements</h1>
+  <p class="wsub">Flat monthly for managed clients, hourly for everyone else, and no surprise line items either way. If an invoice looks wrong, say so — we'd rather fix it than argue about it.</p>
+
+  <dl class="kv">
+    <dt>Billing cycle</dt><dd>1st of the month</dd>
+    <dt>Terms</dt><dd>Net 15</dd>
+    <dt>Methods</dt><dd>ACH, check, card</dd>
+    <dt>Questions</dt><dd><a href="mailto:support@linearit.co" style="color:var(--peri-deep)">support@linearit.co</a></dd>
+  </dl>
+
+  <hr class="rule">
+
+  <div class="cards">
+    <a class="card" href="mailto:support@linearit.co?subject=Invoice%20question">
+      <svg class="ci"><use href="#i-billing"/></svg>
+      <span><b>Query an invoice</b><small>Send us the number and what looks off.</small></span>
+    </a>
+    <a class="card" href="tel:+18456041462">
+      <svg class="ci"><use href="#i-contact"/></svg>
+      <span><b>Change payment details</b><small>We'll take these over the phone, not email.</small></span>
+    </a>
+  </div>
+
+  <div class="note">
+    <svg><use href="#l-info"/></svg>
+    <span>This window is informational. Live invoice history isn't wired into this demo desktop.</span>
+  </div>
+</div>
+</template>
+
+
+<template id="t-tools">
+<div class="wpad">
+  <p class="eyebrow">linear toolbox</p>
+  <h1 class="wtitle">Free tools we built</h1>
+  <p class="wsub">All of these run entirely in your browser. No accounts, no uploads, nothing stored on a server. Use them whether or not you're a client.</p>
+
+  <div class="rows">
+    <a class="row" href="/speed/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-speed"/></svg><span class="rt"><b>Speed Test</b><small>Measure your actual throughput before you call the ISP.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+    <a class="row" href="/board/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-portal"/></svg><span class="rt"><b>Board</b><small>A whiteboard two people share with a link. Deletes itself after 24h.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+    <a class="row" href="/typing/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-install"/></svg><span class="rt"><b>Type</b><small>31 lessons and timed tests. Progress stays on your machine.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+    <a class="row" href="/noise/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-tools"/></svg><span class="rt"><b>Noise</b><small>Twelve sounds, synthesised live. Mixer and sleep timer included.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+    <a class="row" href="/drums/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-tools"/></svg><span class="rt"><b>Drums</b><small>A multi-touch kit for the iPad. Every sound made in the browser.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+    <a class="row" href="/race/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-speed"/></svg><span class="rt"><b>Race</b><small>Pylon air racing. Six aircraft, three courses, no engine behind it.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+    <a class="row" href="/password/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-shield"/></svg><span class="rt"><b>Password tools</b><small>Generate something better than the one you're using.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+    <a class="row" href="/projects/" target="_blank" rel="noopener"><svg class="ci"><use href="#i-tools"/></svg><span class="rt"><b>Everything else</b><small>The full list of things we've put on the internet.</small></span><svg class="chev"><use href="#l-ext"/></svg></a>
+  </div>
+</div>
+</template>
+
+
+<template id="t-contact">
+<div class="wpad">
+  <p class="eyebrow">Get in touch</p>
+  <h1 class="wtitle">Not on our watch.</h1>
+  <p class="wsub">Managed IT and cybersecurity for Orange County and the Hudson Valley. If something's broken, slow, or just bugging you — call. It's faster than any form.</p>
+
+  <div class="cards">
+    <a class="card" href="tel:+18456041462">
+      <svg class="ci"><use href="#i-contact"/></svg>
+      <span><b>(845) 604-1462</b><small>Mon–Fri, and after hours for managed clients.</small></span>
+    </a>
+    <a class="card" href="mailto:support@linearit.co">
+      <svg class="ci"><use href="#i-ticket"/></svg>
+      <span><b>support@linearit.co</b><small>Non-urgent things, and anything with a screenshot.</small></span>
+    </a>
+    <a class="card" href="https://www.google.com/maps/search/?api=1&query=Monroe+NY" target="_blank" rel="noopener">
+      <svg class="ci"><use href="#i-pc"/></svg>
+      <span><b>Monroe, NY</b><small>Orange County and the Hudson Valley.</small></span>
+    </a>
+    <a class="card" href="/contact" target="_blank" rel="noopener">
+      <svg class="ci"><use href="#i-portal"/></svg>
+      <span><b>Contact form</b><small>The real one, on the real site.</small></span>
+    </a>
+  </div>
+
+  <hr class="rule">
+
+  <div class="btns" style="margin-top:0">
+    <a class="btn" href="/" target="_blank" rel="noopener">linearit.co<svg><use href="#l-ext"/></svg></a>
+    <a class="btn ghost" href="/services" target="_blank" rel="noopener">Services<svg><use href="#l-ext"/></svg></a>
+    <a class="btn ghost" href="/about" target="_blank" rel="noopener">About<svg><use href="#l-ext"/></svg></a>
+  </div>
+</div>
+</template>
+
+
+<template id="t-settings">
+<div class="wpad">
+  <p class="eyebrow">Personalization &gt; Background</p>
+  <h1 class="wtitle">Make it yours</h1>
+  <p class="wsub">Pick a wallpaper. Your choice is remembered on this device only — nothing leaves your browser.</p>
+
+  <div class="walls" id="wall-picker">
+    <button class="wall" data-wall="linear"><span class="sw sw-linear"></span><span>linear</span></button>
+    <button class="wall" data-wall="aurora"><span class="sw sw-aurora"></span><span>Aurora</span></button>
+    <button class="wall" data-wall="peri"><span class="sw sw-peri"></span><span>Periwinkle</span></button>
+    <button class="wall" data-wall="ink"><span class="sw sw-ink"></span><span>Ink</span></button>
+    <button class="wall" data-wall="grid"><span class="sw sw-grid"></span><span>Grid</span></button>
+  </div>
+
+  <hr class="rule">
+
+  <p class="eyebrow">Activation</p>
+  <div class="rows">
+    <div class="row">
+      <svg class="ci"><use href="#i-shield"/></svg>
+      <span class="rt"><b>linear is not activated</b><small>Activation here means a managed agreement — monitoring, patching, backup, and a number that a person answers.</small></span>
+    </div>
+  </div>
+  <div class="btns">
+    <a class="btn" href="tel:+18456041462"><svg><use href="#l-phone"/></svg>Activate linear</a>
+    <button class="btn ghost" data-open="about">About this PC</button>
+  </div>
+</div>
+</template>
+
+
+<template id="t-about">
+<div class="wpad">
+  <div class="about-band">
+    <p class="eyebrow" style="color:#0d2338">linearOS</p>
+    <h1 class="wtitle">About this PC</h1>
+  </div>
+
+  <dl class="kv">
+    <dt>Edition</dt><dd>linearOS Support Desktop</dd>
+    <dt>Version</dt><dd>2.0 (Build 8456.0402)</dd>
+    <dt>Installed</dt><dd id="ab-date">—</dd>
+    <dt>Processor</dt><dd id="ab-cpu">—</dd>
+    <dt>Display</dt><dd id="ab-res">—</dd>
+    <dt>Browser</dt><dd id="ab-ua">—</dd>
+    <dt>Registered to</dt><dd>Guest</dd>
+    <dt>Support</dt><dd><a href="tel:+18456041462" style="color:var(--peri-deep)">(845) 604-1462</a></dd>
+  </dl>
+
+  <hr class="rule">
+
+  <p class="legal">
+    linear IT · Monroe, NY · Orange County &amp; the Hudson Valley.<br><br>
+    This desktop is a tribute, not a product. It is not affiliated with, endorsed by, or licensed from
+    Microsoft Corporation. Windows is a trademark of Microsoft Corporation. No operating system was
+    harmed, installed, or activated in the making of this page — it's HTML, CSS and a few hundred lines
+    of JavaScript pretending very hard.<br><br>
+    Evaluation copy expires never. Support plans, on the other hand, do renew.
+  </p>
+
+  <div class="btns">
+    <a class="btn ghost" href="/" target="_blank" rel="noopener">Back to the real site<svg><use href="#l-ext"/></svg></a>
+  </div>
+</div>
+</template>
+
+
+<script>
+"use strict";
+
+/* ═══════════════════════════════════════════════════════════════
+   APP REGISTRY — one place that defines every openable thing
+   ═══════════════════════════════════════════════════════════════ */
+const APPS = {
+  portal:   { title:"linear Support Portal", icon:"i-portal",   tpl:"t-portal",   w:760, h:640, desktop:1, pin:1 },
+  ticket:   { title:"New Support Ticket",    icon:"i-ticket",   tpl:"t-ticket",   w:660, h:620, desktop:1, pin:1 },
+  remote:   { title:"linear Remote Assist",  icon:"i-remote",   tpl:"t-remote",   w:620, h:600, desktop:1, pin:1, uac:1 },
+  tools:    { title:"linear Toolbox",        icon:"i-tools",    tpl:"t-tools",    w:660, h:600, desktop:1, pin:1 },
+  billing:  { title:"Billing",               icon:"i-billing",  tpl:"t-billing",  w:600, h:560, desktop:1, pin:1 },
+  contact:  { title:"Contact linear",        icon:"i-contact",  tpl:"t-contact",  w:640, h:580, desktop:1, pin:1 },
+  settings: { title:"Settings",              icon:"i-settings", tpl:"t-settings", w:660, h:600, pin:1 },
+  about:    { title:"About this PC",         icon:"i-pc",       tpl:"t-about",    w:580, h:600, desktop:1, pin:1, dtitle:"This PC" },
+  speed:    { title:"Speed Test",            icon:"i-speed",    href:"/speed/",   desktop:1, pin:1 },
+};
+
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const svg = (id, cls) => `<svg class="${cls || ""}" aria-hidden="true"><use href="#${id}"/></svg>`;
+const isTouch = matchMedia("(hover:none)").matches;
+const isSmall = () => matchMedia("(max-width:720px)").matches;
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP ICONS
+   ═══════════════════════════════════════════════════════════════ */
+const iconHost = $("#icons");
+
+Object.entries(APPS).filter(([, a]) => a.desktop).forEach(([id, a]) => {
+  const el = document.createElement("button");
+  el.className = "dicon";
+  el.dataset.app = id;
+  el.setAttribute("role", "option");
+  el.setAttribute("aria-selected", "false");
+  el.innerHTML =
+    `<svg class="glyph" aria-hidden="true"><use href="#${a.icon}"/></svg>` +
+    `<span class="label">${a.dtitle || a.title.replace(/^linear /, "")}` +
+    (a.href ? `<svg class="ext" aria-hidden="true"><use href="#l-ext"/></svg>` : ``) +
+    `</span>`;
+  iconHost.appendChild(el);
+});
+
+let selected = null;
+const selectIcon = el => {
+  if (selected) selected.setAttribute("aria-selected", "false");
+  selected = el;
+  if (el) el.setAttribute("aria-selected", "true");
+};
+
+iconHost.addEventListener("click", e => {
+  const el = e.target.closest(".dicon");
+  if (!el) return;
+  selectIcon(el);
+  if (isTouch) launch(el.dataset.app);   // one tap on touch
+});
+iconHost.addEventListener("dblclick", e => {
+  const el = e.target.closest(".dicon");
+  if (el) launch(el.dataset.app);
+});
+iconHost.addEventListener("keydown", e => {
+  const el = e.target.closest(".dicon");
+  if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); launch(el.dataset.app); }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   WINDOW MANAGER
+   ═══════════════════════════════════════════════════════════════ */
+const layer   = $("#winlayer");
+const tbApps  = $("#tb-apps");
+const wins    = new Map();          // id -> { win, btn, app }
+let   zTop    = 10;
+let   cascade = 0;
+
+function launch(id) {
+  const app = APPS[id];
+  if (!app) return;
+  closeStart(); closeCtx();
+
+  if (app.href) { window.open(app.href, "_blank", "noopener"); return; }
+  if (app.uac && !wins.has(id)) { askUAC(app, () => spawn(id)); return; }
+
+  spawn(id);
+}
+
+function spawn(id) {
+  const app = APPS[id];
+
+  if (wins.has(id)) {                       // already running → focus / restore
+    const w = wins.get(id).win;
+    w.classList.remove("min");
+    focusWin(id);
+    return;
+  }
+
+  const win = document.createElement("section");
+  win.className = "win";
+  win.dataset.app = id;
+  win.setAttribute("role", "dialog");
+  win.setAttribute("aria-label", app.title);
+
+  // Position: cascade from a sensible origin, clamped to the desk
+  const deskW = layer.clientWidth, deskH = layer.clientHeight;
+  const w = Math.min(app.w, deskW - 24);
+  const h = Math.min(app.h, deskH - 24);
+  const off = (cascade++ % 6) * 28;
+  const left = Math.max(12, Math.min(deskW - w - 12, Math.round(deskW * .5 - w * .5) + off - 70));
+  const top  = Math.max(12, Math.min(deskH - h - 12, Math.round(deskH * .5 - h * .5) + off - 60));
+
+  Object.assign(win.style, { left: left + "px", top: top + "px", width: w + "px", height: h + "px" });
+
+  win.innerHTML =
+    `<header class="titlebar">
+       ${svg(app.icon, "tico")}
+       <span class="ttl">${app.title}</span>
+       <div class="wbtns">
+         <button class="wbtn" data-act="min" aria-label="Minimize">${svg("l-min")}</button>
+         <button class="wbtn" data-act="max" aria-label="Maximize">${svg("l-max")}</button>
+         <button class="wbtn x" data-act="close" aria-label="Close">${svg("l-x")}</button>
+       </div>
+     </header>
+     <div class="wbody"></div>
+     <div class="grip" aria-hidden="true"></div>`;
+
+  win.querySelector(".wbody").appendChild($("#" + app.tpl).content.cloneNode(true));
+  layer.appendChild(win);
+
+  // taskbar button
+  const btn = document.createElement("button");
+  btn.className = "tb-btn";
+  btn.dataset.win = id;
+  btn.title = app.title;
+  btn.setAttribute("aria-label", app.title);
+  btn.innerHTML = svg(app.icon);
+  tbApps.appendChild(btn);
+
+  wins.set(id, { win, btn, app });
+
+  wireWindow(win, id);
+  if (INIT[id]) INIT[id](win);
+  focusWin(id);
+}
+
+function focusWin(id) {
+  wins.forEach((rec, key) => {
+    const on = key === id;
+    rec.win.classList.toggle("focus", on);
+    if (on) rec.win.style.zIndex = ++zTop;
+    rec.btn.dataset.run = rec.win.classList.contains("min") ? "min" : (on ? "focus" : "open");
+  });
+}
+
+function closeWin(id) {
+  const rec = wins.get(id);
+  if (!rec) return;
+  rec.win.remove();
+  rec.btn.remove();
+  wins.delete(id);
+  const last = [...wins.keys()].pop();
+  if (last) focusWin(last);
+}
+
+function wireWindow(win, id) {
+  const bar = win.querySelector(".titlebar");
+
+  win.addEventListener("pointerdown", () => focusWin(id), true);
+
+  win.querySelector(".wbtns").addEventListener("click", e => {
+    const act = e.target.closest("[data-act]")?.dataset.act;
+    if (act === "close") closeWin(id);
+    else if (act === "min") { win.classList.add("min"); wins.get(id).btn.dataset.run = "min"; }
+    else if (act === "max") toggleMax(win);
+  });
+
+  bar.addEventListener("dblclick", e => {
+    if (!e.target.closest(".wbtns")) toggleMax(win);
+  });
+
+  drag(bar, win, "move");
+  drag(win.querySelector(".grip"), win, "size");
+
+  // Buttons inside content that open other windows
+  win.addEventListener("click", e => {
+    const t = e.target.closest("[data-open]");
+    if (t) launch(t.dataset.open);
+  });
+}
+
+function toggleMax(win) {
+  if (isSmall()) return;
+  if (win.classList.contains("max")) {
+    win.classList.remove("max");
+    Object.assign(win.style, win._pre);
+    win.querySelector('[data-act="max"]').innerHTML = svg("l-max");
+  } else {
+    win._pre = { left: win.style.left, top: win.style.top, width: win.style.width, height: win.style.height };
+    win.classList.add("max");
+    Object.assign(win.style, { left: "0px", top: "0px", width: "100%", height: "100%" });
+    win.querySelector('[data-act="max"]').innerHTML = svg("l-restore");
+  }
+}
+
+/* Pointer-based drag & resize — one handler for both */
+function drag(handle, win, mode) {
+  if (!handle) return;
+  handle.addEventListener("pointerdown", e => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
+    if (e.target.closest(".wbtns")) return;
+    if (isSmall() || win.classList.contains("max")) return;
+
+    const sx = e.clientX, sy = e.clientY;
+    const r  = win.getBoundingClientRect();
+    const maxW = layer.clientWidth, maxH = layer.clientHeight;
+    handle.setPointerCapture(e.pointerId);
+
+    const move = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (mode === "move") {
+        win.style.left = Math.max(-r.width + 90, Math.min(maxW - 90, r.left + dx)) + "px";
+        win.style.top  = Math.max(0,             Math.min(maxH - 40, r.top  + dy)) + "px";
+      } else {
+        win.style.width  = Math.max(300, Math.min(maxW - r.left - 4, r.width  + dx)) + "px";
+        win.style.height = Math.max(200, Math.min(maxH - r.top  - 4, r.height + dy)) + "px";
+      }
+    };
+    const up = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", up);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  });
+}
+
+tbApps.addEventListener("click", e => {
+  const id = e.target.closest("[data-win]")?.dataset.win;
+  if (!id) return;
+  const rec = wins.get(id);
+  if (rec.win.classList.contains("min")) { rec.win.classList.remove("min"); focusWin(id); }
+  else if (rec.win.classList.contains("focus")) { rec.win.classList.add("min"); rec.btn.dataset.run = "min"; }
+  else focusWin(id);
+});
+
+$("#showdesk").addEventListener("click", () => {
+  const anyOpen = [...wins.values()].some(r => !r.win.classList.contains("min"));
+  wins.forEach((rec, id) => {
+    rec.win.classList.toggle("min", anyOpen);
+    rec.btn.dataset.run = anyOpen ? "min" : "open";
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   START MENU
+   ═══════════════════════════════════════════════════════════════ */
+const startEl = $("#start"), startBtn = $("#tb-start"), grid = $("#start-grid");
+
+Object.entries(APPS).filter(([, a]) => a.pin).forEach(([id, a]) => {
+  const b = document.createElement("button");
+  b.className = "sapp";
+  b.dataset.app = id;
+  b.dataset.name = a.title.toLowerCase();
+  b.innerHTML = svg(a.icon) + `<span>${a.dtitle || a.title.replace(/^linear /, "")}</span>`;
+  grid.appendChild(b);
+});
+
+const openStart = () => {
+  startEl.classList.add("open");
+  startBtn.classList.add("on");
+  startBtn.setAttribute("aria-expanded", "true");
+  if (!isTouch) setTimeout(() => $("#start-search").focus(), 60);
+};
+const closeStart = () => {
+  startEl.classList.remove("open");
+  startBtn.classList.remove("on");
+  startBtn.setAttribute("aria-expanded", "false");
+};
+
+startBtn.addEventListener("click", e => {
+  e.stopPropagation();
+  startEl.classList.contains("open") ? closeStart() : openStart();
+});
+$("#tb-search").addEventListener("click", e => { e.stopPropagation(); openStart(); });
+grid.addEventListener("click", e => {
+  const id = e.target.closest("[data-app]")?.dataset.app;
+  if (id) launch(id);
+});
+$("#start-user").addEventListener("click", () => {
+  toast("i-contact", "Signed in as Guest", "Client portal sign-in lives on the real site — this desktop is a demo.");
+});
+$("#start-power").addEventListener("click", () => {
+  closeStart();
+  toast("l-power", "Nice try", "You can't shut down a website. Closing the tab works though.");
+});
+
+$("#start-search").addEventListener("input", e => {
+  const q = e.target.value.trim().toLowerCase();
+  let hits = 0;
+  $$(".sapp", grid).forEach(b => {
+    const on = !q || b.dataset.name.includes(q);
+    b.hidden = !on;
+    if (on) hits++;
+  });
+  $("#start-empty").hidden = hits > 0;
+});
+$("#start-search").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const first = $$(".sapp", grid).find(b => !b.hidden);
+  if (first) launch(first.dataset.app);
+});
+
+startEl.addEventListener("click", e => e.stopPropagation());
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTEXT MENU
+   ═══════════════════════════════════════════════════════════════ */
+const ctx = $("#ctx");
+const closeCtx = () => ctx.classList.remove("open");
+
+$("#desk").addEventListener("contextmenu", e => {
+  if (e.target.closest(".win")) return;          // let windows keep the native menu
+  e.preventDefault();
+  closeStart();
+  ctx.classList.add("open");
+  const r = ctx.getBoundingClientRect();
+  ctx.style.left = Math.min(e.clientX, innerWidth  - r.width  - 8) + "px";
+  ctx.style.top  = Math.min(e.clientY, innerHeight - r.height - 8) + "px";
+});
+
+ctx.addEventListener("click", e => {
+  const act = e.target.closest("[data-ctx]")?.dataset.ctx;
+  closeCtx();
+  if (act === "refresh")     { flash(); toast("l-refresh", "Refreshed", "Felt good, didn't it."); }
+  if (act === "ticket")      launch("ticket");
+  if (act === "call")        location.href = "tel:+18456041462";
+  if (act === "personalize") launch("settings");
+  if (act === "about")       launch("about");
+});
+
+function flash() {
+  const wp = $("#wallpaper");
+  wp.style.opacity = ".55";
+  setTimeout(() => wp.style.opacity = "", 130);
+}
+
+/* Global dismissal + keyboard */
+document.addEventListener("click", e => {
+  if (!e.target.closest("#start") && !e.target.closest("#tb-start") && !e.target.closest("#tb-search")) closeStart();
+  if (!e.target.closest("#ctx")) closeCtx();
+  if (!e.target.closest(".dicon")) selectIcon(null);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeStart(); closeCtx(); closeUAC(); }
+  if (e.key === "F5")     { e.preventDefault(); flash(); }
+  if (e.key === "Meta" && !e.repeat && !e.ctrlKey && !e.altKey) {
+    e.preventDefault();
+    startEl.classList.contains("open") ? closeStart() : openStart();
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   UAC
+   ═══════════════════════════════════════════════════════════════ */
+const modal = $("#modal");
+let uacOK = null;
+
+function askUAC(app, onYes) {
+  uacOK = onYes;
+  $("#uac-app").textContent = app.title;
+  $("#uac-detail").classList.remove("open");
+  $("#uac-toggle").textContent = "Show more details";
+  modal.classList.add("open");
+  $("#wallpaper").classList.add("dim");
+  setTimeout(() => $("#uac-yes").focus(), 80);
+}
+function closeUAC() {
+  modal.classList.remove("open");
+  $("#wallpaper").classList.remove("dim");
+  uacOK = null;
+}
+$("#uac-yes").addEventListener("click", () => { const fn = uacOK; closeUAC(); fn && fn(); });
+$("#uac-no").addEventListener("click", () => {
+  closeUAC();
+  toast("l-warn", "Access denied", "Nothing happened — which, to be fair, is the correct instinct.");
+});
+$("#uac-toggle").addEventListener("click", () => {
+  const d = $("#uac-detail");
+  d.classList.toggle("open");
+  $("#uac-toggle").textContent = d.classList.contains("open") ? "Hide details" : "Show more details";
+});
+modal.addEventListener("click", e => { if (e.target === modal) closeUAC(); });
+
+/* ═══════════════════════════════════════════════════════════════
+   TOASTS
+   ═══════════════════════════════════════════════════════════════ */
+function toast(icon, title, body) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.innerHTML = `${svg(icon)}<div><b>${title}</b><small>${body}</small></div>`;
+  $("#toasts").appendChild(t);
+  setTimeout(() => {
+    t.classList.add("out");
+    t.addEventListener("animationend", () => t.remove());
+  }, 4600);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WALLPAPER
+   ═══════════════════════════════════════════════════════════════ */
+const WALLS = ["linear", "aurora", "peri", "ink", "grid"];
+const setWall = name => {
+  if (!WALLS.includes(name)) name = "linear";
+  document.body.dataset.wall = name;
+  try { localStorage.setItem("linearos.wall", name); } catch {}
+  $$('#wall-picker .wall').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.wall === name)));
+};
+try {
+  const saved = localStorage.getItem("linearos.wall");
+  if (saved) document.body.dataset.wall = WALLS.includes(saved) ? saved : "linear";
+} catch {}
+
+$("#wm-link").addEventListener("click", () => launch("settings"));
+
+/* ═══════════════════════════════════════════════════════════════
+   CLOCK
+   ═══════════════════════════════════════════════════════════════ */
+(function clock() {
+  const t = $("#clock-t"), d = $("#clock-d");
+  const tick = () => {
+    const n = new Date();
+    t.textContent = n.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    d.textContent = n.toLocaleDateString([], { month: "numeric", day: "numeric", year: "numeric" });
+    setTimeout(tick, 60000 - (n.getSeconds() * 1000 + n.getMilliseconds()));
+  };
+  tick();
+})();
+
+$("#tray").addEventListener("click", () => {
+  toast("l-wifi", "You're connected", "If it doesn't feel like it, run the Speed Test and send us the number.");
+});
+$("#clock").addEventListener("click", () => {
+  const n = new Date();
+  toast("l-info", n.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }),
+        "Still a good day to sort out that backup you've been meaning to check.");
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   PER-WINDOW INITIALISERS
+   ═══════════════════════════════════════════════════════════════ */
+const INIT = {
+
+  /* ── Settings: wallpaper picker ─────────────────────────── */
+  settings(win) {
+    const picker = win.querySelector("#wall-picker");
+    $$(".wall", picker).forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.wall === document.body.dataset.wall)));
+    picker.addEventListener("click", e => {
+      const b = e.target.closest(".wall");
+      if (b) setWall(b.dataset.wall);
+    });
+  },
+
+  /* ── About: real numbers where the browser will give them ── */
+  about(win) {
+    const set = (sel, v) => win.querySelector(sel).textContent = v;
+    set("#ab-date", new Date().toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" }));
+    set("#ab-cpu",  (navigator.hardwareConcurrency || "—") + " logical cores");
+    set("#ab-res",  `${screen.width} × ${screen.height} @ ${window.devicePixelRatio || 1}×`);
+    const ua = navigator.userAgent;
+    const m = ua.match(/(Firefox|Edg|OPR|Chrome|Safari)\/([\d.]+)/);
+    set("#ab-ua", m ? `${({ Edg: "Edge", OPR: "Opera" })[m[1]] || m[1]} ${m[2].split(".")[0]}` : "Unknown");
+  },
+
+  /* ── Remote: session code ───────────────────────────────── */
+  remote(win) {
+    const code = win.querySelector("#rm-code");
+    code.addEventListener("input", () => code.value = code.value.replace(/\D/g, "").slice(0, 6));
+    win.querySelector("#rm-join").addEventListener("click", () => {
+      if (code.value.length !== 6) {
+        toast("l-warn", "That code isn't valid", "Session codes are six digits. Call us and we'll read you one.");
+        return;
+      }
+      toast("l-info", "No session found", "This desktop is a demo — remote sessions start with a phone call to (845) 604-1462.");
+    });
+  },
+
+  /* ── Ticket wizard ──────────────────────────────────────── */
+  ticket(win) {
+    const panes = $$(".pane", win);
+    const steps = $$(".step", win);
+    let step = 0;
+    let type = null;
+
+    const show = n => {
+      step = n;
+      panes.forEach(p => p.hidden = +p.dataset.p !== n);
+      steps.forEach(s => {
+        const i = +s.dataset.s;
+        s.classList.toggle("on", i === n);
+        s.classList.toggle("done", i < n);
+      });
+      win.querySelector(".wbody").scrollTop = 0;
+    };
+
+    /* Step 0 — support ID. Anything matching LIN-#### (or 4+ chars) passes;
+       this is a demo, so we validate shape, not existence. */
+    const idIn  = win.querySelector("#tk-id");
+    const idErr = win.querySelector("#tk-id-err");
+
+    idIn.addEventListener("input", () => {
+      idIn.value = idIn.value.toUpperCase().replace(/[^A-Z0-9-]/g, "");
+      idErr.style.display = "none";
+    });
+    idIn.addEventListener("keydown", e => { if (e.key === "Enter") win.querySelector("#tk-go").click(); });
+
+    win.querySelector("#tk-go").addEventListener("click", () => {
+      const v = idIn.value.trim();
+      if (!/^[A-Z]{2,4}-?\d{3,6}$/.test(v)) { idErr.style.display = "block"; idIn.focus(); return; }
+      idErr.style.display = "none";
+      toast("l-check", "Device recognised", `Support ID ${v} — demo lookup only, no device database behind it.`);
+      show(1);
+    });
+    win.querySelector("#tk-noid").addEventListener("click", () => show(1));
+
+    /* Step 2 — issue type */
+    win.querySelector("#tk-types").addEventListener("click", e => {
+      const b = e.target.closest(".choice");
+      if (!b) return;
+      $$(".choice", win).forEach(c => c.setAttribute("aria-pressed", String(c === b)));
+      type = b.dataset.type;
+      win.querySelector("#tk-type-next").disabled = false;
+    });
+
+    /* Validation per step */
+    const bad = (sel, cond) => {
+      const f = win.querySelector(sel).closest(".field");
+      f.classList.toggle("bad", cond);
+      return cond;
+    };
+    const valid = n => {
+      if (n === 1) {
+        const e = win.querySelector("#tk-email").value.trim();
+        let f = false;
+        f = bad("#tk-name",  !win.querySelector("#tk-name").value.trim())  || f;
+        f = bad("#tk-email", !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e))      || f;
+        f = bad("#tk-phone", win.querySelector("#tk-phone").value.replace(/\D/g, "").length < 7) || f;
+        return !f;
+      }
+      if (n === 3) return !bad("#tk-sub", !win.querySelector("#tk-sub").value.trim());
+      return true;
+    };
+
+    win.addEventListener("click", e => {
+      if (e.target.closest("[data-back]")) { show(Math.max(0, step - 1)); return; }
+      const nx = e.target.closest("[data-next]");
+      if (nx && valid(step)) show(+nx.dataset.next);
+    });
+
+    /* Submit — front-end only, and the UI says so plainly */
+    win.querySelector("#tk-submit").addEventListener("click", () => {
+      if (!valid(3)) return;
+      const n = String(Math.floor(100000 + Math.random() * 900000));
+      win.querySelector("#tk-num").textContent = "LIN-" + n;
+      win.querySelector("#tk-recap").textContent =
+        `${type || "Your request"} — logged for ${win.querySelector("#tk-name").value.trim() || "you"}. ` +
+        `A tech picks this up and calls you back.`;
+      show(4);
+      steps.forEach(s => s.classList.add("done"));
+      toast("l-check", "Demo ticket created", `LIN-${n} — nothing was sent. Call (845) 604-1462 for a real one.`);
+    });
+
+    win.querySelector("#tk-again").addEventListener("click", () => {
+      $$("input, textarea", win).forEach(i => i.value = "");
+      $$(".choice", win).forEach(c => c.setAttribute("aria-pressed", "false"));
+      $$(".field", win).forEach(f => f.classList.remove("bad"));
+      win.querySelector("#tk-type-next").disabled = true;
+      type = null;
+      show(0);
+    });
+
+    show(0);
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   FIRST RUN
+   ═══════════════════════════════════════════════════════════════ */
+addEventListener("resize", () => {
+  if (isSmall()) return;
+  const maxW = layer.clientWidth, maxH = layer.clientHeight;
+  wins.forEach(({ win }) => {
+    if (win.classList.contains("max")) return;
+    win.style.left = Math.min(parseFloat(win.style.left), maxW - 90) + "px";
+    win.style.top  = Math.min(parseFloat(win.style.top),  maxH - 40) + "px";
+  });
+});
+
+/* On a desktop we open the portal so the page isn't just wallpaper.
+   On a phone a window fills the screen, so let the desktop speak first. */
+if (!isSmall()) launch("portal");
+
+setTimeout(() => toast("i-linear", "Welcome to linearOS", isSmall()
+  ? "Tap an icon to open it. The linear mark at the bottom is Start."
+  : "Double-click an icon, right-click the desktop, or hit the linear mark for Start."), 1200);
+</script>
+</body>
+</html>

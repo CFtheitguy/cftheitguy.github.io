@@ -1,6 +1,7 @@
 # cftheitguy.github.io
 
 - `docs/ivr-script.md` — Friendly, professional phone IVR greeting and after-hours script.
+- `desktop/` — **linearOS**, the support desktop (linearit.co/desktop). A Windows-11-style desktop that runs in the browser: draggable windows, taskbar, start menu, right-click menu, a UAC-style prompt and five switchable wallpapers. Doubles as a support portal — ticket wizard, remote-assist instructions, billing, toolbox and contact. One self-contained HTML file, no backend; the ticket wizard is a front-end demo and says so on screen.
 - `drums/` — **Linear Drums**, a multi-touch drum kit for the iPad (linearit.co/drums). Every sound is synthesised in the browser, so there are no samples to download; includes a metronome, seven grooves and a two-bar loop recorder.
 - `noise/` — **Linear Noise**, a browser noise machine (linearit.co/noise). Twelve sounds — white/pink/brown noise, rain, thunder, wind, ocean, stream, campfire, crickets, fan and a drone — all synthesised live with the Web Audio API, so there are no audio files in the repo. Mixer, presets, sleep timer with fade-out, mixes saved to `localStorage` and shareable via URL hash. No backend.
 - `race/` — **Linear Race**, a pylon air racing game (linearit.co/race). Six aircraft classes and three courses; round every pylon on the outside or take a two second penalty, win races to climb the ranks and unlock faster aircraft. Canvas and Web Audio only — no engine, no assets, no backend, and progress is kept in `localStorage`.
