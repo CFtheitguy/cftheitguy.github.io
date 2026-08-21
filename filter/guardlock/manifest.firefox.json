@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "GuardLock — PIN-locked content filter",
   "short_name": "GuardLock",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Blocks adult and other unwanted sites in every window, including Private Browsing. Settings are sealed behind a numeric PIN.",
   "browser_specific_settings": {
     "gecko": {

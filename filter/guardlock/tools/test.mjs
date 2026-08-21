@@ -10,10 +10,11 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { runInThisContext } from 'node:vm';
+import { webcrypto } from 'node:crypto';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-let pass = 0, fail = 0, mode = 'callback';
+let pass = 0, fail = 0, mode = 'callback', managedConfig = null;
 function check(name, cond, extra) {
   if (cond) { pass++; console.log('  ok   ' + name); }
   else { fail++; console.log('  FAIL ' + name + (extra ? '  → ' + JSON.stringify(extra) : '')); }
@@ -70,7 +71,21 @@ globalThis.chrome = {
     openOptionsPage: () => {},
     lastError: null
   },
-  storage: { local: store(local), session: store(session) },
+  storage: {
+    local: store(local),
+    session: store(session),
+    // Chromium resolves to {} with no policy; Firefox rejects. Both are covered.
+    managed: {
+      get: shape(() => {
+        if (managedConfig === null) {
+          if (mode === 'promise') throw new Error('Managed storage manifest not found');
+          return {};
+        }
+        return structuredClone(managedConfig);
+      }, 1)
+    },
+    onChanged: { addListener: () => {} }
+  },
   webNavigation: {
     onBeforeNavigate: { addListener: (fn) => listeners.nav.push(fn) },
     onCommitted: { addListener: () => {} },
@@ -116,9 +131,11 @@ globalThis.fetch = async (url) => {
   return { ok: true, json: async () => JSON.parse(text), text: async () => text };
 };
 
-async function runSuite(which) {
+/** Wipes all state and loads the extension exactly as a browser would load a
+ *  classic script, so each run starts from a fresh profile. */
+function loadExtension(which, policy) {
   mode = which;
-  // fresh storage, listeners and rules for each run
+  managedConfig = policy === undefined ? null : policy;
   for (const k of Object.keys(local)) delete local[k];
   for (const k of Object.keys(session)) delete session[k];
   dnrRules = [];
@@ -127,20 +144,23 @@ async function runSuite(which) {
   listeners.alarm.length = 0;
   calls.tabUpdates.length = 0;
   calls.badges.length = 0;
+  calls.created.length = 0;
   delete globalThis.GL;
   buildApi();
-
-/* Load the extension exactly as a browser would load a classic script. */
-for (const f of ['src/common.js', 'src/background.js']) {
-  runInThisContext(readFileSync(join(ROOT, f), 'utf8'), { filename: f });
+  for (const f of ['src/common.js', 'src/background.js']) {
+    runInThisContext(readFileSync(join(ROOT, f), 'utf8'), { filename: f });
+  }
 }
 
+/* These read listeners[...] at call time, so they follow each fresh load. */
 const send = (msg, sender = {}) =>
   new Promise((resolve) => listeners.msg[0](msg, sender, resolve));
 const navigate = (url, tabId = 7) =>
   listeners.nav[0]({ frameId: 0, tabId, url });
-
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function runSuite(which) {
+  loadExtension(which);
 
 /* -------------------------------------------------------------------- tests */
 
@@ -387,10 +407,112 @@ check('rules come back when filtering is on', dnrRules.length > 0, dnrRules.leng
 
 }
 
+
+/* ------------------------------------------------------ provisioned by policy */
+
+async function runManaged(which) {
+  console.log(`\n===== provisioned by policy (${which} APIs) =====`);
+
+  // Exactly what tools/provision.mjs emits.
+  const PIN = '7391';
+  const saltHex = 'a1b2c3d4e5f60718293a4b5c6d7e8f90';
+  const salt = Uint8Array.from(saltHex.match(/../g).map((h) => parseInt(h, 16)));
+  const key = await webcrypto.subtle.importKey(
+    'raw', new TextEncoder().encode(PIN), 'PBKDF2', false, ['deriveBits']);
+  const bits = await webcrypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 210000, hash: 'SHA-256' }, key, 256);
+  const hashHex = [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+  const policy = {
+    lockSalt: saltHex,
+    lockHash: hashHex,
+    lockIterations: 210000,
+    enabled: true,
+    safeSearch: true,
+    guardSettingsPage: true,
+    categories: { adult: true, gambling: true, social: true, video: false, games: false },
+    allowlist: ['wikipedia.org'],
+    blocklist: ['timewaster.example'],
+    remoteLists: ['https://lists.example/porn.txt']
+  };
+
+  loadExtension(which, policy);
+  await sleep(150);
+
+  let st = await send({ type: 'getState' });
+  check('a provisioned profile is locked on first run', st.hasPin === true && st.unlocked === false, st);
+  check('no setup tab is opened on a provisioned machine', calls.created.length === 0, calls.created);
+  check('policy is reported to the UI', st.managed && st.managed.active === true, st.managed);
+  check('policy categories are applied',
+    st.settings.categories.social === true && st.settings.categories.games === false,
+    st.settings.categories);
+  check('policy allowlist is applied', st.settings.allowlist.includes('wikipedia.org'), st.settings.allowlist);
+  check('policy blocklist is applied', st.settings.blocklist.includes('timewaster.example'), st.settings.blocklist);
+  check('policy subscription is applied',
+    (st.settings.remoteLists || []).some((l) => l.url === 'https://lists.example/porn.txt'),
+    st.settings.remoteLists);
+
+  // The filter is live before anyone touches the browser.
+  calls.tabUpdates.length = 0;
+  await navigate('https://www.pornhub.com/');
+  await sleep(20);
+  check('filtering is already live before any human interaction', calls.tabUpdates.length === 1, calls.tabUpdates);
+
+  calls.tabUpdates.length = 0;
+  await navigate('https://timewaster.example/');
+  await sleep(20);
+  check('a policy blocklist entry blocks', calls.tabUpdates.length === 1, calls.tabUpdates);
+
+  calls.tabUpdates.length = 0;
+  await navigate('https://en.wikipedia.org/wiki/Cat');
+  await sleep(20);
+  check('a policy allowlist entry passes', calls.tabUpdates.length === 0, calls.tabUpdates);
+
+  // The provisioned PIN is the one that works.
+  let r = await send({ type: 'unlock', pin: '0000' });
+  check('a wrong PIN is refused on a provisioned machine', r.ok === false, r);
+  r = await send({ type: 'unlock', pin: PIN });
+  check('the provisioned PIN unlocks', r.ok === true, r);
+
+  // Policy-pinned settings stay pinned even for someone holding the PIN.
+  r = await send({ type: 'setSettings', patch: { enabled: false } });
+  check('policy-pinned settings refuse changes even when unlocked', r.ok === false, r);
+  check('…and the refusal names the setting', /enabled/.test(r.error || ''), r.error);
+  r = await send({ type: 'setSettings', patch: { categories: { social: false } } });
+  check('policy-pinned categories cannot be switched off', r.ok === false, r);
+
+  r = await send({ type: 'removeAllow', domain: 'wikipedia.org' });
+  check('policy allowlist entries cannot be removed', r.ok === false, r);
+  r = await send({ type: 'removeBlock', domain: 'timewaster.example' });
+  check('policy blocklist entries cannot be removed', r.ok === false, r);
+  r = await send({ type: 'removeRemoteList', url: 'https://lists.example/porn.txt' });
+  check('policy subscriptions cannot be removed', r.ok === false, r);
+
+  // Anything policy does not pin is still the owner's to change.
+  r = await send({ type: 'addAllow', domain: 'example.org' });
+  check('the owner can still add their own allow entries', r.ok === true, r);
+  check('…alongside the policy ones', r.settings.allowlist.includes('wikipedia.org'), r.settings.allowlist);
+  r = await send({ type: 'setSettings', patch: { keywordThreshold: 20 } });
+  check('unpinned settings remain editable', r.ok === true, r);
+
+  // A machine that already has its own PIN must not have it overwritten.
+  loadExtension(which);
+  await sleep(120);
+  await send({ type: 'setPin', newPin: '1234' });
+  await send({ type: 'lock' });
+  managedConfig = policy;
+  await send({ type: 'getState' });
+  const owner = await send({ type: 'unlock', pin: '1234' });
+  check('a PIN set by the owner survives a later policy', owner.ok === true, owner);
+}
+
 for (const which of ['callback', 'promise']) {
   console.log(`\n===== ${which === 'callback' ? 'Chromium-style callback' : 'Firefox-style promise'} APIs =====`);
   await runSuite(which);
 }
+
+await runManaged('callback');
+await runManaged('promise');
 
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

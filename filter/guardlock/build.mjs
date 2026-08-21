@@ -42,10 +42,16 @@ for (const t of TARGETS) {
 
   if (!noZip) {
     const zipPath = join(DIST, `guardlock-${t.name}-${version}.zip`);
+    // A stable, unversioned copy as well: installers fetch this one, so a
+    // release never breaks the published one-liner.
+    const latestPath = join(DIST, `guardlock-${t.name}.zip`);
     rmSync(zipPath, { force: true });
+    rmSync(latestPath, { force: true });
     try {
       execFileSync('zip', ['-qr9', zipPath, '.'], { cwd: out });
+      copyFileSync(zipPath, latestPath);
       console.log('built', zipPath);
+      console.log('built', latestPath);
     } catch (e) {
       console.warn(`zip unavailable — the unpacked folder at dist/${t.name} still works.`);
     }

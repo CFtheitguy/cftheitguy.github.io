@@ -1,1 +1,5 @@
 node_modules/
+.crx-key.pem
+dist/provision/
+dist/guardlock.crx
+dist/update.xml

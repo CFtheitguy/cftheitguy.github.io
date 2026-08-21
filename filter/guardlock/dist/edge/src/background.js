@@ -3,7 +3,7 @@
   'use strict';
 
   const {
-    api, CATEGORIES, callApi, getLocal, setLocal, getSettings, saveSettings,
+    api, CATEGORIES, callApi, getManaged, getLocal, setLocal, getSettings, saveSettings,
     randomHex, hashSecret, safeEqual, hostOf, setMatchesHost, normalizeDomain, isDnrDomain,
     isFilterableUrl, scoreText, safeSearchUrl
   } = globalThis.GL;
@@ -28,6 +28,7 @@
   /* ------------------------------------------------------- in-memory state */
 
   let matcher = { block: new Set(), allow: new Set(), byDomain: new Map(), keywords: [] };
+  let managed = { active: false, keys: [], allowlist: [], blocklist: [], remoteLists: [] };
   let ready = null;
   const lastAttempt = new Map();   // tabId -> {url, reason, category, at}
 
@@ -185,6 +186,80 @@
       console.warn('GuardLock: could not load', file, e);
       return { domains: [], terms: [] };
     }
+  }
+
+  /* Settings a policy may pin. Anything not listed here stays under PIN control. */
+  const MANAGED_SCALARS = [
+    'enabled', 'safeSearch', 'keywordsEnabled', 'urlKeywordsEnabled',
+    'guardSettingsPage', 'keywordThreshold', 'unlockMinutes'
+  ];
+
+  /**
+   * Folds browser-policy configuration into the stored settings. Policy wins on
+   * every startup, so a re-imaged VM cannot drift; list entries are merged
+   * rather than replaced, so a policy floor can be topped up locally.
+   */
+  async function applyManaged() {
+    const m = await getManaged();
+    const keys = [];
+
+    if (!m || Object.keys(m).length === 0) {
+      managed = { active: false, keys: [], allowlist: [], blocklist: [], remoteLists: [] };
+      return false;
+    }
+
+    // Adopt a provisioned PIN, but never overwrite one the owner already set.
+    if (m.lockSalt && m.lockHash && !(await getLock())) {
+      await setLocal({
+        lock: {
+          salt: String(m.lockSalt),
+          hash: String(m.lockHash),
+          iterations: Number(m.lockIterations) || globalThis.GL.PBKDF2_ITERATIONS,
+          createdAt: Date.now(),
+          fromPolicy: true
+        }
+      });
+    }
+
+    const current = await getSettings();
+    const patch = {};
+
+    for (const k of MANAGED_SCALARS) {
+      if (m[k] !== undefined) { patch[k] = m[k]; keys.push(k); }
+    }
+    if (m.categories && typeof m.categories === 'object') {
+      patch.categories = Object.assign({}, current.categories, m.categories);
+      keys.push('categories');
+    }
+
+    const mergeList = (key) => {
+      const fromPolicy = (Array.isArray(m[key]) ? m[key] : [])
+        .map(normalizeDomain).filter(Boolean);
+      if (!Array.isArray(m[key])) return [];
+      patch[key] = [...new Set([...(current[key] || []), ...fromPolicy])].sort();
+      keys.push(key);
+      return fromPolicy;
+    };
+    const mAllow = mergeList('allowlist');
+    const mBlock = mergeList('blocklist');
+
+    let mLists = [];
+    if (Array.isArray(m.remoteLists)) {
+      mLists = m.remoteLists.map((u) => String(u).trim()).filter((u) => /^https:\/\//i.test(u));
+      const existing = current.remoteLists || [];
+      const merged = existing.slice();
+      for (const url of mLists) {
+        if (!merged.some((l) => l.url === url)) {
+          merged.push({ url, enabled: true, count: 0, updated: 0, error: '' });
+        }
+      }
+      patch.remoteLists = merged;
+      keys.push('remoteLists');
+    }
+
+    if (Object.keys(patch).length) await saveSettings(patch);
+    managed = { active: true, keys, allowlist: mAllow, blocklist: mBlock, remoteLists: mLists };
+    return true;
   }
 
   async function rebuildMatcher() {
@@ -495,6 +570,7 @@
           unlocked: await isUnlocked(),
           privateAllowed: await isAllowedInPrivate(),
           blockedCount: matcher.block.size,
+          managed,
           stats: stats || { blocked: 0, since: Date.now() },
           lockoutMs: await lockoutRemaining()
         };
@@ -512,6 +588,10 @@
       case 'useRecovery':
         return await useRecovery(msg.code, msg.newPin);
       case 'setSettings': {
+        const pinned = Object.keys(msg.patch || {}).filter((k) => managed.keys.includes(k));
+        if (pinned.length) {
+          return { ok: false, error: `Set by policy: ${pinned.join(', ')}. Change it in the policy, not here.` };
+        }
         await saveSettings(msg.patch || {});
         await rebuildMatcher();
         return { ok: true, settings: await getSettings() };
@@ -531,6 +611,9 @@
       case 'removeAllow':
       case 'removeBlock': {
         const key = type === 'removeAllow' ? 'allowlist' : 'blocklist';
+        if (managed[key] && managed[key].includes(msg.domain)) {
+          return { ok: false, error: 'That entry is set by policy and cannot be removed here.' };
+        }
         const s = await getSettings();
         await saveSettings({ [key]: (s[key] || []).filter((x) => x !== msg.domain) });
         await rebuildMatcher();
@@ -547,6 +630,9 @@
         return { ok: true, settings: await getSettings() };
       }
       case 'removeRemoteList': {
+        if (managed.remoteLists.includes(msg.url)) {
+          return { ok: false, error: 'That list is set by policy and cannot be removed here.' };
+        }
         const s = await getSettings();
         const { remoteData } = await getLocal('remoteData');
         const store = remoteData || {};
@@ -618,20 +704,32 @@
   });
 
   api.runtime.onInstalled.addListener(async (details) => {
-    await getSettings();
     const s = await getSettings();
     if (!s.installedAt) await saveSettings({ installedAt: Date.now() });
+    await applyManaged();
     await rebuildMatcher();
     api.alarms.create('gl-refresh-lists', { periodInMinutes: 60 * 12 });
-    if (details.reason === 'install' || !(await hasPin())) {
+    // A provisioned machine arrives already locked, so there is nothing to set up.
+    if ((details.reason === 'install' || !(await hasPin())) && !(await hasPin())) {
       api.tabs.create({ url: api.runtime.getURL('src/ui/options.html?welcome=1') });
     }
   });
 
   api.runtime.onStartup && api.runtime.onStartup.addListener(async () => {
     await lockNow();
+    await applyManaged();
     await rebuildMatcher();
   });
 
-  ready = rebuildMatcher();
+  // Policy can change under a running browser; pick it up without a restart.
+  api.storage.onChanged && api.storage.onChanged.addListener(async (changes, area) => {
+    if (area !== 'managed') return;
+    await applyManaged();
+    await rebuildMatcher();
+  });
+
+  ready = (async () => {
+    await applyManaged();
+    await rebuildMatcher();
+  })();
 })();
