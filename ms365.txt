@@ -1,1 +1,33 @@
-https://c2rsetup.officeapps.live.com/c2r/download.aspx?ProductreleaseID=O365ProPlusRetail&platform=x64&language=en-us&version=O16GA
+Where it is
+
+https://www.linearit.co/filter/guardlock/
+
+Also linked as a green button from your existing https://www.linearit.co/filter/ page, and added to the sitemap.
+
+Direct downloads:
+
+Edge/Chrome — …/filter/guardlock/dist/guardlock-edge-1.0.0.zip
+Firefox — …/filter/guardlock/dist/guardlock-firefox-1.0.0.zip
+
+I downloaded both from the live site and confirmed they're byte-identical to the builds that passed the tests, and that they unzip clean.
+
+How to install
+Edge (also Chrome, Brave, Opera)
+Download the Edge zip and unzip it somewhere permanent — Edge loads it from that folder, so if you delete it the extension dies.
+Go to edge://extensions and turn on Developer mode (bottom-left).
+Click Load unpacked, choose the unzipped folder.
+Click Details on GuardLock → turn on Allow in InPrivate.
+It opens its setup page automatically. Pick your PIN, write down the recovery code — it's shown once and it's the only way back in if the PIN is forgotten.
+Firefox
+
+Firefox only installs signed add-ons permanently, so there are two paths:
+
+Quick look: about:debugging#/runtime/this-firefox → Load Temporary Add-on → pick manifest.json from the unzipped folder. Gone when Firefox closes.
+
+Permanent: sign it once, free, with a Mozilla account — get an API key at addons.mozilla.org/developers/addon/api/key/, run npx web-ext sign --channel=unlisted in the unzipped folder, then open the .xpi it hands back. Afterwards: about:addons → GuardLock → Details → Run in Private Windows → Allow.
+
+Two things I'd flag
+
+Don't skip the private-window switch (step 4 on Edge, the last step on Firefox). Without it the extension simply doesn't run in InPrivate/Private windows — that's a browser rule no extension can grant itself. GuardLock turns its toolbar icon amber and warns at the top of its settings when it's missing.
+
+Anyone can still remove it from the extensions page. The PIN stops the settings being changed and blocks navigation to edge://extensions / about:addons while locked, but uninstalling is a browser-level action. If this is for a computer where that matters, the enterprise/ folder in the download has ready-made Firefox policies.json and Edge .reg files that force-install it, grant private-window access automatically, or remove private browsing entirely. Say the word and I'll walk you through applying those.
