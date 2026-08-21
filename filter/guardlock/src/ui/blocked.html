@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blocked by GuardLock</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .box { max-width: 560px; width: 100%; text-align: center; }
+  .shield { width: 76px; height: 76px; margin-bottom: 14px; }
+  h1 { font-size: 26px; margin-bottom: 8px; }
+  .site {
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; margin: 16px 0; word-break: break-all; font-size: 13px;
+  }
+  .why { color: var(--muted); font-size: 13.5px; }
+  #allowPad { margin: 14px auto 0; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <img class="shield" src="../icons/icon128.png" alt="">
+    <h1>This page is blocked</h1>
+    <p class="why" id="reason">GuardLock stopped this page from loading.</p>
+    <div class="site" id="site" hidden></div>
+
+    <div class="row" style="justify-content:center; margin-top:18px">
+      <button id="back">Go back</button>
+      <button id="allowBtn">Unlock and allow this site</button>
+    </div>
+
+    <div class="card" id="allowCard" hidden style="margin-top:18px">
+      <h2>Enter the PIN to allow this site</h2>
+      <div id="allowPad"></div>
+    </div>
+
+    <p class="muted" style="margin-top:24px">Protected by GuardLock</p>
+  </div>
+  <script src="../common.js"></script>
+  <script src="keypad.js"></script>
+  <script src="blocked.js"></script>
+</body>
+</html>

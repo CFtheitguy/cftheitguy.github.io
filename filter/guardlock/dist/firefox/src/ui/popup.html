@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GuardLock</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { width: 300px; padding: 14px; }
+  .head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .head img { width: 28px; height: 28px; }
+  .head h1 { font-size: 16px; margin: 0; }
+  .stat { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .stat b { font-variant-numeric: tabular-nums; }
+  #keypadWrap { margin: 6px auto 0; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <img src="../icons/icon48.png" alt="">
+    <div class="grow">
+      <h1>GuardLock</h1>
+      <div class="muted" id="sub">Loading…</div>
+    </div>
+    <span class="pill" id="statePill">…</span>
+  </div>
+
+  <div id="privWarn" class="notice" hidden>
+    Not active in private windows yet. <button class="link" id="fixPriv">How to fix</button>
+  </div>
+
+  <div class="card" id="statsCard">
+    <div class="stat"><span>Domains on the filter</span><b id="domCount">—</b></div>
+    <div class="stat"><span>Blocked so far</span><b id="hitCount">—</b></div>
+    <div class="stat"><span>Settings</span><b id="lockState">—</b></div>
+  </div>
+
+  <div class="card" id="lockCard">
+    <h2 id="lockTitle">Enter PIN to unlock settings</h2>
+    <div id="keypadWrap"></div>
+  </div>
+
+  <div class="row" id="actions">
+    <button class="grow" id="openOptions">Settings</button>
+    <button id="lockBtn" hidden>Lock now</button>
+  </div>
+
+  <script src="../common.js"></script>
+  <script src="keypad.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

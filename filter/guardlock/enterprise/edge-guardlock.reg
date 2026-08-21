@@ -1,0 +1,32 @@
+Windows Registry Editor Version 5.00
+
+; GuardLock — Edge hardening.
+; Double-click to apply, then restart Edge. Requires an administrator account.
+; Undo by deleting the same keys, or run edge-guardlock-undo.reg.
+
+; 1 = InPrivate windows are switched off entirely.
+;     This is the surest answer to "does the filter work in private windows",
+;     because there are no private windows left to slip through.
+;     Use 0 instead if you would rather keep InPrivate and tick
+;     "Allow in InPrivate" on the extension by hand.
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge]
+"IncognitoModeAvailability"=dword:00000001
+
+; Guest mode is another way around a profile-level extension.
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge]
+"BrowserGuestModeEnabled"=dword:00000000
+
+; Optional: block every extension except the ones you name, so a
+; "proxy unblocker" cannot be installed alongside GuardLock. Uncomment both
+; blocks and put GuardLock's real id in the allowlist first, or you will
+; block GuardLock too.
+; [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallBlocklist]
+; "1"="*"
+; [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallAllowlist]
+; "1"="EXTENSION_ID_HERE"
+
+; Force-install GuardLock so it cannot be removed from edge://extensions.
+; Only works once GuardLock is published to the Edge Add-ons store, or hosted
+; as a CRX with an update manifest. Replace EXTENSION_ID_HERE with the real id.
+; [HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallForcelist]
+; "1"="EXTENSION_ID_HERE;https://edge.microsoft.com/extensionwebstorebase/v1/crx"

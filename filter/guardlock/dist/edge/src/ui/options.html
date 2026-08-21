@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GuardLock settings</title>
+<link rel="stylesheet" href="ui.css">
+<style>
+  body { padding: 28px 20px 60px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  header img { width: 42px; height: 42px; }
+  .locked-veil { opacity: .5; pointer-events: none; }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 6px 0; }
+  code.reveal {
+    display: block; font-size: 20px; letter-spacing: .12em; text-align: center;
+    background: var(--bg); border: 1px dashed var(--line); border-radius: 8px; padding: 14px; margin: 12px 0;
+  }
+  ol.steps { margin: 0; padding-left: 20px; }
+  ol.steps li { margin-bottom: 8px; }
+  .listrow { display: flex; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+  .listrow:first-of-type { border-top: none; }
+  .listrow .u { font-size: 12.5px; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="../icons/icon128.png" alt="">
+    <div class="grow">
+      <h1>GuardLock</h1>
+      <div class="muted">A PIN-locked content filter for Firefox and Edge.</div>
+    </div>
+    <span class="pill" id="statePill">…</span>
+  </header>
+
+  <div id="setup" class="card" hidden>
+    <h2>Step 1 — choose your PIN</h2>
+    <p class="muted">4 to 12 digits. Anyone without this PIN cannot change or switch off the filter.</p>
+    <div id="setupPad" style="margin: 8px 0"></div>
+    <div id="recoveryBox" hidden>
+      <div class="notice good">
+        <b>Write this recovery code down now.</b> It is the only way back in if the PIN is forgotten.
+        It is shown once and is not stored anywhere you can read it.
+      </div>
+      <code class="reveal" id="recoveryCode"></code>
+      <label class="check"><input type="checkbox" id="savedRecovery">
+        <span><span class="t">I have written the recovery code down.</span></span></label>
+      <button class="primary" id="finishSetup" disabled>Finish setup</button>
+    </div>
+  </div>
+
+  <div id="unlockCard" class="card" hidden>
+    <h2>Settings are locked</h2>
+    <p class="muted">Enter the PIN to make changes. It relocks automatically.</p>
+    <div id="unlockPad" style="margin: 8px auto 0"></div>
+    <div class="row" style="margin-top:12px; justify-content:center">
+      <button class="link" id="forgot">Forgot the PIN?</button>
+    </div>
+    <div id="recoverBox" hidden style="margin-top:12px">
+      <div class="stack">
+        <input type="text" id="recoverCode" placeholder="Recovery code (XXXXX-XXXXX)" autocomplete="off">
+        <input type="password" id="recoverPin" inputmode="numeric" placeholder="New PIN (4–12 digits)" autocomplete="off">
+        <button id="doRecover">Reset the PIN</button>
+        <div class="muted" id="recoverMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="privateCard" class="card">
+    <h2 id="private">Private / InPrivate windows</h2>
+    <div id="privStatus"></div>
+    <div id="privSteps" style="margin-top:12px"></div>
+  </div>
+
+  <div id="main">
+    <div class="card">
+      <h2>Protection</h2>
+      <label class="check"><input type="checkbox" id="enabled">
+        <span><span class="t">Filtering is on</span><br>
+        <span class="d">Turning this off stops all blocking. Requires the PIN.</span></span></label>
+      <div id="cats" style="margin-top:6px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Search and video</h2>
+      <label class="check"><input type="checkbox" id="safeSearch">
+        <span><span class="t">Force SafeSearch and YouTube Restricted Mode</span><br>
+        <span class="d">Pins Google, Bing, DuckDuckGo, Yahoo, Yandex, Ecosia, Startpage and Brave to their strict modes.</span></span></label>
+      <label class="check"><input type="checkbox" id="urlKeywordsEnabled">
+        <span><span class="t">Block by words in the web address</span><br>
+        <span class="d">Catches sites that are not on any list yet.</span></span></label>
+      <label class="check"><input type="checkbox" id="keywordsEnabled">
+        <span><span class="t">Scan page text for explicit wording</span><br>
+        <span class="d">Blocks a page after it loads if the wording crosses the sensitivity score.</span></span></label>
+      <div class="kv">
+        <span class="muted">Sensitivity — lower blocks more (default 12)</span>
+        <input type="number" id="keywordThreshold" min="4" max="60" step="1" style="width:90px">
+      </div>
+      <label class="check"><input type="checkbox" id="guardSettingsPage">
+        <span><span class="t">Block the browser's extensions page while locked</span><br>
+        <span class="d">Stops a quick trip to about:addons or edge://extensions to switch GuardLock off.</span></span></label>
+      <div class="kv">
+        <span class="muted">Relock the settings after</span>
+        <span class="row"><input type="number" id="unlockMinutes" min="1" max="120" step="1" style="width:80px"> <span class="muted">min</span></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Always allow these sites</h2>
+      <p class="muted">Beats every other rule, including the category lists.</p>
+      <div class="row">
+        <input type="text" id="allowInput" class="grow" placeholder="example.com">
+        <button id="allowAdd">Add</button>
+      </div>
+      <div class="tags" id="allowTags"></div>
+    </div>
+
+    <div class="card">
+      <h2>Always block these sites</h2>
+      <div class="row">
+        <input type="text" id="blockInput" class="grow" placeholder="example.com">
+        <button id="blockAdd">Add</button>
+      </div>
+      <div class="tags" id="blockTags"></div>
+    </div>
+
+    <div class="card">
+      <h2>Subscribed blocklists</h2>
+      <p class="muted">Add a public list URL for far wider coverage. Hosts files, plain domain lists and
+        <code>||domain^</code> lines all work. Lists refresh twice a day.</p>
+      <div class="row">
+        <input type="url" id="listInput" class="grow" placeholder="https://…/list.txt">
+        <button id="listAdd">Add</button>
+      </div>
+      <div class="row wrap" style="margin-top:8px">
+        <button class="link" data-suggest="https://raw.githubusercontent.com/blocklistproject/Lists/master/porn.txt">Suggested: BlocklistProject — porn</button>
+        <button class="link" data-suggest="https://raw.githubusercontent.com/blocklistproject/Lists/master/gambling.txt">BlocklistProject — gambling</button>
+      </div>
+      <div id="lists" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:10px">
+        <button id="refreshLists">Refresh now</button>
+        <span class="muted" id="refreshMsg"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Change the PIN</h2>
+      <div class="stack">
+        <input type="password" id="newPin" inputmode="numeric" placeholder="New PIN (4–12 digits)" autocomplete="off">
+        <button id="changePin">Set new PIN</button>
+        <div class="muted" id="changeMsg"></div>
+        <code class="reveal" id="newRecovery" hidden></code>
+      </div>
+    </div>
+  </div>
+
+  <p class="muted" style="text-align:center;margin-top:24px">
+    GuardLock stores everything on this computer. Nothing is uploaded.
+  </p>
+</div>
+
+<script src="../common.js"></script>
+<script src="keypad.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

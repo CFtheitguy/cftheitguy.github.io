@@ -1,0 +1,134 @@
+:root {
+  --bg: #0f1419;
+  --panel: #171d24;
+  --panel-2: #1e252e;
+  --line: #2b333d;
+  --text: #e7edf3;
+  --muted: #93a1b0;
+  --accent: #2f81f7;
+  --good: #2ea043;
+  --warn: #d29922;
+  --bad: #e5534b;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f4f6f9;
+    --panel: #ffffff;
+    --panel-2: #eef1f5;
+    --line: #d7dde5;
+    --text: #16202b;
+    --muted: #5b6774;
+    --accent: #0b5fb0;
+  }
+}
+* { box-sizing: border-box; }
+/* Several elements below set display, which would otherwise beat [hidden]. */
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: .01em; }
+p { margin: 0 0 10px; }
+a { color: var(--accent); }
+.muted { color: var(--muted); font-size: 13px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.row { display: flex; align-items: center; gap: 10px; }
+.row.between { justify-content: space-between; }
+.row.wrap { flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+.stack > * + * { margin-top: 10px; }
+
+button {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.danger { background: transparent; border-color: var(--bad); color: var(--bad); }
+button.link { background: none; border: none; color: var(--accent); padding: 4px; text-decoration: underline; }
+
+input[type="text"], input[type="password"], input[type="number"], input[type="url"] {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  width: 100%;
+}
+input:focus, button:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+label.check { display: flex; align-items: flex-start; gap: 10px; padding: 7px 0; cursor: pointer; }
+label.check input { margin-top: 3px; flex: none; }
+label.check .t { font-weight: 600; }
+label.check .d { color: var(--muted); font-size: 12.5px; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; border: 1px solid var(--line);
+}
+.pill.on   { color: var(--good); border-color: var(--good); }
+.pill.off  { color: var(--bad);  border-color: var(--bad); }
+.pill.warn { color: var(--warn); border-color: var(--warn); }
+
+.notice {
+  border-left: 3px solid var(--warn);
+  background: var(--panel-2);
+  padding: 10px 12px;
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+}
+.notice.bad  { border-left-color: var(--bad); }
+.notice.good { border-left-color: var(--good); }
+
+.tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px;
+}
+.tag button { padding: 0 7px; border-radius: 999px; line-height: 1.4; border: none; background: none; color: var(--muted); }
+.tag button:hover { color: var(--bad); }
+
+/* ---- numeric keypad ---- */
+.keypad { width: 236px; }
+.pin-dots { display: flex; gap: 8px; justify-content: center; height: 14px; margin-bottom: 14px; }
+.pin-dots i {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: transparent; border: 2px solid var(--muted);
+}
+.pin-dots i.filled { background: var(--accent); border-color: var(--accent); }
+.keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.keys button {
+  height: 48px; font-size: 19px; font-weight: 600;
+  border-radius: 10px; background: var(--panel-2);
+}
+.keys button.wide { font-size: 13px; font-weight: 500; }
+.keys button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pin-msg { min-height: 20px; margin-top: 10px; font-size: 13px; text-align: center; color: var(--bad); }
+.pin-msg.ok { color: var(--good); }
+
+.shake { animation: shake .3s; }
+@keyframes shake {
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}

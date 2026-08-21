@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "GuardLock — PIN-locked content filter",
+  "short_name": "GuardLock",
+  "version": "1.0.0",
+  "description": "Blocks adult and other unwanted sites in every window, including Private Browsing. Settings are sealed behind a numeric PIN.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "guardlock@cftheitguy.github.io",
+      "strict_min_version": "128.0"
+    }
+  },
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "unlimitedStorage",
+    "webNavigation",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "incognito": "spanning",
+  "background": {
+    "scripts": ["src/common.js", "src/background.js"]
+  },
+  "action": {
+    "default_title": "GuardLock",
+    "default_popup": "src/ui/popup.html",
+    "default_icon": {
+      "16": "src/icons/icon16.png",
+      "32": "src/icons/icon32.png",
+      "48": "src/icons/icon48.png",
+      "128": "src/icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "src/ui/options.html",
+    "open_in_tab": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content/scan.js"],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/ui/blocked.html", "src/ui/ui.css", "src/icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "icons": {
+    "16": "src/icons/icon16.png",
+    "32": "src/icons/icon32.png",
+    "48": "src/icons/icon48.png",
+    "128": "src/icons/icon128.png"
+  }
+}
