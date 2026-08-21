@@ -50,6 +50,12 @@
   .steps li::before { content: counter(s); position: absolute; left: 0; top: 1px;
     width: 25px; height: 25px; border-radius: 50%; background: #667eea; color: #fff;
     font-size: .82em; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  pre { background: #1d2230; color: #e6ebf3; border-radius: 10px; padding: 16px 18px;
+        overflow-x: auto; font-size: .86em; line-height: 1.6; margin: 12px 0; }
+  pre code { background: none; color: inherit; padding: 0; font-size: 1em; }
+  .vm { border-left: 4px solid #1f9d55; background: #f2fbf6; padding: 16px 20px;
+        border-radius: 0 10px 10px 0; margin: 18px 0; }
+  .vm b { color: #146b3a; }
   .back { display: inline-block; margin-top: 30px; color: #667eea; text-decoration: none; font-weight: 600; }
   footer { text-align: center; color: #8a93a0; font-size: .87em; margin-top: 34px;
            border-top: 1px solid #e6e9f0; padding-top: 20px; }
@@ -63,13 +69,14 @@
     <img src="src/icons/icon128.png" alt="GuardLock">
     <h1>GuardLock</h1>
     <p class="subtitle">A content filter that installs into a browser that has none —
-       works in private windows, and cannot be switched off without your PIN.</p>
+       works in private windows, cannot be switched off without your PIN, and provisions a
+       brand-new VM in one command.</p>
   </div>
 
   <div class="downloads">
-    <a class="dl" href="dist/guardlock-edge-1.0.0.zip" download>
+    <a class="dl" href="dist/guardlock-edge.zip" download>
       <b>Download for Edge</b><span>Also Chrome, Brave, Opera</span></a>
-    <a class="dl" href="dist/guardlock-firefox-1.0.0.zip" download>
+    <a class="dl" href="dist/guardlock-firefox.zip" download>
       <b>Download for Firefox</b><span>Needs signing for permanent install</span></a>
   </div>
   <p style="text-align:center"><a href="https://github.com/CFtheitguy/cftheitguy.github.io/tree/main/filter/guardlock">Source code and full documentation on GitHub</a></p>
@@ -82,7 +89,43 @@
     <div class="feat"><b>Forces SafeSearch</b><span>Google, Bing, DuckDuckGo, Yahoo, Yandex and more, plus YouTube Restricted Mode.</span></div>
     <div class="feat"><b>Number lock</b><span>4–12 digit PIN on a keypad, hashed with PBKDF2. Wrong tries trigger a growing lockout.</span></div>
     <div class="feat"><b>Nothing leaves the device</b><span>No account, no server, no telemetry. Lists and PIN stay in the browser.</span></div>
+    <div class="feat"><b>Provisions a whole VM</b><span>One command lays down the policy; the browser comes up locked with no setup wizard.</span></div>
   </div>
+
+  <h2>Every new VM, without the clicking</h2>
+  <p>Installing by hand is fine once. It is not fine for the fifth VM this month. GuardLock reads its
+     whole configuration — <b>including the PIN</b> — from browser policy, so a freshly built machine
+     comes up already filtered and already locked: no setup wizard, no window where the browser is
+     open and unfiltered, and nothing to pay per machine.</p>
+
+  <p>One command on a fresh Linux box:</p>
+  <pre><code>curl -fsSL https://www.linearit.co/filter/guardlock/install/install.sh \
+  | sudo bash -s -- --pin 4821 --categories adult,gambling</code></pre>
+
+  <p>Or on Windows, from an elevated PowerShell:</p>
+  <pre><code>&amp; ([scriptblock]::Create((irm https://www.linearit.co/filter/guardlock/install/install.ps1))) -Pin 4821</code></pre>
+
+  <p>Both hash the PIN locally, write the policy for Edge, Chrome and Firefox, and drop a copy of the
+     extension in a fixed place. Re-running is safe, <code>--uninstall</code> reverses it, and
+     <code>--dns</code> will also point the machine at a filtering resolver so it is covered before any
+     browser even starts. Add <code>--categories</code>, <code>--allow</code>, <code>--block</code>,
+     <code>--lists</code> or <code>--no-private</code> to taste.</p>
+
+  <div class="vm">
+    <b>What "already locked" means.</b>
+    <p style="margin:6px 0 0">The policy carries a PBKDF2 hash of your PIN, never the digits. Settings
+    the policy pins are greyed out and refuse to change <b>even for someone holding the PIN</b> — they
+    are changed in the policy, not in the browser. Because there is no setup step there is also no
+    recovery code, so keep the PIN somewhere safe.</p>
+  </div>
+
+  <p>Policy configures GuardLock; something still has to install it. Firefox is the easy one — it
+     force-installs a signed <code>.xpi</code> straight from a URL and grants private-window access
+     without anyone ticking a box. For Edge and Chrome, either publish once to the Edge Add-ons store
+     (free) and pass <code>--ext-id</code>, or host it yourself with
+     <code>npm run pack-crx</code>. Failing both, the installer still leaves a copy on disk and
+     pre-authorises the id Chromium will give it, so one "Load unpacked" is all that remains — and even
+     then the browser comes up locked and configured.</p>
 
   <h2>Install on Edge</h2>
   <ol class="steps">

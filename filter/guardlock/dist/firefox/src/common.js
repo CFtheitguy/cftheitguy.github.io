@@ -64,6 +64,23 @@
       .catch((e) => ({ ok: false, error: String((e && e.message) || e) }));
   }
 
+  /**
+   * Configuration handed down by browser policy (Chromium's managed storage,
+   * Firefox's policies.json "3rdparty" block). This is how a freshly built VM
+   * comes up already locked: the policy carries the PIN hash, so there is no
+   * setup wizard and no window where the browser is unfiltered.
+   * Returns {} when no policy is present, which is the normal home case.
+   */
+  async function getManaged() {
+    if (!api.storage || !api.storage.managed) return {};
+    try {
+      return (await callApi(api.storage.managed, 'get', null)) || {};
+    } catch (_) {
+      // No policy set: Chromium resolves to {}, Firefox rejects outright.
+      return {};
+    }
+  }
+
   /* ---------------------------------------------------------------- storage */
 
   function getLocal(keys) {
@@ -243,7 +260,7 @@
 
   globalThis.GL = {
     api, CATEGORIES, DEFAULTS, PBKDF2_ITERATIONS,
-    callApi, sendMessage, getLocal, setLocal, removeLocal, getSettings, saveSettings,
+    callApi, sendMessage, getManaged, getLocal, setLocal, removeLocal, getSettings, saveSettings,
     toHex, randomHex, hashSecret, safeEqual,
     hostOf, domainChain, setMatchesHost, normalizeDomain, isDnrDomain, isFilterableUrl,
     scoreText, safeSearchUrl

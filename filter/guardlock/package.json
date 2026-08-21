@@ -1,6 +1,6 @@
 {
   "name": "guardlock",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "PIN-locked content filter extension for Firefox and Edge.",
   "private": true,
   "license": "MIT",
@@ -8,6 +8,11 @@
     "icons": "node tools/make-icons.mjs",
     "build": "node build.mjs",
     "test": "node tools/test.mjs",
-    "test:e2e": "node tools/e2e.mjs"
+    "test:e2e": "node tools/e2e.mjs",
+    "provision": "node tools/provision.mjs",
+    "pack-crx": "node tools/pack-crx.mjs",
+    "test:policy": "node tools/e2e-managed.mjs",
+    "test:forcelist": "node tools/e2e-forcelist.mjs",
+    "test:installer": "node tools/e2e-installer.mjs"
   }
 }

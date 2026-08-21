@@ -109,8 +109,38 @@
             <code>enterprise</code> folder, and this stops being a concern.</p>`;
   }
 
+  /** Greys out anything a browser policy has pinned, so it is obvious why a
+   *  control will not move rather than silently rejecting the change. */
+  function markManaged() {
+    const keys = (state.managed && state.managed.keys) || [];
+    const ids = {
+      enabled: 'enabled', safeSearch: 'safeSearch', keywordsEnabled: 'keywordsEnabled',
+      urlKeywordsEnabled: 'urlKeywordsEnabled', guardSettingsPage: 'guardSettingsPage',
+      keywordThreshold: 'keywordThreshold', unlockMinutes: 'unlockMinutes'
+    };
+    for (const [key, id] of Object.entries(ids)) {
+      const el = $(id);
+      if (el) el.disabled = keys.includes(key);
+    }
+    if (keys.includes('categories')) {
+      for (const cat of CATEGORIES) {
+        const el = $('cat-' + cat.id);
+        if (el) el.disabled = true;
+      }
+    }
+  }
+
   function applyState() {
     const { settings, hasPin, unlocked, privateAllowed } = state;
+    const managed = state.managed || { active: false, keys: [] };
+
+    $('managedCard').hidden = !managed.active;
+    if (managed.active) {
+      const pinned = managed.keys.length ? managed.keys.join(', ') : 'the PIN';
+      $('managedText').textContent =
+        'This browser is provisioned by policy. Settings controlled centrally: ' + pinned +
+        '. They are greyed out below and can only be changed in the policy on this machine.';
+    }
 
     const pill = $('statePill');
     if (!settings.enabled) { pill.textContent = 'Off'; pill.className = 'pill off'; }
@@ -138,6 +168,7 @@
     $('unlockMinutes').value = settings.unlockMinutes;
 
     renderCategories(settings);
+    markManaged();
     renderTags('allowTags', settings.allowlist || [], 'removeAllow');
     renderTags('blockTags', settings.blocklist || [], 'removeBlock');
     renderLists(settings);

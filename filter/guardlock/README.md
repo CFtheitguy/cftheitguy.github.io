@@ -38,14 +38,103 @@ when the background worker is asleep:
 - While locked, `about:addons`, `edge://extensions`, `about:config` and friends
   bounce to the block page, so the filter cannot be switched off in three clicks.
 
+## Putting it on a new machine, without the clicking
+
+The install steps below are fine once. They are not fine for the fifth VM this
+month. For that, GuardLock reads its whole configuration — including the PIN —
+from **browser policy**, so a freshly built machine comes up already filtered
+and already locked. No setup wizard, no window where the browser is open and
+unfiltered, and nothing to pay per machine.
+
+One command on a fresh Linux box:
+
+```bash
+curl -fsSL https://www.linearit.co/filter/guardlock/install/install.sh \
+  | sudo bash -s -- --pin 4821 --categories adult,gambling
+```
+
+and on Windows, from an elevated PowerShell:
+
+```powershell
+& ([scriptblock]::Create((irm https://www.linearit.co/filter/guardlock/install/install.ps1))) -Pin 4821
+```
+
+Both scripts hash the PIN locally, write the policy for Edge, Chrome and
+Firefox, and drop a copy of the extension in a fixed location. Re-running is
+safe, `--uninstall` / `-Uninstall` reverses it, and `--dns` / `-Dns` will also
+point the machine at a filtering resolver so it is covered before any browser
+starts.
+
+Useful options: `--categories`, `--allow`, `--block`, `--lists`, `--relock`,
+`--sensitivity`, `--no-private`. Run with `--help` for the full set.
+
+### What "already locked" means
+
+The policy carries a PBKDF2 hash of the PIN, never the digits. On first launch
+the extension adopts it, so:
+
+- the machine is locked from the first frame, with no setup wizard;
+- settings the policy pins are greyed out and refuse to change **even for
+  someone holding the PIN** — they are changed in the policy, not the browser;
+- allow/block entries and list subscriptions from the policy cannot be removed
+  locally, though the user may add their own on top;
+- a PIN somebody had already set by hand is never overwritten.
+
+Because a provisioned install has no setup step, it also has **no recovery
+code**. Keep the PIN somewhere safe.
+
+### Generating the policy yourself
+
+If you would rather bake the policy into a VM image or hand it to your own
+tooling than run a script:
+
+```bash
+node tools/provision.mjs --pin 4821 --categories adult,gambling,social
+```
+
+That writes `policies.json` (Firefox), `guardlock-edge.reg` (Windows),
+`guardlock-chromium.json` (Linux/macOS) and the raw managed-storage payload.
+
+### Getting the extension installed without a store
+
+Policy configures GuardLock; something still has to install it.
+
+**Firefox** is the easy one: `ExtensionSettings` force-installs a signed `.xpi`
+straight from a URL, and `"private_browsing": true` grants private-window
+access without anyone ticking a box. Sign once with a free Mozilla account and
+every VM afterwards is hands-off.
+
+**Chromium** (Edge, Chrome) wants an extension id and an update manifest.
+Two routes, both free:
+
+1. Publish to the Edge Add-ons store — free, and the store then serves updates.
+   Re-run the installer with `--ext-id <id>`.
+2. Host it yourself. `node tools/pack-crx.mjs --base-url https://your.site/path`
+   generates a signing key, packs a signed `.crx`, and writes the `update.xml`
+   to sit beside it. Upload both, then provision with `--ext-id` and
+   `--ext-update`. The key it writes to `.crx-key.pem` is the extension's
+   identity — back it up, never commit it, and treat it like a password:
+   anyone holding it can publish an update your machines will install.
+
+Failing both, the installer still leaves a copy on disk and pre-authorises the
+id Chromium will give it, so a single "Load unpacked" is all that is left —
+and even then the browser comes up locked and configured, with no wizard.
+
+I have verified the Firefox policy shape, the managed-config path, and the
+Linux installer end to end against a real browser. The self-hosted `.crx`
+force-install could not be verified in the sandbox this was built in, because
+the test browser has its update services stubbed out — treat that one route as
+untested until you have run it on a real machine.
+
 ## Install
 
 Grab the build for your browser from `dist/`, or build it yourself:
 
 ```bash
-npm run build     # writes dist/firefox, dist/edge and a zip of each
-npm test          # 153 checks against the real background script
-npm run test:e2e  # 33 checks driving the built extension in a real Chromium
+npm run build            # writes dist/firefox, dist/edge and a zip of each
+npm test                 # 197 checks against the real background script
+npm run test:e2e         # 33 checks driving the built extension in a real Chromium
+sudo npm run test:policy # 15 checks that browser policy really provisions it
 ```
 
 `npm test` stubs the browser APIs and exercises `background.js` directly. It
@@ -58,6 +147,12 @@ completes the PIN setup by clicking the keypad, and checks that a listed domain,
 a keyword address and an explicit page are all really blocked. It needs
 `playwright` and `openssl`, and points every hostname at a throwaway local
 HTTPS server, so it never touches the network.
+
+`npm run test:policy` writes a real policy file to `/etc/chromium/policies`,
+starts a browser against it, and checks the extension comes up locked with the
+policy's settings and no wizard. It needs root, and removes the file afterwards.
+`tools/e2e-installer.mjs` does the same for whatever `install.sh` actually put
+on the current machine.
 
 ### Edge (also Chrome, Brave, Opera)
 
@@ -166,8 +261,13 @@ src/content/scan.js      page-text keyword scan
 src/ui/                  popup, settings, block page, keypad
 src/data/*.json          bundled category lists and the weighted keyword list
 tools/make-icons.mjs     draws the icon PNGs, no image libraries needed
+tools/provision.mjs      turns a PIN into policy files for a VM image
+tools/pack-crx.mjs       signs a .crx and update.xml for self-hosted installs
 tools/test.mjs           runs background.js against stubbed browser APIs
-enterprise/              Firefox and Edge policy files
+tools/e2e*.mjs           real-browser tests, including the provisioning path
+install/install.sh       one-command provisioning for Linux
+install/install.ps1      one-command provisioning for Windows
+enterprise/              hand-written policy files, if you prefer those
 ```
 
 MIT licensed.
