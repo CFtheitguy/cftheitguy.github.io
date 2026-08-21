@@ -1,0 +1,207 @@
+{
+  "name": "Keyword heuristics",
+  "version": 1,
+  "note": "Scored word list. URL hits weigh heavier than page-text hits.",
+  "terms": [
+    {
+      "t": "porn",
+      "w": 10
+    },
+    {
+      "t": "porno",
+      "w": 10
+    },
+    {
+      "t": "pornography",
+      "w": 10
+    },
+    {
+      "t": "xxx",
+      "w": 6
+    },
+    {
+      "t": "sex video",
+      "w": 8
+    },
+    {
+      "t": "sextape",
+      "w": 9
+    },
+    {
+      "t": "nude",
+      "w": 5
+    },
+    {
+      "t": "nudes",
+      "w": 7
+    },
+    {
+      "t": "nudity",
+      "w": 5
+    },
+    {
+      "t": "naked girls",
+      "w": 9
+    },
+    {
+      "t": "naked women",
+      "w": 9
+    },
+    {
+      "t": "hardcore sex",
+      "w": 10
+    },
+    {
+      "t": "anal sex",
+      "w": 10
+    },
+    {
+      "t": "blowjob",
+      "w": 10
+    },
+    {
+      "t": "handjob",
+      "w": 10
+    },
+    {
+      "t": "creampie",
+      "w": 9
+    },
+    {
+      "t": "cumshot",
+      "w": 10
+    },
+    {
+      "t": "gangbang",
+      "w": 10
+    },
+    {
+      "t": "threesome",
+      "w": 8
+    },
+    {
+      "t": "milf",
+      "w": 7
+    },
+    {
+      "t": "hentai",
+      "w": 9
+    },
+    {
+      "t": "rule34",
+      "w": 9
+    },
+    {
+      "t": "camgirl",
+      "w": 9
+    },
+    {
+      "t": "webcam girls",
+      "w": 9
+    },
+    {
+      "t": "live sex",
+      "w": 10
+    },
+    {
+      "t": "escort service",
+      "w": 8
+    },
+    {
+      "t": "strip club",
+      "w": 6
+    },
+    {
+      "t": "stripper",
+      "w": 5
+    },
+    {
+      "t": "erotic",
+      "w": 6
+    },
+    {
+      "t": "erotica",
+      "w": 7
+    },
+    {
+      "t": "fetish",
+      "w": 6
+    },
+    {
+      "t": "bdsm",
+      "w": 7
+    },
+    {
+      "t": "onlyfans leak",
+      "w": 10
+    },
+    {
+      "t": "nsfw",
+      "w": 5
+    },
+    {
+      "t": "adult video",
+      "w": 8
+    },
+    {
+      "t": "adult movies",
+      "w": 8
+    },
+    {
+      "t": "boobs",
+      "w": 6
+    },
+    {
+      "t": "tits",
+      "w": 7
+    },
+    {
+      "t": "pussy",
+      "w": 7
+    },
+    {
+      "t": "deepthroat",
+      "w": 10
+    },
+    {
+      "t": "masturbat",
+      "w": 8
+    },
+    {
+      "t": "orgasm",
+      "w": 7
+    },
+    {
+      "t": "shemale",
+      "w": 8
+    },
+    {
+      "t": "incest",
+      "w": 10
+    },
+    {
+      "t": "upskirt",
+      "w": 9
+    },
+    {
+      "t": "voyeur",
+      "w": 7
+    },
+    {
+      "t": "sexcam",
+      "w": 10
+    },
+    {
+      "t": "free sex",
+      "w": 10
+    },
+    {
+      "t": "sex chat",
+      "w": 9
+    },
+    {
+      "t": "hookup tonight",
+      "w": 7
+    }
+  ]
+}

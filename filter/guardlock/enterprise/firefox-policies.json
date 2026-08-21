@@ -1,0 +1,20 @@
+{
+  "policies": {
+    "ExtensionSettings": {
+      "guardlock@cftheitguy.github.io": {
+        "installation_mode": "force_installed",
+        "install_url": "https://cftheitguy.github.io/filter/guardlock/dist/guardlock-firefox.xpi",
+        "private_browsing": true,
+        "default_area": "navbar"
+      },
+      "*": {
+        "installation_mode": "allowed"
+      }
+    },
+    "BlockAboutConfig": true,
+    "BlockAboutProfiles": true,
+    "DisableSafeMode": true,
+    "DisableProfileImport": true,
+    "DisableDeveloperTools": false
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "guardlock",
+  "version": "1.0.0",
+  "description": "PIN-locked content filter extension for Firefox and Edge.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "icons": "node tools/make-icons.mjs",
+    "build": "node build.mjs",
+    "test": "node tools/test.mjs",
+    "test:e2e": "node tools/e2e.mjs"
+  }
+}
