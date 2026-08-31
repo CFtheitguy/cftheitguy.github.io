@@ -72,6 +72,10 @@
   .err{background:#fdecea;border-left:5px solid #d93025;color:#8a1c14;padding:14px 16px;border-radius:6px;
     margin-top:16px;font-size:14px;line-height:1.5;display:none}
   .bar{display:flex;gap:8px;flex-wrap:wrap}
+  .progress{display:none;margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .pbar{height:10px;background:#e7edf4;border-radius:6px;overflow:hidden}
+  .pbar i{display:block;height:100%;width:0;background:var(--orange);transition:width .2s}
+  .ptext{margin-top:9px;font-size:14px;color:var(--muted)}
   @media (max-width:820px){
     .panes{grid-template-columns:1fr}
     .list{max-height:38vh}
@@ -110,6 +114,7 @@
       <input type="file" id="file" accept=".zip,.xml,.mbox,.eml,.mbx,.txt,application/zip,text/xml,application/xml,message/rfc822" hidden>
     </div>
 
+    <div class="progress" id="prog"><div class="pbar"><i id="pfill"></i></div><div class="ptext" id="ptext">Reading your file&hellip;</div></div>
     <div class="err" id="err"></div>
 
     <div class="note">
@@ -135,7 +140,7 @@
       </div>
     </div>
     <div class="panes">
-      <div class="list" id="list"></div>
+      <div><div class="list" id="list"></div><button class="btn ghost" type="button" id="moreBtn" style="display:none;width:100%;margin-top:8px">Show more emails</button></div>
       <div class="reading" id="reading">
         <div class="empty">Select an email on the left to read it.</div>
       </div>
@@ -152,11 +157,26 @@
 (function(){
 "use strict";
 document.getElementById('yr').textContent = new Date().getFullYear();
-
 var $ = function(id){ return document.getElementById(id); };
-var messages = [], shown = [], selIdx = -1;
 
-/* ---------------- helpers ---------------- */
+/* ==========================================================================
+   This viewer never loads a whole mail archive into memory. It scans the file
+   in small chunks, remembers only where each message lives (a byte range plus
+   its sender/subject/date), and reads a message off disk when it is opened.
+   That keeps a multi-gigabyte export inside a browser tab's memory budget.
+   ========================================================================== */
+
+var HEAD_BYTES  = 64 * 1024;        /* per-message bytes kept while indexing  */
+var CHUNK       = 4 * 1024 * 1024;  /* file scan window                       */
+var PAGE        = 200;              /* list rows rendered at a time           */
+var MAX_MSGS    = 250000;           /* hard stop, keeps the index bounded     */
+var SNIP        = 160;              /* preview chars kept per message         */
+
+var sources = [];   /* {blob, name, kind, tag} */
+var index   = [];   /* {s, off, end, from, to, subject, date, snip, sort}   */
+var shown   = [], page = 0, sel = null, cancelled = false;
+
+/* ---------------- small helpers ---------------- */
 function esc(s){
   return String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -164,38 +184,34 @@ function esc(s){
 }
 function showErr(msg){ var e = $('err'); e.innerHTML = msg; e.style.display = 'block'; }
 function clearErr(){ $('err').style.display = 'none'; }
+function setProgress(on, pct, text){
+  $('prog').style.display = on ? 'block' : 'none';
+  if(pct != null) $('pfill').style.width = Math.max(0, Math.min(100, pct)) + '%';
+  if(text != null) $('ptext').innerHTML = text;
+}
+function idle(){ return new Promise(function(r){ setTimeout(r, 0); }); }
 
-/* Decode RFC 2047 encoded words:  =?utf-8?B?....?=  */
 function decodeWords(s){
   if(!s || s.indexOf('=?') === -1) return s || '';
   return s.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, function(_, cs, enc, txt){
     try{
-      var bytes;
-      if(enc.toUpperCase() === 'B'){
-        bytes = b64ToBytes(txt);
-      }else{
-        var t = txt.replace(/_/g,' ');
-        bytes = qpToBytes(t);
-      }
-      return decodeBytes(bytes, cs);
+      return decodeBytes(enc.toUpperCase() === 'B' ? b64ToBytes(txt)
+                                                   : qpToBytes(txt.replace(/_/g,' ')), cs);
     }catch(e){ return txt; }
-  }).replace(/\?=\s+=\?/g,'?==?');
+  });
 }
 function b64ToBytes(str){
-  var clean = String(str).replace(/[^A-Za-z0-9+/=]/g,'');
-  var bin = atob(clean);
+  var bin = atob(String(str).replace(/[^A-Za-z0-9+/=]/g,''));
   var out = new Uint8Array(bin.length);
   for(var i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
   return out;
 }
 function qpToBytes(str){
-  var s = String(str).replace(/=\r?\n/g,'');
-  var out = [], i = 0;
+  var s = String(str).replace(/=\r?\n/g,''), out = [], i = 0;
   while(i < s.length){
     var c = s.charAt(i);
-    if(c === '=' && /^[0-9A-Fa-f]{2}$/.test(s.substr(i+1,2))){
-      out.push(parseInt(s.substr(i+1,2),16)); i += 3;
-    }else{ out.push(s.charCodeAt(i) & 0xff); i++; }
+    if(c === '=' && /^[0-9A-Fa-f]{2}$/.test(s.substr(i+1,2))){ out.push(parseInt(s.substr(i+1,2),16)); i += 3; }
+    else { out.push(s.charCodeAt(i) & 0xff); i++; }
   }
   return new Uint8Array(out);
 }
@@ -212,22 +228,22 @@ function decodeBytes(bytes, charset){
   }
 }
 function textToHtml(t){
-  var h = esc(t).replace(/\r\n|\r/g,'\n');
-  h = h.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  var h = esc(t).replace(/\r\n|\r/g,'\n')
+    .replace(/(https?:\/\/[^\s<>"']+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
   return '<pre style="white-space:pre-wrap;word-wrap:break-word;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:0">' + h + '</pre>';
 }
 function stripToText(html){
-  var d = document.createElement('div');
-  d.innerHTML = String(html).replace(/<(script|style)[\s\S]*?<\/\1>/gi,' ');
-  return (d.textContent || '').replace(/\s+/g,' ').trim();
+  return String(html||'').replace(/<(script|style)[\s\S]*?<\/\1>/gi,' ')
+    .replace(/<[^>]*>/g,' ').replace(/&nbsp;/gi,' ')
+    .replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')
+    .replace(/\s+/g,' ').trim();
 }
 function fmtDate(raw){
   if(!raw) return '';
   var d = new Date(raw);
   if(isNaN(d.getTime())){
     var n = Number(raw);
-    if(n > 1e12) d = new Date(n);
-    else if(n > 1e9) d = new Date(n*1000);
+    if(n > 1e12) d = new Date(n); else if(n > 1e9) d = new Date(n*1000);
   }
   if(isNaN(d.getTime())) return String(raw);
   return d.toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
@@ -238,13 +254,12 @@ function sortKey(raw){
   return 0;
 }
 
-/* ---------------- RFC822 message parsing (mbox / eml / embedded) -------------- */
+/* ---------------- RFC822 / MIME ---------------- */
 function splitHeaders(raw){
   var sep = raw.search(/\r?\n\r?\n/);
   var head = sep === -1 ? raw : raw.slice(0, sep);
   var body = sep === -1 ? '' : raw.slice(sep).replace(/^\r?\n\r?\n/, '');
-  var lines = head.replace(/\r\n/g,'\n').split('\n');
-  var joined = [], i;
+  var lines = head.replace(/\r\n/g,'\n').split('\n'), joined = [], i;
   for(i=0;i<lines.length;i++){
     if(/^[ \t]/.test(lines[i]) && joined.length) joined[joined.length-1] += ' ' + lines[i].replace(/^[ \t]+/,'');
     else joined.push(lines[i]);
@@ -252,26 +267,21 @@ function splitHeaders(raw){
   var h = {};
   for(i=0;i<joined.length;i++){
     var m = joined[i].match(/^([A-Za-z0-9\-_]+)\s*:\s*([\s\S]*)$/);
-    if(m){
-      var k = m[1].toLowerCase();
-      h[k] = h[k] ? (h[k] + ', ' + m[2]) : m[2];
-    }
+    if(m){ var k = m[1].toLowerCase(); h[k] = h[k] ? (h[k] + ', ' + m[2]) : m[2]; }
   }
   return {headers:h, body:body};
 }
 function paramOf(value, name){
   if(!value) return '';
-  var re = new RegExp(name + '\\s*=\\s*"([^"]*)"', 'i');
-  var m = value.match(re);
+  var m = value.match(new RegExp(name + '\\s*=\\s*"([^"]*)"','i'));
   if(m) return m[1];
-  m = value.match(new RegExp(name + "\\s*=\\s*([^;\\s]+)", 'i'));
+  m = value.match(new RegExp(name + "\\s*=\\s*([^;\\s]+)",'i'));
   return m ? m[1] : '';
 }
 function decodeBody(body, encoding, charset){
   var enc = (encoding||'').toLowerCase().trim();
   if(enc === 'base64') return decodeBytes(b64ToBytes(body), charset);
   if(enc === 'quoted-printable') return decodeBytes(qpToBytes(body), charset);
-  /* 8bit / 7bit / binary: bytes already came through as a JS string */
   if(charset && !/utf-?8/i.test(charset)){
     var bytes = new Uint8Array(body.length);
     for(var i=0;i<body.length;i++) bytes[i] = body.charCodeAt(i) & 0xff;
@@ -279,22 +289,18 @@ function decodeBody(body, encoding, charset){
   }
   return body;
 }
-/* Walk a MIME tree, collecting the best html/plain part plus attachment names */
 function walkPart(raw, out, depth){
   if(depth > 12) return;
-  var p = splitHeaders(raw);
-  var h = p.headers;
+  var p = splitHeaders(raw), h = p.headers;
   var ctype = h['content-type'] || 'text/plain';
   var mime = ctype.split(';')[0].trim().toLowerCase();
-  var enc = h['content-transfer-encoding'] || '';
-  var charset = paramOf(ctype, 'charset') || 'utf-8';
+  var charset = paramOf(ctype,'charset') || 'utf-8';
   var disp = h['content-disposition'] || '';
-
   if(/^multipart\//.test(mime)){
-    var b = paramOf(ctype, 'boundary');
-    if(!b){ return; }
-    var marker = '--' + b;
-    var chunks = p.body.split(new RegExp('^' + marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(--)?[ \t]*$', 'm'));
+    var b = paramOf(ctype,'boundary');
+    if(!b) return;
+    var marker = ('--' + b).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    var chunks = p.body.split(new RegExp('^' + marker + '(--)?[ \t]*$','m'));
     for(var i=1;i<chunks.length;i++){
       var c = chunks[i];
       if(!c || /^--/.test(c.trim())) continue;
@@ -303,36 +309,28 @@ function walkPart(raw, out, depth){
     return;
   }
   var filename = paramOf(disp,'filename') || paramOf(ctype,'name');
-  var isAttachment = /attachment/i.test(disp) || (!!filename && !/^text\/(plain|html)$/.test(mime));
-  if(isAttachment){
+  if(/attachment/i.test(disp) || (!!filename && !/^text\/(plain|html)$/.test(mime))){
     out.attachments.push(decodeWords(filename) || mime);
     return;
   }
-  var text = decodeBody(p.body, enc, charset);
+  var text = decodeBody(p.body, h['content-transfer-encoding'] || '', charset);
   if(mime === 'text/html'){ if(!out.html) out.html = text; }
   else if(mime === 'text/plain'){ if(!out.text) out.text = text; }
   else if(!out.text && !out.html){ out.text = text; }
 }
-function parseRfc822(raw){
-  var p = splitHeaders(raw);
-  var h = p.headers;
+function parseRfc822(raw, headersOnly){
+  var p = splitHeaders(raw), h = p.headers;
   var out = {html:'', text:'', attachments:[]};
-  try{ walkPart(raw, out, 0); }catch(e){ out.text = p.body; }
+  if(!headersOnly){ try{ walkPart(raw, out, 0); }catch(e){ out.text = p.body; } }
   return {
-    from: decodeWords(h.from || ''),
-    to: decodeWords(h.to || ''),
-    cc: decodeWords(h.cc || ''),
-    subject: decodeWords(h.subject || ''),
-    date: h.date || '',
-    html: out.html,
-    text: out.text || (out.html ? '' : p.body),
+    from: decodeWords(h.from || ''), to: decodeWords(h.to || ''), cc: decodeWords(h.cc || ''),
+    subject: decodeWords(h.subject || ''), date: h.date || '',
+    html: out.html, text: out.text || (out.html ? '' : (headersOnly ? p.body.slice(0, 4000) : p.body)),
     attachments: out.attachments
   };
 }
 
-/* ---------------- XML parsing ---------------- */
-/* Gmail/backup exports use many different tag names, so we look for anything
-   that reasonably represents a message and any child that looks like a field. */
+/* ---------------- XML field matching ---------------- */
 var FIELD_MAP = [
   ['subject',  /^(subject|title|subj|mailsubject|betreff)$/i],
   ['from',     /^(from|sender|fromaddress|from_address|sender_?name|author|mailfrom|fromname|fromemail)$/i],
@@ -375,23 +373,17 @@ function collectAttachments(el, msg, depth){
 function collectFields(el, msg, depth){
   if(depth > 6) return;
   for(var i=0;i<el.children.length;i++){
-    var c = el.children[i], name = localName(c);
-    var matched = false;
+    var c = el.children[i], name = localName(c), matched = false;
     for(var f=0;f<FIELD_MAP.length;f++){
-      var key = FIELD_MAP[f][0];
       if(FIELD_MAP[f][1].test(name)){
         var val = (c.children.length ? (c.textContent||'') : directText(c)).trim();
-        if(val && !msg[key]) msg[key] = val;
+        if(val && !msg[FIELD_MAP[f][0]]) msg[FIELD_MAP[f][0]] = val;
         matched = true; break;
       }
     }
-    if(/^(attachment|attachments|file|files)$/i.test(name)){
-      collectAttachments(c, msg, 0);
-      matched = true;
-    }
+    if(/^(attachment|attachments|file|files)$/i.test(name)){ collectAttachments(c, msg, 0); matched = true; }
     if(!matched && c.children.length) collectFields(c, msg, depth+1);
   }
-  /* attributes sometimes carry the fields instead of child elements */
   if(el.attributes){
     for(var a=0;a<el.attributes.length;a++){
       var at = el.attributes[a];
@@ -402,279 +394,612 @@ function collectFields(el, msg, depth){
     }
   }
 }
-function parseXml(str){
+function parseDoc(str){
   var doc = new DOMParser().parseFromString(str, 'application/xml');
   var perr = doc.getElementsByTagName('parsererror');
   if(perr && perr.length){
-    /* Try again as HTML, some exports are not well-formed */
-    doc = new DOMParser().parseFromString(str, 'text/html');
+    /* Fall back to the forgiving HTML parser for malformed or truncated XML.
+       Rename the tags HTML treats structurally first, or an export that keeps
+       its message text in <body> would lose it. */
+    var safe = str.replace(/<(\/?)body\b/gi, '<$1bodytext')
+                  .replace(/<(\/?)head\b/gi, '<$1headerblock')
+                  .replace(/<(\/?)html\b/gi, '<$1htmlwrap');
+    doc = new DOMParser().parseFromString(safe, 'text/html');
   }
-  var all = doc.getElementsByTagName('*');
-  var candidates = [], i;
-  for(i=0;i<all.length;i++){
-    if(all[i].children.length && looksLikeMessage(all[i])) candidates.push(all[i]);
-  }
-  /* Drop any candidate that merely contains other candidates (the wrapper) */
-  var keep = candidates.filter(function(el){
-    for(var j=0;j<candidates.length;j++){
-      if(candidates[j] !== el && el.contains(candidates[j])) return false;
-    }
+  return doc;
+}
+/* Trim a sliced record back to its own closing tag - the slice runs to the
+   start of the next record - so it parses as one balanced element. */
+function xmlRecord(str, tag){
+  if(!tag) return str;
+  var i = str.lastIndexOf('</' + tag);
+  if(i === -1) return str + '</' + tag + '>';
+  var j = str.indexOf('>', i);
+  return j === -1 ? str + '>' : str.slice(0, j + 1);
+}
+function messageElements(doc){
+  var all = doc.getElementsByTagName('*'), cand = [], i;
+  for(i=0;i<all.length;i++) if(all[i].children.length && looksLikeMessage(all[i])) cand.push(all[i]);
+  return cand.filter(function(el){
+    for(var j=0;j<cand.length;j++) if(cand[j] !== el && el.contains(cand[j])) return false;
     return true;
   });
-  var out = [];
-  for(i=0;i<keep.length;i++){
-    var m = {from:'',to:'',cc:'',subject:'',date:'',html:'',text:'',raw:'',attachments:[]};
-    collectFields(keep[i], m, 0);
-    if(m.raw && /^\s*[A-Za-z\-]+\s*:/.test(m.raw)){
-      var r = parseRfc822(m.raw);
-      ['from','to','cc','subject','date'].forEach(function(k){ if(!m[k]) m[k] = r[k]; });
-      if(!m.html) m.html = r.html;
-      if(!m.text) m.text = r.text;
-      m.attachments = m.attachments.concat(r.attachments);
+}
+function msgFromElement(el){
+  var m = {from:'',to:'',cc:'',subject:'',date:'',html:'',text:'',raw:'',attachments:[]};
+  collectFields(el, m, 0);
+  if(m.raw && /^\s*[A-Za-z\-]+\s*:/.test(m.raw)){
+    var r = parseRfc822(m.raw);
+    ['from','to','cc','subject','date'].forEach(function(k){ if(!m[k]) m[k] = r[k]; });
+    if(!m.html) m.html = r.html;
+    if(!m.text) m.text = r.text;
+    m.attachments = m.attachments.concat(r.attachments);
+  }
+  if(m.html && m.html.indexOf('<') === -1 && m.html.length > 80 && /^[A-Za-z0-9+/=\s]+$/.test(m.html)){
+    try{ m.html = decodeBytes(b64ToBytes(m.html),'utf-8'); }catch(e){}
+  }
+  ['from','to','cc','subject'].forEach(function(k){ if(m[k]) m[k] = decodeWords(m[k]); });
+  return m;
+}
+/* Indexing touches every record, so it pulls the few fields it needs with
+   plain text scanning. Building a DOM for each one is far heavier, and is
+   saved for the single message actually being opened. */
+function unescapeXml(v){
+  return String(v)
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"')
+    .replace(/&apos;/g,"'").replace(/&#(\d+);/g, function(_,d){ return String.fromCharCode(+d); })
+    .replace(/&amp;/g,'&')
+    .replace(/\s+/g,' ').trim();
+}
+var TAG_RE = /<([A-Za-z0-9_.:-]+)((?:"[^"]*"|'[^']*'|[^>"'])*)>([\s\S]*?)<\/\1\s*>/;
+var ATTR_RE = /([A-Za-z0-9_.:-]+)\s*=\s*"([^"]*)"/g;
+function fieldKey(name){
+  var n = name.replace(/^.*:/,'');
+  for(var f=0;f<FIELD_MAP.length;f++) if(FIELD_MAP[f][1].test(n)) return FIELD_MAP[f][0];
+  return '';
+}
+function scanFields(frag, tag){
+  var m = {from:'',to:'',cc:'',subject:'',date:'',html:'',text:'',raw:'',attachments:[]}, mm, k;
+  /* Drop the record's own wrapper first: <message> itself would otherwise
+     match a field name and swallow everything inside it. */
+  var open = frag.match(/^\s*<[A-Za-z0-9_.:-]+((?:"[^"]*"|'[^']*'|[^>"'])*)>/);
+  var inner = frag;
+  if(open){
+    inner = frag.slice(open[0].length);
+    var closeAt = tag ? inner.lastIndexOf('</' + tag) : -1;
+    if(closeAt !== -1) inner = inner.slice(0, closeAt);
+    if(open[1]){
+      ATTR_RE.lastIndex = 0;
+      while((mm = ATTR_RE.exec(open[1]))){
+        k = fieldKey(mm[1]);
+        if(k && !m[k]) m[k] = unescapeXml(mm[2]);
+      }
     }
-    if(m.html && /^[A-Za-z0-9+/=\s]+$/.test(m.html) && m.html.length > 80 && m.html.indexOf('<') === -1){
-      try{ m.html = decodeBytes(b64ToBytes(m.html), 'utf-8'); }catch(e){}
+  }
+  /* Walk nested elements too, so <headers><subject>..</subject></headers> works */
+  var queue = [inner], guard = 0;
+  while(queue.length && guard < 3000){
+    var str = queue.shift(), re = new RegExp(TAG_RE.source, 'g');
+    while((mm = re.exec(str)) && guard++ < 3000){
+      k = fieldKey(mm[1]);
+      if(k){ if(!m[k]) m[k] = unescapeXml(mm[3]).slice(0, 4000); }
+      else if(mm[3].indexOf('<') !== -1) queue.push(mm[3]);
     }
-    ['from','to','cc','subject'].forEach(function(k){ if(m[k]) m[k] = decodeWords(m[k]); });
-    if(!m.html && !m.text && !m.subject && !m.from) continue;
-    out.push(m);
+  }
+  if(m.raw && /^\s*[A-Za-z\-]+\s*:/.test(m.raw)){
+    var r = parseRfc822(m.raw, true);
+    ['from','to','cc','subject','date'].forEach(function(x){ if(!m[x]) m[x] = r[x]; });
+    if(!m.text) m.text = r.text;
+  }
+  ['from','to','cc','subject'].forEach(function(x){ if(m[x]) m[x] = decodeWords(m[x]); });
+  return m;
+}
+function parseXmlText(str){
+  var els = messageElements(parseDoc(str)), out = [];
+  for(var i=0;i<els.length;i++){
+    var m = msgFromElement(els[i]);
+    if(m.html || m.text || m.subject || m.from) out.push(m);
   }
   return out;
 }
 
-/* ---------------- mbox ---------------- */
-function parseMbox(str){
-  var parts = str.replace(/\r\n/g,'\n').split(/\n(?=From (?!:))/);
-  var out = [];
-  for(var i=0;i<parts.length;i++){
-    var raw = parts[i].replace(/^From [^\n]*\n/, '');
-    if(!/\n/.test(raw)) continue;
-    var m = parseRfc822(raw);
-    if(m.subject || m.from || m.text || m.html) out.push(m);
+/* ---------------- byte scanning ---------------- */
+function bytesOf(str, enc){
+  var i, c;
+  if(enc === 'utf-16le' || enc === 'utf-16be'){
+    var w = new Uint8Array(str.length * 2), le = (enc === 'utf-16le');
+    for(i=0;i<str.length;i++){
+      c = str.charCodeAt(i);
+      w[i*2 + (le?0:1)] = c & 0xff;
+      w[i*2 + (le?1:0)] = (c >> 8) & 0xff;
+    }
+    return w;
   }
+  var a = new Uint8Array(str.length);
+  for(i=0;i<str.length;i++) a[i] = str.charCodeAt(i) & 0xff;
+  return a;
+}
+function findAll(buf, pat, stopAfterFirstByte){
+  var res = [], n = buf.length, m = pat.length, i, j, p0 = pat[0];
+  for(i=0;i+m<=n;i++){
+    if(buf[i] !== p0) continue;
+    for(j=1;j<m && buf[i+j] === pat[j];j++);
+    if(j === m) res.push(i);
+  }
+  return res;
+}
+function concatBytes(a, b){
+  var out = new Uint8Array(a.length + b.length);
+  out.set(a,0); out.set(b,a.length);
   return out;
 }
+function readSlice(blob, off, end){
+  return blob.slice(off, end).arrayBuffer().then(function(ab){ return new Uint8Array(ab); });
+}
 
-/* ---------------- render ---------------- */
+/* ---------------- indexing ----------------
+   scanSource walks the blob once. `boundaries(buf, base)` returns the byte
+   offsets where a new message starts within this window; everything else is
+   bookkeeping to carry a partial message across window edges.              */
+function scanSource(si, onRecord, boundariesFor, tailLen, onProgress){
+  var blob = sources[si].blob, size = blob.size;
+  var pos = 0, tail = new Uint8Array(0), tailBase = 0;
+  var curOff = -1, headParts = [], headLen = 0;
+
+  function flush(endOff){
+    if(curOff >= 0 && endOff > curOff){
+      var head = headParts.length === 1 ? headParts[0] : (function(){
+        var out = new Uint8Array(headLen), o = 0;
+        headParts.forEach(function(p){ out.set(p,o); o += p.length; });
+        return out;
+      })();
+      onRecord(curOff, endOff, head);
+    }
+    /* Always reset: anything before the first record (an XML prolog, a mailbox
+       header) belongs to no message and must not be glued onto the next one. */
+    headParts = []; headLen = 0;
+  }
+  function take(buf, from, to){          /* keep the first HEAD_BYTES of a message */
+    if(headLen >= HEAD_BYTES || to <= from) return;
+    var want = Math.min(to - from, HEAD_BYTES - headLen);
+    headParts.push(buf.subarray(from, from + want));
+    headLen += want;
+  }
+
+  function step(){
+    if(pos >= size || cancelled){ flush(size); return Promise.resolve(); }
+    var to = Math.min(size, pos + CHUNK);
+    return readSlice(blob, pos, to).then(function(chunk){
+      var buf = tail.length ? concatBytes(tail, chunk) : chunk;
+      var base = tail.length ? tailBase : pos;
+      var bounds = boundariesFor(buf, base, pos === 0);
+      var cursor = 0, k;
+      for(k=0;k<bounds.length;k++){
+        var b = bounds[k] - base;               /* boundary, relative to buf */
+        if(b < cursor) continue;
+        take(buf, cursor, b);
+        flush(base + b);
+        curOff = base + b;
+        cursor = b;
+        if(index.length >= MAX_MSGS){ cancelled = true; break; }
+      }
+      var keep = Math.min(tailLen, buf.length - cursor);
+      var safeEnd = buf.length - keep;
+      take(buf, cursor, safeEnd);
+      tail = buf.subarray(safeEnd);
+      tailBase = base + safeEnd;
+      pos = to;
+      if(onProgress) onProgress(pos / size);
+      return idle().then(step);
+    });
+  }
+  return step().then(function(){ flush(size); });
+}
+
+/* ----- mbox ----- */
+function indexMbox(si, onProgress){
+  var enc = sources[si].enc;
+  var nlFrom = bytesOf('\nFrom ', enc), atFrom = bytesOf('From ', enc);
+  var step = (enc === 'utf-16le' || enc === 'utf-16be') ? 2 : 1;
+  return scanSource(si, function(off, end, head){
+    var raw = decodeBytes(head, enc).replace(/^From [^\n]*\n/, '');
+    var m = parseRfc822(raw, true);
+    /* a real message has at least one real header - this also stops binary
+       noise that happens to contain the letters "From " from being listed */
+    if(!m.subject && !m.from && !m.date) return;
+    pushEntry(si, off, end, m);
+  }, function(buf, base, atStart){
+    var res = [], i, j, ok;
+    if(atStart && buf.length > atFrom.length){
+      for(j=0, ok=1; j<atFrom.length; j++) if(buf[j] !== atFrom[j]){ ok = 0; break; }
+      if(ok) res.push(base);
+    }
+    var hits = findAll(buf, nlFrom);
+    for(i=0;i<hits.length;i++) res.push(base + hits[i] + step);
+    return res;
+  }, nlFrom.length, onProgress);
+}
+
+/* ----- xml ----- */
+function indexXml(si, tags, onProgress){
+  var enc = sources[si].enc;
+  var pats = tags.map(function(t){ return {tag:t, open:bytesOf('<' + t, enc)}; });
+  var tailLen = 2 + pats.reduce(function(n,p){ return Math.max(n, p.open.length + 3); }, 8);
+  var starts = {};   /* byte offset -> the tag that opens there */
+  return scanSource(si, function(off, end, head){
+    var tag = starts[off] || tags[0];
+    delete starts[off];
+    var m = scanFields(xmlRecord(decodeBytes(head, enc), tag), tag);
+    if(!m.subject && !m.from && !m.date && !m.text && !m.html) return;
+    pushEntry(si, off, end, m, tag);
+  }, function(buf, base){
+    var res = [], i, k;
+    for(k=0;k<pats.length;k++){
+      var hits = findAll(buf, pats[k].open);
+      for(i=0;i<hits.length;i++){
+        var after = buf[hits[i] + pats[k].open.length];
+        if(enc === 'utf-16be') after = buf[hits[i] + pats[k].open.length + 1];
+        /* a real opening tag only: <message>, <message ...> or <message/> */
+        if(after === 62 || after === 47 || after === 32 || after === 9 || after === 10 || after === 13){
+          var at = base + hits[i];
+          res.push(at);
+          starts[at] = pats[k].tag;
+        }
+      }
+    }
+    return pats.length > 1 ? res.sort(function(x,y){ return x - y; }) : res;
+  }, tailLen, onProgress);
+}
+
+function pushEntry(si, off, end, m, tag){
+  var snip = (m.text || stripToText(m.html || '')).replace(/\s+/g,' ').trim().slice(0, SNIP);
+  index.push({
+    s: si, off: off, end: end, tag: tag || '',
+    from: (m.from||'').slice(0,200), to: (m.to||'').slice(0,200),
+    subject: (m.subject||'').slice(0,300), date: (m.date||'').slice(0,60),
+    snip: snip, sort: sortKey(m.date),
+    q: ((m.from||'') + ' ' + (m.to||'') + ' ' + (m.subject||'') + ' ' + snip).toLowerCase()
+  });
+}
+
+/* ---------------- reading one message on demand ---------------- */
+function loadMessage(e){
+  var src = sources[e.s];
+  return readSlice(src.blob, e.off, e.end).then(function(bytes){
+    var str = decodeBytes(bytes, src.enc);
+    if(src.kind === 'xml'){
+      var list = parseXmlText(xmlRecord(str, e.tag || src.tag));
+      return list.length ? list[0] : {from:e.from,to:e.to,subject:e.subject,date:e.date,text:str.slice(0,200000),html:'',attachments:[]};
+    }
+    return parseRfc822(str.replace(/^From [^\n]*\n/, ''));
+  });
+}
+
+/* ---------------- rendering ---------------- */
 function shortFrom(s){
   if(!s) return '(unknown sender)';
   var m = s.match(/^\s*"?([^"<]*?)"?\s*<[^>]*>\s*$/);
   var n = m && m[1].trim() ? m[1].trim() : s.trim();
   return n.replace(/^</,'').replace(/>$/,'');
 }
-function renderList(){
+function renderList(reset){
+  if(reset) page = 0;
   var l = $('list');
   if(!shown.length){
     l.innerHTML = '<div class="empty">No emails match your search.</div>';
-    $('count').textContent = '0 of ' + messages.length + ' emails';
+    $('moreBtn').style.display = 'none';
+    $('count').textContent = '0 of ' + index.length + ' emails';
     return;
   }
-  var html = '';
-  for(var i=0;i<shown.length;i++){
+  var upto = Math.min(shown.length, (page + 1) * PAGE), html = '', i;
+  for(i=0;i<upto;i++){
     var m = shown[i];
-    html += '<div class="item' + (m === messages[selIdx] ? ' sel' : '') + '" data-i="' + i + '">' +
+    html += '<div class="item' + (m === sel ? ' sel' : '') + '" data-i="' + i + '">' +
       '<div class="from">' + esc(shortFrom(m.from)) + '</div>' +
       '<div class="subj">' + esc(m.subject || '(no subject)') + '</div>' +
-      '<div class="meta">' + esc(fmtDate(m.date)) + (m.attachments.length ? ' &middot; ' + m.attachments.length + ' attachment(s)' : '') + '</div>' +
-      '</div>';
+      '<div class="meta">' + esc(fmtDate(m.date)) + '</div></div>';
   }
   l.innerHTML = html;
-  $('count').textContent = shown.length + (shown.length === messages.length ? '' : ' of ' + messages.length) + ' email' + (messages.length === 1 ? '' : 's');
+  $('moreBtn').style.display = upto < shown.length ? 'block' : 'none';
+  $('moreBtn').textContent = 'Show more emails (' + (shown.length - upto).toLocaleString() + ' left)';
+  $('count').textContent = shown.length.toLocaleString() +
+    (shown.length === index.length ? '' : ' of ' + index.length.toLocaleString()) +
+    ' email' + (index.length === 1 ? '' : 's');
 }
-function openMsg(m){
-  selIdx = messages.indexOf(m);
+function openEntry(e){
+  sel = e;
   var r = $('reading');
-  var att = m.attachments.length
-    ? '<div class="attach">Attachments listed in this file: ' + m.attachments.map(function(a){ return '<span>' + esc(a) + '</span>'; }).join('') +
-      '<br>(The archive file may not include the actual attachment data.)</div>'
-    : '';
-  r.innerHTML =
-    '<div class="rhead">' +
-      '<h2>' + esc(m.subject || '(no subject)') + '</h2>' +
-      '<div class="row"><b>From:</b> ' + esc(m.from || '(unknown)') + '</div>' +
-      (m.to ? '<div class="row"><b>To:</b> ' + esc(m.to) + '</div>' : '') +
-      (m.cc ? '<div class="row"><b>Cc:</b> ' + esc(m.cc) + '</div>' : '') +
-      (m.date ? '<div class="row"><b>Date:</b> ' + esc(fmtDate(m.date)) + '</div>' : '') +
-    '</div>' +
-    '<div class="rbody"><iframe id="frame" sandbox="allow-same-origin" title="Email message"></iframe></div>' + att;
-
-  var bodyHtml = m.html ? m.html : textToHtml(m.text || '(This email has no message text.)');
-  var frame = document.getElementById('frame');
-  var doc = frame.contentDocument;
-  doc.open();
-  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8">' +
-    '<base target="_blank">' +
-    '<style>body{font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1b2733;margin:16px;' +
-    'word-wrap:break-word;overflow-wrap:break-word}img{max-width:100%;height:auto}' +
-    'table{max-width:100%}a{color:#0b57d0}</style></head><body>' + bodyHtml + '</body></html>');
-  doc.close();
-  /* strip anything executable that slipped through */
-  var kill = doc.querySelectorAll('script,iframe,object,embed,form,link');
-  for(var i=0;i<kill.length;i++) kill[i].parentNode.removeChild(kill[i]);
+  r.innerHTML = '<div class="empty">Opening&hellip;</div>';
   renderList();
+  loadMessage(e).then(function(m){
+    if(sel !== e) return;
+    var att = (m.attachments && m.attachments.length)
+      ? '<div class="attach">Attachments listed in this file: ' +
+        m.attachments.map(function(a){ return '<span>' + esc(a) + '</span>'; }).join('') +
+        '<br>(The archive file may not include the actual attachment data.)</div>' : '';
+    r.innerHTML =
+      '<div class="rhead"><h2>' + esc(m.subject || e.subject || '(no subject)') + '</h2>' +
+        '<div class="row"><b>From:</b> ' + esc(m.from || e.from || '(unknown)') + '</div>' +
+        ((m.to||e.to) ? '<div class="row"><b>To:</b> ' + esc(m.to || e.to) + '</div>' : '') +
+        (m.cc ? '<div class="row"><b>Cc:</b> ' + esc(m.cc) + '</div>' : '') +
+        ((m.date||e.date) ? '<div class="row"><b>Date:</b> ' + esc(fmtDate(m.date || e.date)) + '</div>' : '') +
+      '</div><div class="rbody"><iframe id="frame" sandbox="allow-same-origin" title="Email message"></iframe></div>' + att;
+    var doc = document.getElementById('frame').contentDocument;
+    doc.open();
+    doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><base target="_blank">' +
+      '<style>body{font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1b2733;margin:16px;' +
+      'word-wrap:break-word;overflow-wrap:break-word}img{max-width:100%;height:auto}table{max-width:100%}' +
+      'a{color:#0b57d0}</style></head><body>' +
+      (m.html ? m.html : textToHtml(m.text || '(This email has no message text.)')) +
+      '</body></html>');
+    doc.close();
+    var kill = doc.querySelectorAll('script,iframe,object,embed,form,link');
+    for(var i=0;i<kill.length;i++) kill[i].parentNode.removeChild(kill[i]);
+  }).catch(function(){
+    r.innerHTML = '<div class="empty">Sorry &mdash; this email could not be opened.</div>';
+  });
 }
 function applySearch(){
   var q = $('q').value.trim().toLowerCase();
-  shown = !q ? messages.slice() : messages.filter(function(m){
-    return m._search.indexOf(q) !== -1;
+  shown = !q ? index.slice() : index.filter(function(m){ return m.q.indexOf(q) !== -1; });
+  renderList(true);
+}
+
+/* ---------------- file handling ---------------- */
+var UNZIP_TIP = 'Try unzipping it first: on Windows right-click the file and choose ' +
+  '<b>Extract All</b>, on a Mac just double-click it. Then choose the <b>.xml</b> or ' +
+  '<b>.mbox</b> file that comes out.';
+var MAIL_EXT = /\.(xml|mbox|mbx|eml|txt)$/i;
+
+/* What kind of file is this, and how is its text encoded? A mail archive is
+   text; anything binary is something else wearing a mail-ish name, and reading
+   it as text produces pages of garbage rather than an honest error. */
+var BINARY_SIGS = [
+  {sig:[0x21,0x42,0x44,0x4e], what:'an Outlook data file (.pst or .ost)',
+   tip:'Outlook data files are not plain email archives. Ask Gmail for a new export in <b>MBOX</b> format, or open it in Outlook itself.'},
+  {sig:[0xd0,0xcf,0x11,0xe0], what:'an Outlook message or Office document (.msg / .doc)',
+   tip:'Save it from Outlook as <b>.eml</b> and try again.'},
+  {sig:[0x25,0x50,0x44,0x46], what:'a PDF',
+   tip:'That is a document, not an email archive.'},
+  {sig:[0x42,0x5a,0x68],      what:'a bzip2 compressed file',
+   tip:'Uncompress it first, then choose the file that comes out.'},
+  {sig:[0xfd,0x37,0x7a,0x58], what:'an xz compressed file',
+   tip:'Uncompress it first, then choose the file that comes out.'},
+  {sig:[0x37,0x7a,0xbc,0xaf], what:'a 7-Zip archive',
+   tip:'Unpack it with 7-Zip first, then choose the <b>.xml</b> or <b>.mbox</b> file inside.'},
+  {sig:[0x52,0x61,0x72,0x21], what:'a RAR archive',
+   tip:'Unpack it first, then choose the <b>.xml</b> or <b>.mbox</b> file inside.'}
+];
+function startsWith(bytes, sig){
+  for(var i=0;i<sig.length;i++) if(bytes[i] !== sig[i]) return false;
+  return true;
+}
+function detectEncoding(bytes){
+  if(bytes[0] === 0xff && bytes[1] === 0xfe) return {enc:'utf-16le', skip:2};
+  if(bytes[0] === 0xfe && bytes[1] === 0xff) return {enc:'utf-16be', skip:2};
+  if(bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return {enc:'utf-8', skip:3};
+  /* No BOM: UTF-16 text still shows as ASCII bytes padded with zeros, all on
+     the same side, which nothing else looks like. */
+  var n = Math.min(bytes.length, 4096), zeroEven = 0, zeroOdd = 0, i;
+  for(i=0;i<n;i++){ if(bytes[i] === 0){ if(i % 2) zeroOdd++; else zeroEven++; } }
+  if(zeroOdd > n/4 && zeroEven < n/50) return {enc:'utf-16le', skip:0};
+  if(zeroEven > n/4 && zeroOdd < n/50) return {enc:'utf-16be', skip:0};
+  return {enc:'utf-8', skip:0};
+}
+function looksBinary(bytes, enc){
+  if(enc !== 'utf-8') return false;          /* UTF-16 is text, zeros and all */
+  var n = Math.min(bytes.length, 8192), bad = 0, i, b;
+  for(i=0;i<n;i++){
+    b = bytes[i];
+    if(b === 0) return true;                 /* no NUL bytes in a mail file   */
+    if(b < 9 || (b > 13 && b < 32)) bad++;   /* stray control characters      */
+  }
+  return n > 0 && bad / n > 0.05;
+}
+function sniff(blob, name){
+  return blob.slice(0, 512 * 1024).arrayBuffer().then(function(ab){
+    var bytes = new Uint8Array(ab), i;
+    for(i=0;i<BINARY_SIGS.length;i++){
+      if(startsWith(bytes, BINARY_SIGS[i].sig)){
+        var e = new Error('<b>That file is ' + BINARY_SIGS[i].what + ', not an email archive.</b><br>' + BINARY_SIGS[i].tip);
+        e.fatal = true; throw e;
+      }
+    }
+    var det = detectEncoding(bytes);
+    if(looksBinary(bytes.subarray(det.skip), det.enc)){
+      var b = new Error('<b>That file is not readable as text.</b><br>' +
+        'It looks like a program file or a compressed archive rather than an email export. ' +
+        'If it came out of a backup tool, look for the <b>.xml</b>, <b>.mbox</b> or <b>.eml</b> ' +
+        'file it produced. If you are stuck, <a href="../coontact.html">contact CF the IT Guy</a> ' +
+        'and we will identify it for you.');
+      b.fatal = true; throw b;
+    }
+    var head = decodeBytes(bytes.subarray(det.skip), det.enc);
+    if(/\.xml$/i.test(name) || /^\s*<\?xml|^\s*<[A-Za-z]/.test(head)){
+      var els = messageElements(parseDoc(head)), tags = [], seen = {};
+      for(i=0;i<els.length;i++){
+        var t = localName(els[i]);
+        if(!t || seen[t.toLowerCase()]) continue;
+        seen[t.toLowerCase()] = 1;
+        /* recover the tag's real spelling and prefix as written in the file */
+        var re = new RegExp('<([A-Za-z0-9_.:-]*' + t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')[\\s/>]','i');
+        var m = head.match(re);
+        tags.push(m ? m[1] : t);
+      }
+      return {kind:'xml', enc:det.enc, tag: tags[0] || '', tags: tags};
+    }
+    return {kind:'mbox', enc:det.enc};
   });
-  renderList();
 }
-
-/* ---------------- load ---------------- */
-function finish(list, name){
-  if(!list.length){
-    showErr('<b>We could not find any emails in that file.</b><br>' +
-      'It may be a different kind of file, or the emails may be stored in a format this viewer does not recognise yet. ' +
-      'Try the file that ends in <b>.mbox</b> or <b>.eml</b> if you have one, and if you are stuck, ' +
-      '<a href="../coontact.html">contact CF the IT Guy</a> and we will take a look.');
-    return;
-  }
-  clearErr();
-  list.forEach(function(m){
-    m.attachments = m.attachments || [];
-    m._sort = sortKey(m.date);
-    m._search = ((m.from||'') + ' ' + (m.to||'') + ' ' + (m.subject||'') + ' ' +
-      (m.text || stripToText(m.html||''))).toLowerCase().slice(0, 20000);
+/* A .gz archive is unwrapped first, so a gzipped mbox just works. */
+function gunzipIfNeeded(blob, name){
+  return blob.slice(0, 3).arrayBuffer().then(function(ab){
+    var b = new Uint8Array(ab);
+    if(!(b[0] === 0x1f && b[1] === 0x8b)) return blob;
+    if(typeof DecompressionStream === 'undefined') return blob;
+    return new Response(blob.stream().pipeThrough(new DecompressionStream('gzip'))).blob();
+  }).catch(function(){ return blob; });
+}
+function addSource(blob, name){
+  return gunzipIfNeeded(blob, name).then(function(b){
+    return sniff(b, name).then(function(info){
+      if(info.kind === 'xml' && !info.tag) return null;
+      sources.push({blob:b, name:name, kind:info.kind, enc:info.enc || 'utf-8',
+                    tag:info.tag||'', tags:info.tags||[]});
+      return sources.length - 1;
+    });
   });
-  list.sort(function(a,b){ return b._sort - a._sort; });
-  messages = list; shown = list.slice(); selIdx = -1;
-  $('intro').style.display = 'none';
-  $('viewer').style.display = 'block';
-  document.title = name + ' — Email Viewer';
-  renderList();
-  openMsg(messages[0]);
-  window.scrollTo(0,0);
 }
-function parseText(str, name){
-  var head = str.slice(0, 4000);
-  var isXml = /\.xml$/i.test(name || '') || /^\s*<\?xml|^\s*</.test(head);
-  var list = [];
-  if(isXml) list = parseXml(str);
-  if(!list.length && /^From /m.test(head)) list = parseMbox(str);
-  if(!list.length && /^[A-Za-z\-]+\s*:/m.test(head)){
-    var one = parseRfc822(str);
-    if(one.subject || one.from) list = [one];
-  }
-  if(!list.length && !isXml) list = parseMbox(str);
-  return list;
+function indexSource(si, onProgress){
+  var s = sources[si];
+  return s.kind === 'xml' ? indexXml(si, s.tags && s.tags.length ? s.tags : [s.tag], onProgress)
+                          : indexMbox(si, onProgress);
 }
 
-/* ---------------- zip ---------------- */
-/* Minimal reader for the entries we care about. Uses the browser's own
-   DecompressionStream, so there is no library to download. */
-var MAIL_EXT = /\.(xml|mbox|mbx|eml|txt|msf?)$/i;
-
-function readU16(dv,o){ return dv.getUint16(o, true); }
-function readU32(dv,o){ return dv.getUint32(o, true); }
-
-function zipEntries(buf){
-  var dv = new DataView(buf), i;
-  /* find End Of Central Directory (scan back over the optional comment) */
-  var eocd = -1, min = Math.max(0, buf.byteLength - 66000);
-  for(i = buf.byteLength - 22; i >= min; i--){
-    if(readU32(dv,i) === 0x06054b50){ eocd = i; break; }
-  }
+function zipEocd(tail, tailBase, fileSize){
+  var dv = new DataView(tail), i;
+  var eocd = -1;
+  for(i = tail.byteLength - 22; i >= 0; i--) if(dv.getUint32(i,true) === 0x06054b50){ eocd = i; break; }
   if(eocd === -1) throw new Error('not-a-zip');
-  var count = readU16(dv, eocd + 10);
-  var start = readU32(dv, eocd + 16);
-  if(start === 0xffffffff) throw new Error('zip64');
-  var out = [], p = start;
-  for(i = 0; i < count && p + 46 <= buf.byteLength; i++){
-    if(readU32(dv,p) !== 0x02014b50) break;
-    var method = readU16(dv, p + 10);
-    var csize  = readU32(dv, p + 20);
-    var nlen   = readU16(dv, p + 28);
-    var elen   = readU16(dv, p + 30);
-    var clen   = readU16(dv, p + 32);
-    var lho    = readU32(dv, p + 42);
-    var name   = new TextDecoder('utf-8').decode(new Uint8Array(buf, p + 46, nlen));
-    out.push({name:name, method:method, csize:csize, lho:lho});
+  var count = dv.getUint16(eocd + 10, true);
+  var cdSize = dv.getUint32(eocd + 12, true);
+  var cdOff  = dv.getUint32(eocd + 16, true);
+  if(cdOff === 0xffffffff || cdSize === 0xffffffff || count === 0xffff) throw new Error('zip64');
+  return {count:count, off:cdOff, size:cdSize};
+}
+function zipCentral(buf, count){
+  /* buf holds the central directory only, so offsets here start at 0 */
+  var dv = new DataView(buf), out = [], p = 0, i;
+  for(i=0;i<count && p + 46 <= buf.byteLength;i++){
+    if(dv.getUint32(p,true) !== 0x02014b50) break;
+    var nlen = dv.getUint16(p+28,true), elen = dv.getUint16(p+30,true), clen = dv.getUint16(p+32,true);
+    out.push({
+      name: new TextDecoder('utf-8').decode(new Uint8Array(buf, p+46, nlen)),
+      method: dv.getUint16(p+10,true), csize: dv.getUint32(p+20,true), lho: dv.getUint32(p+42,true)
+    });
     p += 46 + nlen + elen + clen;
   }
   return out;
 }
-function zipEntryBytes(buf, e){
-  var dv = new DataView(buf);
-  if(readU32(dv, e.lho) !== 0x04034b50) throw new Error('bad-entry');
-  var nlen = readU16(dv, e.lho + 26), elen = readU16(dv, e.lho + 28);
-  var off = e.lho + 30 + nlen + elen;
-  var raw = new Uint8Array(buf, off, e.csize);
-  if(e.method === 0) return Promise.resolve(raw);
-  if(e.method !== 8) return Promise.reject(new Error('method-' + e.method));
-  if(typeof DecompressionStream === 'undefined') return Promise.reject(new Error('no-inflate'));
-  var ds = new DecompressionStream('deflate-raw');
-  var stream = new Blob([raw]).stream().pipeThrough(ds);
-  return new Response(stream).arrayBuffer().then(function(ab){ return new Uint8Array(ab); });
-}
-function handleZip(buf, fileName){
-  var entries;
-  try{ entries = zipEntries(buf); }
-  catch(e){
-    setDropLabel();
-    if(e.message === 'zip64') return showErr('<b>That zip file is too large for this viewer to open.</b><br>' + UNZIP_TIP);
-    return showErr('<b>We could not read that zip file.</b><br>' + UNZIP_TIP);
-  }
-  var mail = entries.filter(function(e){
-    return !/\/$/.test(e.name) && !/(^|\/)__MACOSX\//.test(e.name) &&
-           !/(^|\/)\./.test(e.name) && MAIL_EXT.test(e.name);
+function zipEntryBlob(file, e){
+  /* read only this entry's bytes, and inflate straight into a Blob so the
+     decompressed mail never has to exist as one giant string */
+  return file.slice(e.lho, e.lho + 30).arrayBuffer().then(function(ab){
+    var dv = new DataView(ab);
+    if(dv.getUint32(0,true) !== 0x04034b50) throw new Error('bad-entry');
+    var off = e.lho + 30 + dv.getUint16(26,true) + dv.getUint16(28,true);
+    var raw = file.slice(off, off + e.csize);
+    if(e.method === 0) return raw;
+    if(e.method !== 8) throw new Error('method');
+    if(typeof DecompressionStream === 'undefined') throw new Error('no-inflate');
+    return new Response(raw.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
   });
-  if(!mail.length){
-    setDropLabel();
-    return showErr('<b>That zip file does not seem to contain any email files.</b><br>' +
-      'We looked for files ending in .xml, .mbox or .eml inside it and found ' +
-      (entries.length ? 'only other kinds of files.' : 'nothing.') + '<br>' + UNZIP_TIP);
-  }
-  var all = [], failed = [];
-  var chain = Promise.resolve();
-  mail.forEach(function(e){
-    chain = chain.then(function(){
-      return zipEntryBytes(buf, e).then(function(bytes){
-        all = all.concat(parseText(decodeBytes(bytes, 'utf-8'), e.name));
-      }).catch(function(){ failed.push(e.name); });
-    });
-  });
-  chain.then(function(){
-    setDropLabel();
-    if(!all.length && failed.length){
-      return showErr('<b>We found email files inside the zip but could not unpack them.</b><br>' + UNZIP_TIP);
-    }
-    finish(all, fileName);
-  });
-}
-
-var UNZIP_TIP = 'Try unzipping it first: on Windows right-click the file and choose ' +
-  '<b>Extract All</b>, on a Mac just double-click it. Then choose the <b>.xml</b> or ' +
-  '<b>.mbox</b> file that comes out.';
-
-function setDropLabel(txt){
-  $('drop').querySelector('.big').textContent = txt || 'Click here to choose your email file';
 }
 
 function handleFile(file){
   if(!file) return;
   clearErr();
-  setDropLabel('Opening ' + file.name + '…');
-  var isZip = /\.zip$/i.test(file.name) || file.type === 'application/zip';
-  var reader = new FileReader();
-  reader.onerror = function(){
-    setDropLabel();
-    showErr('We could not read that file. Please try choosing it again.');
-  };
-  reader.onload = function(){
-    if(isZip){
-      try{ handleZip(reader.result, file.name); }
-      catch(e){ setDropLabel(); showErr('Something went wrong while opening that zip file. ' + UNZIP_TIP); }
-      return;
-    }
-    var list = [];
-    try{ list = parseText(reader.result, file.name); }
-    catch(e){ showErr('Something went wrong while reading that file: ' + esc(e.message)); }
-    setDropLabel();
-    finish(list, file.name);
-  };
-  if(isZip) reader.readAsArrayBuffer(file);
-  else reader.readAsText(file, 'utf-8');
+  cancelled = false;
+  sources = []; index = []; shown = []; sel = null; page = 0;
+  setProgress(true, 2, 'Reading <b>' + esc(file.name) + '</b>&hellip;');
+  /* Judge by content, not by the file name - a zip renamed to .xml is common */
+  file.slice(0, 4).arrayBuffer().then(function(ab){
+    var b = new Uint8Array(ab);
+    openFile(file, b[0] === 0x50 && b[1] === 0x4b && (b[2] === 3 || b[2] === 5 || b[2] === 7));
+  }, function(){ openFile(file, /\.zip$/i.test(file.name)); });
+}
+
+function openFile(file, isZip){
+  var prep;
+  if(isZip){
+    var tailBase = Math.max(0, file.size - 66000);
+    prep = file.slice(tailBase).arrayBuffer().then(function(tailAb){
+      /* the central directory lives at the end of a zip, so only the tail and
+         the directory itself are read - never the whole archive */
+      var eo;
+      try{ eo = zipEocd(tailAb, tailBase, file.size); }
+      catch(e){
+        if(e.message === 'zip64') throw new Error('<b>That zip file is too large for this viewer to open.</b><br>' + UNZIP_TIP);
+        throw new Error('<b>We could not read that zip file.</b><br>' + UNZIP_TIP);
+      }
+      return file.slice(eo.off, eo.off + eo.size).arrayBuffer().then(function(cdAb){
+        return zipCentral(cdAb, eo.count);
+      });
+    }).then(function(entries){
+      var mail = entries.filter(function(e){
+        return !/\/$/.test(e.name) && !/(^|\/)__MACOSX\//.test(e.name) &&
+               !/(^|\/)\./.test(e.name) && MAIL_EXT.test(e.name);
+      });
+      if(!mail.length) throw new Error('<b>That zip file does not seem to contain any email files.</b><br>' +
+        'We looked inside for files ending in .xml, .mbox or .eml and did not find any.<br>' + UNZIP_TIP);
+      var chain = Promise.resolve(), added = 0;
+      mail.forEach(function(e){
+        chain = chain.then(function(){
+          setProgress(true, 5, 'Unpacking <b>' + esc(e.name) + '</b>&hellip;');
+          return zipEntryBlob(file, e).then(function(blob){
+            return addSource(blob, e.name).then(function(si){ if(si != null) added++; });
+          }).catch(function(){});
+        });
+      });
+      return chain.then(function(){
+        if(!added) throw new Error('<b>We found email files inside the zip but could not unpack them.</b><br>' + UNZIP_TIP);
+      });
+    });
+  }else{
+    prep = addSource(file, file.name).then(function(si){
+      if(si == null) throw new Error('unrecognised');
+    });
+  }
+
+  prep.then(function(){
+    var chain = Promise.resolve();
+    sources.forEach(function(s, si){
+      chain = chain.then(function(){
+        return indexSource(si, function(frac){
+          var pct = ((si + frac) / sources.length) * 100;
+          setProgress(true, pct, 'Finding your emails&hellip; <b>' + index.length.toLocaleString() +
+            '</b> found so far (' + Math.round(pct) + '%)');
+        });
+      });
+    });
+    return chain;
+  }).then(function(){
+    setProgress(false);
+    finish(file.name);
+  }).catch(function(err){
+    setProgress(false);
+    var msg = err && err.message ? err.message : '';
+    if(msg && msg !== 'unrecognised' && msg.indexOf('<b>') === 0) showErr(msg);
+    else showErr('<b>We could not find any emails in that file.</b><br>' +
+      'It may be a different kind of file, or the emails may be stored in a format this viewer ' +
+      'does not recognise yet. If you are stuck, <a href="../coontact.html">contact CF the IT Guy</a> ' +
+      'and we will take a look.');
+  });
+}
+
+function finish(name){
+  if(!index.length){
+    showErr('<b>We could not find any emails in that file.</b><br>' +
+      'It may be a different kind of file, or the emails may be stored in a format this viewer ' +
+      'does not recognise yet. If you are stuck, <a href="../coontact.html">contact CF the IT Guy</a> ' +
+      'and we will take a look.');
+    return;
+  }
+  clearErr();
+  index.sort(function(a,b){ return b.sort - a.sort; });
+  shown = index.slice();
+  $('intro').style.display = 'none';
+  $('viewer').style.display = 'block';
+  document.title = name + ' — Email Viewer';
+  if(cancelled){
+    showErr('This file holds more than ' + MAX_MSGS.toLocaleString() +
+      ' emails, so only the first ' + MAX_MSGS.toLocaleString() + ' were loaded.');
+  }
+  renderList(true);
+  openEntry(index[0]);
+  window.scrollTo(0,0);
 }
 
 /* ---------------- wiring ---------------- */
@@ -696,8 +1021,9 @@ window.addEventListener('drop', function(e){ e.preventDefault(); });
 
 $('list').addEventListener('click', function(e){
   var item = e.target.closest ? e.target.closest('.item') : null;
-  if(item) openMsg(shown[Number(item.getAttribute('data-i'))]);
+  if(item) openEntry(shown[Number(item.getAttribute('data-i'))]);
 });
+$('moreBtn').addEventListener('click', function(){ page++; renderList(); });
 $('q').addEventListener('input', applySearch);
 $('printBtn').addEventListener('click', function(){
   var f = document.getElementById('frame');
@@ -706,7 +1032,9 @@ $('printBtn').addEventListener('click', function(){
 });
 $('newBtn').addEventListener('click', function(){
   fileInput.value = '';
-  messages = []; shown = []; selIdx = -1;
+  cancelled = true;
+  sources = []; index = []; shown = []; sel = null; page = 0;
+  clearErr();
   $('viewer').style.display = 'none';
   $('intro').style.display = 'block';
   document.title = 'Email Viewer — Open Archived Gmail Files';
