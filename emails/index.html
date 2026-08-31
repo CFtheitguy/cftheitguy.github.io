@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email Viewer &mdash; Open Archived Gmail Files</title>
+<meta name="description" content="Open an archived email file (XML, MBOX or EML) right in your browser and read your old emails. Nothing is uploaded &mdash; everything stays on your computer.">
+<link rel="icon" href="../favicon.png">
+<style>
+  :root{
+    --navy:#002244; --blue:#5595d4; --orange:#ff6600;
+    --line:#dfe5ec; --ink:#1b2733; --muted:#5b6b7c; --bg:#f2f5f9;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg)}
+  header{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;
+    padding:10px 20px;gap:12px;flex-wrap:wrap}
+  header .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff}
+  header .brand img{height:42px}
+  header .brand span{font-weight:bold;font-size:18px}
+  header nav a{color:#fff;text-decoration:none;font-weight:bold;margin-left:15px}
+  footer{background:var(--navy);color:#fff;text-align:center;padding:14px 10px;font-size:13px}
+  footer a{color:#9ecbff}
+
+  .wrap{max-width:1200px;margin:0 auto;padding:20px}
+
+  /* ---- Drop / intro screen ---- */
+  #intro h1{margin:10px 0 6px;font-size:28px;color:var(--navy)}
+  #intro p.lead{margin:0 0 20px;color:var(--muted);font-size:16px;line-height:1.5}
+  .drop{background:#fff;border:3px dashed var(--blue);border-radius:12px;padding:44px 20px;text-align:center;
+    cursor:pointer;transition:background .2s,border-color .2s}
+  .drop:hover,.drop.over{background:#eaf3fd;border-color:var(--orange)}
+  .drop .big{font-size:20px;font-weight:bold;color:var(--navy);margin-bottom:8px}
+  .drop .small{color:var(--muted);font-size:14px}
+  .btn{display:inline-block;background:var(--orange);color:#fff;border:0;border-radius:6px;padding:11px 22px;
+    font-size:16px;font-weight:bold;cursor:pointer;text-decoration:none;margin-top:16px}
+  .btn:hover{background:#cc5200}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--line);font-weight:bold}
+  .btn.ghost:hover{background:#eef3f8}
+  .note{margin-top:18px;background:#fff;border-left:5px solid var(--blue);border-radius:6px;padding:14px 16px;
+    font-size:14px;color:var(--muted);line-height:1.55}
+  .note b{color:var(--ink)}
+  .steps{margin:22px 0 0;padding:0;list-style:none;display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .steps li{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.5}
+  .steps li b{display:block;color:var(--navy);margin-bottom:4px;font-size:15px}
+
+  /* ---- Viewer ---- */
+  #viewer{display:none}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .toolbar input[type=search]{flex:1 1 260px;min-width:180px;padding:10px 12px;border:1px solid var(--line);
+    border-radius:6px;font-size:15px}
+  .toolbar .count{color:var(--muted);font-size:14px;white-space:nowrap}
+  .panes{display:grid;grid-template-columns:minmax(280px,380px) 1fr;gap:14px;align-items:start}
+  .list{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:74vh;overflow-y:auto}
+  .item{padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+  .item:hover{background:#f5f9ff}
+  .item.sel{background:#e7f0fb;border-left:4px solid var(--orange);padding-left:10px}
+  .item .from{font-weight:bold;font-size:14px;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .subj{font-size:14px;margin:2px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .meta{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .reading{background:#fff;border:1px solid var(--line);border-radius:10px;min-height:400px;display:flex;flex-direction:column}
+  .rhead{padding:16px 18px;border-bottom:1px solid var(--line)}
+  .rhead h2{margin:0 0 10px;font-size:20px;color:var(--navy);word-wrap:break-word}
+  .rhead .row{font-size:14px;color:var(--muted);margin:3px 0;word-wrap:break-word}
+  .rhead .row b{color:var(--ink)}
+  .rbody{flex:1;min-height:340px}
+  .rbody iframe{width:100%;height:60vh;border:0;background:#fff}
+  .empty{padding:60px 20px;text-align:center;color:var(--muted)}
+  .attach{padding:10px 18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+  .attach span{display:inline-block;background:#eef3f8;border-radius:4px;padding:3px 8px;margin:3px 6px 3px 0}
+  .err{background:#fdecea;border-left:5px solid #d93025;color:#8a1c14;padding:14px 16px;border-radius:6px;
+    margin-top:16px;font-size:14px;line-height:1.5;display:none}
+  .bar{display:flex;gap:8px;flex-wrap:wrap}
+  @media (max-width:820px){
+    .panes{grid-template-columns:1fr}
+    .list{max-height:38vh}
+    .rbody iframe{height:52vh}
+  }
+  @media print{
+    header,footer,.toolbar,.list,.bar{display:none!important}
+    .panes{display:block}
+    .reading{border:0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="../index.html">
+    <img src="../logo.png" alt="CF the IT Guy logo" onerror="this.style.display='none'">
+    <span>Email Viewer</span>
+  </a>
+  <nav><a href="../index.html">Home</a></nav>
+</header>
+
+<div class="wrap">
+
+  <!-- ================= INTRO ================= -->
+  <section id="intro">
+    <h1>Read your archived emails</h1>
+    <p class="lead">Pick the file Gmail gave you and your old emails show up here, like a normal inbox.
+      No email program to install, no account to set up.</p>
+
+    <div class="drop" id="drop">
+      <div class="big">Click here to choose your email file</div>
+      <div class="small">&hellip;or drag the file onto this box</div>
+      <div class="small" style="margin-top:10px">Works with <b>.xml</b>, <b>.mbox</b>, <b>.eml</b> and <b>.txt</b> email files</div>
+      <button class="btn" type="button" id="pickBtn">Choose file</button>
+      <input type="file" id="file" accept=".xml,.mbox,.eml,.mbx,.txt,text/xml,application/xml,message/rfc822" hidden>
+    </div>
+
+    <div class="err" id="err"></div>
+
+    <div class="note">
+      <b>Your emails stay private.</b> This page opens the file directly inside your own browser.
+      Nothing is sent to us or to any website &mdash; you can even turn off your internet and it still works.
+    </div>
+
+    <ul class="steps">
+      <li><b>1. Find the file</b> It is usually in your Downloads folder, from Google Takeout or an archive program.</li>
+      <li><b>2. Open it here</b> Choose it above and wait a moment while it loads.</li>
+      <li><b>3. Read &amp; search</b> Click any email to read it. Use the search box to find one, and Print to save it as a PDF.</li>
+    </ul>
+  </section>
+
+  <!-- ================= VIEWER ================= -->
+  <section id="viewer">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search sender, subject or message text&hellip;">
+      <span class="count" id="count"></span>
+      <div class="bar">
+        <button class="btn ghost" type="button" id="printBtn">Print / Save PDF</button>
+        <button class="btn ghost" type="button" id="newBtn">Open another file</button>
+      </div>
+    </div>
+    <div class="panes">
+      <div class="list" id="list"></div>
+      <div class="reading" id="reading">
+        <div class="empty">Select an email on the left to read it.</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  &copy; <span id="yr"></span> CF the IT Guy &middot; <a href="../index.html">cftheitguy.com</a>
+</footer>
+
+<script>
+(function(){
+"use strict";
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+var $ = function(id){ return document.getElementById(id); };
+var messages = [], shown = [], selIdx = -1;
+
+/* ---------------- helpers ---------------- */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function showErr(msg){ var e = $('err'); e.innerHTML = msg; e.style.display = 'block'; }
+function clearErr(){ $('err').style.display = 'none'; }
+
+/* Decode RFC 2047 encoded words:  =?utf-8?B?....?=  */
+function decodeWords(s){
+  if(!s || s.indexOf('=?') === -1) return s || '';
+  return s.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, function(_, cs, enc, txt){
+    try{
+      var bytes;
+      if(enc.toUpperCase() === 'B'){
+        bytes = b64ToBytes(txt);
+      }else{
+        var t = txt.replace(/_/g,' ');
+        bytes = qpToBytes(t);
+      }
+      return decodeBytes(bytes, cs);
+    }catch(e){ return txt; }
+  }).replace(/\?=\s+=\?/g,'?==?');
+}
+function b64ToBytes(str){
+  var clean = String(str).replace(/[^A-Za-z0-9+/=]/g,'');
+  var bin = atob(clean);
+  var out = new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function qpToBytes(str){
+  var s = String(str).replace(/=\r?\n/g,'');
+  var out = [], i = 0;
+  while(i < s.length){
+    var c = s.charAt(i);
+    if(c === '=' && /^[0-9A-Fa-f]{2}$/.test(s.substr(i+1,2))){
+      out.push(parseInt(s.substr(i+1,2),16)); i += 3;
+    }else{ out.push(s.charCodeAt(i) & 0xff); i++; }
+  }
+  return new Uint8Array(out);
+}
+function decodeBytes(bytes, charset){
+  var cs = (charset||'utf-8').toLowerCase().replace(/['"]/g,'');
+  if(cs === 'us-ascii' || cs === 'ascii') cs = 'utf-8';
+  try{ return new TextDecoder(cs, {fatal:false}).decode(bytes); }
+  catch(e){
+    try{ return new TextDecoder('utf-8', {fatal:false}).decode(bytes); }
+    catch(e2){
+      var s = ''; for(var i=0;i<bytes.length;i++) s += String.fromCharCode(bytes[i]);
+      return s;
+    }
+  }
+}
+function textToHtml(t){
+  var h = esc(t).replace(/\r\n|\r/g,'\n');
+  h = h.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  return '<pre style="white-space:pre-wrap;word-wrap:break-word;font-family:Arial,Helvetica,sans-serif;font-size:14px;margin:0">' + h + '</pre>';
+}
+function stripToText(html){
+  var d = document.createElement('div');
+  d.innerHTML = String(html).replace(/<(script|style)[\s\S]*?<\/\1>/gi,' ');
+  return (d.textContent || '').replace(/\s+/g,' ').trim();
+}
+function fmtDate(raw){
+  if(!raw) return '';
+  var d = new Date(raw);
+  if(isNaN(d.getTime())){
+    var n = Number(raw);
+    if(n > 1e12) d = new Date(n);
+    else if(n > 1e9) d = new Date(n*1000);
+  }
+  if(isNaN(d.getTime())) return String(raw);
+  return d.toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function sortKey(raw){
+  var d = new Date(raw); if(!isNaN(d.getTime())) return d.getTime();
+  var n = Number(raw); if(n > 1e12) return n; if(n > 1e9) return n*1000;
+  return 0;
+}
+
+/* ---------------- RFC822 message parsing (mbox / eml / embedded) -------------- */
+function splitHeaders(raw){
+  var sep = raw.search(/\r?\n\r?\n/);
+  var head = sep === -1 ? raw : raw.slice(0, sep);
+  var body = sep === -1 ? '' : raw.slice(sep).replace(/^\r?\n\r?\n/, '');
+  var lines = head.replace(/\r\n/g,'\n').split('\n');
+  var joined = [], i;
+  for(i=0;i<lines.length;i++){
+    if(/^[ \t]/.test(lines[i]) && joined.length) joined[joined.length-1] += ' ' + lines[i].replace(/^[ \t]+/,'');
+    else joined.push(lines[i]);
+  }
+  var h = {};
+  for(i=0;i<joined.length;i++){
+    var m = joined[i].match(/^([A-Za-z0-9\-_]+)\s*:\s*([\s\S]*)$/);
+    if(m){
+      var k = m[1].toLowerCase();
+      h[k] = h[k] ? (h[k] + ', ' + m[2]) : m[2];
+    }
+  }
+  return {headers:h, body:body};
+}
+function paramOf(value, name){
+  if(!value) return '';
+  var re = new RegExp(name + '\\s*=\\s*"([^"]*)"', 'i');
+  var m = value.match(re);
+  if(m) return m[1];
+  m = value.match(new RegExp(name + "\\s*=\\s*([^;\\s]+)", 'i'));
+  return m ? m[1] : '';
+}
+function decodeBody(body, encoding, charset){
+  var enc = (encoding||'').toLowerCase().trim();
+  if(enc === 'base64') return decodeBytes(b64ToBytes(body), charset);
+  if(enc === 'quoted-printable') return decodeBytes(qpToBytes(body), charset);
+  /* 8bit / 7bit / binary: bytes already came through as a JS string */
+  if(charset && !/utf-?8/i.test(charset)){
+    var bytes = new Uint8Array(body.length);
+    for(var i=0;i<body.length;i++) bytes[i] = body.charCodeAt(i) & 0xff;
+    return decodeBytes(bytes, charset);
+  }
+  return body;
+}
+/* Walk a MIME tree, collecting the best html/plain part plus attachment names */
+function walkPart(raw, out, depth){
+  if(depth > 12) return;
+  var p = splitHeaders(raw);
+  var h = p.headers;
+  var ctype = h['content-type'] || 'text/plain';
+  var mime = ctype.split(';')[0].trim().toLowerCase();
+  var enc = h['content-transfer-encoding'] || '';
+  var charset = paramOf(ctype, 'charset') || 'utf-8';
+  var disp = h['content-disposition'] || '';
+
+  if(/^multipart\//.test(mime)){
+    var b = paramOf(ctype, 'boundary');
+    if(!b){ return; }
+    var marker = '--' + b;
+    var chunks = p.body.split(new RegExp('^' + marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(--)?[ \t]*$', 'm'));
+    for(var i=1;i<chunks.length;i++){
+      var c = chunks[i];
+      if(!c || /^--/.test(c.trim())) continue;
+      walkPart(c.replace(/^\r?\n/,''), out, depth+1);
+    }
+    return;
+  }
+  var filename = paramOf(disp,'filename') || paramOf(ctype,'name');
+  var isAttachment = /attachment/i.test(disp) || (!!filename && !/^text\/(plain|html)$/.test(mime));
+  if(isAttachment){
+    out.attachments.push(decodeWords(filename) || mime);
+    return;
+  }
+  var text = decodeBody(p.body, enc, charset);
+  if(mime === 'text/html'){ if(!out.html) out.html = text; }
+  else if(mime === 'text/plain'){ if(!out.text) out.text = text; }
+  else if(!out.text && !out.html){ out.text = text; }
+}
+function parseRfc822(raw){
+  var p = splitHeaders(raw);
+  var h = p.headers;
+  var out = {html:'', text:'', attachments:[]};
+  try{ walkPart(raw, out, 0); }catch(e){ out.text = p.body; }
+  return {
+    from: decodeWords(h.from || ''),
+    to: decodeWords(h.to || ''),
+    cc: decodeWords(h.cc || ''),
+    subject: decodeWords(h.subject || ''),
+    date: h.date || '',
+    html: out.html,
+    text: out.text || (out.html ? '' : p.body),
+    attachments: out.attachments
+  };
+}
+
+/* ---------------- XML parsing ---------------- */
+/* Gmail/backup exports use many different tag names, so we look for anything
+   that reasonably represents a message and any child that looks like a field. */
+var FIELD_MAP = [
+  ['subject',  /^(subject|title|subj|mailsubject|betreff)$/i],
+  ['from',     /^(from|sender|fromaddress|from_address|sender_?name|author|mailfrom|fromname|fromemail)$/i],
+  ['to',       /^(to|recipient|recipients|toaddress|to_address|mailto|receiver|torecipients)$/i],
+  ['cc',       /^(cc|carboncopy|cc_?address)$/i],
+  ['date',     /^(date|sent|senton|datetime|received|receiveddate|timestamp|time|createdtime|internaldate|creationtime)$/i],
+  ['html',     /^(htmlbody|bodyhtml|html|htmlcontent|body_?html|messagehtml)$/i],
+  ['text',     /^(body|text|bodytext|textbody|content|message|messagebody|plaintext|snippet|description|bodypreview|textcontent)$/i],
+  ['raw',      /^(raw|rawmessage|rfc822|source|mime|eml|rawcontent|rawheaders)$/i]
+];
+var MSG_TAG = /^(message|mail|email|e-mail|item|entry|msg|record|row|note)$/i;
+
+function localName(el){ return (el.localName || el.nodeName || '').replace(/^.*:/,''); }
+function directText(el){
+  var s = '';
+  for(var i=0;i<el.childNodes.length;i++){
+    var n = el.childNodes[i];
+    if(n.nodeType === 3 || n.nodeType === 4) s += n.nodeValue;
+  }
+  return s;
+}
+function looksLikeMessage(el){
+  if(MSG_TAG.test(localName(el))) return true;
+  var hits = 0, seen = {};
+  for(var i=0;i<el.children.length;i++){
+    var n = localName(el.children[i]);
+    for(var f=0;f<FIELD_MAP.length;f++){
+      if(FIELD_MAP[f][1].test(n) && !seen[FIELD_MAP[f][0]]){ seen[FIELD_MAP[f][0]] = 1; hits++; }
+    }
+  }
+  return hits >= 2;
+}
+function collectAttachments(el, msg, depth){
+  if(depth > 4 || msg.attachments.length > 40) return;
+  var fn = el.getAttribute && (el.getAttribute('name') || el.getAttribute('filename') || el.getAttribute('fileName'));
+  if(!fn && !el.children.length) fn = (el.textContent||'').trim();
+  if(fn) msg.attachments.push(decodeWords(String(fn).slice(0,120)));
+  for(var i=0;i<el.children.length;i++) collectAttachments(el.children[i], msg, depth+1);
+}
+function collectFields(el, msg, depth){
+  if(depth > 6) return;
+  for(var i=0;i<el.children.length;i++){
+    var c = el.children[i], name = localName(c);
+    var matched = false;
+    for(var f=0;f<FIELD_MAP.length;f++){
+      var key = FIELD_MAP[f][0];
+      if(FIELD_MAP[f][1].test(name)){
+        var val = (c.children.length ? (c.textContent||'') : directText(c)).trim();
+        if(val && !msg[key]) msg[key] = val;
+        matched = true; break;
+      }
+    }
+    if(/^(attachment|attachments|file|files)$/i.test(name)){
+      collectAttachments(c, msg, 0);
+      matched = true;
+    }
+    if(!matched && c.children.length) collectFields(c, msg, depth+1);
+  }
+  /* attributes sometimes carry the fields instead of child elements */
+  if(el.attributes){
+    for(var a=0;a<el.attributes.length;a++){
+      var at = el.attributes[a];
+      for(var g=0;g<FIELD_MAP.length;g++){
+        var k = FIELD_MAP[g][0];
+        if(FIELD_MAP[g][1].test(at.name.replace(/^.*:/,'')) && !msg[k] && at.value) msg[k] = at.value;
+      }
+    }
+  }
+}
+function parseXml(str){
+  var doc = new DOMParser().parseFromString(str, 'application/xml');
+  var perr = doc.getElementsByTagName('parsererror');
+  if(perr && perr.length){
+    /* Try again as HTML, some exports are not well-formed */
+    doc = new DOMParser().parseFromString(str, 'text/html');
+  }
+  var all = doc.getElementsByTagName('*');
+  var candidates = [], i;
+  for(i=0;i<all.length;i++){
+    if(all[i].children.length && looksLikeMessage(all[i])) candidates.push(all[i]);
+  }
+  /* Drop any candidate that merely contains other candidates (the wrapper) */
+  var keep = candidates.filter(function(el){
+    for(var j=0;j<candidates.length;j++){
+      if(candidates[j] !== el && el.contains(candidates[j])) return false;
+    }
+    return true;
+  });
+  var out = [];
+  for(i=0;i<keep.length;i++){
+    var m = {from:'',to:'',cc:'',subject:'',date:'',html:'',text:'',raw:'',attachments:[]};
+    collectFields(keep[i], m, 0);
+    if(m.raw && /^\s*[A-Za-z\-]+\s*:/.test(m.raw)){
+      var r = parseRfc822(m.raw);
+      ['from','to','cc','subject','date'].forEach(function(k){ if(!m[k]) m[k] = r[k]; });
+      if(!m.html) m.html = r.html;
+      if(!m.text) m.text = r.text;
+      m.attachments = m.attachments.concat(r.attachments);
+    }
+    if(m.html && /^[A-Za-z0-9+/=\s]+$/.test(m.html) && m.html.length > 80 && m.html.indexOf('<') === -1){
+      try{ m.html = decodeBytes(b64ToBytes(m.html), 'utf-8'); }catch(e){}
+    }
+    ['from','to','cc','subject'].forEach(function(k){ if(m[k]) m[k] = decodeWords(m[k]); });
+    if(!m.html && !m.text && !m.subject && !m.from) continue;
+    out.push(m);
+  }
+  return out;
+}
+
+/* ---------------- mbox ---------------- */
+function parseMbox(str){
+  var parts = str.replace(/\r\n/g,'\n').split(/\n(?=From (?!:))/);
+  var out = [];
+  for(var i=0;i<parts.length;i++){
+    var raw = parts[i].replace(/^From [^\n]*\n/, '');
+    if(!/\n/.test(raw)) continue;
+    var m = parseRfc822(raw);
+    if(m.subject || m.from || m.text || m.html) out.push(m);
+  }
+  return out;
+}
+
+/* ---------------- render ---------------- */
+function shortFrom(s){
+  if(!s) return '(unknown sender)';
+  var m = s.match(/^\s*"?([^"<]*?)"?\s*<[^>]*>\s*$/);
+  var n = m && m[1].trim() ? m[1].trim() : s.trim();
+  return n.replace(/^</,'').replace(/>$/,'');
+}
+function renderList(){
+  var l = $('list');
+  if(!shown.length){
+    l.innerHTML = '<div class="empty">No emails match your search.</div>';
+    $('count').textContent = '0 of ' + messages.length + ' emails';
+    return;
+  }
+  var html = '';
+  for(var i=0;i<shown.length;i++){
+    var m = shown[i];
+    html += '<div class="item' + (m === messages[selIdx] ? ' sel' : '') + '" data-i="' + i + '">' +
+      '<div class="from">' + esc(shortFrom(m.from)) + '</div>' +
+      '<div class="subj">' + esc(m.subject || '(no subject)') + '</div>' +
+      '<div class="meta">' + esc(fmtDate(m.date)) + (m.attachments.length ? ' &middot; ' + m.attachments.length + ' attachment(s)' : '') + '</div>' +
+      '</div>';
+  }
+  l.innerHTML = html;
+  $('count').textContent = shown.length + (shown.length === messages.length ? '' : ' of ' + messages.length) + ' email' + (messages.length === 1 ? '' : 's');
+}
+function openMsg(m){
+  selIdx = messages.indexOf(m);
+  var r = $('reading');
+  var att = m.attachments.length
+    ? '<div class="attach">Attachments listed in this file: ' + m.attachments.map(function(a){ return '<span>' + esc(a) + '</span>'; }).join('') +
+      '<br>(The archive file may not include the actual attachment data.)</div>'
+    : '';
+  r.innerHTML =
+    '<div class="rhead">' +
+      '<h2>' + esc(m.subject || '(no subject)') + '</h2>' +
+      '<div class="row"><b>From:</b> ' + esc(m.from || '(unknown)') + '</div>' +
+      (m.to ? '<div class="row"><b>To:</b> ' + esc(m.to) + '</div>' : '') +
+      (m.cc ? '<div class="row"><b>Cc:</b> ' + esc(m.cc) + '</div>' : '') +
+      (m.date ? '<div class="row"><b>Date:</b> ' + esc(fmtDate(m.date)) + '</div>' : '') +
+    '</div>' +
+    '<div class="rbody"><iframe id="frame" sandbox="allow-same-origin" title="Email message"></iframe></div>' + att;
+
+  var bodyHtml = m.html ? m.html : textToHtml(m.text || '(This email has no message text.)');
+  var frame = document.getElementById('frame');
+  var doc = frame.contentDocument;
+  doc.open();
+  doc.write('<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    '<base target="_blank">' +
+    '<style>body{font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1b2733;margin:16px;' +
+    'word-wrap:break-word;overflow-wrap:break-word}img{max-width:100%;height:auto}' +
+    'table{max-width:100%}a{color:#0b57d0}</style></head><body>' + bodyHtml + '</body></html>');
+  doc.close();
+  /* strip anything executable that slipped through */
+  var kill = doc.querySelectorAll('script,iframe,object,embed,form,link');
+  for(var i=0;i<kill.length;i++) kill[i].parentNode.removeChild(kill[i]);
+  renderList();
+}
+function applySearch(){
+  var q = $('q').value.trim().toLowerCase();
+  shown = !q ? messages.slice() : messages.filter(function(m){
+    return m._search.indexOf(q) !== -1;
+  });
+  renderList();
+}
+
+/* ---------------- load ---------------- */
+function finish(list, name){
+  if(!list.length){
+    showErr('<b>We could not find any emails in that file.</b><br>' +
+      'It may be a different kind of file, or the emails may be stored in a format this viewer does not recognise yet. ' +
+      'Try the file that ends in <b>.mbox</b> or <b>.eml</b> if you have one, and if you are stuck, ' +
+      '<a href="../coontact.html">contact CF the IT Guy</a> and we will take a look.');
+    return;
+  }
+  clearErr();
+  list.forEach(function(m){
+    m.attachments = m.attachments || [];
+    m._sort = sortKey(m.date);
+    m._search = ((m.from||'') + ' ' + (m.to||'') + ' ' + (m.subject||'') + ' ' +
+      (m.text || stripToText(m.html||''))).toLowerCase().slice(0, 20000);
+  });
+  list.sort(function(a,b){ return b._sort - a._sort; });
+  messages = list; shown = list.slice(); selIdx = -1;
+  $('intro').style.display = 'none';
+  $('viewer').style.display = 'block';
+  document.title = name + ' — Email Viewer';
+  renderList();
+  openMsg(messages[0]);
+  window.scrollTo(0,0);
+}
+function handleFile(file){
+  if(!file) return;
+  clearErr();
+  $('drop').querySelector('.big').textContent = 'Opening ' + file.name + '…';
+  var reader = new FileReader();
+  reader.onerror = function(){
+    $('drop').querySelector('.big').textContent = 'Click here to choose your email file';
+    showErr('We could not read that file. Please try choosing it again.');
+  };
+  reader.onload = function(){
+    var str = reader.result;
+    var list = [];
+    try{
+      var head = str.slice(0, 4000);
+      var isXml = /\.xml$/i.test(file.name) || /^\s*<\?xml|^\s*</.test(head);
+      if(isXml) list = parseXml(str);
+      if(!list.length && /^From /m.test(head)) list = parseMbox(str);
+      if(!list.length && /^[A-Za-z\-]+\s*:/m.test(head)){
+        var one = parseRfc822(str);
+        if(one.subject || one.from) list = [one];
+      }
+      if(!list.length && !isXml) list = parseMbox(str);
+    }catch(e){
+      showErr('Something went wrong while reading that file: ' + esc(e.message));
+    }
+    $('drop').querySelector('.big').textContent = 'Click here to choose your email file';
+    finish(list, file.name);
+  };
+  /* read as latin1-ish text so base64/quoted-printable bytes survive intact */
+  reader.readAsText(file, 'utf-8');
+}
+
+/* ---------------- wiring ---------------- */
+var drop = $('drop'), fileInput = $('file');
+drop.addEventListener('click', function(e){ if(e.target.id !== 'file') fileInput.click(); });
+$('pickBtn').addEventListener('click', function(e){ e.stopPropagation(); fileInput.click(); });
+fileInput.addEventListener('change', function(){ handleFile(fileInput.files[0]); });
+['dragenter','dragover'].forEach(function(ev){
+  drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); });
+});
+['dragleave','drop'].forEach(function(ev){
+  drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); });
+});
+drop.addEventListener('drop', function(e){
+  if(e.dataTransfer && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+window.addEventListener('dragover', function(e){ e.preventDefault(); });
+window.addEventListener('drop', function(e){ e.preventDefault(); });
+
+$('list').addEventListener('click', function(e){
+  var item = e.target.closest ? e.target.closest('.item') : null;
+  if(item) openMsg(shown[Number(item.getAttribute('data-i'))]);
+});
+$('q').addEventListener('input', applySearch);
+$('printBtn').addEventListener('click', function(){
+  var f = document.getElementById('frame');
+  if(f && f.contentWindow){ f.contentWindow.focus(); f.contentWindow.print(); }
+  else window.print();
+});
+$('newBtn').addEventListener('click', function(){
+  fileInput.value = '';
+  messages = []; shown = []; selIdx = -1;
+  $('viewer').style.display = 'none';
+  $('intro').style.display = 'block';
+  document.title = 'Email Viewer — Open Archived Gmail Files';
+  window.scrollTo(0,0);
+});
+})();
+</script>
+</body>
+</html>
