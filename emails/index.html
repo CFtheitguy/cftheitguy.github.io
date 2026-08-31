@@ -105,9 +105,9 @@
     <div class="drop" id="drop">
       <div class="big">Click here to choose your email file</div>
       <div class="small">&hellip;or drag the file onto this box</div>
-      <div class="small" style="margin-top:10px">Works with <b>.xml</b>, <b>.mbox</b>, <b>.eml</b> and <b>.txt</b> email files</div>
+      <div class="small" style="margin-top:10px">Works with <b>.zip</b>, <b>.xml</b>, <b>.mbox</b> and <b>.eml</b> files &mdash; including the zip straight from Google Takeout</div>
       <button class="btn" type="button" id="pickBtn">Choose file</button>
-      <input type="file" id="file" accept=".xml,.mbox,.eml,.mbx,.txt,text/xml,application/xml,message/rfc822" hidden>
+      <input type="file" id="file" accept=".zip,.xml,.mbox,.eml,.mbx,.txt,application/zip,text/xml,application/xml,message/rfc822" hidden>
     </div>
 
     <div class="err" id="err"></div>
@@ -118,7 +118,7 @@
     </div>
 
     <ul class="steps">
-      <li><b>1. Find the file</b> It is usually in your Downloads folder, from Google Takeout or an archive program.</li>
+      <li><b>1. Find the file</b> It is usually in your Downloads folder, from Google Takeout or an archive program. A <b>.zip</b> is fine &mdash; no need to unzip it.</li>
       <li><b>2. Open it here</b> Choose it above and wait a moment while it loads.</li>
       <li><b>3. Read &amp; search</b> Click any email to read it. Use the search box to find one, and Print to save it as a PDF.</li>
     </ul>
@@ -546,36 +546,135 @@ function finish(list, name){
   openMsg(messages[0]);
   window.scrollTo(0,0);
 }
+function parseText(str, name){
+  var head = str.slice(0, 4000);
+  var isXml = /\.xml$/i.test(name || '') || /^\s*<\?xml|^\s*</.test(head);
+  var list = [];
+  if(isXml) list = parseXml(str);
+  if(!list.length && /^From /m.test(head)) list = parseMbox(str);
+  if(!list.length && /^[A-Za-z\-]+\s*:/m.test(head)){
+    var one = parseRfc822(str);
+    if(one.subject || one.from) list = [one];
+  }
+  if(!list.length && !isXml) list = parseMbox(str);
+  return list;
+}
+
+/* ---------------- zip ---------------- */
+/* Minimal reader for the entries we care about. Uses the browser's own
+   DecompressionStream, so there is no library to download. */
+var MAIL_EXT = /\.(xml|mbox|mbx|eml|txt|msf?)$/i;
+
+function readU16(dv,o){ return dv.getUint16(o, true); }
+function readU32(dv,o){ return dv.getUint32(o, true); }
+
+function zipEntries(buf){
+  var dv = new DataView(buf), i;
+  /* find End Of Central Directory (scan back over the optional comment) */
+  var eocd = -1, min = Math.max(0, buf.byteLength - 66000);
+  for(i = buf.byteLength - 22; i >= min; i--){
+    if(readU32(dv,i) === 0x06054b50){ eocd = i; break; }
+  }
+  if(eocd === -1) throw new Error('not-a-zip');
+  var count = readU16(dv, eocd + 10);
+  var start = readU32(dv, eocd + 16);
+  if(start === 0xffffffff) throw new Error('zip64');
+  var out = [], p = start;
+  for(i = 0; i < count && p + 46 <= buf.byteLength; i++){
+    if(readU32(dv,p) !== 0x02014b50) break;
+    var method = readU16(dv, p + 10);
+    var csize  = readU32(dv, p + 20);
+    var nlen   = readU16(dv, p + 28);
+    var elen   = readU16(dv, p + 30);
+    var clen   = readU16(dv, p + 32);
+    var lho    = readU32(dv, p + 42);
+    var name   = new TextDecoder('utf-8').decode(new Uint8Array(buf, p + 46, nlen));
+    out.push({name:name, method:method, csize:csize, lho:lho});
+    p += 46 + nlen + elen + clen;
+  }
+  return out;
+}
+function zipEntryBytes(buf, e){
+  var dv = new DataView(buf);
+  if(readU32(dv, e.lho) !== 0x04034b50) throw new Error('bad-entry');
+  var nlen = readU16(dv, e.lho + 26), elen = readU16(dv, e.lho + 28);
+  var off = e.lho + 30 + nlen + elen;
+  var raw = new Uint8Array(buf, off, e.csize);
+  if(e.method === 0) return Promise.resolve(raw);
+  if(e.method !== 8) return Promise.reject(new Error('method-' + e.method));
+  if(typeof DecompressionStream === 'undefined') return Promise.reject(new Error('no-inflate'));
+  var ds = new DecompressionStream('deflate-raw');
+  var stream = new Blob([raw]).stream().pipeThrough(ds);
+  return new Response(stream).arrayBuffer().then(function(ab){ return new Uint8Array(ab); });
+}
+function handleZip(buf, fileName){
+  var entries;
+  try{ entries = zipEntries(buf); }
+  catch(e){
+    setDropLabel();
+    if(e.message === 'zip64') return showErr('<b>That zip file is too large for this viewer to open.</b><br>' + UNZIP_TIP);
+    return showErr('<b>We could not read that zip file.</b><br>' + UNZIP_TIP);
+  }
+  var mail = entries.filter(function(e){
+    return !/\/$/.test(e.name) && !/(^|\/)__MACOSX\//.test(e.name) &&
+           !/(^|\/)\./.test(e.name) && MAIL_EXT.test(e.name);
+  });
+  if(!mail.length){
+    setDropLabel();
+    return showErr('<b>That zip file does not seem to contain any email files.</b><br>' +
+      'We looked for files ending in .xml, .mbox or .eml inside it and found ' +
+      (entries.length ? 'only other kinds of files.' : 'nothing.') + '<br>' + UNZIP_TIP);
+  }
+  var all = [], failed = [];
+  var chain = Promise.resolve();
+  mail.forEach(function(e){
+    chain = chain.then(function(){
+      return zipEntryBytes(buf, e).then(function(bytes){
+        all = all.concat(parseText(decodeBytes(bytes, 'utf-8'), e.name));
+      }).catch(function(){ failed.push(e.name); });
+    });
+  });
+  chain.then(function(){
+    setDropLabel();
+    if(!all.length && failed.length){
+      return showErr('<b>We found email files inside the zip but could not unpack them.</b><br>' + UNZIP_TIP);
+    }
+    finish(all, fileName);
+  });
+}
+
+var UNZIP_TIP = 'Try unzipping it first: on Windows right-click the file and choose ' +
+  '<b>Extract All</b>, on a Mac just double-click it. Then choose the <b>.xml</b> or ' +
+  '<b>.mbox</b> file that comes out.';
+
+function setDropLabel(txt){
+  $('drop').querySelector('.big').textContent = txt || 'Click here to choose your email file';
+}
+
 function handleFile(file){
   if(!file) return;
   clearErr();
-  $('drop').querySelector('.big').textContent = 'Opening ' + file.name + '…';
+  setDropLabel('Opening ' + file.name + '…');
+  var isZip = /\.zip$/i.test(file.name) || file.type === 'application/zip';
   var reader = new FileReader();
   reader.onerror = function(){
-    $('drop').querySelector('.big').textContent = 'Click here to choose your email file';
+    setDropLabel();
     showErr('We could not read that file. Please try choosing it again.');
   };
   reader.onload = function(){
-    var str = reader.result;
-    var list = [];
-    try{
-      var head = str.slice(0, 4000);
-      var isXml = /\.xml$/i.test(file.name) || /^\s*<\?xml|^\s*</.test(head);
-      if(isXml) list = parseXml(str);
-      if(!list.length && /^From /m.test(head)) list = parseMbox(str);
-      if(!list.length && /^[A-Za-z\-]+\s*:/m.test(head)){
-        var one = parseRfc822(str);
-        if(one.subject || one.from) list = [one];
-      }
-      if(!list.length && !isXml) list = parseMbox(str);
-    }catch(e){
-      showErr('Something went wrong while reading that file: ' + esc(e.message));
+    if(isZip){
+      try{ handleZip(reader.result, file.name); }
+      catch(e){ setDropLabel(); showErr('Something went wrong while opening that zip file. ' + UNZIP_TIP); }
+      return;
     }
-    $('drop').querySelector('.big').textContent = 'Click here to choose your email file';
+    var list = [];
+    try{ list = parseText(reader.result, file.name); }
+    catch(e){ showErr('Something went wrong while reading that file: ' + esc(e.message)); }
+    setDropLabel();
     finish(list, file.name);
   };
-  /* read as latin1-ish text so base64/quoted-printable bytes survive intact */
-  reader.readAsText(file, 'utf-8');
+  if(isZip) reader.readAsArrayBuffer(file);
+  else reader.readAsText(file, 'utf-8');
 }
 
 /* ---------------- wiring ---------------- */
