@@ -1,0 +1,134 @@
+this is a linuxmint script. to make it look like a macOS
+
+first run this 
+
+chmod +x macify-mint.sh
+./macify-mint.sh
+
+
+then run this
+
+#!/usr/bin/env bash
+#
+# macify-mint.sh
+# Makes Linux Mint (Cinnamon desktop) look like macOS:
+#   - WhiteSur GTK theme (macOS Big Sur/Monterey style) - vinceliuice/WhiteSur-gtk-theme
+#   - WhiteSur icon pack - vinceliuice/WhiteSur-icon-theme
+#   - WhiteSur cursors (bundled with the GTK theme repo)
+#   - Plank dock (macOS-style dock), pinned to the bottom
+#   - Applies theme/icons/cursor + a top panel that behaves more like macOS's menu bar
+#
+# Run as your normal user (NOT root/sudo) - it will ask for sudo only when needed.
+#
+# Usage: bash macify-mint.sh
+ 
+set -e
+ 
+echo "=== Mac-ifying Linux Mint ==="
+ 
+# ---- 0. Sanity check: are we on Cinnamon? ----
+if ! command -v cinnamon-settings >/dev/null 2>&1; then
+    echo "Warning: cinnamon-settings not found. This script targets Mint's Cinnamon" \
+         "edition; theme/icon steps will still work on most GTK desktops, but the" \
+         "panel/dock steps are Cinnamon-specific."
+fi
+ 
+WORKDIR="$HOME/.macify-mint-build"
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
+ 
+# ---- 1. Install build dependencies ----
+echo -e "\nInstalling dependencies..."
+sudo apt update
+sudo apt install -y git curl sassc optipng inkscape plank gnome-tweaks dconf-cli
+ 
+# ---- 2. Clone and install the WhiteSur GTK theme (includes cursors) ----
+echo -e "\nInstalling WhiteSur GTK theme..."
+if [ ! -d "WhiteSur-gtk-theme" ]; then
+    git clone --depth=1 https://github.com/vinceliuice/WhiteSur-gtk-theme.git
+fi
+cd WhiteSur-gtk-theme
+./install.sh -c Dark -c Light --round    # installs both color variants with rounded corners
+./tweaks.sh -g   # apply the "Big Sur" GTK tweaks (optional but matches the look better)
+cd "$WORKDIR"
+ 
+# ---- 3. Clone and install the WhiteSur icon theme ----
+echo -e "\nInstalling WhiteSur icon theme..."
+if [ ! -d "WhiteSur-icon-theme" ]; then
+    git clone --depth=1 https://github.com/vinceliuice/WhiteSur-icon-theme.git
+fi
+cd WhiteSur-icon-theme
+./install.sh
+cd "$WORKDIR"
+ 
+# ---- 4. Clone and install the WhiteSur cursor theme ----
+echo -e "\nInstalling WhiteSur cursors..."
+if [ ! -d "WhiteSur-cursors" ]; then
+    git clone --depth=1 https://github.com/vinceliuice/WhiteSur-cursors.git
+fi
+cd WhiteSur-cursors
+./install.sh
+cd "$WORKDIR"
+ 
+# ---- 5. Apply the theme, icons, and cursor via gsettings ----
+echo -e "\nApplying theme..."
+gsettings set org.cinnamon.desktop.interface gtk-theme "WhiteSur-Dark"
+gsettings set org.cinnamon.desktop.wm.preferences theme "WhiteSur-Dark"
+gsettings set org.cinnamon.theme name "WhiteSur-Dark"
+gsettings set org.cinnamon.desktop.interface icon-theme "WhiteSur-dark"
+gsettings set org.cinnamon.desktop.interface cursor-theme "WhiteSur-cursors"
+ 
+# ---- 6. Move the Cinnamon panel to the top and slim it down (macOS menu bar feel) ----
+echo -e "\nAdjusting panel position/height..."
+gsettings set org.cinnamon panels-enabled "['1:0:top']" 2>/dev/null || true
+gsettings set org.cinnamon panels-height "['1:28']" 2>/dev/null || true
+ 
+# ---- 7. Set up Plank as the dock, positioned at the bottom ----
+echo -e "\nConfiguring Plank dock..."
+mkdir -p "$HOME/.config/plank/dock1/launchers"
+cat > "$HOME/.config/plank/dock1/settings" <<EOF
+[PlankDockPreferences]
+Theme=Transparent
+IconSize=48
+Position=bottom
+Alignment=center
+PinnedOnly=false
+AutoHide=intelligent
+EOF
+ 
+# Autostart Plank on login
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/plank.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Plank
+Exec=plank
+Icon=plank
+X-GNOME-Autostart-enabled=true
+EOF
+ 
+# Launch it now
+(plank &) 2>/dev/null || true
+ 
+echo -e "\n=== Done ===\n"
+cat <<'EOM'
+What was applied automatically:
+  - WhiteSur GTK theme (Dark), window manager theme, and Cinnamon shell theme
+  - WhiteSur icon theme
+  - WhiteSur cursor theme
+  - Cinnamon panel moved to the top, slimmed to 28px (macOS menu-bar feel)
+  - Plank installed and set to autostart as a bottom dock, auto-hiding, centered
+ 
+A FEW THINGS TO FINISH BY HAND (System Settings GUI is easiest for these):
+  1. Menu > Panel edit mode: drag the Cinnamon menu button to the left edge of the
+     top panel, and move the clock/system tray to the right edge, to mimic the
+     macOS menu bar layout (Apple menu left, status icons right).
+  2. Right-click the top panel > Applets, and remove the window list applet if you
+     want an empty menu bar like macOS's (since Plank now shows running apps).
+  3. Right-click the Plank dock > Preferences to fine-tune icon size/zoom, or
+     pin your favorite apps by dragging them on.
+  4. For a macOS wallpaper: System Settings > Backgrounds, and point it at any
+     Sonoma/Sequoia wallpaper image you've downloaded.
+  5. Log out and back in (or just restart Cinnamon: Alt+F2, type 'r', Enter) if
+     the panel/theme doesn't fully refresh right away.
+EOM
