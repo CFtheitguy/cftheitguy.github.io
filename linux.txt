@@ -67,3 +67,10 @@ curl -o lockdown-deepin-outbound.sh https://linearit.co/linux.txt
 sed -i 's/\r$//' lockdown-deepin-outbound.sh
 chmod +x lockdown-deepin-outbound.sh
 sudo ./lockdown-deepin-outbound.sh
+
+
+sudo kill -9 21618
+sudo rm -f /var/lib/apt/lists/lock
+sudo rm -f /var/lib/dpkg/lock
+sudo rm -f /var/lib/dpkg/lock-frontend
+sudo dpkg --configure -a
