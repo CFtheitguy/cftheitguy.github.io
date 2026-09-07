@@ -16,6 +16,8 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
+      flex-wrap: wrap;
+      gap: 2rem;
     }
 
     .card {
@@ -139,6 +141,21 @@
       margin-top: 1px;
     }
 
+    .btn.secondary {
+      background: #1f6f4a;
+    }
+
+    .btn.secondary:hover {
+      background: #2a8c5e;
+    }
+
+    .steps ol li.plain {
+      display: block;
+      padding-left: 0;
+    }
+
+    .steps ol li.plain::before { content: none; }
+
     footer {
       margin-top: 2.5rem;
       font-size: 0.8rem;
@@ -190,6 +207,63 @@
 
     <footer>
       <a href="https://linearit.co">linearit.co</a> &nbsp;·&nbsp; Linear Tech Support
+    </footer>
+  </div>
+
+  <div class="card">
+    <div class="logo-wrap">
+      <!-- Printer icon -->
+      <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="56" height="56" rx="14" fill="#1f6f4a"/>
+        <path d="M18 22V13h20v9" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="13" y="22" width="30" height="14" rx="3" fill="#ffffff" fill-opacity="0.15" stroke="#ffffff" stroke-width="2"/>
+        <path d="M18 32h20v11H18V32z" fill="#1f6f4a" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="37" cy="27" r="1.75" fill="#ffffff"/>
+      </svg>
+    </div>
+
+    <h1>Install the Printer &amp; Scanner Driver</h1>
+    <p class="subtitle">
+      Install this on your computer so you can print to the Brother copier <strong>and scan documents back to your PC</strong>. Scanning will not work until this is installed.
+    </p>
+
+    <a class="btn secondary" href="https://download.brother.com/welcome/dlf105882/Y22C_C1_ULWL_PP-inst-G1.EXE" download>
+      <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 3v10m0 0l-3.5-3.5M10 13l3.5-3.5M4 17h12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Download the Printer Driver
+    </a>
+
+    <div class="steps">
+      <p>Step 1 &mdash; Install the driver</p>
+      <ol>
+        <li>Make sure your computer is on the <strong>same Wi-Fi / network as the copier</strong>.</li>
+        <li>Click the green <strong>Download the Printer Driver</strong> button above.</li>
+        <li>Open the downloaded file (<strong>Y22C_C1_ULWL_PP-inst-G1.EXE</strong>) &mdash; usually in your <strong>Downloads</strong> folder or at the bottom of your browser.</li>
+        <li>Click <strong>Yes</strong> if Windows asks &ldquo;Do you want to allow this app to make changes?&rdquo;</li>
+        <li>Accept the license agreement and click <strong>Next</strong>.</li>
+        <li>When asked how the printer is connected, choose <strong>Wireless Network Connection</strong> (or <strong>Wired / USB</strong> if a cable is plugged in).</li>
+        <li>Pick your Brother printer from the list it finds, then click <strong>Next</strong> and let it finish. Restart the computer if it asks.</li>
+      </ol>
+    </div>
+
+    <div class="steps">
+      <p>Step 2 &mdash; How to scan</p>
+      <ol>
+        <li>Put the pages face-down on the glass, or face-up in the top feeder.</li>
+        <li>Click the Windows <strong>Start</strong> button, type <strong>Brother iPrint&amp;Scan</strong>, and open it.</li>
+        <li>Make sure your printer is shown at the bottom left. If not, click <strong>Select your Machine</strong> and pick it.</li>
+        <li>Click <strong>Scan</strong>. Choose <strong>PDF</strong> for documents or <strong>JPEG</strong> for photos.</li>
+        <li>Click <strong>Scan</strong> again &mdash; the pages go through and appear on screen.</li>
+        <li>Click <strong>Save</strong> and choose where to put the file (for example your <strong>Documents</strong> folder or the Desktop).</li>
+      </ol>
+    </div>
+
+    <p class="note">Windows only &middot; Printer must be on and on the same network &middot; Takes about 5 minutes</p>
+
+    <footer>
+      Stuck? Call us and we'll do it with you &mdash;
+      <a href="https://linearit.co">linearit.co</a>
     </footer>
   </div>
 </body>
