@@ -1,1 +1,61 @@
 https://us2.ninjarmm.com/agent/installer/9f65e8d6-df5e-4d66-bc5a-a71ce7b9df57/13.0.7941/NinjaOne-Agent-LinearTechTeam-MainOffice-Auto-x86-64.rpm
+
+
+
+#!/bin/bash
+# lockdown-deepin-outbound.sh
+# Default-deny outbound firewall for Deepin, allowing only what's needed
+# for normal browsing, DNS, updates, and NTP. Run with sudo.
+
+set -e
+
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run as root (sudo $0)"
+  exit 1
+fi
+
+echo "Installing ufw if not already present..."
+apt-get update -qq
+apt-get install -y ufw
+
+echo "Resetting existing rules..."
+ufw --force reset
+
+echo "Setting default policies: deny outgoing, deny incoming..."
+ufw default deny outgoing
+ufw default deny incoming
+
+echo "Allowing loopback traffic (required for local services to function)..."
+ufw allow out on lo
+ufw allow in on lo
+
+echo "Allowing DNS (UDP/TCP 53) outbound..."
+ufw allow out 53/udp
+ufw allow out 53/tcp
+
+echo "Allowing HTTP/HTTPS outbound (web browsing, apt updates over https)..."
+ufw allow out 80/tcp
+ufw allow out 443/tcp
+
+echo "Allowing NTP (time sync) outbound..."
+ufw allow out 123/udp
+
+echo "Allowing standard apt/ftp package traffic (some mirrors still use plain ftp/http)..."
+ufw allow out 21/tcp
+
+# Optional: allow SSH outbound if you use git/ssh remotes
+# ufw allow out 22/tcp
+
+echo "Enabling logging for denied packets (useful for auditing what's being blocked)..."
+ufw logging on
+
+echo "Enabling firewall..."
+ufw --force enable
+
+echo ""
+echo "Done. Current rules:"
+ufw status verbose
+
+echo ""
+echo "To see what's being blocked in real time, run:"
+echo "  sudo tail -f /var/log/ufw.log | grep BLOCK"
