@@ -13,7 +13,7 @@
       background: url('https://theevergreenspace.net/assets/images/image04.jpg?v=5eb90ade') center center / cover no-repeat fixed;
       min-height: 100vh;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       padding: 2rem;
       flex-wrap: wrap;
@@ -116,17 +116,18 @@
 
     .steps ol li {
       counter-increment: steps;
-      display: flex;
-      align-items: flex-start;
-      gap: 0.65rem;
+      position: relative;
+      padding: 0.3rem 0 0.3rem 1.85rem;
       font-size: 0.875rem;
       color: #3d4a66;
       line-height: 1.5;
-      padding: 0.3rem 0;
     }
 
     .steps ol li::before {
       content: counter(steps);
+      position: absolute;
+      left: 0;
+      top: 0.35rem;
       background: #0f1f4b;
       color: #fff;
       font-size: 0.7rem;
@@ -137,8 +138,6 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      margin-top: 1px;
     }
 
     .btn.secondary {
@@ -148,13 +147,6 @@
     .btn.secondary:hover {
       background: #2a8c5e;
     }
-
-    .steps ol li.plain {
-      display: block;
-      padding-left: 0;
-    }
-
-    .steps ol li.plain::before { content: none; }
 
     footer {
       margin-top: 2.5rem;
