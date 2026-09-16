@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Linear QR — read a QR code</title>
+<meta name="description" content="Upload, paste or drop a QR code image and get the link back. Everything is decoded in your browser — nothing is uploaded."/>
+<link rel="icon" href="/qr/assets/icon.png"/>
+<link rel="apple-touch-icon" href="/qr/assets/icon.png"/>
+<meta name="theme-color" content="#0f1117"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Linear QR"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; media-src 'self' blob:;"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;
+  --text:#eef0f6;--muted:#7c85a2;--faint:#4e5571;
+  --accent:#00b0ec;--accent-h:#009bd2;--accent-bg:rgba(0,176,236,.16);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --success:#4ade80;--warn:#fbbf24;--danger:#f87171;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --patop:.35;
+  --logo:url("/qr/assets/logo-white.png");
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#f4f6fb;--bg2:#ffffff;
+    --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+    --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+    --border:#dde1ee;--border2:#c8cee0;
+    --card:#ffffff;--card2:#f8f9fd;
+    --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+    --shadow:0 8px 30px rgba(0,0,0,.10);
+    --patop:.5;
+    --logo:url("/qr/assets/logo-dark.png");
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;
+  --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+  --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --patop:.5;
+  --logo:url("/qr/assets/logo-dark.png");
+}
+html,body{min-height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding:24px 16px 56px;
+}
+.wrap{max-width:660px;margin:0 auto}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}
+.brand{display:block;width:132px;height:34px;background:var(--logo) left center/contain no-repeat;text-indent:-9999px;overflow:hidden}
+.theme{
+  background:var(--card);border:1px solid var(--border);color:var(--muted);
+  border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;
+}
+.theme:hover{border-color:var(--border2);color:var(--text)}
+
+h1{font-size:26px;line-height:1.25;letter-spacing:-.02em;margin-bottom:6px}
+.lede{color:var(--muted);font-size:14.5px;margin-bottom:22px}
+
+/* The drop zone is the whole interface: click it, drop on it, or paste
+   anywhere on the page. All three routes land in the same decode(). */
+#drop{
+  border:2px dashed var(--border2);border-radius:16px;background:var(--card);
+  padding:38px 20px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s;
+}
+#drop:hover,#drop:focus-visible{border-color:var(--accent);background:var(--card2);outline:none}
+#drop.over{border-color:var(--accent);background:var(--accent-bg)}
+#drop .icon{font-size:34px;line-height:1;margin-bottom:12px;display:block}
+#drop .big{font-weight:600;font-size:16px}
+#drop .small{color:var(--muted);font-size:13px;margin-top:6px}
+#file{display:none}
+
+.result{margin-top:22px;border:1px solid var(--border);border-radius:16px;background:var(--card);padding:20px;display:none}
+.result.show{display:block}
+.label{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.kind{display:inline-block;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;
+  background:var(--accent-bg);color:var(--accent);border-radius:999px;padding:3px 10px;margin-bottom:12px}
+#value{
+  font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  word-break:break-all;background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;padding:13px 14px;white-space:pre-wrap;
+}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.btn{
+  border:1px solid var(--border2);background:var(--card2);color:var(--text);
+  border-radius:10px;padding:9px 15px;font-size:14px;cursor:pointer;text-decoration:none;display:inline-block;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h);color:#fff}
+.btn[hidden]{display:none}
+
+.note{margin-top:12px;font-size:13px;color:var(--warn);display:none}
+.note.show{display:block}
+
+.msg{margin-top:18px;border-radius:12px;padding:13px 15px;font-size:14px;display:none}
+.msg.show{display:block}
+.msg.err{background:rgba(248,113,113,.12);border:1px solid var(--danger);color:var(--danger)}
+.msg.busy{background:var(--card);border:1px solid var(--border);color:var(--muted)}
+
+#preview{margin-top:18px;display:none;text-align:center}
+#preview.show{display:block}
+#preview img{max-width:100%;max-height:230px;border-radius:12px;border:1px solid var(--border)}
+
+footer{margin-top:34px;color:var(--faint);font-size:12.5px;text-align:center;line-height:1.7}
+footer a{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/">Linear IT</a>
+    <button class="theme" id="theme" type="button">Theme</button>
+  </header>
+
+  <h1>Read a QR code</h1>
+  <p class="lede">Drop in a picture of a QR code and get the link — or whatever else it holds — back in plain text. The image never leaves your device; it is decoded right here in your browser.</p>
+
+  <div id="drop" tabindex="0" role="button" aria-label="Choose a QR code image">
+    <span class="icon" aria-hidden="true">▦</span>
+    <div class="big">Choose an image, or drop one here</div>
+    <div class="small">You can also paste a screenshot with Ctrl&#8239;+&#8239;V</div>
+  </div>
+  <input type="file" id="file" accept="image/*"/>
+
+  <div id="preview"><img id="previewImg" alt="The QR code you provided"/></div>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="result" id="result">
+    <div class="label">Decoded</div>
+    <div class="kind" id="kind"></div>
+    <div id="value"></div>
+    <div class="note" id="note"></div>
+    <div class="actions">
+      <a class="btn primary" id="open" target="_blank" rel="noopener noreferrer nofollow" hidden>Open link</a>
+      <button class="btn" id="copy" type="button">Copy</button>
+    </div>
+  </div>
+
+  <footer>
+    Decoding happens entirely in your browser — nothing is uploaded.<br/>
+    A <a href="/">Linear IT</a> tool.
+  </footer>
+</div>
+
+<script src="/qr/jsQR.js"></script>
+<script src="/qr/app.js"></script>
+</body>
+</html>
