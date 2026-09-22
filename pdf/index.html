@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Linear PDF — free PDF toolkit</title>
-<meta name="description" content="Merge, split, rotate, delete pages, shrink, watermark and convert PDFs. Everything runs in your browser — your files are never uploaded. Free, from Linear IT."/>
+<meta name="description" content="Edit a PDF free: type on it, draw, white things out, highlight — plus merge, split, rotate, shrink and watermark. Everything runs in your browser, so your file is never uploaded. From Linear IT."/>
 <link rel="icon" href="/pdf/assets/icon.png"/>
 <link rel="apple-touch-icon" href="/pdf/assets/icon.png"/>
 <meta name="theme-color" content="#0f1117"/>
@@ -158,6 +158,56 @@ h1{font-size:26px;line-height:1.25;letter-spacing:-.02em;margin-bottom:6px}
 .msg.busy{background:var(--card);border:1px solid var(--border);color:var(--muted)}
 .msg.ok{background:rgba(74,222,128,.10);border:1px solid var(--success);color:var(--success)}
 
+/* ---- page editor ---- */
+.editor{display:none;margin-top:20px;border:1px solid var(--border);border-radius:16px;background:var(--card);padding:14px}
+.editor.show{display:block}
+.edbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px}
+.edgroup{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.edacts{margin-left:auto}
+.edtool{
+  border:1px solid var(--border);background:var(--card2);color:var(--text);
+  border-radius:9px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+}
+.edtool:hover{border-color:var(--border2)}
+.edtool.on{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.edtool .i{font-size:14px;line-height:1}
+.edswatch{display:flex;gap:5px}
+.edcol{
+  width:24px;height:24px;border-radius:7px;border:2px solid var(--border2);
+  cursor:pointer;padding:0;
+}
+.edcol.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.edsize{
+  background:var(--card2);border:1px solid var(--border2);color:var(--text);
+  border-radius:9px;padding:6px 9px;font:inherit;font-size:13px;
+}
+.edsize:disabled{opacity:.4}
+.edbtn{
+  border:1px solid var(--border2);background:var(--card2);color:var(--text);
+  border-radius:9px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;
+}
+.edbtn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.edbtn:disabled{opacity:.4;cursor:default}
+.edbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.edbtn.primary:hover{background:var(--accent-h);border-color:var(--accent-h);color:#fff}
+.edpg{font-size:13px;color:var(--muted);min-width:96px;text-align:center}
+.edstage{position:relative;margin:0 auto;max-width:100%;box-shadow:var(--shadow);border-radius:4px;overflow:hidden}
+.edpage{display:block;max-width:100%}
+.edover{position:absolute;inset:0;touch-action:none;max-width:100%}
+.edstage[data-tool="text"] .edover{cursor:text}
+.edstage[data-tool="select"] .edover{cursor:move}
+.edstage[data-tool="erase"] .edover{cursor:not-allowed}
+.edstage[data-tool="draw"] .edover,
+.edstage[data-tool="white"] .edover,
+.edstage[data-tool="highlight"] .edover{cursor:crosshair}
+.edinput{
+  position:absolute;z-index:5;background:rgba(255,255,255,.92);
+  border:1px dashed var(--accent);border-radius:3px;padding:0 3px;
+  font-family:Helvetica,Arial,sans-serif;line-height:1.15;min-width:120px;outline:none;
+}
+.edtip{margin-top:11px;font-size:12.5px;color:var(--muted);text-align:center}
+
 footer{margin-top:34px;color:var(--faint);font-size:12.5px;text-align:center;line-height:1.7}
 footer a{color:var(--muted)}
 footer strong{color:var(--muted);font-weight:600}
@@ -170,8 +220,8 @@ footer strong{color:var(--muted);font-weight:600}
     <button class="theme" id="theme" type="button">Theme</button>
   </header>
 
-  <h1>The PDF toolkit that never uploads your file</h1>
-  <p class="lede">Combine, split, rotate, shrink and stamp PDFs — the everyday jobs people buy Acrobat for. Every one of them runs inside this page, on your own machine. Your documents are never sent to us or to anyone else, so contracts and records stay private. Free, with no account.</p>
+  <h1>Edit a PDF without uploading it anywhere</h1>
+  <p class="lede">Type on a PDF, draw on it, white something out — then combine, split, rotate, shrink or stamp it. The everyday jobs people buy Acrobat for. Every one of them runs inside this page, on your own machine. Your documents are never sent to us or to anyone else, so contracts and records stay private. Free, with no account.</p>
 
   <div class="tools" id="tools" role="group" aria-label="Choose a tool"></div>
 
@@ -181,6 +231,8 @@ footer strong{color:var(--muted);font-weight:600}
     <div class="small" id="dropSmall">Nothing is uploaded — the file is opened right here in your browser</div>
   </div>
   <input type="file" id="file" accept="application/pdf"/>
+
+  <div class="editor" id="editor"></div>
 
   <div class="panel" id="panel">
     <div class="label" id="panelLabel">Your file</div>
@@ -205,6 +257,7 @@ footer strong{color:var(--muted);font-weight:600}
 
 <script src="/pdf/vendor/pdf-lib.min.js"></script>
 <script src="/pdf/vendor/pdf.min.js"></script>
+<script src="/pdf/edit.js"></script>
 <script src="/pdf/app.js"></script>
 </body>
 </html>

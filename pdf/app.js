@@ -116,6 +116,23 @@
   /* ---- tool definitions ---------------------------------------------- */
   var TOOLS = [
     {
+      id: "edit",
+      ic: "✏️",
+      nm: "Edit",
+      ds: "Type, draw or cover up",
+      accept: "application/pdf",
+      multiple: false,
+      grid: false,
+      editor: true,
+      dropBig: "Choose a PDF, or drop one here",
+      dropSmall: "Then type on it, draw on it, or white something out",
+      label: "",
+      go: "",
+      hint: "",
+      ready: function () { return false; },
+      run: function () {}
+    },
+    {
       id: "merge",
       ic: "🔗",
       nm: "Combine",
@@ -487,6 +504,15 @@
 
   function afterFiles() {
     var t = currentTool();
+
+    /* The editor is a different kind of screen — a page to work on rather than
+       a batch to configure — so it replaces the panel and the drop zone
+       instead of sitting inside them. */
+    if (t.editor) {
+      openEditor();
+      return;
+    }
+
     panel.classList.add("show");
     panelLabel.textContent = t.label;
     goBtn.textContent = t.go;
@@ -502,6 +528,45 @@
       pagesGrid.innerHTML = "";
       refreshGo();
     }
+  }
+
+  /* ---- editor hand-off ------------------------------------------------- */
+  var editorEl = $("editor");
+
+  function openEditor() {
+    var f = state.files[0];
+    show("busy", "Opening " + f.name + "…");
+
+    window.LinearPDFEditor.open({
+      file: f,
+      host: editorEl,
+      report: show,
+      onSave: function (bytes) {
+        download(new Blob([bytes], { type: "application/pdf" }), baseName(f.name) + "-edited.pdf");
+      },
+      onClose: closeEditor
+    }).then(function () {
+      clearMsg();
+      editorEl.classList.add("show");
+      drop.style.display = "none";
+      toolsEl.style.display = "none";
+      editorEl.scrollIntoView({ block: "start", behavior: "smooth" });
+    }).catch(function (err) {
+      var pw = /password/i.test(String(err && (err.name + err.message)));
+      show("err", pw
+        ? '"' + f.name + '" is password-protected, so it can\'t be edited here. Save an unprotected copy from your PDF reader and try again.'
+        : ('Could not open "' + f.name + '" — it may be damaged or not really a PDF.'));
+      closeEditor();
+    });
+  }
+
+  function closeEditor() {
+    window.LinearPDFEditor.close();
+    editorEl.classList.remove("show");
+    editorEl.innerHTML = "";
+    drop.style.display = "";
+    toolsEl.style.display = "";
+    resetFiles();
   }
 
   function renderFileList() {
@@ -1015,6 +1080,6 @@
       });
   });
 
-  /* Start on the tool people come for most. */
-  selectTool("merge");
+  /* Start on the tool people come for most: actually changing the document. */
+  selectTool("edit");
 })();
