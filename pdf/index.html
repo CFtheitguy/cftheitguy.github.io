@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Linear PDF — free PDF toolkit</title>
+<meta name="description" content="Merge, split, rotate, delete pages, shrink, watermark and convert PDFs. Everything runs in your browser — your files are never uploaded. Free, from Linear IT."/>
+<link rel="icon" href="/pdf/assets/icon.png"/>
+<link rel="apple-touch-icon" href="/pdf/assets/icon.png"/>
+<meta name="theme-color" content="#0f1117"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Linear PDF"/>
+<!-- Locked to this origin. pdf.js needs blob:/data: to reach its own worker, but
+     there is no remote host in any directive, so nothing here can post a file
+     off the machine. The libraries are served from /pdf/vendor, not a CDN. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' blob: data:;"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;
+  --text:#eef0f6;--muted:#7c85a2;--faint:#4e5571;
+  --accent:#00b0ec;--accent-h:#009bd2;--accent-bg:rgba(0,176,236,.16);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --success:#4ade80;--warn:#fbbf24;--danger:#f87171;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --logo:url("/pdf/assets/logo-white.png");
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#f4f6fb;--bg2:#ffffff;
+    --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+    --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+    --border:#dde1ee;--border2:#c8cee0;
+    --card:#ffffff;--card2:#f8f9fd;
+    --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+    --shadow:0 8px 30px rgba(0,0,0,.10);
+    --logo:url("/pdf/assets/logo-dark.png");
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;
+  --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+  --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --logo:url("/pdf/assets/logo-dark.png");
+}
+html,body{min-height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding:24px 16px 56px;
+}
+.wrap{max-width:860px;margin:0 auto}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}
+.brand{display:block;width:132px;height:34px;background:var(--logo) left center/contain no-repeat;text-indent:-9999px;overflow:hidden}
+.theme{
+  background:var(--card);border:1px solid var(--border);color:var(--muted);
+  border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer;
+}
+.theme:hover{border-color:var(--border2);color:var(--text)}
+
+h1{font-size:26px;line-height:1.25;letter-spacing:-.02em;margin-bottom:6px}
+.lede{color:var(--muted);font-size:14.5px;margin-bottom:22px;max-width:62ch}
+
+/* ---- tool picker ---- */
+.tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;margin-bottom:24px}
+.tool{
+  border:1px solid var(--border);background:var(--card);color:var(--text);
+  border-radius:12px;padding:13px 12px;cursor:pointer;text-align:left;
+  font:inherit;font-size:14px;transition:border-color .15s,background .15s;
+}
+.tool:hover{border-color:var(--border2);background:var(--card2)}
+.tool[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-bg)}
+.tool .ic{font-size:19px;line-height:1;display:block;margin-bottom:7px}
+.tool .nm{font-weight:600;display:block}
+.tool .ds{color:var(--muted);font-size:12px;display:block;margin-top:2px;line-height:1.35}
+
+/* ---- drop zone ---- */
+#drop{
+  border:2px dashed var(--border2);border-radius:16px;background:var(--card);
+  padding:34px 20px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s;
+}
+#drop:hover,#drop:focus-visible{border-color:var(--accent);background:var(--card2);outline:none}
+#drop.over{border-color:var(--accent);background:var(--accent-bg)}
+#drop .icon{font-size:32px;line-height:1;margin-bottom:11px;display:block}
+#drop .big{font-weight:600;font-size:16px}
+#drop .small{color:var(--muted);font-size:13px;margin-top:6px}
+#file{display:none}
+
+/* ---- file list / page grid ---- */
+.panel{margin-top:20px;border:1px solid var(--border);border-radius:16px;background:var(--card);padding:18px;display:none}
+.panel.show{display:block}
+.label{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:11px}
+
+.files{display:flex;flex-direction:column;gap:8px}
+.file{
+  display:flex;align-items:center;gap:11px;background:var(--card2);
+  border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:14px;
+}
+.file .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file .sz{color:var(--muted);font-size:12.5px;flex:none}
+.file .mv{
+  background:none;border:1px solid var(--border2);color:var(--muted);border-radius:7px;
+  width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1;flex:none;padding:0;
+}
+.file .mv:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.file .mv:disabled{opacity:.3;cursor:default}
+
+.pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.page{
+  position:relative;border:2px solid var(--border);border-radius:10px;background:var(--card2);
+  padding:6px;cursor:pointer;transition:border-color .15s;
+}
+.page:hover{border-color:var(--border2)}
+.page.sel{border-color:var(--accent);background:var(--accent-bg)}
+.page canvas{width:100%;height:auto;display:block;border-radius:5px;background:#fff;transition:transform .18s}
+.page .n{text-align:center;font-size:11.5px;color:var(--muted);margin-top:5px}
+.page.sel .n{color:var(--accent);font-weight:600}
+.page .rot{
+  position:absolute;top:8px;right:8px;background:var(--accent);color:#fff;
+  border-radius:999px;font-size:10px;padding:1px 6px;font-weight:600;
+}
+
+/* ---- options ---- */
+.opts{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-top:16px}
+.opt{display:flex;flex-direction:column;gap:5px}
+.opt label{font-size:12.5px;color:var(--muted)}
+.opt input,.opt select{
+  background:var(--card2);border:1px solid var(--border2);color:var(--text);
+  border-radius:9px;padding:8px 11px;font:inherit;font-size:14px;min-width:150px;
+}
+.opt input:focus,.opt select:focus{outline:none;border-color:var(--accent)}
+
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
+.btn{
+  border:1px solid var(--border2);background:var(--card2);color:var(--text);
+  border-radius:10px;padding:9px 15px;font:inherit;font-size:14px;cursor:pointer;
+  text-decoration:none;display:inline-block;
+}
+.btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover:not(:disabled){background:var(--accent-h);border-color:var(--accent-h);color:#fff}
+.hint{color:var(--muted);font-size:12.5px}
+
+.msg{margin-top:18px;border-radius:12px;padding:13px 15px;font-size:14px;display:none}
+.msg.show{display:block}
+.msg.err{background:rgba(248,113,113,.12);border:1px solid var(--danger);color:var(--danger)}
+.msg.busy{background:var(--card);border:1px solid var(--border);color:var(--muted)}
+.msg.ok{background:rgba(74,222,128,.10);border:1px solid var(--success);color:var(--success)}
+
+footer{margin-top:34px;color:var(--faint);font-size:12.5px;text-align:center;line-height:1.7}
+footer a{color:var(--muted)}
+footer strong{color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/">Linear IT</a>
+    <button class="theme" id="theme" type="button">Theme</button>
+  </header>
+
+  <h1>The PDF toolkit that never uploads your file</h1>
+  <p class="lede">Combine, split, rotate, shrink and stamp PDFs — the everyday jobs people buy Acrobat for. Every one of them runs inside this page, on your own machine. Your documents are never sent to us or to anyone else, so contracts and records stay private. Free, with no account.</p>
+
+  <div class="tools" id="tools" role="group" aria-label="Choose a tool"></div>
+
+  <div id="drop" tabindex="0" role="button">
+    <span class="icon" aria-hidden="true">📄</span>
+    <div class="big" id="dropBig">Choose a PDF, or drop one here</div>
+    <div class="small" id="dropSmall">Nothing is uploaded — the file is opened right here in your browser</div>
+  </div>
+  <input type="file" id="file" accept="application/pdf"/>
+
+  <div class="panel" id="panel">
+    <div class="label" id="panelLabel">Your file</div>
+    <div class="files" id="files"></div>
+    <div class="pages" id="pagesGrid"></div>
+    <div class="opts" id="opts"></div>
+    <div class="actions">
+      <button class="btn primary" id="go" type="button">Save PDF</button>
+      <button class="btn" id="reset" type="button">Start over</button>
+      <span class="hint" id="hint"></span>
+    </div>
+  </div>
+
+  <div class="msg" id="msg"></div>
+
+  <footer>
+    <strong>Your files never leave this device.</strong> There is no upload, no account and no server —
+    this page is blocked from sending anything to the internet.<br/>
+    A free <a href="/">Linear IT</a> tool. Need a document signed instead? Try <a href="/sign/">Linear Sign</a>.
+  </footer>
+</div>
+
+<script src="/pdf/vendor/pdf-lib.min.js"></script>
+<script src="/pdf/vendor/pdf.min.js"></script>
+<script src="/pdf/app.js"></script>
+</body>
+</html>
