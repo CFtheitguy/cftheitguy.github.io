@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Linear PDF — free PDF toolkit</title>
-<meta name="description" content="Edit a PDF free: type on it, draw, white things out, highlight — plus merge, split, rotate, shrink and watermark. Everything runs in your browser, so your file is never uploaded. From Linear IT."/>
+<meta name="description" content="Edit a PDF free: click its text and retype it, draw, white things out, highlight — plus merge, split, rotate, shrink and watermark. Everything runs in your browser, so your file is never uploaded. From Linear IT."/>
 <link rel="icon" href="/pdf/assets/icon.png"/>
 <link rel="apple-touch-icon" href="/pdf/assets/icon.png"/>
 <meta name="theme-color" content="#0f1117"/>
@@ -201,12 +201,16 @@ h1{font-size:26px;line-height:1.25;letter-spacing:-.02em;margin-bottom:6px}
 .edstage[data-tool="draw"] .edover,
 .edstage[data-tool="white"] .edover,
 .edstage[data-tool="highlight"] .edover{cursor:crosshair}
+.edretype{padding:0 2px;border-style:solid;border-radius:2px}
 .edinput{
   position:absolute;z-index:5;background:rgba(255,255,255,.92);
   border:1px dashed var(--accent);border-radius:3px;padding:0 3px;
   font-family:Helvetica,Arial,sans-serif;line-height:1.15;min-width:120px;outline:none;
 }
 .edtip{margin-top:11px;font-size:12.5px;color:var(--muted);text-align:center}
+.edwarn{display:none;margin-top:10px;font-size:12.5px;line-height:1.5;border-radius:10px;
+  padding:9px 12px;background:rgba(251,191,36,.10);border:1px solid var(--warn);color:var(--warn)}
+.edwarn.show{display:block}
 
 footer{margin-top:34px;color:var(--faint);font-size:12.5px;text-align:center;line-height:1.7}
 footer a{color:var(--muted)}
@@ -220,8 +224,8 @@ footer strong{color:var(--muted);font-weight:600}
     <button class="theme" id="theme" type="button">Theme</button>
   </header>
 
-  <h1>Edit a PDF without uploading it anywhere</h1>
-  <p class="lede">Type on a PDF, draw on it, white something out — then combine, split, rotate, shrink or stamp it. The everyday jobs people buy Acrobat for. Every one of them runs inside this page, on your own machine. Your documents are never sent to us or to anyone else, so contracts and records stay private. Free, with no account.</p>
+  <h1>Change the words in a PDF, without uploading it anywhere</h1>
+  <p class="lede">Click the text in a PDF and retype it. Draw on it, white something out — then combine, split, rotate, shrink or stamp it. The everyday jobs people buy Acrobat for. Every one of them runs inside this page, on your own machine. Your documents are never sent to us or to anyone else, so contracts and records stay private. Free, with no account.</p>
 
   <div class="tools" id="tools" role="group" aria-label="Choose a tool"></div>
 
