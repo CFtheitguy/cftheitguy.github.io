@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Linear Send — send big files with a link</title>
+<meta name="description" content="Send several files at once with one link. Photos and videos stay at full size and full quality — nothing is compressed. The link expires on its own. From Linear IT."/>
+<link rel="icon" href="/send/assets/icon.png"/>
+<link rel="apple-touch-icon" href="/send/assets/icon.png"/>
+<meta name="theme-color" content="#0f1117"/>
+<meta name="apple-mobile-web-app-title" content="Linear Send"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://send.linearit.co;"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* Linear IT brand palette (matches board + pdf + vault). Dark by default;
+   light follows the device, or the toggle when someone picks it. */
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--faint:#4e5571;
+  --accent:#00b0ec;--accent-h:#009bd2;--accent-bg:rgba(0,176,236,.16);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --success:#4ade80;--warn:#fbbf24;--danger:#f87171;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --patop:.35;
+  --logo:url("/send/assets/logo-white.png");
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]){
+    --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+    --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+    --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+    --border:#dde1ee;--border2:#c8cee0;
+    --card:#ffffff;--card2:#f8f9fd;
+    --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+    --shadow:0 8px 30px rgba(0,0,0,.10);
+    --patop:.5;
+    --logo:url("/send/assets/logo-dark.png");
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--faint:#9aa0bc;
+  --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --success:#16a34a;--warn:#d97706;--danger:#dc2626;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --patop:.5;
+  --logo:url("/send/assets/logo-dark.png");
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;
+}
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:center/cover no-repeat url("/send/assets/pattern.png");opacity:var(--patop)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.86;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+[hidden]{display:none!important}
+
+.wrap{max-width:620px;margin:0 auto;padding:18px 16px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.brandlogo{display:block;height:24px;width:82px;background:center/contain no-repeat var(--logo)}
+.brandname{font-weight:700;font-size:15px;padding-left:10px;border-left:1px solid var(--border2)}
+.iconbtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:16px}
+.iconbtn:hover{border-color:var(--border2)}
+
+h1{font-size:26px;line-height:1.2;letter-spacing:-.01em;margin-bottom:6px}
+.lede{color:var(--muted);margin-bottom:18px}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:18px}
+.card + .card{margin-top:14px}
+
+/* ---- Drop zone ---- */
+.drop{border:2px dashed var(--border2);border-radius:14px;padding:26px 16px;text-align:center;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--accent);background:var(--accent-bg)}
+.drop .big{font-size:34px;line-height:1;margin-bottom:8px}
+.drop p{color:var(--muted);font-size:14px}
+.drop .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;
+  font-weight:600;font-size:14.5px;border:1px solid var(--border2);background:var(--card2);white-space:nowrap;color:var(--text);text-decoration:none}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-h)}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{border-color:var(--danger)}
+.btn.block{width:100%;height:46px;font-size:15.5px}
+.btn.sm{height:32px;padding:0 11px;font-size:13px}
+
+/* ---- File list ---- */
+.files{list-style:none;margin-top:14px;max-height:320px;overflow:auto}
+.files li{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid var(--border)}
+.files li:first-child{border-top:none}
+.fic{flex:0 0 34px;height:34px;border-radius:8px;background:var(--bg3);display:grid;place-items:center;font-size:17px}
+.fmeta{flex:1 1 auto;min-width:0}
+.fname{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsize{font-size:12.5px;color:var(--muted)}
+.fbar{height:3px;border-radius:2px;background:var(--bg3);margin-top:5px;overflow:hidden}
+.fbar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.fbar.done i{background:var(--success)}
+.x{flex:0 0 28px;height:28px;border-radius:8px;color:var(--muted);font-size:18px}
+.x:hover{background:var(--bg3);color:var(--danger)}
+.summary{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-top:10px}
+.summary .over{color:var(--danger);font-weight:600}
+
+/* ---- Form ---- */
+.field{margin-top:14px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:10px 12px;font-size:15px}
+.field textarea{resize:vertical;min-height:70px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent)}
+.row{display:flex;gap:12px}
+.row .field{flex:1}
+.hint{font-size:12.5px;color:var(--faint);margin-top:6px}
+.err{color:var(--danger);font-size:14px;margin-top:12px}
+
+/* ---- Progress ---- */
+.bigbar{height:10px;border-radius:6px;background:var(--bg3);overflow:hidden;margin:14px 0 8px}
+.bigbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#38d2ff);transition:width .25s}
+.stats{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted);gap:10px;flex-wrap:wrap}
+.pct{font-size:40px;font-weight:700;letter-spacing:-.02em}
+
+/* ---- Link box ---- */
+.done-ic{width:54px;height:54px;border-radius:50%;background:rgba(74,222,128,.15);color:var(--success);display:grid;place-items:center;font-size:28px;margin-bottom:10px}
+.linkbox{display:flex;gap:8px;margin-top:14px}
+.linkbox input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:0 12px;height:44px;font-size:14.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:var(--bg3);border-radius:999px;padding:4px 11px;margin-top:10px}
+
+/* ---- Recent ---- */
+.recent h2{font-size:15px;margin-bottom:6px}
+.recent li{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--border);list-style:none}
+.recent li:first-of-type{border-top:none}
+.recent .rt{flex:1;min-width:0}
+.recent .rt b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent .rt span{font-size:12.5px;color:var(--muted)}
+
+/* ---- Receive ---- */
+.msg{white-space:pre-wrap;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:14.5px}
+.expire{font-size:13.5px;color:var(--muted);margin-top:4px}
+.expire b{color:var(--warn)}
+.promise{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);margin-top:14px}
+
+.foot{text-align:center;font-size:12.5px;color:var(--faint);margin-top:26px}
+.foot a{color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);font-size:14px;font-weight:600;
+  padding:9px 16px;border-radius:999px;box-shadow:var(--shadow);opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media (max-width:480px){
+  h1{font-size:22px}
+  .row{flex-direction:column;gap:0}
+  .linkbox{flex-direction:column}
+  .linkbox .btn{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <a class="brand" href="/send/" id="homeLink">
+      <span class="brandlogo" role="img" aria-label="Linear IT"></span>
+      <span class="brandname">Send</span>
+    </a>
+    <button class="iconbtn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle light or dark theme">🌙</button>
+  </header>
+
+  <!-- ================= SEND ================= -->
+  <main id="sendView" hidden>
+    <section id="pickStep">
+      <h1>Send files with a link</h1>
+      <p class="lede">Add as many files as you like. They arrive exactly as you sent them — full size, full quality, nothing compressed — and the link switches itself off when time's up.</p>
+
+      <div class="card">
+        <div class="drop" id="drop">
+          <div class="big">📦</div>
+          <p><b>Drop files or folders here</b></p>
+          <p>or</p>
+          <div class="btns">
+            <button class="btn" id="addFiles" type="button">＋ Add files</button>
+            <button class="btn" id="addFolder" type="button">📁 Add a folder</button>
+          </div>
+          <input type="file" id="fileInput" multiple hidden/>
+          <input type="file" id="folderInput" webkitdirectory multiple hidden/>
+        </div>
+        <ul class="files" id="fileList"></ul>
+        <div class="summary" id="summary" hidden><span id="sumCount"></span><span id="sumSize"></span></div>
+
+        <div class="field">
+          <label for="title">Title <span style="font-weight:400">(optional)</span></label>
+          <input id="title" maxlength="120" placeholder="e.g. Wedding photos"/>
+        </div>
+        <div class="field">
+          <label for="message">Message <span style="font-weight:400">(optional)</span></label>
+          <textarea id="message" maxlength="2000" placeholder="Anything the person should know"></textarea>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="expiry">Link expires after</label>
+            <select id="expiry">
+              <option value="1">1 hour</option>
+              <option value="24">1 day</option>
+              <option value="72">3 days</option>
+              <option value="168" selected>7 days</option>
+              <option value="336">14 days</option>
+            </select>
+          </div>
+          <div class="field" id="keyField" hidden>
+            <label for="uploadKey">Upload key</label>
+            <input id="uploadKey" type="password" autocomplete="off" placeholder="Ask Linear IT for this"/>
+          </div>
+        </div>
+        <p class="err" id="sendErr" hidden></p>
+        <div style="margin-top:16px">
+          <button class="btn primary block" id="sendBtn" disabled>Get a link</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="uploadStep" hidden>
+      <h1>Uploading…</h1>
+      <p class="lede">Keep this tab open until it finishes. If your connection drops, it picks up where it left off.</p>
+      <div class="card">
+        <div class="pct" id="pct">0%</div>
+        <div class="bigbar"><i id="bigbar"></i></div>
+        <div class="stats"><span id="upBytes"></span><span id="upSpeed"></span></div>
+        <ul class="files" id="upList"></ul>
+        <p class="err" id="upErr" hidden></p>
+        <div class="actions" id="upActions" hidden>
+          <button class="btn primary" id="retryBtn">Try again</button>
+          <button class="btn" id="cancelBtn">Start over</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="doneStep" hidden>
+      <div class="card">
+        <div class="done-ic">✓</div>
+        <h1>Your link is ready</h1>
+        <p class="lede" id="doneInfo" style="margin-bottom:0"></p>
+        <div class="linkbox">
+          <input id="shareLink" readonly/>
+          <button class="btn primary" id="copyBtn">Copy link</button>
+        </div>
+        <span class="badge" id="doneExp"></span>
+        <div class="actions">
+          <button class="btn" id="shareBtn" hidden>Share…</button>
+          <a class="btn" id="openLink" target="_blank" rel="noopener">Open download page</a>
+          <button class="btn danger" id="deleteBtn">Delete now</button>
+          <button class="btn" id="againBtn">Send more files</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card recent" id="recent" hidden>
+      <h2>Links you've sent from this browser</h2>
+      <ul id="recentList"></ul>
+    </section>
+  </main>
+
+  <!-- ================= RECEIVE ================= -->
+  <main id="getView" hidden>
+    <div class="card" id="getCard">
+      <p class="lede" id="getLoading">Loading…</p>
+      <div id="getBody" hidden>
+        <h1 id="getTitle"></h1>
+        <p class="expire" id="getExpire"></p>
+        <div class="msg" id="getMsg" hidden></div>
+        <ul class="files" id="getList"></ul>
+        <div class="summary"><span id="getCount"></span><span id="getSize"></span></div>
+        <div style="margin-top:16px">
+          <a class="btn primary block" id="zipBtn">⬇ Download all</a>
+        </div>
+        <div class="promise"><span>🔒</span><span>These are the original files, byte for byte — nothing was resized or compressed. "Download all" bundles them in a ZIP without compressing them either.</span></div>
+      </div>
+      <div id="getGone" hidden>
+        <div style="font-size:40px">⌛</div>
+        <h1 id="goneTitle">This link has expired</h1>
+        <p class="lede" id="goneText">The files have been deleted. Ask the sender to send them again.</p>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:16px"><a class="btn" href="/send/" id="sendOwn">Send your own files</a></p>
+  </main>
+
+  <p class="foot">Linear Send · from <a href="https://www.linearit.co/">Linear IT</a></p>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/send/app.js"></script>
+</body>
+</html>

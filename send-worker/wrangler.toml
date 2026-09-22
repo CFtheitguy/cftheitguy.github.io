@@ -1,0 +1,54 @@
+# Cloudflare Worker config for Linear Send (file transfer) — send.linearit.co
+# -----------------------------------------------------------------------------
+# A SEPARATE, isolated Worker from linear-chat / linear-vault / linear-sign /
+# board-worker etc. Its own folder, its own config, its own bucket — it shares
+# NOTHING with the other Workers, so it cannot affect any other subdomain.
+#
+# ---- ONE-TIME SETUP (run from THIS folder) ----------------------------------
+#   1. cd send-worker && npm install
+#   2. npx wrangler login                                 # once per machine
+#   3. npx wrangler r2 bucket create linear-send-files    # where the files live
+#   4. (strongly recommended) lock uploading to people who know a key:
+#        npx wrangler secret put UPLOAD_KEY     # any passphrase you'll give senders
+#      Leave it unset and ANYONE on the internet can upload to your bucket.
+#      Downloading never needs the key — the link is the permission.
+#   5. npx wrangler deploy
+#
+# That single `deploy` also creates the send.linearit.co Custom Domain AND its
+# DNS record in the linearit.co zone (custom_domain = true), and registers the
+# hourly cron that deletes expired transfers.
+#
+# No database, no email. R2 has a free tier (10 GB stored, egress always free),
+# so this runs on the free Workers plan.
+
+# Worker/script name. Kept as "send-worker" to match the Cloudflare Workers
+# Builds application name (derived from the repo's root directory).
+name = "send-worker"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# Vanity hostname -> this Worker. Auto-provisions the Custom Domain + DNS on deploy.
+routes = [
+  { pattern = "send.linearit.co", custom_domain = true }
+]
+
+# --- R2 bucket (the files themselves, plus a small manifest per transfer) ---
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "linear-send-files"
+
+# Every hour, delete whatever has expired. Links also stop working the moment
+# they expire, whether or not the sweep has run yet.
+[triggers]
+crons = ["17 * * * *"]
+
+# Non-secret vars only. UPLOAD_KEY stays an encrypted Secret (see setup above).
+[vars]
+# Where the front-end lives on the GitHub Pages site (this Worker reverse-proxies
+# it so send.linearit.co shows the same app, with no second copy to maintain).
+APP_ORIGIN = "https://www.linearit.co"
+APP_PATH = "/send/"
+# Biggest transfer one person can send, in GB (all files together).
+MAX_TRANSFER_GB = "10"
+# Longest a link can be set to live, in days.
+MAX_DAYS = "14"
