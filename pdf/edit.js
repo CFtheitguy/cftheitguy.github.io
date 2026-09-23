@@ -215,7 +215,7 @@
 
   var TIPS = {
     retype: "Click any text on the page to change the words. Boxes show what can be retyped.",
-    select: "Drag anything you've added to move it. Click it and press Delete to remove it.",
+    select: "Drag any text on the page to move it, including the page's own. Delete removes what you added.",
     text: "Click where you want the words to start, then type. Enter adds it; Escape cancels.",
     draw: "Drag to draw — good for a quick signature or circling something.",
     highlight: "Drag across text to highlight it.",
@@ -451,6 +451,24 @@
     }).join("");
   }
 
+  /* Turn a run of the page's own text into something the user owns: the same
+     words, colours and font, with the patch anchored where they came from so
+     dragging carries the text away and leaves clean background behind. */
+  function materialiseRun(run, runId) {
+    for (var i = 0; i < S.items.length; i++) {
+      var it = S.items[i];
+      if (it.type === "edit" && it.page === S.pageNo && it.runId === runId) return it;
+    }
+    var o = {
+      type: "edit", page: S.pageNo, runId: runId, run: run,
+      ox: run.x, oy: run.y, ow: run.w,
+      x: run.x, y: run.y, size: run.size,
+      fontKey: run.fontKey, fg: run.fg, bg: run.bg, text: run.str
+    };
+    S.items.push(o);
+    return o;
+  }
+
   function runAt(pt) {
     var list = S.runs[S.pageNo] || [];
     for (var i = list.length - 1; i >= 0; i--) {
@@ -485,7 +503,7 @@
     ctx.clearRect(0, 0, S.overCanvas.width, S.overCanvas.height);
     ctx.setTransform(S.dpr, 0, 0, S.dpr, 0, 0);
 
-    if (S.tool === "retype") drawRunHints(ctx);
+    if (S.tool === "retype" || S.tool === "select") drawRunHints(ctx);
 
     S.items.forEach(function (o) {
       if (o.page !== S.pageNo) return;
@@ -701,8 +719,19 @@
       }
       if (S.tool === "select") {
         S.selected = hit(pt);
+        if (!S.selected) {
+          /* Text that is part of the page can be dragged too. It is only
+             turned into an editable run once the drag actually starts, so a
+             stray click does not litter the document with no-op changes. */
+          var pending = runAt(pt);
+          if (pending) {
+            down.pendingRun = pending;
+            down.pendingId = (S.runs[S.pageNo] || []).indexOf(pending);
+          } else {
+            down = null;
+          }
+        }
         paintOverlay();
-        if (!S.selected) down = null;
         return;
       }
       if (S.tool === "draw") {
@@ -719,10 +748,16 @@
       var pt = toPdf(s.x, s.y);
       down.moved = true;
 
-      if (S.tool === "select" && S.selected) {
-        translate(S.selected, pt.x - down.last.x, pt.y - down.last.y);
-        down.last = pt;
-        paintOverlay();
+      if (S.tool === "select") {
+        if (!S.selected && down.pendingRun) {
+          S.selected = materialiseRun(down.pendingRun, down.pendingId);
+          down.pendingRun = null;
+        }
+        if (S.selected) {
+          translate(S.selected, pt.x - down.last.x, pt.y - down.last.y);
+          down.last = pt;
+          paintOverlay();
+        }
         return;
       }
       if (!S.live) return;
@@ -873,14 +908,20 @@
 
     if (box.retype) {
       var run = box.run;
-      if (box.existing) remove(box.existing);
-      /* Putting the original words back is the same as never having
-         changed them, so no cover is left behind. */
-      if (v !== run.str) {
+      var prev = box.existing;
+      /* Retyping something that was dragged must not snap it home again, so
+         the position carries over from the change being replaced. */
+      var px = prev ? prev.x : run.x;
+      var py = prev ? prev.y : run.y;
+      var moved = px !== run.x || py !== run.y;
+      if (prev) remove(prev);
+      /* Putting the original words back where they started is the same as
+         never having changed them, so no cover is left behind. */
+      if (v !== run.str || moved) {
         S.items.push({
           type: "edit", page: S.pageNo, runId: box.runId, run: run,
           ox: run.x, oy: run.y, ow: run.w,
-          x: run.x, y: run.y, size: run.size,
+          x: px, y: py, size: run.size,
           fontKey: run.fontKey, fg: run.fg, bg: run.bg, text: v
         });
       }
