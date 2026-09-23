@@ -207,6 +207,9 @@
     S.tip = el("div", "edtip", "");
     host.appendChild(S.tip);
 
+    S.note = el("div", "edwarn", "");
+    host.appendChild(S.note);
+
     S.warn = el("div", "edwarn", "");
     host.appendChild(S.warn);
 
@@ -225,6 +228,7 @@
 
   function setTool(t) {
     S.tool = t;
+    S.miss = null;
     commitInput();
     /* Whiteout and highlight have a colour that is the whole point of them,
        so picking the tool picks the sensible colour too — and going back to
@@ -257,6 +261,24 @@
     return S.tool === "select" || S.tool === "erase" || S.tool === "retype";
   }
 
+  /* A scan is a picture of a document: there are no words in it to retype or
+     move, and no amount of clicking will find any. Saying so once, up front,
+     is the difference between a limitation and a bug. */
+  function pageTextNote() {
+    if (!S.note) return;
+    var n = (S.runs[S.pageNo] || []).length;
+    if (n === 0) {
+      S.note.className = "edwarn show";
+      S.note.textContent =
+        "This page has no text in it — it is an image, almost certainly a scan or a photo. " +
+        "There are no words here to retype or move. You can still add your own text, draw, " +
+        "highlight and white things out on top of it.";
+    } else {
+      S.note.className = "edwarn";
+      S.note.textContent = "";
+    }
+  }
+
   function paintChrome() {
     Object.keys(S.toolBtns).forEach(function (k) {
       S.toolBtns[k].classList.toggle("on", k === S.tool);
@@ -265,7 +287,7 @@
       b.classList.toggle("on", b.dataset.c === S.colour);
     });
     S.swatches.style.opacity = noStyle() ? ".4" : "1";
-    S.tip.textContent = TIPS[S.tool] || "";
+    S.tip.textContent = S.miss || TIPS[S.tool] || "";
     S.pageLbl.textContent = "Page " + S.pageNo + " of " + S.pageCount;
     S.prevBtn.disabled = S.pageNo <= 1;
     S.nextBtn.disabled = S.pageNo >= S.pageCount;
@@ -288,6 +310,7 @@
   function goPage(n) {
     if (n < 1 || n > S.pageCount || n === S.pageNo) return;
     commitInput();
+    S.miss = null;
     S.pageNo = n;
     renderPage();
   }
@@ -327,6 +350,7 @@
       if (S.runs[S.pageNo]) return null;
       return buildRuns(thePage).then(function (runs) { S.runs[S.pageNo] = runs; });
     }).then(function () {
+      pageTextNote();
       paintOverlay();
       paintChrome();
     });
@@ -469,14 +493,38 @@
     return o;
   }
 
+  /* Grabbing text is forgiving: nobody lands on a 9pt line exactly, and a
+     miss that does nothing at all just reads as "this is broken". The box is
+     padded, and when several runs are in reach the nearest one wins so tight
+     line spacing still resolves sensibly. */
   function runAt(pt) {
     var list = S.runs[S.pageNo] || [];
+    var best = null, bestD = Infinity;
     for (var i = list.length - 1; i >= 0; i--) {
       var r = list[i];
-      if (pt.x >= r.x - 1 && pt.x <= r.x + r.w + 1 &&
-          pt.y >= r.y - r.size * DESC && pt.y <= r.y + r.size * ASC) return r;
+      var padY = Math.min(4, r.size * 0.3);
+      var x0 = r.x - 4, x1 = r.x + r.w + 4;
+      var y0 = r.y - r.size * DESC - padY, y1 = r.y + r.size * ASC + padY;
+      if (pt.x < x0 || pt.x > x1 || pt.y < y0 || pt.y > y1) continue;
+      var dx = Math.max(0, Math.max(r.x - pt.x, pt.x - (r.x + r.w)));
+      var dy = Math.max(0, Math.max((r.y - r.size * DESC) - pt.y,
+                                    pt.y - (r.y + r.size * ASC)));
+      var d = Math.sqrt(dx * dx + dy * dy);
+      if (d < bestD) { bestD = d; best = r; }
     }
-    return null;
+    return best;
+  }
+
+  /* Silence is the worst answer to a click that found nothing, so say what
+     happened and why. */
+  function missedText() {
+    var n = (S.runs[S.pageNo] || []).length;
+    /* Held on state rather than written straight to the tip: the pointerup
+       that follows repaints the chrome, which would wipe it instantly. */
+    S.miss = n === 0
+      ? "There is no text on this page to grab — see the note below."
+      : "Nothing there. Start on the words themselves — the dashed boxes show what can be grabbed.";
+    paintChrome();
   }
 
   /* ---- coordinate helpers ---- */
@@ -709,6 +757,7 @@
         if (existing) { openRetype(existing.run, existing.runId, existing); return; }
         var run = runAt(pt);
         if (run) openRetype(run, (S.runs[S.pageNo] || []).indexOf(run), null);
+        else missedText();
         return;
       }
       if (S.tool === "erase") {
@@ -727,7 +776,9 @@
           if (pending) {
             down.pendingRun = pending;
             down.pendingId = (S.runs[S.pageNo] || []).indexOf(pending);
+            S.miss = null;
           } else {
+            missedText();
             down = null;
           }
         }
@@ -846,6 +897,7 @@
      rather than typing something new on top of it. */
   function openRetype(run, runId, existing) {
     commitInput();
+    S.miss = null;
     var px = run.size * pxPerPt();
     var a = toView(run.x, run.y + run.size * ASC);
     var b = toView(run.x + run.w, run.y - run.size * DESC);
@@ -1098,7 +1150,7 @@
     S = {
       tool: "retype", colour: "#000000", markColour: "#000000",
       textSize: 14, penSize: 2.5, size: 14,
-      items: [], selected: null, live: null, input: null, runs: {},
+      items: [], selected: null, live: null, input: null, runs: {}, miss: null,
       pageNo: 1, pageCount: 0,
       onClose: opts.onClose, onSave: opts.onSave, report: opts.report
     };
