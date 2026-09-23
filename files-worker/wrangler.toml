@@ -11,10 +11,11 @@ binding = "DB"
 database_name = "linearit-files-db"
 database_id = "REPLACE_WITH_YOUR_D1_ID"
 
-# Hourly: deletes expired Transfer links and used-up Secure Send files.
-# (Links stop working the moment they expire either way.)
+# Nightly at 03:00 UTC: deletes expired Transfer files and used-up Secure
+# Send files. Links stop working the moment they expire regardless, and
+# every new transfer also clears a few expired ones as it's created.
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 3 * * *"]
 
 [vars]
 SITE_ORIGIN             = "https://files.linearit.co"

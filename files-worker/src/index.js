@@ -54,7 +54,7 @@ export default {
 
       // ── Transfers: sender side ─────────────────────────────────────
       if (path === "/api/transfers"          && method === "GET")  return corsHeaders(await listTransfers(request, env));
-      if (path === "/api/transfer/create"    && method === "POST") return corsHeaders(await createTransfer(request, env));
+      if (path === "/api/transfer/create"    && method === "POST") return corsHeaders(await createTransfer(request, env, ctx));
       if (path === "/api/transfer/file-done" && method === "POST") return corsHeaders(await transferFileDone(request, env));
       if (path === "/api/transfer/finish"    && method === "POST") return corsHeaders(await finishTransfer(request, env));
       if (path === "/api/transfer/delete"    && method === "POST") return corsHeaders(await deleteTransfer(request, env));
@@ -2026,7 +2026,7 @@ async function listTransfers(request, env) {
   return json({ transfers: rows.results || [] });
 }
 
-async function createTransfer(request, env) {
+async function createTransfer(request, env, ctx) {
   const user = await requireAuth(request, env);
   const guest = user ? null : guestLimits(env);
   if (guest && !guest.enabled) return json({ error: 'Please sign in to send files' }, 401);
@@ -2073,6 +2073,9 @@ async function createTransfer(request, env) {
     'INSERT INTO transfer_files (transfer_id, n, name, size, mime, r2_key) VALUES (?,?,?,?,?,?)'
   ).bind(t.id, n, f.name, f.size, files[n].mime, f.key)));
 
+  // Each new transfer also clears out a few expired ones, so cleanup keeps
+  // pace with use no matter how often the cron runs.
+  if (ctx && ctx.waitUntil) ctx.waitUntil(purgeTransfers(env, 5).catch(() => {}));
   return json({ id: t.id, token, ownerToken, expires_at: expiresAt, partSize: PART_SIZE, files: out });
 }
 
@@ -2220,10 +2223,10 @@ async function removeTransfer(env, t) {
   ]);
 }
 
-async function purgeTransfers(env) {
+async function purgeTransfers(env, limit = 12) {
   // A handful per run keeps each run inside the per-request limits; the
   // links themselves already stopped working at expiry.
-  const rows = await env.DB.prepare('SELECT id, user_id FROM transfers WHERE expires_at < ? LIMIT 12').bind(nowIso()).all();
+  const rows = await env.DB.prepare('SELECT id, user_id FROM transfers WHERE expires_at < ? LIMIT ?').bind(nowIso(), limit).all();
   for (const t of (rows.results || [])) await removeTransfer(env, t).catch(e => console.error('purge transfer', t.id, e));
 }
 

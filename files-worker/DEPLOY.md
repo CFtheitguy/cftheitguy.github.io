@@ -106,10 +106,9 @@ themselves the first time the new code runs.
 
 1. Workers & Pages → `linearit-files` → **Edit code**
 2. Select everything in the editor, paste the whole of `src/index.js`, **Deploy**
-3. Settings → **Triggers** → **Cron Triggers**: change `0 3 * * *` to
-   `0 * * * *` (hourly). Expired transfers already stop working the moment
-   they expire; this just deletes their files within the hour instead of
-   the next morning.
+3. Leave the cron at `0 3 * * *`. Expired links stop working the moment
+   they expire; the nightly run deletes leftover files, and each new
+   transfer also clears a few expired ones as it's created.
 
 Then sign in and check:
 
