@@ -115,11 +115,38 @@ Then sign in and check:
 
 - **My Files** — upload something over 100 MB. It goes up in 16 MB pieces
   with a speed / time-left readout (the old uploader stopped at ~100 MB).
+- **Transfer without an account** — open `files.linearit.co/transfer` in a
+  private window (signed out) and send something.
 - **Transfer** — add a few files or a folder, pick an expiry, *Upload & get
   link*. Open the link in a private window: each file downloads on its own,
   or *Download all* gives one ZIP. "Your transfers" shows how many times it
   was downloaded, with Copy link / Delete.
 - **Secure Send** — big files work here too now.
+
+### Sending without an account
+
+Anyone can send a transfer at **files.linearit.co/transfer** — no sign-up.
+The sign-in screen links to it ("Send big files — free, no account"), and
+every download page links back to it. Guests get the same full-quality
+uploads and expiring links, with limits so strangers can't fill your bucket:
+
+| Limit | Default | Change it with a Worker variable |
+|---|---|---|
+| One transfer | 5 GB | `GUEST_MAX_GB` |
+| Per internet address, per day | 10 GB (and 30 transfers) | `GUEST_DAILY_GB` |
+| All live guest transfers together | 100 GB | `GUEST_TOTAL_GB` |
+| Longest link | 7 days | `GUEST_MAX_DAYS` |
+| Turn guest sending off | — | `GUEST_TRANSFERS` = `off` |
+
+Set these under Worker → **Settings** → **Variables and Secrets** (plain
+"Text" variables are fine). At the defaults the worst case is ~100 GB in R2,
+about $1.50 a month; downloads from R2 are free.
+
+A guest's browser keeps a private "owner token" for each transfer, so the
+same browser can copy or delete its links later ("Links you've sent from this
+browser"). Guest transfers are stored under a built-in system account called
+`__guest__` that nobody can sign in to — leave that row in the users table.
+The daily limit uses a salted hash of the sender's IP, never the IP itself.
 
 ### What changed, in short
 

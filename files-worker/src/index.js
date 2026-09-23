@@ -58,6 +58,7 @@ export default {
       if (path === "/api/transfer/file-done" && method === "POST") return corsHeaders(await transferFileDone(request, env));
       if (path === "/api/transfer/finish"    && method === "POST") return corsHeaders(await finishTransfer(request, env));
       if (path === "/api/transfer/delete"    && method === "POST") return corsHeaders(await deleteTransfer(request, env));
+      if (path === "/api/transfer/mine"      && method === "POST") return corsHeaders(await myGuestTransfers(request, env));
       if (method === "GET" && path.startsWith("/view/")) {
         return htmlResponse(renderViewPage(path.slice(6)));
       }
@@ -67,6 +68,11 @@ export default {
       // ── Public password sharing (free, no account) ─────────────────
       if (method === "GET" && (path === "/password" || path === "/p" || path === "/p/")) {
         return htmlResponse(renderPasswordPage());
+      }
+      // ── Transfer without an account ────────────────────────────────
+      if (method === "GET" && (path === "/transfer" || path === "/transfer/" || path === "/send")) {
+        await ensureSchema(env);
+        return htmlResponse(renderGuestTransferPage(env));
       }
       if (method === "GET" && path.startsWith("/s/")) {
         return htmlResponse(renderSecretView(path.slice(3)));
@@ -129,184 +135,7 @@ function renderApp() {
 <title>Linear Tech · File Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-
-/* ── Dark theme (default) ── */
-:root,[data-theme="dark"]{
-  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
-  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
-  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
-  --border:#2a2f45;--border2:#353b56;
-  --card:#181c2a;--card2:#1e2235;
-  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
-  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
-  --shadow:0 2px 16px rgba(0,0,0,.4);
-  --input-bg:#0f1117;
-}
-
-/* ── Light theme ── */
-[data-theme="light"]{
-  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
-  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
-  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
-  --border:#dde1ee;--border2:#c8cee0;
-  --card:#ffffff;--card2:#f8f9fd;
-  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
-  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
-  --shadow:0 2px 16px rgba(0,0,0,.08);
-  --input-bg:#f4f6fb;
-}
-
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
-
-/* ── Header ── */
-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
-.logo-text{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
-.logo-text span{color:var(--accent)}
-.header-right{display:flex;align-items:center;gap:10px}
-#theme-toggle{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
-#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
-#nav-user{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
-.nav-name{font-weight:600;color:var(--text);font-size:.88rem}
-.btn-signout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .15s}
-.btn-signout:hover{border-color:var(--danger);color:var(--danger)}
-
-/* ── Layout ── */
-main{max-width:880px;margin:0 auto;padding:36px 20px}
-
-/* ── Cards ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:var(--shadow);transition:background .2s,border-color .2s}
-.card-title{font-size:1.15rem;font-weight:700;margin-bottom:6px;color:var(--text)}
-.card-desc{font-size:.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6}
-
-/* ── Alerts ── */
-#alert{padding:13px 18px;border-radius:10px;margin-bottom:24px;display:none;font-size:.88rem;font-weight:500}
-.alert-err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
-.alert-ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
-
-/* ── Tabs ── */
-.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--bg3);border-radius:12px;padding:4px;border:1px solid var(--border)}
-.tab{flex:1;text-align:center;padding:9px 16px;border-radius:9px;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .15s;user-select:none}
-.tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,.15)}
-.tab:hover:not(.active){color:var(--text)}
-
-/* ── Form fields ── */
-.field{margin-bottom:18px}
-label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;font-weight:600;letter-spacing:.01em}
-input[type=text],input[type=email],input[type=password],input[type=date]{
-  width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
-  padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;
-  transition:border-color .15s,box-shadow .15s
-}
-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
-input::placeholder{color:var(--muted2)}
-
-/* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:11px 24px;
-  border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:600;font-family:inherit;transition:all .15s;letter-spacing:-.01em}
-.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,126,248,.3)}
-.btn:active{transform:none}
-.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted)}
-.btn-outline:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);box-shadow:none;transform:none}
-.btn-danger{background:var(--danger)}
-.btn-danger:hover{background:#d95555;box-shadow:0 4px 12px rgba(240,100,100,.3)}
-.btn-sm{padding:6px 14px;font-size:.8rem;border-radius:8px}
-.btn-full{width:100%}
-
-/* ── Drop zones ── */
-.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:44px 20px;text-align:center;
-  color:var(--muted);cursor:pointer;transition:all .2s;margin-bottom:20px}
-.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
-.drop-zone:hover svg,.drop-zone.over svg{stroke:var(--accent)}
-.drop-zone p{margin-top:10px;font-size:.88rem;font-weight:500}
-.drop-zone .hint{font-size:.78rem;color:var(--muted2);margin-top:4px;font-weight:400}
-
-/* ── File table ── */
-.file-table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.87rem}
-th{text-align:left;padding:10px 14px;color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
-td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--bg3)}
-.file-name{font-weight:600;word-break:break-all;color:var(--text)}
-.file-meta{color:var(--muted);font-size:.78rem;margin-top:2px}
-.actions{display:flex;gap:6px;justify-content:flex-end}
-.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
-.empty-state svg{margin:0 auto 16px;display:block;opacity:.4}
-.empty-state p{font-size:.92rem}
-
-/* ── Share result box ── */
-.share-box{background:var(--success-bg);border:1px solid var(--success);border-radius:12px;padding:18px;margin-top:20px}
-.share-box-label{font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
-.share-url-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.share-url{font-size:.82rem;color:var(--text);word-break:break-all;flex:1;background:var(--card2);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-family:monospace}
-
-/* ── Progress ── */
-progress{width:100%;height:5px;border-radius:3px;appearance:none;margin-top:14px;display:none}
-progress::-webkit-progress-bar{background:var(--border);border-radius:3px}
-progress::-webkit-progress-value{background:var(--accent);border-radius:3px;transition:width .3s}
-
-/* ── Plan cards ── */
-.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.plan-card{border:2px solid var(--border2);border-radius:12px;padding:16px 12px;cursor:pointer;text-align:center;transition:all .15s;position:relative;user-select:none;display:block}
-.plan-card:hover{border-color:var(--accent);background:var(--accent-bg)}
-.plan-card.selected{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 0 0 3px var(--accent-bg)}
-.plan-name{font-weight:700;font-size:.88rem;margin-bottom:4px}
-.plan-price{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1}
-.plan-price span{font-size:.72rem;font-weight:500;color:var(--muted)}
-.plan-gb{font-size:.75rem;color:var(--muted);margin-top:4px;font-weight:500}
-.plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
-
-/* ── Storage bar ── */
-.storage-bar-wrap{margin-bottom:20px}
-.storage-bar-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:6px;font-weight:500}
-.storage-bar-label strong{color:var(--text)}
-.storage-bar-bg{background:var(--border);border-radius:4px;height:6px;overflow:hidden}
-.storage-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s}
-.storage-bar-fill.warn{background:#f59e0b}
-.storage-bar-fill.danger{background:var(--danger)}
-
-/* ── Upload progress rows (all tabs) ── */
-.up-list{list-style:none;margin-top:14px}
-.up-list li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:.84rem}
-.up-list li:first-child{border-top:none}
-.up-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
-.up-size{color:var(--muted);font-size:.76rem;white-space:nowrap}
-.up-bar{flex:0 0 90px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.up-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
-.up-bar.done i{background:var(--success)}
-.up-bar.err i{background:var(--danger);width:100%!important}
-.up-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:2px 6px;border-radius:6px}
-.up-x:hover{color:var(--danger);background:var(--danger-bg)}
-.up-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:10px}
-.big-bar{height:8px;background:var(--border);border-radius:5px;overflow:hidden;margin-top:14px}
-.big-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
-
-/* ── Transfer pane ── */
-.row2{display:flex;gap:14px}
-.row2 .field{flex:1}
-textarea.tx{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;min-height:74px;resize:vertical}
-textarea.tx:focus,select.tx:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
-select.tx{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;font-family:inherit;outline:none;cursor:pointer}
-.tx-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border)}
-.tx-item:first-child{border-top:none}
-.tx-main{flex:1;min-width:0}
-.tx-title{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tx-meta{color:var(--muted);font-size:.76rem;margin-top:2px}
-.pill{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--accent-bg);color:var(--accent);margin-left:6px}
-.btns-inline{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
-@media (max-width:560px){.row2{flex-direction:column;gap:0}.tabs{flex-wrap:wrap}.tab{padding:9px 8px}main{padding:24px 14px}.card{padding:22px 18px}header{padding:0 14px}}
-
-/* ── Misc ── */
-#section-auth,#section-portal{display:none}
-.auth-wrap{max-width:460px;margin:0 auto}
-.section-label{font-size:.75rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
-hr{border:none;border-top:1px solid var(--border);margin:24px 0}
-</style>
+<style>${portalStyles()}</style>
 </head>
 <body>
 <header>
@@ -342,6 +171,17 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
         <div style="flex:1">
           <div style="font-weight:700;color:var(--text);font-size:.92rem">Send a password — free, no account</div>
           <div style="font-size:.78rem;color:var(--muted);margin-top:2px">One-time secure link that self-destructs after viewing</div>
+        </div>
+        <span style="color:var(--accent);font-weight:700;font-size:1.1rem">→</span>
+      </a>
+
+      <a href="/transfer" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:var(--accent-bg);border:1px solid var(--accent);border-radius:14px;padding:16px 18px;margin-bottom:20px;transition:all .15s">
+        <div style="width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--text);font-size:.92rem">Send big files — free, no account</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">Full quality, one link, expires on its own</div>
         </div>
         <span style="color:var(--accent);font-weight:700;font-size:1.1rem">→</span>
       </a>
@@ -509,73 +349,7 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
 
     <!-- Transfer pane -->
     <div id="pane-transfer" style="display:none">
-      <div class="card" style="margin-bottom:20px">
-        <div id="tx-pick">
-          <div class="card-title">Transfer</div>
-          <div class="card-desc">Send lots of files — or whole folders — with one link. Photos and videos arrive at full size and full quality, nothing compressed, and the link expires on its own. No password needed to download.</div>
-          <div class="drop-zone" id="tx-drop" style="margin-bottom:0">
-            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <p>Drop files or folders here</p>
-            <div class="hint">Any size &nbsp;·&nbsp; up to 500 files</div>
-            <div class="btns-inline">
-              <button class="btn btn-sm btn-outline" type="button" id="tx-add-files">Add files</button>
-              <button class="btn btn-sm btn-outline" type="button" id="tx-add-folder">Add a folder</button>
-            </div>
-          </div>
-          <input id="tx-file-input" type="file" multiple style="display:none"/>
-          <input id="tx-folder-input" type="file" webkitdirectory multiple style="display:none"/>
-          <ul class="up-list" id="tx-list"></ul>
-          <div class="up-stats" id="tx-sum"></div>
-          <hr/>
-          <div class="field"><label>Title &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="tx-title" type="text" maxlength="120" placeholder="e.g. Wedding photos"/></div>
-          <div class="field"><label>Message &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><textarea class="tx" id="tx-message" maxlength="2000" placeholder="Anything they should know"></textarea></div>
-          <div class="field">
-            <label>Link expires after</label>
-            <select class="tx" id="tx-hours">
-              <option value="1">1 hour</option>
-              <option value="24">1 day</option>
-              <option value="72">3 days</option>
-              <option value="168" selected>7 days</option>
-              <option value="336">14 days</option>
-            </select>
-          </div>
-          <button class="btn" id="tx-send" disabled>
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Upload &amp; get link
-          </button>
-        </div>
-
-        <div id="tx-progress" style="display:none">
-          <div class="card-title">Uploading…</div>
-          <div class="card-desc" style="margin-bottom:0">Keep this tab open. If the connection drops, each piece retries on its own.</div>
-          <div class="big-bar"><i id="tx-bar"></i></div>
-          <div class="up-stats"><span id="tx-bytes"></span><span id="tx-speed"></span></div>
-          <div id="tx-err" style="display:none;margin-top:14px" class="alert-err" role="alert"></div>
-          <div id="tx-retry-row" style="display:none;margin-top:12px;gap:8px" class="actions">
-            <button class="btn btn-sm" id="tx-retry">Try again</button>
-            <button class="btn btn-sm btn-outline" id="tx-cancel">Cancel</button>
-          </div>
-        </div>
-
-        <div id="tx-done" style="display:none">
-          <div class="card-title">Your link is ready</div>
-          <div class="card-desc" id="tx-done-info" style="margin-bottom:0"></div>
-          <div class="share-box">
-            <div class="share-box-label">Transfer link</div>
-            <div class="share-url-row">
-              <span id="tx-url" class="share-url"></span>
-              <button class="btn btn-sm" id="tx-copy">Copy link</button>
-            </div>
-            <p id="tx-exp" style="font-size:.78rem;color:var(--muted);margin-top:10px"></p>
-          </div>
-          <div style="margin-top:16px"><button class="btn btn-outline btn-sm" id="tx-again">Send more files</button></div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title" style="margin-bottom:14px">Your transfers</div>
-        <div id="tx-history"><p style="color:var(--muted);font-size:.88rem">Nothing sent yet.</p></div>
-      </div>
+${transferPaneHtml(false)}
     </div>
   </div>
 </main>
@@ -1480,7 +1254,7 @@ async function loginUser(request, env) {
     'SELECT id, username, email, pw_hash, pw_salt, trial_until FROM users WHERE username=? OR email=?'
   ).bind(username.trim(), username.trim().toLowerCase()).first();
 
-  if (!row) return json({ error: 'Invalid username or password' }, 401);
+  if (!row || row.username === GUEST_USERNAME) return json({ error: 'Invalid username or password' }, 401);
   const ok = await verifyPassword(password, row.pw_hash, row.pw_salt);
   if (!ok) return json({ error: 'Invalid username or password' }, 401);
   if (row.trial_until && new Date(row.trial_until) < new Date()) {
@@ -1890,7 +1664,7 @@ function corsHeaders(res) {
   const h = new Headers(res.headers);
   h.set('Access-Control-Allow-Origin', '*');
   h.set('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
-  h.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  h.set('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Owner-Token');
   return new Response(res.body, { status: res.status, headers: h });
 }
 
@@ -1964,8 +1738,14 @@ async function ensureSchema(env) {
       UNIQUE(transfer_id, n)
     )`),
   ]);
-  // Added for signed share downloads; harmless "duplicate column" once it exists.
-  await env.DB.prepare('ALTER TABLE shares ADD COLUMN burned_at TEXT').run().catch(() => {});
+  // Columns added after the first release; each is a harmless
+  // "duplicate column" error once it exists.
+  for (const sql of [
+    'ALTER TABLE shares ADD COLUMN burned_at TEXT',
+    'ALTER TABLE transfers ADD COLUMN owner_hash TEXT',   // guest transfers: hash of the sender's private token
+    'ALTER TABLE transfers ADD COLUMN ip_hash TEXT',      // guest transfers: for the per-day limit (salted hash, not the IP)
+  ]) await env.DB.prepare(sql).run().catch(() => {});
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_transfers_ip ON transfers(ip_hash)').run().catch(() => {});
   schemaReady = true;
 }
 
@@ -1983,18 +1763,40 @@ function storageFullMessage(user) {
   return 'Storage limit reached (' + info.gb + ' GB on your ' + info.name + ' plan). Delete something or upgrade your plan.';
 }
 
-function ownsKey(user, key) {
-  return typeof key === 'string' && !key.includes('..') &&
-    ['users', 'shares', 'transfers'].some(p => key.startsWith(p + '/' + user.id + '/'));
+/* Who is making a request: a signed-in user, or a guest holding the
+ * private owner token they got when they created their transfer (guests
+ * have no account, so that token is the only thing that proves it's theirs).
+ * Guest-only abilities: create a transfer, upload into it, finish, delete. */
+async function transferActor(request, env) {
+  const user = await requireAuth(request, env);
+  if (user) return { user };
+  const token = request.headers.get('X-Owner-Token');
+  return token ? { ownerHash: await sha256hex(token) } : null;
 }
 
-// A transfer's files can only be written while it is still uploading.
-async function keyWritable(env, user, key) {
-  if (!ownsKey(user, key)) return false;
-  if (!key.startsWith('transfers/')) return true;
-  const tid = Number(key.split('/')[2]);
-  const row = await env.DB.prepare("SELECT status FROM transfers WHERE id=? AND user_id=?").bind(tid, user.id).first();
-  return !!row && row.status === 'uploading';
+function actorOwns(actor, t) {
+  if (!actor || !t) return false;
+  if (actor.user) return t.user_id === actor.user.id && !t.owner_hash;
+  return !!t.owner_hash && t.owner_hash === actor.ownerHash;
+}
+
+/* May this actor write to this R2 key? My Files / Secure Send keys belong
+ * to a signed-in user by prefix. Transfer keys belong to whoever owns that
+ * transfer, only while it is still uploading, and come back with the size
+ * announced for that file so every write can be held to it exactly —
+ * nobody can announce a small file and then pour gigabytes into it. */
+async function keyAccess(env, actor, key) {
+  if (!actor || typeof key !== 'string' || key.includes('..')) return null;
+  const seg = key.split('/');
+  if (seg[0] === 'transfers' && seg.length === 4) {
+    const row = await env.DB.prepare(
+      "SELECT t.user_id, t.owner_hash, t.status, tf.size, tf.mime FROM transfers t JOIN transfer_files tf ON tf.transfer_id=t.id WHERE t.id=? AND tf.r2_key=?"
+    ).bind(Number(seg[2]), key).first();
+    if (!row || row.status !== 'uploading' || String(row.user_id) !== seg[1] || !actorOwns(actor, row)) return null;
+    return { size: row.size, mime: row.mime };
+  }
+  if (actor.user && (seg[0] === 'users' || seg[0] === 'shares') && seg[1] === String(actor.user.id)) return { size: null, mime: null };
+  return null;
 }
 
 async function uploadStart(request, env) {
@@ -2017,45 +1819,54 @@ async function uploadStart(request, env) {
 }
 
 async function uploadMultipart(request, env) {
-  const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const actor = await transferActor(request, env);
+  if (!actor) return json({ error: 'Unauthorized' }, 401);
   const { key } = await request.json();
-  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
-  const row = key.startsWith('transfers/')
-    ? await env.DB.prepare('SELECT mime FROM transfer_files WHERE r2_key=?').bind(key).first() : null;
-  const mp = await env.FILES.createMultipartUpload(key, { httpMetadata: { contentType: cleanMime(row && row.mime) } });
+  const access = await keyAccess(env, actor, key);
+  if (!access) return json({ error: 'Not allowed' }, 403);
+  if (access.size != null && access.size <= PART_SIZE) return json({ error: 'Small files go up in one request' }, 400);
+  const mp = await env.FILES.createMultipartUpload(key, { httpMetadata: { contentType: cleanMime(access.mime) } });
   return json({ upload: mp.uploadId, partSize: PART_SIZE });
 }
 
 async function uploadPut(request, env, url) {
-  const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const actor = await transferActor(request, env);
+  if (!actor) return json({ error: 'Unauthorized' }, 401);
   const key = url.searchParams.get('key');
-  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
+  const access = await keyAccess(env, actor, key);
+  if (!access) return json({ error: 'Not allowed' }, 403);
   const len = Number(request.headers.get('Content-Length'));
   if (!(len >= 0) || len > PART_SIZE) return json({ error: 'Too large for one request — send it in parts' }, 400);
-  await env.FILES.put(key, request.body, { httpMetadata: { contentType: cleanMime(request.headers.get('Content-Type')) } });
+  if (access.size != null && len !== access.size) return json({ error: 'Size does not match the file' }, 400);
+  await env.FILES.put(key, request.body, { httpMetadata: { contentType: cleanMime(access.mime || request.headers.get('Content-Type')) } });
   return json({ ok: true });
 }
 
 async function uploadPart(request, env, url) {
-  const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const actor = await transferActor(request, env);
+  if (!actor) return json({ error: 'Unauthorized' }, 401);
   const key = url.searchParams.get('key');
   const upload = url.searchParams.get('upload');
   const part = Number(url.searchParams.get('part'));
-  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
+  const access = await keyAccess(env, actor, key);
+  if (!access) return json({ error: 'Not allowed' }, 403);
   if (!upload || !Number.isInteger(part) || part < 1 || part > 10000) return json({ error: 'Bad part' }, 400);
-  if (Number(request.headers.get('Content-Length')) > PART_SIZE) return json({ error: 'Part too large' }, 400);
+  const len = Number(request.headers.get('Content-Length'));
+  if (len > PART_SIZE) return json({ error: 'Part too large' }, 400);
+  if (access.size != null) {
+    // Transfer files: exactly the parts that file needs, each exactly sized.
+    const count = Math.ceil(access.size / PART_SIZE);
+    if (part > count || len !== Math.min(PART_SIZE, access.size - (part - 1) * PART_SIZE)) return json({ error: 'Part does not match the file' }, 400);
+  }
   const done = await env.FILES.resumeMultipartUpload(key, upload).uploadPart(part, request.body);
   return json({ partNumber: done.partNumber, etag: done.etag });
 }
 
 async function uploadComplete(request, env) {
-  const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const actor = await transferActor(request, env);
+  if (!actor) return json({ error: 'Unauthorized' }, 401);
   const { key, upload, parts } = await request.json();
-  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
+  if (!(await keyAccess(env, actor, key))) return json({ error: 'Not allowed' }, 403);
   if (!upload || !Array.isArray(parts) || !parts.length) return json({ error: 'Bad request' }, 400);
   const list = parts.map(p => ({ partNumber: Number(p.partNumber), etag: String(p.etag || '') }))
     .sort((a, b) => a.partNumber - b.partNumber);
@@ -2217,10 +2028,12 @@ async function listTransfers(request, env) {
 
 async function createTransfer(request, env) {
   const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const guest = user ? null : guestLimits(env);
+  if (guest && !guest.enabled) return json({ error: 'Please sign in to send files' }, 401);
   const body = await request.json();
   const hours = Number(body.hours);
   if (!TRANSFER_HOURS.includes(hours)) return json({ error: 'Pick how long the link should last' }, 400);
+  if (guest && hours > guest.maxHours) return json({ error: 'Without an account, links can last up to ' + guest.maxHours / 24 + ' days' }, 400);
   const list = Array.isArray(body.files) ? body.files : [];
   if (!list.length) return json({ error: 'Add at least one file' }, 400);
   if (list.length > TRANSFER_MAX_FILES) return json({ error: 'Up to ' + TRANSFER_MAX_FILES + ' files per transfer' }, 400);
@@ -2234,35 +2047,46 @@ async function createTransfer(request, env) {
     total += size;
     files.push({ name: uniqueName(cleanDisplayName(f.name), used), size, mime: cleanMime(f.type) });
   }
-  const limit = user.storage_limit || PLANS.starter.bytes;
-  if ((await storageUsed(env, user.id)).total + total > limit) return json({ error: storageFullMessage(user) }, 413);
+  let ownerId, ownerToken = null, ownerHash = null, ipHash = null;
+  if (user) {
+    const limit = user.storage_limit || PLANS.starter.bytes;
+    if ((await storageUsed(env, user.id)).total + total > limit) return json({ error: storageFullMessage(user) }, 413);
+    ownerId = user.id;
+  } else {
+    const refused = await guestRefusal(env, request, guest, total);
+    if (refused) return refused;
+    ownerId = await guestUserId(env);
+    ownerToken = randomToken(40);
+    ownerHash = await sha256hex(ownerToken);
+    ipHash = await clientIpHash(env, request);
+  }
 
   const token = randomToken(24);
   const expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
   const t = await env.DB.prepare(
-    'INSERT INTO transfers (token, user_id, title, message, total, file_count, expires_at) VALUES (?,?,?,?,?,?,?) RETURNING id'
-  ).bind(token, user.id, String(body.title || '').trim().slice(0, 120) || null, String(body.message || '').trim().slice(0, 2000) || null,
-    total, files.length, expiresAt).first();
+    'INSERT INTO transfers (token, user_id, title, message, total, file_count, expires_at, owner_hash, ip_hash) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id'
+  ).bind(token, ownerId, String(body.title || '').trim().slice(0, 120) || null, String(body.message || '').trim().slice(0, 2000) || null,
+    total, files.length, expiresAt, ownerHash, ipHash).first();
 
-  const out = files.map((f, n) => ({ n, name: f.name, size: f.size, key: 'transfers/' + user.id + '/' + t.id + '/' + n }));
+  const out = files.map((f, n) => ({ n, name: f.name, size: f.size, key: 'transfers/' + ownerId + '/' + t.id + '/' + n }));
   await env.DB.batch(out.map((f, n) => env.DB.prepare(
     'INSERT INTO transfer_files (transfer_id, n, name, size, mime, r2_key) VALUES (?,?,?,?,?,?)'
   ).bind(t.id, n, f.name, f.size, files[n].mime, f.key)));
 
-  return json({ id: t.id, token, expires_at: expiresAt, partSize: PART_SIZE, files: out });
+  return json({ id: t.id, token, ownerToken, expires_at: expiresAt, partSize: PART_SIZE, files: out });
 }
 
 // Called once per file as it lands: checks it arrived at exactly the size
 // announced (so nothing is ever silently cut short) and stores its CRC-32,
 // which the ZIP needs.
 async function transferFileDone(request, env) {
-  const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const actor = await transferActor(request, env);
+  if (!actor) return json({ error: 'Unauthorized' }, 401);
   const { id, n, crc } = await request.json();
   const row = await env.DB.prepare(
-    "SELECT tf.id, tf.size, tf.r2_key FROM transfer_files tf JOIN transfers t ON t.id=tf.transfer_id WHERE t.id=? AND t.user_id=? AND t.status='uploading' AND tf.n=?"
-  ).bind(Number(id), user.id, Number(n)).first();
-  if (!row) return json({ error: 'Not found' }, 404);
+    "SELECT tf.id, tf.size, tf.r2_key, t.user_id, t.owner_hash FROM transfer_files tf JOIN transfers t ON t.id=tf.transfer_id WHERE t.id=? AND t.status='uploading' AND tf.n=?"
+  ).bind(Number(id), Number(n)).first();
+  if (!row || !actorOwns(actor, row)) return json({ error: 'Not found' }, 404);
   const head = await env.FILES.head(row.r2_key);
   if (!head || head.size !== row.size) return json({ error: 'That file did not arrive complete — it will be sent again' }, 409);
   const c = Number(crc);
@@ -2272,11 +2096,11 @@ async function transferFileDone(request, env) {
 }
 
 async function finishTransfer(request, env) {
-  const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const actor = await transferActor(request, env);
+  if (!actor) return json({ error: 'Unauthorized' }, 401);
   const { id } = await request.json();
-  const t = await env.DB.prepare('SELECT id, token, status, expires_at FROM transfers WHERE id=? AND user_id=?').bind(Number(id), user.id).first();
-  if (!t) return json({ error: 'Not found' }, 404);
+  const t = await env.DB.prepare('SELECT id, token, status, expires_at, user_id, owner_hash FROM transfers WHERE id=?').bind(Number(id)).first();
+  if (!actorOwns(actor, t)) return json({ error: 'Not found' }, 404);
   const left = await env.DB.prepare('SELECT COUNT(*) AS c FROM transfer_files WHERE transfer_id=? AND done=0').bind(t.id).first();
   if (left.c > 0) return json({ error: left.c + ' file(s) have not finished uploading' }, 409);
   await env.DB.prepare("UPDATE transfers SET status='ready' WHERE id=?").bind(t.id).run();
@@ -2284,13 +2108,101 @@ async function finishTransfer(request, env) {
 }
 
 async function deleteTransfer(request, env) {
-  const user = await requireAuth(request, env);
-  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const actor = await transferActor(request, env);
+  if (!actor) return json({ error: 'Unauthorized' }, 401);
   const { id } = await request.json();
-  const t = await env.DB.prepare('SELECT id, user_id FROM transfers WHERE id=? AND user_id=?').bind(Number(id), user.id).first();
-  if (!t) return json({ error: 'Not found' }, 404);
+  const t = await env.DB.prepare('SELECT id, user_id, owner_hash FROM transfers WHERE id=?').bind(Number(id)).first();
+  if (!actorOwns(actor, t)) return json({ error: 'Not found' }, 404);
   await removeTransfer(env, t);
   return json({ ok: true });
+}
+
+// Guests have no account to list from: the browser keeps its own
+// {id, owner token} pairs and asks for just those.
+async function myGuestTransfers(request, env) {
+  const { items } = await request.json();
+  const list = (Array.isArray(items) ? items : []).slice(0, 50);
+  const out = [];
+  for (const it of list) {
+    if (!it || typeof it.owner !== 'string') continue;
+    const t = await env.DB.prepare(
+      "SELECT id, token, title, total, file_count, status, expires_at, downloads, created_at, owner_hash FROM transfers WHERE id=? AND status='ready' AND expires_at > ?"
+    ).bind(Number(it.id), nowIso()).first();
+    if (t && t.owner_hash && t.owner_hash === await sha256hex(it.owner)) { delete t.owner_hash; out.push(t); }
+  }
+  return json({ transfers: out });
+}
+
+/* ---- Guest (no account) limits ------------------------------------
+ * Anyone can send a transfer without signing up, so guest transfers are
+ * capped. All of these can be changed with Worker variables:
+ *   GUEST_TRANSFERS   "off" to require an account again
+ *   GUEST_MAX_GB      biggest single guest transfer            (default 5)
+ *   GUEST_DAILY_GB    total one internet address can send / day (default 10)
+ *   GUEST_TOTAL_GB    all live guest transfers together         (default 100)
+ *   GUEST_MAX_DAYS    longest a guest link can last             (default 7)
+ * ------------------------------------------------------------------ */
+const GUEST_USERNAME = '__guest__';
+const GB = 1024 * 1024 * 1024;
+function guestLimits(env) {
+  const num = (v, d) => (Number(v) > 0 ? Number(v) : d);
+  return {
+    enabled: String(env.GUEST_TRANSFERS || 'on').toLowerCase() !== 'off',
+    maxBytes: num(env.GUEST_MAX_GB, 5) * GB,
+    dailyBytes: num(env.GUEST_DAILY_GB, 10) * GB,
+    totalBytes: num(env.GUEST_TOTAL_GB, 100) * GB,
+    maxHours: num(env.GUEST_MAX_DAYS, 7) * 24,
+    dailyCount: 30,
+  };
+}
+
+async function guestRefusal(env, request, g, total) {
+  if (total > g.maxBytes) {
+    return json({ error: 'Without an account you can send up to ' + fmtBytes(g.maxBytes) + ' at a time. Sign in to send more.' }, 413);
+  }
+  const ip = await clientIpHash(env, request);
+  const today = await env.DB.prepare(
+    "SELECT COALESCE(SUM(total),0) AS bytes, COUNT(*) AS n FROM transfers WHERE ip_hash=? AND created_at > datetime('now','-1 day')"
+  ).bind(ip).first();
+  if (today.n >= g.dailyCount || today.bytes + total > g.dailyBytes) {
+    return json({ error: 'You\'ve reached today\'s limit for sending without an account (' + fmtBytes(g.dailyBytes) + ' a day). Try again tomorrow, or sign in.' }, 429);
+  }
+  const live = await env.DB.prepare(
+    'SELECT COALESCE(SUM(total),0) AS bytes FROM transfers WHERE owner_hash IS NOT NULL AND expires_at > ?'
+  ).bind(nowIso()).first();
+  if (live.bytes + total > g.totalBytes) {
+    return json({ error: 'Free transfers are very busy right now. Please try again later, or sign in.' }, 503);
+  }
+  return null;
+}
+
+// Guest transfers need an owner row (user_id is required), so they belong
+// to one system account nobody can sign in to: no session is ever made for
+// it and its password hash matches no password.
+let guestIdCache = null;
+async function guestUserId(env) {
+  if (guestIdCache) return guestIdCache;
+  let row = await env.DB.prepare('SELECT id FROM users WHERE username=?').bind(GUEST_USERNAME).first();
+  if (!row) {
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO users (username, email, pw_hash, pw_salt, plan, storage_limit, status) VALUES (?,?,?,?,?,?,?)"
+    ).bind(GUEST_USERNAME, 'guest-transfers@linearit.invalid', randomToken(44), randomToken(36), 'starter', 0, 'guest').run();
+    row = await env.DB.prepare('SELECT id FROM users WHERE username=?').bind(GUEST_USERNAME).first();
+  }
+  guestIdCache = row.id;
+  return guestIdCache;
+}
+
+// A salted hash of the sender's IP: enough to apply the daily limit,
+// without storing anyone's address.
+async function clientIpHash(env, request) {
+  const ip = request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For') || 'unknown';
+  return (await sha256hex('ip:' + (env.SESSION_SECRET || '') + ':' + ip)).slice(0, 32);
+}
+
+async function sha256hex(s) {
+  const buf = await crypto.subtle.digest('SHA-256', enc(String(s)));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 async function removeTransfer(env, t) {
@@ -2324,7 +2236,7 @@ async function transferPublic(request, env, ctx, path) {
   const which = parts[3];
   if (!/^[A-Za-z0-9]{16,64}$/.test(token)) return messagePage('This link isn\'t right', 'Check you copied the whole link.', 404);
   const t = await env.DB.prepare(
-    "SELECT t.id, t.user_id, t.token, t.title, t.message, t.total, t.file_count, t.status, t.expires_at, t.created_at, u.username FROM transfers t JOIN users u ON u.id=t.user_id WHERE t.token=?"
+    "SELECT t.id, t.user_id, t.owner_hash, t.token, t.title, t.message, t.total, t.file_count, t.status, t.expires_at, t.created_at, u.username FROM transfers t JOIN users u ON u.id=t.user_id WHERE t.token=?"
   ).bind(token).first();
   if (!t || t.status !== 'ready') return messagePage('This link doesn\'t work', 'The files were deleted, or the link was never finished.', 404);
   if (t.expires_at <= nowIso()) {
@@ -2510,7 +2422,7 @@ function fmtBytes(n) {
   const u = ['bytes', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;
   while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
-  return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + ' ' + u[i];
+  return (i ? n.toFixed(n < 10 ? 1 : 0).replace(/\.0$/, '') : n) + ' ' + u[i];
 }
 
 function fileEmoji(name, mime) {
@@ -2575,7 +2487,7 @@ ${passwordHeader('Files')}
 <main>
 <div class="card">
   <h2>${escHtml(heading)}</h2>
-  <p class="from">Sent by ${escHtml(t.username)}</p>
+  <p class="from">${t.owner_hash ? 'Sent with Linear Tech Files' : 'Sent by ' + escHtml(t.username)}</p>
   <p class="exp">Available for <b>${leftText}</b> — the link then expires and the files are deleted.</p>
   ${t.message ? '<div class="note">' + escHtml(t.message) + '</div>' : ''}
   <ul class="list">${rows}</ul>
@@ -2584,7 +2496,7 @@ ${passwordHeader('Files')}
   <p class="promise">🔒 These are the original files, byte for byte — nothing was resized or compressed.</p>
 </div>
 </main>
-<div class="foot">Linear Tech Files · <a href="/">Send your own files</a></div>
+<div class="foot">Linear Tech Files · <a href="/transfer">Send your own files — free</a></div>
 <script>
 ${passwordThemeScript()}
 (function(){
@@ -2612,7 +2524,7 @@ function messagePage(title, text, status) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>${passwordPageStyles()}</style></head><body>${passwordHeader('Files')}
 <main><div class="card"><div class="lock-ring" style="font-size:28px">⌛</div><h2>${escHtml(title)}</h2><p class="desc" style="margin-bottom:0">${escHtml(text)}</p></div></main>
-<div class="foot">Linear Tech Files · <a href="/">Send your own files</a></div>
+<div class="foot">Linear Tech Files · <a href="/transfer">Send your own files — free</a></div>
 <script>${passwordThemeScript()}</script></body></html>`,
     { status, headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } });
 }
@@ -2630,7 +2542,16 @@ function portalScript() {
   var CONCURRENCY = 4;   // requests in flight at once (also caps memory: 4 x 16 MB)
   var MAX_TRIES = 6;     // per request, with backoff, before giving up
 
+  // Guest mode (/transfer): no account, so requests prove ownership with
+  // the transfer's private owner token instead of a session.
+  var GUEST = !!window.TX_GUEST;
   function sess() { try { return localStorage.getItem("sess"); } catch (e) { return null; } }
+  function authHeaders(owner) {
+    if (GUEST) { var o = owner || (job && job.owner); return o ? { "X-Owner-Token": o } : {}; }
+    return { "Authorization": "Bearer " + sess() };
+  }
+  function lsGetJSON(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function lsSetJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 
@@ -2659,10 +2580,11 @@ function portalScript() {
     return c ^ -1;
   }
 
-  function post(path, body) {
+  function post(path, body, owner) {
+    var h = authHeaders(owner); h["Content-Type"] = "application/json";
     return fetch(path, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sess() },
+      headers: h,
       body: JSON.stringify(body || {})
     }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
@@ -2672,7 +2594,7 @@ function portalScript() {
     });
   }
   function get(path) {
-    return fetch(path, { headers: { "Authorization": "Bearer " + sess() } }).then(function (r) {
+    return fetch(path, { headers: authHeaders() }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || "Request failed"); return d; });
     });
   }
@@ -2695,7 +2617,8 @@ function portalScript() {
         return await new Promise(function (resolve, reject) {
           var x = new XMLHttpRequest();
           x.open(method, url);
-          x.setRequestHeader("Authorization", "Bearer " + sess());
+          var ah = authHeaders();
+          for (var a in ah) x.setRequestHeader(a, ah[a]);
           for (var k in headers) x.setRequestHeader(k, headers[k]);
           x.upload.onprogress = function (e) { onBytes(e.loaded - sent); sent = e.loaded; };
           x.onload = function () {
@@ -2871,7 +2794,7 @@ function portalScript() {
         title: $("tx-title").value, message: $("tx-message").value, hours: Number($("tx-hours").value),
         files: picked.map(function (p) { return { name: p.path, size: p.file.size, type: p.file.type }; })
       });
-      job = { id: r.id, token: r.token, expires: r.expires_at, partSize: r.partSize, files: r.files.map(function (f, i) {
+      job = { id: r.id, token: r.token, owner: r.ownerToken || null, title: $("tx-title").value.trim(), expires: r.expires_at, partSize: r.partSize, files: r.files.map(function (f, i) {
         return { n: f.n, key: f.key, name: f.name, size: f.size, file: picked[i].file, done: false };
       }) };
       showStep("progress");
@@ -2916,6 +2839,12 @@ function portalScript() {
       $("tx-done-info").textContent = job.files.length + (job.files.length === 1 ? " file, " : " files, ") + fmt(total) + " — at full original quality.";
       $("tx-exp").textContent = "Expires " + new Date(fin.expires_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + ". Anyone with the link can download until then.";
       showStep("done");
+      if (GUEST) {
+        // Remember it here so the sender can copy or delete it later.
+        var mine = lsGetJSON("tx-guest", []).filter(function (x) { return new Date(x.expires_at) > new Date(); });
+        mine.unshift({ id: job.id, owner: job.owner, expires_at: fin.expires_at });
+        lsSetJSON("tx-guest", mine.slice(0, 50));
+      }
       job = null; picked = []; renderPicked();
       loadTransfers();
       if (typeof loadStorage === "function") { var me = await fetch("/api/me", { headers: { "Authorization": "Bearer " + sess() } }); if (me.ok) loadStorage(await me.json()); }
@@ -2936,8 +2865,14 @@ function portalScript() {
 
   async function loadTransfers() {
     var box = $("tx-history"); if (!box) return;
-    var d;
-    try { d = await get("/api/transfers"); } catch (e) { return; }
+    var d, owners = {};
+    try {
+      if (GUEST) {
+        var mine = lsGetJSON("tx-guest", []);
+        mine.forEach(function (x) { owners[x.id] = x.owner; });
+        d = mine.length ? await post("/api/transfer/mine", { items: mine }) : { transfers: [] };
+      } else d = await get("/api/transfers");
+    } catch (e) { return; }
     var list = d.transfers || [];
     box.textContent = "";
     if (!list.length) { box.appendChild(el("p", null, "Nothing sent yet.")).style.cssText = "color:var(--muted);font-size:.88rem"; return; }
@@ -2953,7 +2888,7 @@ function portalScript() {
       var x = el("button", "btn btn-sm btn-danger", "Delete");
       x.onclick = async function () {
         if (!confirm("Delete this transfer now? The link stops working straight away.")) return;
-        try { await post("/api/transfer/delete", { id: t.id }); loadTransfers(); } catch (e) { if (typeof showAlert === "function") showAlert(e.message); }
+        try { await post("/api/transfer/delete", { id: t.id }, owners[t.id]); loadTransfers(); } catch (e) { if (typeof showAlert === "function") showAlert(e.message); }
       };
       row.appendChild(main); row.appendChild(c); row.appendChild(x);
       box.appendChild(row);
@@ -2962,5 +2897,315 @@ function portalScript() {
 
   window.LT = { post: post, uploadToKind: uploadToKind, uploadMany: uploadMany, loadTransfers: loadTransfers };
   setupTransfer();
+  if (GUEST) loadTransfers();
 })();`;
+}
+
+
+/* The portal's stylesheet — shared by the signed-in portal and /transfer. */
+function portalStyles() {
+  return `
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Dark theme (default) ── */
+:root,[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
+  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
+  --shadow:0 2px 16px rgba(0,0,0,.4);
+  --input-bg:#0f1117;
+}
+
+/* ── Light theme ── */
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
+  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
+  --shadow:0 2px 16px rgba(0,0,0,.08);
+  --input-bg:#f4f6fb;
+}
+
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
+
+/* ── Header ── */
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.logo-text span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:10px}
+#theme-toggle{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+#nav-user{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.nav-name{font-weight:600;color:var(--text);font-size:.88rem}
+.btn-signout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .15s}
+.btn-signout:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ── Layout ── */
+main{max-width:880px;margin:0 auto;padding:36px 20px}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:var(--shadow);transition:background .2s,border-color .2s}
+.card-title{font-size:1.15rem;font-weight:700;margin-bottom:6px;color:var(--text)}
+.card-desc{font-size:.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6}
+
+/* ── Alerts ── */
+#alert{padding:13px 18px;border-radius:10px;margin-bottom:24px;display:none;font-size:.88rem;font-weight:500}
+.alert-err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
+.alert-ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--bg3);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;text-align:center;padding:9px 16px;border-radius:9px;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .15s;user-select:none}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,.15)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── Form fields ── */
+.field{margin-bottom:18px}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;font-weight:600;letter-spacing:.01em}
+input[type=text],input[type=email],input[type=password],input[type=date]{
+  width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
+  padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s
+}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+input::placeholder{color:var(--muted2)}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:11px 24px;
+  border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:600;font-family:inherit;transition:all .15s;letter-spacing:-.01em}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,126,248,.3)}
+.btn:active{transform:none}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);box-shadow:none;transform:none}
+.btn-danger{background:var(--danger)}
+.btn-danger:hover{background:#d95555;box-shadow:0 4px 12px rgba(240,100,100,.3)}
+.btn-sm{padding:6px 14px;font-size:.8rem;border-radius:8px}
+.btn-full{width:100%}
+
+/* ── Drop zones ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:44px 20px;text-align:center;
+  color:var(--muted);cursor:pointer;transition:all .2s;margin-bottom:20px}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.drop-zone:hover svg,.drop-zone.over svg{stroke:var(--accent)}
+.drop-zone p{margin-top:10px;font-size:.88rem;font-weight:500}
+.drop-zone .hint{font-size:.78rem;color:var(--muted2);margin-top:4px;font-weight:400}
+
+/* ── File table ── */
+.file-table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+th{text-align:left;padding:10px 14px;color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.file-name{font-weight:600;word-break:break-all;color:var(--text)}
+.file-meta{color:var(--muted);font-size:.78rem;margin-top:2px}
+.actions{display:flex;gap:6px;justify-content:flex-end}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state svg{margin:0 auto 16px;display:block;opacity:.4}
+.empty-state p{font-size:.92rem}
+
+/* ── Share result box ── */
+.share-box{background:var(--success-bg);border:1px solid var(--success);border-radius:12px;padding:18px;margin-top:20px}
+.share-box-label{font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.share-url-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.share-url{font-size:.82rem;color:var(--text);word-break:break-all;flex:1;background:var(--card2);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-family:monospace}
+
+/* ── Progress ── */
+progress{width:100%;height:5px;border-radius:3px;appearance:none;margin-top:14px;display:none}
+progress::-webkit-progress-bar{background:var(--border);border-radius:3px}
+progress::-webkit-progress-value{background:var(--accent);border-radius:3px;transition:width .3s}
+
+/* ── Plan cards ── */
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.plan-card{border:2px solid var(--border2);border-radius:12px;padding:16px 12px;cursor:pointer;text-align:center;transition:all .15s;position:relative;user-select:none;display:block}
+.plan-card:hover{border-color:var(--accent);background:var(--accent-bg)}
+.plan-card.selected{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 0 0 3px var(--accent-bg)}
+.plan-name{font-weight:700;font-size:.88rem;margin-bottom:4px}
+.plan-price{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1}
+.plan-price span{font-size:.72rem;font-weight:500;color:var(--muted)}
+.plan-gb{font-size:.75rem;color:var(--muted);margin-top:4px;font-weight:500}
+.plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+
+/* ── Storage bar ── */
+.storage-bar-wrap{margin-bottom:20px}
+.storage-bar-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:6px;font-weight:500}
+.storage-bar-label strong{color:var(--text)}
+.storage-bar-bg{background:var(--border);border-radius:4px;height:6px;overflow:hidden}
+.storage-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s}
+.storage-bar-fill.warn{background:#f59e0b}
+.storage-bar-fill.danger{background:var(--danger)}
+
+/* ── Upload progress rows (all tabs) ── */
+.up-list{list-style:none;margin-top:14px}
+.up-list li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:.84rem}
+.up-list li:first-child{border-top:none}
+.up-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.up-size{color:var(--muted);font-size:.76rem;white-space:nowrap}
+.up-bar{flex:0 0 90px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.up-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.up-bar.done i{background:var(--success)}
+.up-bar.err i{background:var(--danger);width:100%!important}
+.up-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:2px 6px;border-radius:6px}
+.up-x:hover{color:var(--danger);background:var(--danger-bg)}
+.up-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:10px}
+.big-bar{height:8px;background:var(--border);border-radius:5px;overflow:hidden;margin-top:14px}
+.big-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+
+/* ── Transfer pane ── */
+.row2{display:flex;gap:14px}
+.row2 .field{flex:1}
+textarea.tx{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;min-height:74px;resize:vertical}
+textarea.tx:focus,select.tx:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+select.tx{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;font-family:inherit;outline:none;cursor:pointer}
+.tx-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border)}
+.tx-item:first-child{border-top:none}
+.tx-main{flex:1;min-width:0}
+.tx-title{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx-meta{color:var(--muted);font-size:.76rem;margin-top:2px}
+.pill{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--accent-bg);color:var(--accent);margin-left:6px}
+.btns-inline{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+@media (max-width:560px){.row2{flex-direction:column;gap:0}.tabs{flex-wrap:wrap}.tab{padding:9px 8px}main{padding:24px 14px}.card{padding:22px 18px}header{padding:0 14px}}
+
+/* ── Misc ── */
+#section-auth,#section-portal{display:none}
+.auth-wrap{max-width:460px;margin:0 auto}
+.section-label{font-size:.75rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+`;
+}
+
+/* The Transfer tab's markup. guest = the no-account page at /transfer. */
+function transferPaneHtml(guest, env) {
+  const g = guestLimits(env || {});
+  const guestIntro = 'Send lots of files — or whole folders — with one link. Free, no account. Photos and videos arrive at full size and quality, nothing compressed, and the link expires on its own. Up to ' +
+    fmtBytes(g.maxBytes) + ' at a time; links last up to ' + g.maxHours / 24 + ' days. <a href="/" style="color:var(--accent)">Sign in</a> to send more.';
+  return `      <div class="card" style="margin-bottom:20px">
+        <div id="tx-pick">
+          <div class="card-title">Transfer</div>
+          <div class="card-desc">${guest ? guestIntro : 'Send lots of files — or whole folders — with one link. Photos and videos arrive at full size and full quality, nothing compressed, and the link expires on its own. No password needed to download.'}</div>
+          <div class="drop-zone" id="tx-drop" style="margin-bottom:0">
+            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <p>Drop files or folders here</p>
+            <div class="hint">${guest ? 'Up to ' + fmtBytes(g.maxBytes) + ' per transfer' : 'Any size'} &nbsp;·&nbsp; up to 500 files</div>
+            <div class="btns-inline">
+              <button class="btn btn-sm btn-outline" type="button" id="tx-add-files">Add files</button>
+              <button class="btn btn-sm btn-outline" type="button" id="tx-add-folder">Add a folder</button>
+            </div>
+          </div>
+          <input id="tx-file-input" type="file" multiple style="display:none"/>
+          <input id="tx-folder-input" type="file" webkitdirectory multiple style="display:none"/>
+          <ul class="up-list" id="tx-list"></ul>
+          <div class="up-stats" id="tx-sum"></div>
+          <hr/>
+          <div class="field"><label>Title &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="tx-title" type="text" maxlength="120" placeholder="e.g. Wedding photos"/></div>
+          <div class="field"><label>Message &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><textarea class="tx" id="tx-message" maxlength="2000" placeholder="Anything they should know"></textarea></div>
+          <div class="field">
+            <label>Link expires after</label>
+            <select class="tx" id="tx-hours">
+              <option value="1">1 hour</option>
+              <option value="24">1 day</option>
+              <option value="72">3 days</option>
+              <option value="168" selected>7 days</option>
+${guest && g.maxHours < 336 ? '' : '              <option value="336">14 days</option>\n'}            </select>
+          </div>
+          <button class="btn" id="tx-send" disabled>
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Upload &amp; get link
+          </button>
+        </div>
+
+        <div id="tx-progress" style="display:none">
+          <div class="card-title">Uploading…</div>
+          <div class="card-desc" style="margin-bottom:0">Keep this tab open. If the connection drops, each piece retries on its own.</div>
+          <div class="big-bar"><i id="tx-bar"></i></div>
+          <div class="up-stats"><span id="tx-bytes"></span><span id="tx-speed"></span></div>
+          <div id="tx-err" style="display:none;margin-top:14px" class="alert-err" role="alert"></div>
+          <div id="tx-retry-row" style="display:none;margin-top:12px;gap:8px" class="actions">
+            <button class="btn btn-sm" id="tx-retry">Try again</button>
+            <button class="btn btn-sm btn-outline" id="tx-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <div id="tx-done" style="display:none">
+          <div class="card-title">Your link is ready</div>
+          <div class="card-desc" id="tx-done-info" style="margin-bottom:0"></div>
+          <div class="share-box">
+            <div class="share-box-label">Transfer link</div>
+            <div class="share-url-row">
+              <span id="tx-url" class="share-url"></span>
+              <button class="btn btn-sm" id="tx-copy">Copy link</button>
+            </div>
+            <p id="tx-exp" style="font-size:.78rem;color:var(--muted);margin-top:10px"></p>
+          </div>
+          <div style="margin-top:16px"><button class="btn btn-outline btn-sm" id="tx-again">Send more files</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">${guest ? 'Links you\'ve sent from this browser' : 'Your transfers'}</div>
+        <div id="tx-history"><p style="color:var(--muted);font-size:.88rem">Nothing sent yet.</p></div>
+      </div>
+    `;
+}
+
+/* /transfer — send files without an account. */
+function renderGuestTransferPage(env) {
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="referrer" content="no-referrer"/>
+<title>Send big files free · Linear Tech Files</title>
+<meta name="description" content="Send big files with one link — free, no account. Full size and full quality, nothing compressed. The link expires on its own."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>${portalStyles()}</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="/" style="text-decoration:none">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Linear<span>Tech</span> Transfer</span>
+  </a>
+  <div class="header-right">
+    <button id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">
+      <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+    </button>
+    <a class="btn-signout" href="/" style="text-decoration:none">Sign in</a>
+  </div>
+</header>
+<main>
+  <div id="alert"></div>
+  ${transferPaneHtml(true, env)}
+</main>
+<script>
+window.TX_GUEST = true;
+${passwordThemeScript()}
+function showAlert(msg, type) {
+  var el = document.getElementById("alert");
+  el.textContent = msg;
+  el.className = type === "ok" ? "alert-ok" : "alert-err";
+  el.style.display = "block";
+  clearTimeout(window.__alertT);
+  window.__alertT = setTimeout(function () { el.style.display = "none"; }, 6000);
+  if (type !== "ok") el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+</script>
+<script src="/portal.js"></script>
+</body>
+</html>`;
 }
