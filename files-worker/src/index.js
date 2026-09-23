@@ -26,6 +26,9 @@ export default {
     try {
       if (path.startsWith("/api/") || path.startsWith("/t/") || path === "/dl") await ensureSchema(env);
 
+      // ── Brand images (logo, pattern, icon) from the main site ──────
+      if ((method === "GET" || method === "HEAD") && path.startsWith("/brand/")) return await brandAsset(path.slice(7));
+
       // ── Static UI ──────────────────────────────────────────────────
       if (method === "GET" && (path === "/" || path === "/files" || path === "/files/")) {
         return htmlResponse(renderApp());
@@ -128,22 +131,17 @@ export default {
  * ================================================================ */
 function renderApp() {
   return `<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Linear Tech · File Portal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>${portalStyles()}</style>
 </head>
 <body>
 <header>
   <div class="logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v7h7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <span class="logo-text">Linear<span>Tech</span> Files</span>
+    <span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag">Files</span>
   </div>
   <div class="header-right">
     <button id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">
@@ -159,6 +157,10 @@ function renderApp() {
   <!-- AUTH SECTION -->
   <div id="section-auth">
     <div class="auth-wrap">
+      <div class="hero">
+        <h1>Your files, safely delivered.</h1>
+        <p>Store files, send them with a password, or share big transfers with one link — at full original quality.</p>
+      </div>
       <div class="tabs">
         <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign in</div>
         <div class="tab" id="tab-signup" onclick="switchTab('signup')">Create account</div>
@@ -281,7 +283,7 @@ function renderApp() {
       </div>
 
       <div class="card">
-        <div class="card-title" style="margin-bottom:20px">Your Files</div>
+        <div class="card-head"><div class="card-title" style="margin-bottom:0">Your files</div><span class="card-count" id="file-count"></span></div>
         <div class="file-table-wrap">
           <div id="file-list">
             <div class="empty-state">
@@ -353,6 +355,7 @@ ${transferPaneHtml(false)}
     </div>
   </div>
 </main>
+${siteFooter()}
 
 <script src="/app.js"></script>
 <script src="/portal.js"></script>
@@ -362,17 +365,14 @@ ${transferPaneHtml(false)}
 
 function renderSignupComplete() {
   return `<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Linear Tech · Setting up your account…</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
-<style>
+<style>${brandCss()}
 *{box-sizing:border-box;margin:0;padding:0}
-:root,[data-theme="dark"]{--bg:#0f1117;--card:#181c2a;--text:#eef0f6;--muted:#7c85a2;--accent:#4f7ef8;--border:#2a2f45;--success:#4ade80;--success-bg:rgba(74,222,128,.12);--danger:#f06464;--danger-bg:rgba(240,100,100,.12)}
-[data-theme="light"]{--bg:#f4f6fb;--card:#fff;--text:#1a1d2e;--muted:#5a6080;--accent:#3b6cf5;--border:#dde1ee;--success:#16a34a;--success-bg:rgba(22,163,74,.08);--danger:#e03e3e;--danger-bg:rgba(224,62,62,.08)}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;max-width:420px;width:100%;text-align:center}
 .spin{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 24px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -427,38 +427,16 @@ p{color:var(--muted);font-size:.9rem;line-height:1.6}
 function renderViewPage(token) {
   const safeToken = token.replace(/[^a-zA-Z0-9_-]/g, '');
   return `<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Linear Tech · Secure File</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
+<style>${brandCss()}
 *{box-sizing:border-box;margin:0;padding:0}
-:root,[data-theme="dark"]{
-  --bg:#0f1117;--bg2:#1a1d27;--text:#eef0f6;--muted:#7c85a2;
-  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
-  --border:#2a2f45;--border2:#353b56;--card:#181c2a;
-  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
-  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
-  --input-bg:#0f1117;--shadow:0 2px 16px rgba(0,0,0,.4);
-}
-[data-theme="light"]{
-  --bg:#f4f6fb;--bg2:#ffffff;--text:#1a1d2e;--muted:#5a6080;
-  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
-  --border:#dde1ee;--border2:#c8cee0;--card:#ffffff;
-  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
-  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
-  --input-bg:#f4f6fb;--shadow:0 2px 16px rgba(0,0,0,.08);
-}
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+header{background:var(--header-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
 .logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
-.logo-text{font-size:1.05rem;font-weight:700;color:var(--text)}
-.logo-text span{color:var(--accent)}
 #theme-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
@@ -471,7 +449,7 @@ input[type=password]{width:100%;background:var(--input-bg);border:1px solid var(
   margin-bottom:14px;display:block;text-align:left;transition:border-color .15s,box-shadow .15s}
 input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
 .btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;font-family:inherit;transition:all .15s}
-.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,126,248,.35)}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px var(--accent-glow)}
 #msg{margin-top:18px;font-size:.88rem;display:none;padding:12px 16px;border-radius:10px;text-align:left}
 .err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
 .ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
@@ -480,10 +458,7 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
 <body>
 <header>
   <div class="logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v7h7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <span class="logo-text">Linear<span>Tech</span> Files</span>
+    <span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag">Files</span>
   </div>
   <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark">
     <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -507,19 +482,7 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
 </main>
 <script>
 var TOKEN = ${JSON.stringify(safeToken)};
-function toggleTheme() {
-  var t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('icon-moon').style.display = t === 'dark' ? 'block' : 'none';
-  document.getElementById('icon-sun').style.display = t === 'light' ? 'block' : 'none';
-  try { localStorage.setItem('theme', t); } catch(e) {}
-}
-(function() {
-  var saved = null; try { saved = localStorage.getItem('theme'); } catch(e) {}
-  var t = saved || 'dark';
-  document.documentElement.setAttribute('data-theme', t);
-  if (t === 'light') { document.getElementById('icon-moon').style.display = 'none'; document.getElementById('icon-sun').style.display = 'block'; }
-})();
+${passwordThemeScript()}
 async function unlock() {
   var pw = document.getElementById('pw').value;
   if (!pw) return;
@@ -559,16 +522,10 @@ document.getElementById('pw').addEventListener('keydown', function(e) { if (e.ke
  * Public password-sharing pages (free, no account required)
  * ================================================================ */
 function passwordPageStyles() {
-  return `*{box-sizing:border-box;margin:0;padding:0}
-:root,[data-theme="dark"]{--bg:#0f1117;--bg2:#1a1d27;--text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;--accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);--border:#2a2f45;--border2:#353b56;--card:#181c2a;--input-bg:#0f1117;--danger:#f06464;--danger-bg:rgba(240,100,100,.12);--success:#4ade80;--success-bg:rgba(74,222,128,.12);--shadow:0 2px 16px rgba(0,0,0,.4)}
-[data-theme="light"]{--bg:#f4f6fb;--bg2:#fff;--text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;--accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);--border:#dde1ee;--border2:#c8cee0;--card:#fff;--input-bg:#f4f6fb;--danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);--success:#16a34a;--success-bg:rgba(22,163,74,.08);--shadow:0 2px 16px rgba(0,0,0,.08)}
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+  return `${brandCss()}*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+header{background:var(--header-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
-.logo-text{font-size:1.05rem;font-weight:700;color:var(--text)}
-.logo-text span{color:var(--accent)}
 #theme-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
 main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
@@ -584,7 +541,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 
 .row{display:flex;gap:12px}
 .row .field{flex:1}
 .btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;font-family:inherit;transition:all .15s;margin-top:4px}
-.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,126,248,.35)}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px var(--accent-glow)}
 .btn-sm{width:auto;padding:7px 14px;font-size:.82rem;margin:0}
 #msg{margin-top:16px;font-size:.88rem;display:none;padding:12px 16px;border-radius:10px}
 .err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
@@ -600,15 +557,16 @@ input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 
 }
 
 function passwordThemeScript() {
-  return `function toggleTheme(){var t=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',t);document.getElementById('icon-moon').style.display=t==='dark'?'block':'none';document.getElementById('icon-sun').style.display=t==='light'?'block':'none';try{localStorage.setItem('theme',t);}catch(e){}}
-(function(){var s=null;try{s=localStorage.getItem('theme');}catch(e){}var t=s||'dark';document.documentElement.setAttribute('data-theme',t);if(t==='light'){var m=document.getElementById('icon-moon');if(m)m.style.display='none';var u=document.getElementById('icon-sun');if(u)u.style.display='block';}})();`;
+  return `function curTheme(){var a=document.documentElement.getAttribute('data-theme');return a||(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark');}
+function paintThemeIcons(){var t=curTheme(),m=document.getElementById('icon-moon'),u=document.getElementById('icon-sun');if(m)m.style.display=t==='dark'?'block':'none';if(u)u.style.display=t==='light'?'block':'none';}
+function toggleTheme(){var t=curTheme()==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('theme',t);}catch(e){}paintThemeIcons();}
+paintThemeIcons();`;
 }
 
 function passwordHeader(label) {
   return `<header>
   <a class="logo" href="/">
-    <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg></div>
-    <span class="logo-text">Linear<span>Tech</span> ${label || 'Secure'}</span>
+    <span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag">${label || 'Secure'}</span>
   </a>
   <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark" class="theme-svgs">
     <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -619,12 +577,11 @@ function passwordHeader(label) {
 
 function renderPasswordPage() {
   return `<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Linear Tech · Send a Password Securely</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>${passwordPageStyles()}</style>
 </head>
 <body>
@@ -683,12 +640,11 @@ function showMsg(m,t){var el=document.getElementById('msg');el.textContent=m;el.
 function renderSecretView(token) {
   const safeToken = token.replace(/[^a-zA-Z0-9_-]/g, '');
   return `<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Linear Tech · Secure Message</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>${passwordPageStyles()}</style>
 </head>
 <body>
@@ -756,21 +712,7 @@ function clientScript() {
     '  if (first) first.classList.add("selected");',
     '})();',
     '',
-    'function toggleTheme() {',
-    '  var t = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";',
-    '  document.documentElement.setAttribute("data-theme", t);',
-    '  document.getElementById("icon-moon").style.display = t === "dark" ? "block" : "none";',
-    '  document.getElementById("icon-sun").style.display = t === "light" ? "block" : "none";',
-    '  lsSet("theme", t);',
-    '}',
-    '(function() {',
-    '  var t = lsGet("theme") || "dark";',
-    '  document.documentElement.setAttribute("data-theme", t);',
-    '  if (t === "light") {',
-    '    var m = document.getElementById("icon-moon"); if (m) m.style.display = "none";',
-    '    var s = document.getElementById("icon-sun"); if (s) s.style.display = "block";',
-    '  }',
-    '})();',
+    passwordThemeScript(),
     'function lsSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }',
     'function lsDel(k) { try { localStorage.removeItem(k); } catch(e) {} }',
     '',
@@ -901,21 +843,42 @@ function clientScript() {
     'async function loadFiles() {',
     '  var r = await api("/api/files");',
     '  var el = document.getElementById("file-list");',
-    '  if (!r.ok) { el.innerHTML = "<p style=\'color:var(--muted)\'>Failed to load files.</p>"; return; }',
+    '  if (!r.ok) { el.innerHTML = "<p class=\'empty-note\'>Couldn\'t load your files. Refresh to try again.</p>"; return; }',
     '  var files = r.data.files || [];',
-    '  if (!files.length) { el.innerHTML = "<p style=\'color:var(--muted);margin-top:12px\'>No files yet — upload something above.</p>"; return; }',
+    '  var count = document.getElementById("file-count");',
+    '  if (count) count.textContent = files.length ? files.length + (files.length === 1 ? " file" : " files") : "";',
+    '  if (!files.length) { el.innerHTML = "<p class=\'empty-note\'>No files yet — drop something above and it will show up here.</p>"; return; }',
     '  var rows = "";',
     '  for (var i = 0; i < files.length; i++) {',
     '    var f = files[i];',
-    '    rows += "<tr>" +',
-    '      "<td><div class=\'file-name\'>" + esc(f.name) + "</div><div class=\'file-size\'>" + fmtSize(f.size) + "</div></td>" +',
-    '      "<td style=\'color:var(--muted);font-size:.8rem\'>" + (f.created_at ? f.created_at.slice(0,10) : "") + "</td>" +',
-    '      "<td><div class=\'actions\'>" +',
-    '        "<button class=\'btn btn-sm btn-ghost\' onclick=\'downloadFile(" + f.id + ")\'>Download</button>" +',
-    '        "<button class=\'btn btn-sm btn-danger\' onclick=\'deleteFile(" + f.id + ")\'>Delete</button>" +',
-    '      "</div></td></tr>";',
+    '    rows += "<li class=\'frow\'>" +',
+    '      "<span class=\'fic\'>" + fileIcon(f.name, f.mime) + "</span>" +',
+    '      "<div class=\'fmeta\'><div class=\'fname\' title=\'" + esc(f.name) + "\'>" + esc(f.name) + "</div>" +',
+    '      "<div class=\'fsub\'>" + fmtSize(f.size) + (f.created_at ? " · " + fmtDay(f.created_at) : "") + "</div></div>" +',
+    '      "<button class=\'btn btn-sm btn-outline\' onclick=\'downloadFile(" + f.id + ")\'>Download</button>" +',
+    '      "<button class=\'icon-del\' title=\'Delete\' aria-label=\'Delete " + esc(f.name) + "\' onclick=\'deleteFile(" + f.id + ")\'>" +',
+    '      "<svg width=\'16\' height=\'16\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' viewBox=\'0 0 24 24\'><path d=\'M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'/></svg></button>" +',
+    '      "</li>";',
     '  }',
-    '  el.innerHTML = "<table><thead><tr><th>Name</th><th>Uploaded</th><th></th></tr></thead><tbody>" + rows + "</tbody></table>";',
+    '  el.innerHTML = "<ul class=\'flist\'>" + rows + "</ul>";',
+    '}',
+    '',
+    'function fmtDay(s) {',
+    '  var d = new Date(String(s).replace(" ", "T") + (String(s).indexOf("Z") < 0 ? "Z" : ""));',
+    '  return isNaN(d) ? String(s).slice(0, 10) : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });',
+    '}',
+    '',
+    'function fileIcon(name, mime) {',
+    '  var ext = (String(name).split(".").pop() || "").toLowerCase(); mime = mime || "";',
+    '  if (mime.indexOf("image/") === 0 || /^(heic|heif|raw|cr2|nef|arw|dng)$/.test(ext)) return "🖼️";',
+    '  if (mime.indexOf("video/") === 0) return "🎬";',
+    '  if (mime.indexOf("audio/") === 0) return "🎵";',
+    '  if (ext === "pdf") return "📕";',
+    '  if (/^(zip|rar|7z|gz|tar)$/.test(ext)) return "🗜️";',
+    '  if (/^(doc|docx|txt|rtf|odt|pages)$/.test(ext)) return "📄";',
+    '  if (/^(xls|xlsx|csv|numbers)$/.test(ext)) return "📊";',
+    '  if (/^(ppt|pptx|key)$/.test(ext)) return "📽️";',
+    '  return "📎";',
     '}',
     '',
     '// Uploads go up in 16 MB pieces (portal.js), so any size works.',
@@ -2459,13 +2422,12 @@ function renderTransferPage(t, files) {
       : '<button class="btn" id="each">Download all ' + files.length + ' files</button>';
 
   return `<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="referrer" content="no-referrer"/>
 <title>${escHtml(heading)} · Linear Tech Files</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>${passwordPageStyles()}
 .btn{display:block;text-align:center;text-decoration:none}
 .from{color:var(--muted);font-size:.85rem;text-align:center;margin-bottom:6px}
@@ -2522,9 +2484,8 @@ ${passwordThemeScript()}
 
 // A small branded page for links that don't work (expired, deleted, bad).
 function messagePage(title, text, status) {
-  return new Response(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="UTF-8"/>
+  return new Response(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escHtml(title)} · Linear Tech Files</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>${passwordPageStyles()}</style></head><body>${passwordHeader('Files')}
 <main><div class="card"><div class="lock-ring" style="font-size:28px">⌛</div><h2>${escHtml(title)}</h2><p class="desc" style="margin-bottom:0">${escHtml(text)}</p></div></main>
 <div class="foot">Linear Tech Files · <a href="/transfer">Send your own files — free</a></div>
@@ -2907,44 +2868,16 @@ function portalScript() {
 
 /* The portal's stylesheet — shared by the signed-in portal and /transfer. */
 function portalStyles() {
-  return `
+  return `${brandCss()}
 *{box-sizing:border-box;margin:0;padding:0}
 
-/* ── Dark theme (default) ── */
-:root,[data-theme="dark"]{
-  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
-  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
-  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
-  --border:#2a2f45;--border2:#353b56;
-  --card:#181c2a;--card2:#1e2235;
-  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
-  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
-  --shadow:0 2px 16px rgba(0,0,0,.4);
-  --input-bg:#0f1117;
-}
 
-/* ── Light theme ── */
-[data-theme="light"]{
-  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
-  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
-  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
-  --border:#dde1ee;--border2:#c8cee0;
-  --card:#ffffff;--card2:#f8f9fd;
-  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
-  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
-  --shadow:0 2px 16px rgba(0,0,0,.08);
-  --input-bg:#f4f6fb;
-}
 
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
 
 /* ── Header ── */
-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+header{background:var(--header-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
 .logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
-.logo-text{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
-.logo-text span{color:var(--accent)}
 .header-right{display:flex;align-items:center;gap:10px}
 #theme-toggle{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
 #theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
@@ -2986,7 +2919,7 @@ input::placeholder{color:var(--muted2)}
 /* ── Buttons ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:11px 24px;
   border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:600;font-family:inherit;transition:all .15s;letter-spacing:-.01em}
-.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,126,248,.3)}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px var(--accent-glow)}
 .btn:active{transform:none}
 .btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted)}
 .btn-outline:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);box-shadow:none;transform:none}
@@ -3079,6 +3012,39 @@ select.tx{width:100%;background:var(--input-bg);border:1px solid var(--border2);
 .btns-inline{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
 @media (max-width:560px){.row2{flex-direction:column;gap:0}.tabs{flex-wrap:wrap}.tab{padding:9px 8px}main{padding:24px 14px}.card{padding:22px 18px}header{padding:0 14px}}
 
+/* ── Brand polish ── */
+.hero{text-align:center;margin:8px auto 26px;max-width:560px}
+.hero h1{font-size:2rem;line-height:1.15;letter-spacing:-.025em;font-weight:800;margin-bottom:10px}
+.hero p{color:var(--muted);font-size:.98rem;line-height:1.6}
+.card-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.card-count{font-size:.8rem;color:var(--muted);font-weight:600}
+.empty-note{color:var(--muted);font-size:.9rem;padding:18px 0 4px}
+.flist{list-style:none}
+.frow{display:flex;align-items:center;gap:12px;padding:12px 4px;border-top:1px solid var(--border);border-radius:10px;transition:background .15s}
+.frow:first-child{border-top:none}
+.frow:hover{background:var(--bg3)}
+.fic{flex:0 0 38px;height:38px;border-radius:10px;background:var(--accent-bg);display:grid;place-items:center;font-size:18px}
+.fmeta{flex:1;min-width:0}
+.fname{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsub{font-size:.76rem;color:var(--muted);margin-top:1px}
+.icon-del{flex:0 0 auto;width:34px;height:34px;border-radius:9px;border:1px solid transparent;background:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;transition:all .15s}
+.icon-del:hover{color:var(--danger);background:var(--danger-bg);border-color:var(--danger)}
+.site-foot{text-align:center;font-size:.78rem;color:var(--muted2);padding:6px 20px 34px}
+.site-foot a{color:var(--muted);text-decoration:none}
+.site-foot a:hover{color:var(--accent)}
+.site-foot .sep{margin:0 8px;opacity:.6}
+@media (max-width:560px){
+  header{padding:0 14px;height:58px}
+  .nav-name{display:none}
+  .brandlogo{width:70px;height:20px}
+  .brandtag{font-size:13px;padding-left:10px}
+  .btn-signout{padding:5px 11px}
+  .hero h1{font-size:1.55rem}
+  .hero{margin-bottom:20px}
+  .frow{gap:10px}
+  .fic{flex-basis:34px;height:34px;font-size:16px}
+}
+
 /* ── Misc ── */
 #section-auth,#section-portal{display:none}
 .auth-wrap{max-width:460px;margin:0 auto}
@@ -3090,11 +3056,11 @@ hr{border:none;border-top:1px solid var(--border);margin:24px 0}
 /* The Transfer tab's markup. guest = the no-account page at /transfer. */
 function transferPaneHtml(guest, env) {
   const g = guestLimits(env || {});
-  const guestIntro = 'Send lots of files — or whole folders — with one link. Free, no account. Photos and videos arrive at full size and quality, nothing compressed, and the link expires on its own. Up to ' +
-    fmtBytes(g.maxBytes) + ' at a time; links last up to ' + g.maxHours / 24 + ' days. <a href="/" style="color:var(--accent)">Sign in</a> to send more.';
+  const guestIntro = 'Add files or whole folders. Up to ' + fmtBytes(g.maxBytes) + ' at a time; links last up to ' + g.maxHours / 24 +
+    ' days. <a href="/" style="color:var(--accent)">Sign in</a> to send more.';
   return `      <div class="card" style="margin-bottom:20px">
         <div id="tx-pick">
-          <div class="card-title">Transfer</div>
+          <div class="card-title">${guest ? 'New transfer' : 'Transfer'}</div>
           <div class="card-desc">${guest ? guestIntro : 'Send lots of files — or whole folders — with one link. Photos and videos arrive at full size and full quality, nothing compressed, and the link expires on its own. No password needed to download.'}</div>
           <div class="drop-zone" id="tx-drop" style="margin-bottom:0">
             <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -3164,24 +3130,19 @@ ${guest && g.maxHours < 336 ? '' : '              <option value="336">14 days</o
 /* /transfer — send files without an account. */
 function renderGuestTransferPage(env) {
   return `<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8"/>${brandHead()}
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta name="referrer" content="no-referrer"/>
 <title>Send big files free · Linear Tech Files</title>
 <meta name="description" content="Send big files with one link — free, no account. Full size and full quality, nothing compressed. The link expires on its own."/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>${portalStyles()}</style>
 </head>
 <body>
 <header>
   <a class="logo" href="/" style="text-decoration:none">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <span class="logo-text">Linear<span>Tech</span> Transfer</span>
+    <span class="brandlogo" role="img" aria-label="Linear IT"></span><span class="brandtag">Transfer</span>
   </a>
   <div class="header-right">
     <button id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">
@@ -3192,9 +3153,14 @@ function renderGuestTransferPage(env) {
   </div>
 </header>
 <main>
+  <div class="hero">
+    <h1>Send big files. Free.</h1>
+    <p>Full size, full quality — nothing compressed. One link that switches itself off when time's up. No account needed.</p>
+  </div>
   <div id="alert"></div>
   ${transferPaneHtml(true, env)}
 </main>
+${siteFooter()}
 <script>
 window.TX_GUEST = true;
 ${passwordThemeScript()}
@@ -3211,4 +3177,83 @@ function showAlert(msg, type) {
 <script src="/portal.js"></script>
 </body>
 </html>`;
+}
+
+
+/* ================================================================
+ * Brand — the Linear IT look, shared by every page
+ * ================================================================
+ * Same palette, logo, pattern and type as the other Linear IT tools
+ * (board, pdf, vault…). Dark by default; light when the device asks for
+ * it, or when the visitor picks it with the toggle (remembered).
+ * The images live once on the main site and are served here through
+ * /brand/, so there is one copy to change.
+ * ================================================================ */
+const BRAND_ASSETS = 'https://www.linearit.co/board/assets/';
+const BRAND_FILES = ['logo-white.png', 'logo-dark.png', 'pattern.png', 'icon.png'];
+
+async function brandAsset(name) {
+  if (!BRAND_FILES.includes(name)) return new Response('Not found', { status: 404 });
+  const r = await fetch(BRAND_ASSETS + name, { cf: { cacheEverything: true, cacheTtl: 86400 } });
+  if (!r.ok) return new Response('Not found', { status: 404 });
+  return new Response(r.body, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' } });
+}
+
+// Goes right after <meta charset>: icon, colours, and the saved theme set
+// before anything paints, so the page never flashes the wrong theme.
+function brandHead() {
+  return `
+<link rel="icon" href="/brand/icon.png"/>
+<link rel="apple-touch-icon" href="/brand/icon.png"/>
+<meta name="theme-color" content="#0f1117"/>
+<script>try{var __t=localStorage.getItem('theme');if(__t)document.documentElement.setAttribute('data-theme',__t);}catch(e){}</script>`;
+}
+
+function brandCss() {
+  const dark = `--bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
+  --accent:#00b0ec;--accent-h:#009bd2;--accent-bg:rgba(0,176,236,.14);--accent-glow:rgba(0,176,236,.32);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;--input-bg:#11141d;
+  --danger:#f87171;--danger-bg:rgba(248,113,113,.12);
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);--warn:#fbbf24;
+  --shadow:0 8px 30px rgba(0,0,0,.45);
+  --header-bg:rgba(15,17,23,.74);
+  --patop:.35;
+  --logo:url("/brand/logo-white.png");
+  color-scheme:dark;`;
+  const light = `--bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
+  --accent:#0091c9;--accent-h:#007cae;--accent-bg:rgba(0,145,201,.10);--accent-glow:rgba(0,145,201,.25);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;--input-bg:#f8f9fd;
+  --danger:#dc2626;--danger-bg:rgba(220,38,38,.08);
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);--warn:#d97706;
+  --shadow:0 8px 30px rgba(0,0,0,.10);
+  --header-bg:rgba(255,255,255,.8);
+  --patop:.5;
+  --logo:url("/brand/logo-dark.png");
+  color-scheme:light;`;
+  return `
+:root{--font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;${dark}}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){${light}}}
+:root[data-theme="light"]{${light}}
+:root[data-theme="dark"]{${dark}}
+body{-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+/* The brand pattern behind everything, with a soft wash so content leads. */
+body::before{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;background:center/cover no-repeat url("/brand/pattern.png");opacity:var(--patop)}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.86;background:radial-gradient(circle at 50% 35%,transparent 0%,var(--bg) 78%)}
+.logo{text-decoration:none}
+.brandlogo{display:block;height:24px;width:82px;background:center/contain no-repeat var(--logo);flex:0 0 auto}
+.brandtag{font-size:14px;font-weight:700;color:var(--text);padding-left:12px;border-left:1px solid var(--border2);letter-spacing:-.01em;white-space:nowrap}
+::selection{background:var(--accent-bg)}
+`;
+}
+
+
+function siteFooter() {
+  return `<footer class="site-foot">
+  <a href="https://www.linearit.co/">Linear IT</a><span class="sep">·</span><a href="/transfer">Send big files</a><span class="sep">·</span><a href="/password">Send a password</a><span class="sep">·</span><a href="/">Sign in</a>
+</footer>`;
 }
