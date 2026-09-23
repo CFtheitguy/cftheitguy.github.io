@@ -1,0 +1,24 @@
+name = "linearit-files"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "linearit-files"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "linearit-files-db"
+database_id = "REPLACE_WITH_YOUR_D1_ID"
+
+# Hourly: deletes expired Transfer links and used-up Secure Send files.
+# (Links stop working the moment they expire either way.)
+[triggers]
+crons = ["0 * * * *"]
+
+[vars]
+SITE_ORIGIN             = "https://files.linearit.co"
+STRIPE_PRICE_STARTER    = "price_REPLACE_STARTER"
+STRIPE_PRICE_PRO        = "price_REPLACE_PRO"
+STRIPE_PRICE_BUSINESS   = "price_REPLACE_BUSINESS"
+INVITE_CODE             = "FRIENDS2WEEKS"

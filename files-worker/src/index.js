@@ -1,0 +1,2966 @@
+/**
+ * Linear Tech — File Portal
+ * =========================
+ * Cloudflare Worker: serves the UI + API for files.linearit.co
+ *
+ * Bindings:  DB (D1), FILES (R2)
+ * Secrets:   SESSION_SECRET, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+ * Vars:      STRIPE_PRICE_STARTER, STRIPE_PRICE_PRO, STRIPE_PRICE_BUSINESS, SITE_ORIGIN
+ */
+
+// Plan definitions — storage limits in bytes
+const PLANS = {
+  starter:  { name: 'Starter',  price: '$5/mo',  gb: 10,  bytes: 10  * 1024 * 1024 * 1024 },
+  pro:      { name: 'Pro',      price: '$15/mo', gb: 50,  bytes: 50  * 1024 * 1024 * 1024 },
+  business: { name: 'Business', price: '$40/mo', gb: 200, bytes: 200 * 1024 * 1024 * 1024 },
+};
+
+export default {
+  async fetch(request, env, ctx) {
+    const url  = new URL(request.url);
+    const path = url.pathname;
+    const method = request.method;
+
+    if (method === "OPTIONS") return corsHeaders(new Response(null, { status: 204 }));
+
+    try {
+      if (path.startsWith("/api/") || path.startsWith("/t/") || path === "/dl") await ensureSchema(env);
+
+      // ── Static UI ──────────────────────────────────────────────────
+      if (method === "GET" && (path === "/" || path === "/files" || path === "/files/")) {
+        return htmlResponse(renderApp());
+      }
+      if (method === "GET" && path === "/app.js") {
+        return new Response(clientScript(), { status: 200, headers: { "Content-Type": "application/javascript" } });
+      }
+      if (method === "GET" && path === "/portal.js") {
+        return new Response(portalScript(), { status: 200, headers: { "Content-Type": "application/javascript" } });
+      }
+
+      // ── Transfers: public download side (no account) ───────────────
+      if ((method === "GET" || method === "HEAD") && path.startsWith("/t/")) return await transferPublic(request, env, ctx, path);
+
+      // ── Signed download links (big files stream straight to disk) ──
+      if ((method === "GET" || method === "HEAD") && path === "/dl") return await signedDownload(request, env, url);
+
+      // ── Chunked uploads (any size) ─────────────────────────────────
+      if (path === "/api/upload/start"     && method === "POST") return corsHeaders(await uploadStart(request, env));
+      if (path === "/api/upload/multipart" && method === "POST") return corsHeaders(await uploadMultipart(request, env));
+      if (path === "/api/upload/put"       && method === "PUT")  return corsHeaders(await uploadPut(request, env, url));
+      if (path === "/api/upload/part"      && method === "PUT")  return corsHeaders(await uploadPart(request, env, url));
+      if (path === "/api/upload/complete"  && method === "POST") return corsHeaders(await uploadComplete(request, env));
+      if (path === "/api/files/register"   && method === "POST") return corsHeaders(await registerFile(request, env));
+      if (path === "/api/files/link"       && method === "POST") return corsHeaders(await fileLink(request, env));
+
+      // ── Transfers: sender side ─────────────────────────────────────
+      if (path === "/api/transfers"          && method === "GET")  return corsHeaders(await listTransfers(request, env));
+      if (path === "/api/transfer/create"    && method === "POST") return corsHeaders(await createTransfer(request, env));
+      if (path === "/api/transfer/file-done" && method === "POST") return corsHeaders(await transferFileDone(request, env));
+      if (path === "/api/transfer/finish"    && method === "POST") return corsHeaders(await finishTransfer(request, env));
+      if (path === "/api/transfer/delete"    && method === "POST") return corsHeaders(await deleteTransfer(request, env));
+      if (method === "GET" && path.startsWith("/view/")) {
+        return htmlResponse(renderViewPage(path.slice(6)));
+      }
+      if (method === "GET" && path === "/signup-complete") {
+        return htmlResponse(renderSignupComplete());
+      }
+      // ── Public password sharing (free, no account) ─────────────────
+      if (method === "GET" && (path === "/password" || path === "/p" || path === "/p/")) {
+        return htmlResponse(renderPasswordPage());
+      }
+      if (method === "GET" && path.startsWith("/s/")) {
+        return htmlResponse(renderSecretView(path.slice(3)));
+      }
+      if (path === "/api/secret/create" && method === "POST") return corsHeaders(await createSecret(request, env));
+      if (path === "/api/secret/view"   && method === "POST") return corsHeaders(await viewSecret(request, env, ctx));
+
+      // ── Auth API ───────────────────────────────────────────────────
+      if (path === "/api/signup/checkout" && method === "POST") return corsHeaders(await signupCheckout(request, env));
+      if (path === "/api/signup/complete"  && method === "POST") return corsHeaders(await signupComplete(request, env));
+      if (path === "/api/signup/invite"    && method === "POST") return corsHeaders(await signupInvite(request, env));
+      if (path === "/api/login"   && method === "POST") return corsHeaders(await loginUser(request, env));
+      if (path === "/api/logout"  && method === "POST") return corsHeaders(await logout(request, env));
+      if (path === "/api/me"      && method === "GET")  return corsHeaders(await me(request, env));
+
+      // ── Billing API ────────────────────────────────────────────────
+      if (path === "/api/billing/portal" && method === "POST") return corsHeaders(await billingPortal(request, env));
+      if (path === "/api/stripe/webhook" && method === "POST") return await stripeWebhook(request, env);
+
+      // ── File API ───────────────────────────────────────────────────
+      if (path === "/api/files"        && method === "GET")    return corsHeaders(await listFiles(request, env));
+      if (path === "/api/files/upload" && method === "POST")   return corsHeaders(await uploadFile(request, env));
+      if (path === "/api/files/delete" && method === "POST")   return corsHeaders(await deleteFile(request, env));
+      if (path === "/api/files/download" && method === "GET")  return await downloadFile(request, env, url);
+
+      // ── Share API ──────────────────────────────────────────────────
+      if (path === "/api/share/create" && method === "POST")   return corsHeaders(await createShare(request, env));
+      if (path === "/api/share/view"   && method === "POST")   return corsHeaders(await viewShare(request, env, ctx));
+
+      // ── Cron ───────────────────────────────────────────────────────
+      if (path === "/api/cron" && method === "GET") {
+        await purgeExpired(env);
+        await syncSubscriptions(env);
+        return new Response("done", { status: 200 });
+      }
+
+      return new Response("Not found", { status: 404 });
+    } catch (err) {
+      console.error(err);
+      return corsHeaders(json({ error: String(err?.message || err) }, 500));
+    }
+  },
+
+  async scheduled(_event, env) {
+    await ensureSchema(env);
+    await purgeExpired(env);
+    await syncSubscriptions(env);
+  }
+};
+
+/* ================================================================
+ * HTML — single-page app rendered by the worker
+ * ================================================================ */
+function renderApp() {
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Linear Tech · File Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Dark theme (default) ── */
+:root,[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
+  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
+  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
+  --border:#2a2f45;--border2:#353b56;
+  --card:#181c2a;--card2:#1e2235;
+  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
+  --shadow:0 2px 16px rgba(0,0,0,.4);
+  --input-bg:#0f1117;
+}
+
+/* ── Light theme ── */
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
+  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
+  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
+  --border:#dde1ee;--border2:#c8cee0;
+  --card:#ffffff;--card2:#f8f9fd;
+  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
+  --shadow:0 2px 16px rgba(0,0,0,.08);
+  --input-bg:#f4f6fb;
+}
+
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
+
+/* ── Header ── */
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
+.logo-text span{color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:10px}
+#theme-toggle{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+#nav-user{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.nav-name{font-weight:600;color:var(--text);font-size:.88rem}
+.btn-signout{background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:.8rem;font-family:inherit;transition:all .15s}
+.btn-signout:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ── Layout ── */
+main{max-width:880px;margin:0 auto;padding:36px 20px}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:var(--shadow);transition:background .2s,border-color .2s}
+.card-title{font-size:1.15rem;font-weight:700;margin-bottom:6px;color:var(--text)}
+.card-desc{font-size:.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6}
+
+/* ── Alerts ── */
+#alert{padding:13px 18px;border-radius:10px;margin-bottom:24px;display:none;font-size:.88rem;font-weight:500}
+.alert-err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
+.alert-ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin-bottom:28px;background:var(--bg3);border-radius:12px;padding:4px;border:1px solid var(--border)}
+.tab{flex:1;text-align:center;padding:9px 16px;border-radius:9px;cursor:pointer;font-size:.88rem;font-weight:600;color:var(--muted);transition:all .15s;user-select:none}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,.15)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── Form fields ── */
+.field{margin-bottom:18px}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;font-weight:600;letter-spacing:.01em}
+input[type=text],input[type=email],input[type=password],input[type=date]{
+  width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
+  padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s
+}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+input::placeholder{color:var(--muted2)}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:11px 24px;
+  border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:600;font-family:inherit;transition:all .15s;letter-spacing:-.01em}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,126,248,.3)}
+.btn:active{transform:none}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg);box-shadow:none;transform:none}
+.btn-danger{background:var(--danger)}
+.btn-danger:hover{background:#d95555;box-shadow:0 4px 12px rgba(240,100,100,.3)}
+.btn-sm{padding:6px 14px;font-size:.8rem;border-radius:8px}
+.btn-full{width:100%}
+
+/* ── Drop zones ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:12px;padding:44px 20px;text-align:center;
+  color:var(--muted);cursor:pointer;transition:all .2s;margin-bottom:20px}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
+.drop-zone:hover svg,.drop-zone.over svg{stroke:var(--accent)}
+.drop-zone p{margin-top:10px;font-size:.88rem;font-weight:500}
+.drop-zone .hint{font-size:.78rem;color:var(--muted2);margin-top:4px;font-weight:400}
+
+/* ── File table ── */
+.file-table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.87rem}
+th{text-align:left;padding:10px 14px;color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3)}
+.file-name{font-weight:600;word-break:break-all;color:var(--text)}
+.file-meta{color:var(--muted);font-size:.78rem;margin-top:2px}
+.actions{display:flex;gap:6px;justify-content:flex-end}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state svg{margin:0 auto 16px;display:block;opacity:.4}
+.empty-state p{font-size:.92rem}
+
+/* ── Share result box ── */
+.share-box{background:var(--success-bg);border:1px solid var(--success);border-radius:12px;padding:18px;margin-top:20px}
+.share-box-label{font-size:.78rem;font-weight:600;color:var(--success);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.share-url-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.share-url{font-size:.82rem;color:var(--text);word-break:break-all;flex:1;background:var(--card2);border:1px solid var(--border);padding:8px 12px;border-radius:8px;font-family:monospace}
+
+/* ── Progress ── */
+progress{width:100%;height:5px;border-radius:3px;appearance:none;margin-top:14px;display:none}
+progress::-webkit-progress-bar{background:var(--border);border-radius:3px}
+progress::-webkit-progress-value{background:var(--accent);border-radius:3px;transition:width .3s}
+
+/* ── Plan cards ── */
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.plan-card{border:2px solid var(--border2);border-radius:12px;padding:16px 12px;cursor:pointer;text-align:center;transition:all .15s;position:relative;user-select:none;display:block}
+.plan-card:hover{border-color:var(--accent);background:var(--accent-bg)}
+.plan-card.selected{border-color:var(--accent);background:var(--accent-bg);box-shadow:0 0 0 3px var(--accent-bg)}
+.plan-name{font-weight:700;font-size:.88rem;margin-bottom:4px}
+.plan-price{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1}
+.plan-price span{font-size:.72rem;font-weight:500;color:var(--muted)}
+.plan-gb{font-size:.75rem;color:var(--muted);margin-top:4px;font-weight:500}
+.plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+
+/* ── Storage bar ── */
+.storage-bar-wrap{margin-bottom:20px}
+.storage-bar-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:6px;font-weight:500}
+.storage-bar-label strong{color:var(--text)}
+.storage-bar-bg{background:var(--border);border-radius:4px;height:6px;overflow:hidden}
+.storage-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s}
+.storage-bar-fill.warn{background:#f59e0b}
+.storage-bar-fill.danger{background:var(--danger)}
+
+/* ── Upload progress rows (all tabs) ── */
+.up-list{list-style:none;margin-top:14px}
+.up-list li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:.84rem}
+.up-list li:first-child{border-top:none}
+.up-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.up-size{color:var(--muted);font-size:.76rem;white-space:nowrap}
+.up-bar{flex:0 0 90px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.up-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.up-bar.done i{background:var(--success)}
+.up-bar.err i{background:var(--danger);width:100%!important}
+.up-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:2px 6px;border-radius:6px}
+.up-x:hover{color:var(--danger);background:var(--danger-bg)}
+.up-stats{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--muted);margin-top:10px}
+.big-bar{height:8px;background:var(--border);border-radius:5px;overflow:hidden;margin-top:14px}
+.big-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+
+/* ── Transfer pane ── */
+.row2{display:flex;gap:14px}
+.row2 .field{flex:1}
+textarea.tx{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;min-height:74px;resize:vertical}
+textarea.tx:focus,select.tx:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+select.tx{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;font-family:inherit;outline:none;cursor:pointer}
+.tx-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border)}
+.tx-item:first-child{border-top:none}
+.tx-main{flex:1;min-width:0}
+.tx-title{font-weight:600;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx-meta{color:var(--muted);font-size:.76rem;margin-top:2px}
+.pill{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--accent-bg);color:var(--accent);margin-left:6px}
+.btns-inline{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+@media (max-width:560px){.row2{flex-direction:column;gap:0}.tabs{flex-wrap:wrap}.tab{padding:9px 8px}main{padding:24px 14px}.card{padding:22px 18px}header{padding:0 14px}}
+
+/* ── Misc ── */
+#section-auth,#section-portal{display:none}
+.auth-wrap{max-width:460px;margin:0 auto}
+.section-label{font-size:.75rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+hr{border:none;border-top:1px solid var(--border);margin:24px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v7h7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Linear<span>Tech</span> Files</span>
+  </div>
+  <div class="header-right">
+    <button id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">
+      <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+    </button>
+    <div id="nav-user"></div>
+  </div>
+</header>
+<main>
+  <div id="alert"></div>
+
+  <!-- AUTH SECTION -->
+  <div id="section-auth">
+    <div class="auth-wrap">
+      <div class="tabs">
+        <div class="tab active" id="tab-login" onclick="switchTab('login')">Sign in</div>
+        <div class="tab" id="tab-signup" onclick="switchTab('signup')">Create account</div>
+      </div>
+
+      <a href="/password" style="display:flex;align-items:center;gap:12px;text-decoration:none;background:var(--accent-bg);border:1px solid var(--accent);border-radius:14px;padding:16px 18px;margin-bottom:20px;transition:all .15s">
+        <div style="width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg>
+        </div>
+        <div style="flex:1">
+          <div style="font-weight:700;color:var(--text);font-size:.92rem">Send a password — free, no account</div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:2px">One-time secure link that self-destructs after viewing</div>
+        </div>
+        <span style="color:var(--accent);font-weight:700;font-size:1.1rem">→</span>
+      </a>
+
+      <div class="card" id="form-login">
+        <div class="card-title">Welcome back</div>
+        <div class="card-desc">Sign in to access your files.</div>
+        <div class="field"><label>Username or Email</label><input id="li-user" type="text" placeholder="you@example.com" autocomplete="username"/></div>
+        <div class="field"><label>Password</label><input id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
+        <button class="btn btn-full" onclick="doLogin()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Sign in
+        </button>
+      </div>
+
+      <div class="card" id="form-signup" style="display:none">
+        <div class="card-title">Create your account</div>
+        <div class="card-desc">Choose a plan and enter your details. You'll be taken to secure checkout to complete payment.</div>
+        <div class="field"><label>Username</label><input id="su-user" type="text" placeholder="yourname" autocomplete="username"/></div>
+        <div class="field"><label>Email address</label><input id="su-email" type="email" placeholder="you@example.com" autocomplete="email"/></div>
+        <div class="field"><label>Password</label><input id="su-pass" type="password" placeholder="At least 8 characters" autocomplete="new-password"/></div>
+        <div class="field"><label>Confirm password</label><input id="su-pass2" type="password" placeholder="Repeat password" autocomplete="new-password"/></div>
+
+        <div class="field">
+          <label>Choose a plan</label>
+          <div class="plan-grid">
+            <label class="plan-card" id="plan-starter">
+              <input type="radio" name="plan" value="starter" checked style="display:none"/>
+              <div class="plan-name">Starter</div>
+              <div class="plan-price">$5 <span>/mo</span></div>
+              <div class="plan-gb">10 GB storage</div>
+            </label>
+            <label class="plan-card" id="plan-pro">
+              <input type="radio" name="plan" value="pro" style="display:none"/>
+              <div class="plan-name">Pro</div>
+              <div class="plan-price">$15 <span>/mo</span></div>
+              <div class="plan-gb">50 GB storage</div>
+              <div class="plan-badge">Popular</div>
+            </label>
+            <label class="plan-card" id="plan-business">
+              <input type="radio" name="plan" value="business" style="display:none"/>
+              <div class="plan-name">Business</div>
+              <div class="plan-price">$40 <span>/mo</span></div>
+              <div class="plan-gb">200 GB storage</div>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-full" onclick="doSignup()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Continue to secure payment
+        </button>
+        <p style="text-align:center;font-size:.75rem;color:var(--muted2);margin-top:12px">Payments processed securely by Stripe. Cancel any time.</p>
+
+        <hr/>
+        <div class="field" style="margin-bottom:8px">
+          <label>Have an invite code? &nbsp;<span style="font-weight:400;color:var(--muted2)">(start a 14-day free trial — no payment)</span></label>
+          <input id="su-invite" type="text" placeholder="Enter invite code (optional)" autocomplete="off"/>
+        </div>
+        <button class="btn btn-outline btn-full" onclick="doInvite()">Start 14-day free trial</button>
+        <p style="text-align:center;font-size:.72rem;color:var(--muted2);margin-top:10px">Free trial includes 10&nbsp;GB storage and stops working after 14 days unless you subscribe.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTAL SECTION -->
+  <div id="section-portal">
+    <div class="tabs">
+      <div class="tab active" id="ptab-files" onclick="showPane('files')">
+        My Files
+      </div>
+      <div class="tab" id="ptab-send" onclick="showPane('send')">
+        Secure Send
+      </div>
+      <div class="tab" id="ptab-transfer" onclick="showPane('transfer')">
+        Transfer
+      </div>
+    </div>
+
+    <!-- My Files pane -->
+    <div id="pane-files">
+      <div class="card" style="margin-bottom:20px">
+        <div id="storage-bar" style="display:none" class="storage-bar-wrap">
+          <div class="storage-bar-label"><span id="storage-text">Loading…</span><button class="btn btn-sm btn-outline" onclick="manageBilling()" style="padding:3px 10px;font-size:.75rem">Manage plan</button></div>
+          <div class="storage-bar-bg"><div class="storage-bar-fill" id="storage-fill" style="width:0%"></div></div>
+        </div>
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+          <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+            <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12M8 8l4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>Drop files here, or click to browse</p>
+          <div class="hint">Any file type &nbsp;·&nbsp; Any size &nbsp;·&nbsp; Multiple files supported</div>
+        </div>
+        <input id="file-input" type="file" multiple style="display:none" onchange="uploadFiles(this.files)"/>
+        <progress id="upload-progress" value="0" max="100"></progress>
+        <div class="up-stats" id="upload-stats"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:20px">Your Files</div>
+        <div class="file-table-wrap">
+          <div id="file-list">
+            <div class="empty-state">
+              <svg width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M13 2v7h7"/></svg>
+              <p>No files yet — upload something above</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secure Send pane -->
+    <div id="pane-send" style="display:none">
+      <div class="card">
+        <div class="card-title">Secure Send</div>
+        <div class="card-desc">
+          Send a file to anyone with a one-time password-protected link. Once they download it, the link is gone for good.
+        </div>
+
+        <div class="field">
+          <label>Choose a file to send</label>
+          <div class="drop-zone" id="share-drop" style="padding:28px;margin-bottom:0" onclick="document.getElementById('share-file-input').click()">
+            <svg width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66L9.41 17.41a2 2 0 01-2.83-2.83l8.49-8.48" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p id="share-file-name">Click to choose a file</p>
+          </div>
+          <input id="share-file-input" type="file" style="display:none" onchange="shareFileSelected(this)"/>
+        </div>
+
+        <hr/>
+
+        <div class="field"><label>Password &nbsp;<span style="font-weight:400;color:var(--muted2)">(the recipient will need to enter this)</span></label><input id="share-pw" type="password" placeholder="Choose a strong password"/></div>
+        <div class="field"><label>Recipient email &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="share-email" type="email" placeholder="recipient@example.com"/></div>
+        <div class="field"><label>Link expires on &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="share-exp" type="date"/></div>
+        <div class="field">
+          <label>How many times can this link be downloaded?</label>
+          <select id="share-max-views" style="width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;font-family:inherit;outline:none;cursor:pointer">
+            <option value="1">1 time (one-time link)</option>
+            <option value="2">2 times</option>
+            <option value="3">3 times</option>
+            <option value="5">5 times</option>
+            <option value="10">10 times</option>
+            <option value="999">Unlimited</option>
+          </select>
+        </div>
+
+        <button class="btn" onclick="createShare()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Generate secure link
+        </button>
+        <progress id="share-progress" value="0" max="100"></progress>
+        <div class="up-stats" id="share-stats"></div>
+
+        <div id="share-result" style="display:none" class="share-box">
+          <div class="share-box-label">Your one-time link is ready</div>
+          <div class="share-url-row">
+            <span id="share-url" class="share-url"></span>
+            <button class="btn btn-sm" onclick="copyShare()">Copy link</button>
+          </div>
+          <p id="share-uses-label" style="font-size:.78rem;color:var(--muted);margin-top:10px">This link allows 1 download.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transfer pane -->
+    <div id="pane-transfer" style="display:none">
+      <div class="card" style="margin-bottom:20px">
+        <div id="tx-pick">
+          <div class="card-title">Transfer</div>
+          <div class="card-desc">Send lots of files — or whole folders — with one link. Photos and videos arrive at full size and full quality, nothing compressed, and the link expires on its own. No password needed to download.</div>
+          <div class="drop-zone" id="tx-drop" style="margin-bottom:0">
+            <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <p>Drop files or folders here</p>
+            <div class="hint">Any size &nbsp;·&nbsp; up to 500 files</div>
+            <div class="btns-inline">
+              <button class="btn btn-sm btn-outline" type="button" id="tx-add-files">Add files</button>
+              <button class="btn btn-sm btn-outline" type="button" id="tx-add-folder">Add a folder</button>
+            </div>
+          </div>
+          <input id="tx-file-input" type="file" multiple style="display:none"/>
+          <input id="tx-folder-input" type="file" webkitdirectory multiple style="display:none"/>
+          <ul class="up-list" id="tx-list"></ul>
+          <div class="up-stats" id="tx-sum"></div>
+          <hr/>
+          <div class="field"><label>Title &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><input id="tx-title" type="text" maxlength="120" placeholder="e.g. Wedding photos"/></div>
+          <div class="field"><label>Message &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional)</span></label><textarea class="tx" id="tx-message" maxlength="2000" placeholder="Anything they should know"></textarea></div>
+          <div class="field">
+            <label>Link expires after</label>
+            <select class="tx" id="tx-hours">
+              <option value="1">1 hour</option>
+              <option value="24">1 day</option>
+              <option value="72">3 days</option>
+              <option value="168" selected>7 days</option>
+              <option value="336">14 days</option>
+            </select>
+          </div>
+          <button class="btn" id="tx-send" disabled>
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Upload &amp; get link
+          </button>
+        </div>
+
+        <div id="tx-progress" style="display:none">
+          <div class="card-title">Uploading…</div>
+          <div class="card-desc" style="margin-bottom:0">Keep this tab open. If the connection drops, each piece retries on its own.</div>
+          <div class="big-bar"><i id="tx-bar"></i></div>
+          <div class="up-stats"><span id="tx-bytes"></span><span id="tx-speed"></span></div>
+          <div id="tx-err" style="display:none;margin-top:14px" class="alert-err" role="alert"></div>
+          <div id="tx-retry-row" style="display:none;margin-top:12px;gap:8px" class="actions">
+            <button class="btn btn-sm" id="tx-retry">Try again</button>
+            <button class="btn btn-sm btn-outline" id="tx-cancel">Cancel</button>
+          </div>
+        </div>
+
+        <div id="tx-done" style="display:none">
+          <div class="card-title">Your link is ready</div>
+          <div class="card-desc" id="tx-done-info" style="margin-bottom:0"></div>
+          <div class="share-box">
+            <div class="share-box-label">Transfer link</div>
+            <div class="share-url-row">
+              <span id="tx-url" class="share-url"></span>
+              <button class="btn btn-sm" id="tx-copy">Copy link</button>
+            </div>
+            <p id="tx-exp" style="font-size:.78rem;color:var(--muted);margin-top:10px"></p>
+          </div>
+          <div style="margin-top:16px"><button class="btn btn-outline btn-sm" id="tx-again">Send more files</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px">Your transfers</div>
+        <div id="tx-history"><p style="color:var(--muted);font-size:.88rem">Nothing sent yet.</p></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="/app.js"></script>
+<script src="/portal.js"></script>
+</body>
+</html>`;
+}
+
+function renderSignupComplete() {
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Linear Tech · Setting up your account…</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root,[data-theme="dark"]{--bg:#0f1117;--card:#181c2a;--text:#eef0f6;--muted:#7c85a2;--accent:#4f7ef8;--border:#2a2f45;--success:#4ade80;--success-bg:rgba(74,222,128,.12);--danger:#f06464;--danger-bg:rgba(240,100,100,.12)}
+[data-theme="light"]{--bg:#f4f6fb;--card:#fff;--text:#1a1d2e;--muted:#5a6080;--accent:#3b6cf5;--border:#dde1ee;--success:#16a34a;--success-bg:rgba(22,163,74,.08);--danger:#e03e3e;--danger-bg:rgba(224,62,62,.08)}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;max-width:420px;width:100%;text-align:center}
+.spin{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+h2{font-size:1.3rem;font-weight:700;margin-bottom:8px}
+p{color:var(--muted);font-size:.9rem;line-height:1.6}
+.ok-icon{width:56px;height:56px;background:var(--success-bg);border-radius:50%;display:none;align-items:center;justify-content:center;margin:0 auto 24px}
+.err-icon{width:56px;height:56px;background:var(--danger-bg);border-radius:50%;display:none;align-items:center;justify-content:center;margin:0 auto 24px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="spin" id="spinner"></div>
+  <div class="ok-icon" id="ok-icon"><svg width="28" height="28" fill="none" stroke="var(--success)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <div class="err-icon" id="err-icon"><svg width="28" height="28" fill="none" stroke="var(--danger)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+  <h2 id="title">Setting up your account…</h2>
+  <p id="msg">Please wait while we confirm your payment.</p>
+</div>
+<script>
+(function() {
+  try { var t = localStorage.getItem('theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch(e) {}
+  var params = new URLSearchParams(window.location.search);
+  var sessionId = params.get('session_id');
+  if (!sessionId) { showErr('No session found. Please try signing up again.'); return; }
+  fetch('/api/signup/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId })
+  })
+  .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+  .then(function(r) {
+    if (!r.ok) { showErr(r.data.error || 'Something went wrong.'); return; }
+    try { localStorage.setItem('sess', r.data.token); } catch(e) {}
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('ok-icon').style.display = 'flex';
+    document.getElementById('title').textContent = 'You are all set!';
+    document.getElementById('msg').textContent = 'Welcome aboard. Taking you to your files…';
+    setTimeout(function() { window.location.href = '/'; }, 1800);
+  })
+  .catch(function() { showErr('Network error. Please try again.'); });
+  function showErr(msg) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('err-icon').style.display = 'flex';
+    document.getElementById('title').textContent = 'Something went wrong';
+    document.getElementById('msg').textContent = msg;
+  }
+})();
+</script>
+</body>
+</html>`;
+}
+
+function renderViewPage(token) {
+  const safeToken = token.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Linear Tech · Secure File</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root,[data-theme="dark"]{
+  --bg:#0f1117;--bg2:#1a1d27;--text:#eef0f6;--muted:#7c85a2;
+  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
+  --border:#2a2f45;--border2:#353b56;--card:#181c2a;
+  --danger:#f06464;--danger-bg:rgba(240,100,100,.12);
+  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
+  --input-bg:#0f1117;--shadow:0 2px 16px rgba(0,0,0,.4);
+}
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#ffffff;--text:#1a1d2e;--muted:#5a6080;
+  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
+  --border:#dde1ee;--border2:#c8cee0;--card:#ffffff;
+  --danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);
+  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
+  --input-bg:#f4f6fb;--shadow:0 2px 16px rgba(0,0,0,.08);
+}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text)}
+.logo-text span{color:var(--accent)}
+#theme-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:40px 36px;max-width:440px;width:100%;text-align:center;box-shadow:var(--shadow)}
+.lock-ring{width:72px;height:72px;background:var(--accent-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px}
+h2{font-size:1.4rem;font-weight:700;margin-bottom:8px}
+.desc{color:var(--muted);font-size:.88rem;margin-bottom:28px;line-height:1.6}
+input[type=password]{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
+  padding:12px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;
+  margin-bottom:14px;display:block;text-align:left;transition:border-color .15s,box-shadow .15s}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;font-family:inherit;transition:all .15s}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,126,248,.35)}
+#msg{margin-top:18px;font-size:.88rem;display:none;padding:12px 16px;border-radius:10px;text-align:left}
+.err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
+.ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 2v7h7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Linear<span>Tech</span> Files</span>
+  </div>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark">
+    <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+  </button>
+</header>
+<main>
+<div class="card">
+  <div class="lock-ring">
+    <svg width="32" height="32" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24">
+      <rect x="5" y="11" width="14" height="10" rx="2"/>
+      <path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <h2>Secure File</h2>
+  <p class="desc">Someone shared a file with you. Enter the password to download it. This link works <strong>one time only</strong>.</p>
+  <input type="password" id="pw" placeholder="Enter the password" autofocus/>
+  <button class="btn" onclick="unlock()">Download file</button>
+  <div id="msg"></div>
+</div>
+</main>
+<script>
+var TOKEN = ${JSON.stringify(safeToken)};
+function toggleTheme() {
+  var t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('icon-moon').style.display = t === 'dark' ? 'block' : 'none';
+  document.getElementById('icon-sun').style.display = t === 'light' ? 'block' : 'none';
+  try { localStorage.setItem('theme', t); } catch(e) {}
+}
+(function() {
+  var saved = null; try { saved = localStorage.getItem('theme'); } catch(e) {}
+  var t = saved || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  if (t === 'light') { document.getElementById('icon-moon').style.display = 'none'; document.getElementById('icon-sun').style.display = 'block'; }
+})();
+async function unlock() {
+  var pw = document.getElementById('pw').value;
+  if (!pw) return;
+  var msg = document.getElementById('msg');
+  msg.style.display = 'none';
+  // link: true -> the server uses up one download and hands back a signed
+  // URL, which the browser saves straight to disk (works for any size).
+  var r = await fetch('/api/share/view', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token: TOKEN, password: pw, link: true })
+  });
+  var data = await r.json().catch(function() { return {}; });
+  if (!r.ok || !data.url) {
+    msg.className = 'err';
+    msg.textContent = data.error || 'Incorrect password or link already used.';
+    msg.style.display = 'block';
+    return;
+  }
+  msg.className = 'ok';
+  msg.textContent = 'Your download has started.';
+  msg.style.display = 'block';
+  var a = document.createElement('a');
+  a.href = data.url;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+document.getElementById('pw').addEventListener('keydown', function(e) { if (e.key === 'Enter') unlock(); });
+</script>
+</body>
+</html>`;
+}
+
+/* ================================================================
+ * Public password-sharing pages (free, no account required)
+ * ================================================================ */
+function passwordPageStyles() {
+  return `*{box-sizing:border-box;margin:0;padding:0}
+:root,[data-theme="dark"]{--bg:#0f1117;--bg2:#1a1d27;--text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;--accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);--border:#2a2f45;--border2:#353b56;--card:#181c2a;--input-bg:#0f1117;--danger:#f06464;--danger-bg:rgba(240,100,100,.12);--success:#4ade80;--success-bg:rgba(74,222,128,.12);--shadow:0 2px 16px rgba(0,0,0,.4)}
+[data-theme="light"]{--bg:#f4f6fb;--bg2:#fff;--text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;--accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);--border:#dde1ee;--border2:#c8cee0;--card:#fff;--input-bg:#f4f6fb;--danger:#e03e3e;--danger-bg:rgba(224,62,62,.08);--success:#16a34a;--success-bg:rgba(22,163,74,.08);--shadow:0 2px 16px rgba(0,0,0,.08)}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;transition:background .2s,color .2s}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+.logo-text{font-size:1.05rem;font-weight:700;color:var(--text)}
+.logo-text span{color:var(--accent)}
+#theme-toggle{background:transparent;border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 32px;max-width:520px;width:100%;box-shadow:var(--shadow)}
+.lock-ring{width:64px;height:64px;background:var(--accent-bg);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+h2{font-size:1.4rem;font-weight:700;margin-bottom:8px;text-align:center}
+.desc{color:var(--muted);font-size:.88rem;margin-bottom:24px;line-height:1.6;text-align:center}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;font-weight:600}
+textarea,input[type=password],input[type=text],select{width:100%;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);padding:11px 15px;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s}
+textarea{min-height:96px;resize:vertical}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.field{margin-bottom:16px}
+.row{display:flex;gap:12px}
+.row .field{flex:1}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;padding:12px;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;font-family:inherit;transition:all .15s;margin-top:4px}
+.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,126,248,.35)}
+.btn-sm{width:auto;padding:7px 14px;font-size:.82rem;margin:0}
+#msg{margin-top:16px;font-size:.88rem;display:none;padding:12px 16px;border-radius:10px}
+.err{background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger)}
+.ok{background:var(--success-bg);border:1px solid var(--success);color:var(--success)}
+.result-box{background:var(--success-bg);border:1px solid var(--success);border-radius:12px;padding:18px;margin-top:18px;display:none}
+.result-label{font-size:.75rem;font-weight:700;color:var(--success);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.url-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.url{flex:1;font-size:.82rem;word-break:break-all;background:var(--card);border:1px solid var(--border);padding:9px 12px;border-radius:8px;font-family:monospace}
+.secret-reveal{background:var(--input-bg);border:1px solid var(--border2);border-radius:10px;padding:16px;font-family:monospace;font-size:.95rem;word-break:break-all;white-space:pre-wrap;margin-bottom:14px;text-align:left}
+.foot{text-align:center;font-size:.75rem;color:var(--muted2);padding:18px;margin-top:auto}
+.foot a{color:var(--accent);text-decoration:none}
+.theme-svgs svg{display:block}`;
+}
+
+function passwordThemeScript() {
+  return `function toggleTheme(){var t=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',t);document.getElementById('icon-moon').style.display=t==='dark'?'block':'none';document.getElementById('icon-sun').style.display=t==='light'?'block':'none';try{localStorage.setItem('theme',t);}catch(e){}}
+(function(){var s=null;try{s=localStorage.getItem('theme');}catch(e){}var t=s||'dark';document.documentElement.setAttribute('data-theme',t);if(t==='light'){var m=document.getElementById('icon-moon');if(m)m.style.display='none';var u=document.getElementById('icon-sun');if(u)u.style.display='block';}})();`;
+}
+
+function passwordHeader(label) {
+  return `<header>
+  <a class="logo" href="/">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg></div>
+    <span class="logo-text">Linear<span>Tech</span> ${label || 'Secure'}</span>
+  </a>
+  <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark" class="theme-svgs">
+    <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+  </button>
+</header>`;
+}
+
+function renderPasswordPage() {
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Linear Tech · Send a Password Securely</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>${passwordPageStyles()}</style>
+</head>
+<body>
+${passwordHeader()}
+<main>
+<div class="card">
+  <div class="lock-ring"><svg width="30" height="30" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg></div>
+  <h2>Send a Password Securely</h2>
+  <p class="desc">Paste a password or secret note below. You'll get a one-time link that self-destructs after it's viewed — so it never lingers in email or chat. <strong>Free, no account needed.</strong></p>
+
+  <div class="field"><label>Password or secret message</label><textarea id="secret" placeholder="Type or paste the secret here…"></textarea></div>
+  <div class="row">
+    <div class="field"><label>Expires after</label>
+      <select id="days"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>7 days</option><option value="14">14 days</option><option value="30">30 days</option></select>
+    </div>
+    <div class="field"><label>Views allowed</label>
+      <select id="views"><option value="1" selected>1 view (burn after)</option><option value="2">2 views</option><option value="3">3 views</option><option value="5">5 views</option></select>
+    </div>
+  </div>
+  <div class="field"><label>Extra password &nbsp;<span style="font-weight:400;color:var(--muted2)">(optional — recipient must enter it)</span></label><input id="pw" type="password" placeholder="Leave blank for no extra password"/></div>
+
+  <button class="btn" onclick="makeLink()">Generate secure link</button>
+
+  <div class="result-box" id="result">
+    <div class="result-label">Your one-time link is ready</div>
+    <div class="url-row"><span class="url" id="url"></span><button class="btn btn-sm" onclick="copyUrl()">Copy</button></div>
+  </div>
+  <div id="msg"></div>
+</div>
+</main>
+<div class="foot">Need to send <strong>files</strong> securely too? <a href="/">Create a Linear Tech Files account →</a></div>
+<script>
+${passwordThemeScript()}
+async function makeLink(){
+  var text=document.getElementById('secret').value;
+  if(!text){return showMsg('Please enter something to share','err');}
+  var days=document.getElementById('days').value;
+  var views=document.getElementById('views').value;
+  var pw=document.getElementById('pw').value;
+  var r=await fetch('/api/secret/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,days:days,max_views:views,password:pw})});
+  var d=await r.json();
+  if(!r.ok){return showMsg(d.error||'Something went wrong','err');}
+  var link=window.location.origin+'/s/'+d.token;
+  document.getElementById('url').textContent=link;
+  document.getElementById('result').style.display='block';
+  document.getElementById('secret').value='';
+  document.getElementById('pw').value='';
+}
+function copyUrl(){var u=document.getElementById('url').textContent;navigator.clipboard.writeText(u).then(function(){showMsg('Link copied!','ok');}).catch(function(){showMsg('Copy failed — select the link manually','err');});}
+function showMsg(m,t){var el=document.getElementById('msg');el.textContent=m;el.className=t;el.style.display='block';setTimeout(function(){el.style.display='none';},4000);}
+</script>
+</body>
+</html>`;
+}
+
+function renderSecretView(token) {
+  const safeToken = token.replace(/[^a-zA-Z0-9_-]/g, '');
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Linear Tech · Secure Message</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>${passwordPageStyles()}</style>
+</head>
+<body>
+${passwordHeader()}
+<main>
+<div class="card">
+  <div class="lock-ring"><svg width="30" height="30" fill="none" stroke="var(--accent)" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg></div>
+  <h2>Secure Message</h2>
+  <p class="desc" id="intro">Someone shared a secret with you. Click below to reveal it. Once viewed, it may be gone for good.</p>
+  <div id="pw-field" class="field" style="display:none"><label>This message is password-protected</label><input id="pw" type="password" placeholder="Enter the password" autofocus/></div>
+  <div id="secret-out" class="secret-reveal" style="display:none"></div>
+  <button class="btn" id="reveal-btn" onclick="reveal()">Reveal message</button>
+  <button class="btn btn-sm" id="copy-btn" style="display:none;width:100%;margin-top:10px" onclick="copySecret()">Copy to clipboard</button>
+  <div id="msg"></div>
+</div>
+</main>
+<div class="foot">Powered by <a href="/password">Linear Tech Secure</a> · <a href="/">Send files securely →</a></div>
+<script>
+var TOKEN=${JSON.stringify(safeToken)};
+var NEEDS_PW=false;
+${passwordThemeScript()}
+async function reveal(){
+  var pw=NEEDS_PW?document.getElementById('pw').value:'';
+  var r=await fetch('/api/secret/view',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:TOKEN,password:pw})});
+  var d=await r.json();
+  if(r.status===401&&d.needPassword){NEEDS_PW=true;document.getElementById('pw-field').style.display='block';return showMsg('Please enter the password','err');}
+  if(!r.ok){return showMsg(d.error||'Could not open message','err');}
+  document.getElementById('intro').style.display='none';
+  document.getElementById('pw-field').style.display='none';
+  document.getElementById('reveal-btn').style.display='none';
+  var out=document.getElementById('secret-out');
+  out.textContent=d.secret;out.style.display='block';
+  document.getElementById('copy-btn').style.display='block';
+  showMsg('This message has now been viewed.','ok');
+}
+function copySecret(){var s=document.getElementById('secret-out').textContent;navigator.clipboard.writeText(s).then(function(){showMsg('Copied!','ok');}).catch(function(){showMsg('Copy failed — select the text manually','err');});}
+function showMsg(m,t){var el=document.getElementById('msg');el.textContent=m;el.className=t;el.style.display='block';}
+document.addEventListener('keydown',function(e){if(e.key==='Enter')reveal();});
+</script>
+</body>
+</html>`;
+}
+
+/* ================================================================
+ * Client-side JavaScript — served as /app.js
+ * ================================================================ */
+function clientScript() {
+  return [
+    'var SESSION = null;',
+    'var CURRENT_USER = null;',
+    '',
+    'function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }',
+    '',
+    '// Plan card selection',
+    '(function() {',
+    '  document.querySelectorAll(".plan-card").forEach(function(card) {',
+    '    card.addEventListener("click", function() {',
+    '      document.querySelectorAll(".plan-card").forEach(function(c) { c.classList.remove("selected"); });',
+    '      card.classList.add("selected");',
+    '      var radio = card.querySelector("input[type=radio]");',
+    '      if (radio) radio.checked = true;',
+    '    });',
+    '  });',
+    '  var first = document.querySelector(".plan-card");',
+    '  if (first) first.classList.add("selected");',
+    '})();',
+    '',
+    'function toggleTheme() {',
+    '  var t = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";',
+    '  document.documentElement.setAttribute("data-theme", t);',
+    '  document.getElementById("icon-moon").style.display = t === "dark" ? "block" : "none";',
+    '  document.getElementById("icon-sun").style.display = t === "light" ? "block" : "none";',
+    '  lsSet("theme", t);',
+    '}',
+    '(function() {',
+    '  var t = lsGet("theme") || "dark";',
+    '  document.documentElement.setAttribute("data-theme", t);',
+    '  if (t === "light") {',
+    '    var m = document.getElementById("icon-moon"); if (m) m.style.display = "none";',
+    '    var s = document.getElementById("icon-sun"); if (s) s.style.display = "block";',
+    '  }',
+    '})();',
+    'function lsSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }',
+    'function lsDel(k) { try { localStorage.removeItem(k); } catch(e) {} }',
+    '',
+    'async function api(path, opts) {',
+    '  if (!opts) opts = {};',
+    '  if (!opts.headers) opts.headers = {};',
+    '  if (SESSION) opts.headers["Authorization"] = "Bearer " + SESSION;',
+    '  var r = await fetch(path, opts);',
+    '  var ct = r.headers.get("content-type") || "";',
+    '  var data = ct.indexOf("application/json") >= 0 ? await r.json() : {};',
+    '  return { ok: r.ok, status: r.status, data: data };',
+    '}',
+    '',
+    'function showAlert(msg, type) {',
+    '  if (!type) type = "err";',
+    '  var el = document.getElementById("alert");',
+    '  el.textContent = msg;',
+    '  el.className = type === "ok" ? "alert-ok" : "alert-err";',
+    '  el.style.display = "block";',
+    '  setTimeout(function() { el.style.display = "none"; }, 5000);',
+    '}',
+    '',
+    'function showSection(id) {',
+    '  document.getElementById("section-auth").style.display = "none";',
+    '  document.getElementById("section-portal").style.display = "none";',
+    '  document.getElementById(id).style.display = "block";',
+    '}',
+    '',
+    'function showAuth() {',
+    '  SESSION = null; CURRENT_USER = null; lsDel("sess");',
+    '  document.getElementById("nav-user").innerHTML = "";',
+    '  showSection("section-auth");',
+    '}',
+    '',
+    'function showPortal(user) {',
+    '  CURRENT_USER = user;',
+    '  var name = user && user.username ? user.username : "";',
+    '  var planLabel = user && user.plan ? (user.plan.charAt(0).toUpperCase() + user.plan.slice(1)) : "";',
+    '  document.getElementById("nav-user").innerHTML =',
+    '    "<span class=\'nav-name\'>" + name + "</span>" +',
+    '    (planLabel ? "<span style=\'font-size:.72rem;color:var(--accent);font-weight:600;background:var(--accent-bg);padding:2px 8px;border-radius:20px\'>" + planLabel + "</span>" : "") +',
+    '    "<button class=\'btn-signout\' onclick=\'doLogout()\'>Sign out</button>";',
+    '  showSection("section-portal");',
+    '  loadFiles();',
+    '  loadStorage(user);',
+    '}',
+    '',
+    'function loadStorage(user) {',
+    '  var bar = document.getElementById("storage-bar");',
+    '  var fill = document.getElementById("storage-fill");',
+    '  var text = document.getElementById("storage-text");',
+    '  if (!bar || !user) return;',
+    '  bar.style.display = "block";',
+    '  var used = user.storage_used || 0;',
+    '  var limit = user.storage_limit || 1;',
+    '  var pct = Math.min(100, Math.round(used / limit * 100));',
+    '  fill.style.width = pct + "%";',
+    '  fill.className = "storage-bar-fill" + (pct >= 90 ? " danger" : pct >= 75 ? " warn" : "");',
+    '  text.innerHTML = "<strong>" + fmtSize(used) + "</strong> of " + fmtSize(limit) + " used (" + pct + "%)";',
+    '}',
+    '',
+    'async function manageBilling() {',
+    '  var r = await api("/api/billing/portal", { method: "POST" });',
+    '  if (!r.ok) return showAlert(r.data.error || "Could not open billing portal");',
+    '  window.location.href = r.data.url;',
+    '}',
+    '',
+    'function switchTab(tab) {',
+    '  document.getElementById("form-login").style.display = tab === "login" ? "block" : "none";',
+    '  document.getElementById("form-signup").style.display = tab === "signup" ? "block" : "none";',
+    '  document.getElementById("tab-login").className = "tab" + (tab === "login" ? " active" : "");',
+    '  document.getElementById("tab-signup").className = "tab" + (tab === "signup" ? " active" : "");',
+    '}',
+    '',
+    'function showPane(pane) {',
+    '  ["files", "send", "transfer"].forEach(function(p) {',
+    '    document.getElementById("pane-" + p).style.display = pane === p ? "block" : "none";',
+    '    document.getElementById("ptab-" + p).className = "tab" + (pane === p ? " active" : "");',
+    '  });',
+    '  if (pane === "transfer" && window.LT) LT.loadTransfers();',
+    '}',
+    '',
+    'async function doSignup() {',
+    '  var u = document.getElementById("su-user").value.trim();',
+    '  var e = document.getElementById("su-email").value.trim();',
+    '  var p = document.getElementById("su-pass").value;',
+    '  var p2 = document.getElementById("su-pass2").value;',
+    '  var planRadio = document.querySelector("input[name=plan]:checked");',
+    '  var plan = planRadio ? planRadio.value : "starter";',
+    '  if (!u || !e || !p) return showAlert("All fields required");',
+    '  if (p !== p2) return showAlert("Passwords do not match");',
+    '  var r = await api("/api/signup/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, email: e, password: p, plan: plan }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Signup failed");',
+    '  window.location.href = r.data.url;',
+    '}',
+    '',
+    'async function doInvite() {',
+    '  var u = document.getElementById("su-user").value.trim();',
+    '  var e = document.getElementById("su-email").value.trim();',
+    '  var p = document.getElementById("su-pass").value;',
+    '  var p2 = document.getElementById("su-pass2").value;',
+    '  var code = document.getElementById("su-invite").value.trim();',
+    '  if (!u || !e || !p) return showAlert("Fill in username, email and password first");',
+    '  if (p !== p2) return showAlert("Passwords do not match");',
+    '  if (!code) return showAlert("Enter your invite code to start a free trial");',
+    '  var r = await api("/api/signup/invite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, email: e, password: p, code: code }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Could not start trial");',
+    '  SESSION = r.data.token; lsSet("sess", SESSION);',
+    '  showAlert("Free trial started! You have 14 days.", "ok");',
+    '  showPortal(r.data.user);',
+    '}',
+    '',
+    'async function doLogin() {',
+    '  var u = document.getElementById("li-user").value.trim();',
+    '  var p = document.getElementById("li-pass").value;',
+    '  if (!u || !p) return showAlert("Username and password required");',
+    '  var r = await api("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: u, password: p }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Login failed");',
+    '  SESSION = r.data.token; lsSet("sess", SESSION);',
+    '  showPortal(r.data.user);',
+    '}',
+    '',
+    'async function doLogout() {',
+    '  await api("/api/logout", { method: "POST" });',
+    '  lsDel("sess"); showAuth();',
+    '}',
+    '',
+    'async function loadFiles() {',
+    '  var r = await api("/api/files");',
+    '  var el = document.getElementById("file-list");',
+    '  if (!r.ok) { el.innerHTML = "<p style=\'color:var(--muted)\'>Failed to load files.</p>"; return; }',
+    '  var files = r.data.files || [];',
+    '  if (!files.length) { el.innerHTML = "<p style=\'color:var(--muted);margin-top:12px\'>No files yet — upload something above.</p>"; return; }',
+    '  var rows = "";',
+    '  for (var i = 0; i < files.length; i++) {',
+    '    var f = files[i];',
+    '    rows += "<tr>" +',
+    '      "<td><div class=\'file-name\'>" + esc(f.name) + "</div><div class=\'file-size\'>" + fmtSize(f.size) + "</div></td>" +',
+    '      "<td style=\'color:var(--muted);font-size:.8rem\'>" + (f.created_at ? f.created_at.slice(0,10) : "") + "</td>" +',
+    '      "<td><div class=\'actions\'>" +',
+    '        "<button class=\'btn btn-sm btn-ghost\' onclick=\'downloadFile(" + f.id + ")\'>Download</button>" +',
+    '        "<button class=\'btn btn-sm btn-danger\' onclick=\'deleteFile(" + f.id + ")\'>Delete</button>" +',
+    '      "</div></td></tr>";',
+    '  }',
+    '  el.innerHTML = "<table><thead><tr><th>Name</th><th>Uploaded</th><th></th></tr></thead><tbody>" + rows + "</tbody></table>";',
+    '}',
+    '',
+    '// Uploads go up in 16 MB pieces (portal.js), so any size works.',
+    'async function uploadFiles(files) {',
+    '  if (!files || !files.length) return;',
+    '  files = Array.prototype.slice.call(files);',
+    '  var prog = document.getElementById("upload-progress");',
+    '  var stats = document.getElementById("upload-stats");',
+    '  prog.style.display = "block"; prog.value = 0;',
+    '  var failed = 0;',
+    '  await LT.uploadMany(files, function(file, tracker) {',
+    '    return LT.uploadToKind(file, "file", tracker).then(function(u) {',
+    '      return LT.post("/api/files/register", { key: u.key, name: file.name });',
+    '    }).catch(function(e) { failed++; showAlert("Upload failed for " + file.name + ": " + e.message); });',
+    '  }, function(p) { prog.value = p.pct; stats.textContent = p.text; });',
+    '  prog.style.display = "none"; stats.textContent = "";',
+    '  if (!failed) showAlert(files.length === 1 ? "Upload complete!" : files.length + " files uploaded!", "ok");',
+    '  loadFiles();',
+    '  var me = await api("/api/me"); if (me.ok) loadStorage(me.data);',
+    '}',
+    '',
+    '// A signed link the browser saves straight to disk — no size limit,',
+    '// nothing held in memory, and an interrupted download can resume.',
+    'async function downloadFile(id) {',
+    '  var r = await api("/api/files/link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Download failed");',
+    '  var a = document.createElement("a");',
+    '  a.href = r.data.url; a.download = "";',
+    '  document.body.appendChild(a); a.click(); document.body.removeChild(a);',
+    '}',
+    '',
+    'async function deleteFile(id) {',
+    '  if (!confirm("Delete this file? This cannot be undone.")) return;',
+    '  var r = await api("/api/files/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id }) });',
+    '  if (!r.ok) return showAlert(r.data.error || "Delete failed");',
+    '  showAlert("File deleted.", "ok"); loadFiles();',
+    '}',
+    '',
+    '(function setupDrop() {',
+    '  var zone = document.getElementById("drop-zone");',
+    '  if (!zone) return;',
+    '  zone.addEventListener("dragover", function(e) { e.preventDefault(); zone.classList.add("over"); });',
+    '  zone.addEventListener("dragleave", function() { zone.classList.remove("over"); });',
+    '  zone.addEventListener("drop", function(e) {',
+    '    e.preventDefault(); zone.classList.remove("over");',
+    '    uploadFiles(e.dataTransfer.files);',
+    '  });',
+    '})();',
+    '',
+    'var SHARE_FILE = null;',
+    'function shareFileSelected(input) {',
+    '  SHARE_FILE = input.files[0] || null;',
+    '  document.getElementById("share-file-name").textContent = SHARE_FILE ? SHARE_FILE.name : "Click to choose a file";',
+    '}',
+    '',
+    'async function createShare() {',
+    '  if (!SHARE_FILE) return showAlert("Please choose a file");',
+    '  var pw = document.getElementById("share-pw").value;',
+    '  if (!pw) return showAlert("Password is required");',
+    '  var email = document.getElementById("share-email").value;',
+    '  var exp = document.getElementById("share-exp").value;',
+    '  var maxViews = document.getElementById("share-max-views").value;',
+    '  var prog = document.getElementById("share-progress");',
+    '  var stats = document.getElementById("share-stats");',
+    '  prog.style.display = "block"; prog.value = 0;',
+    '  var r;',
+    '  try {',
+    '    var u = await LT.uploadToKind(SHARE_FILE, "share", function(p) { prog.value = p.pct; stats.textContent = p.text; });',
+    '    r = await api("/api/share/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({',
+    '      key: u.key, name: SHARE_FILE.name, password: pw, max_views: maxViews, recipient_email: email || null, expires_at: exp || null }) });',
+    '  } catch (e) { r = { ok: false, data: { error: e.message } }; }',
+    '  prog.style.display = "none"; stats.textContent = "";',
+    '  if (!r.ok) return showAlert(r.data.error || "Failed to create share link");',
+    '  var link = window.location.origin + "/view/" + r.data.token;',
+    '  document.getElementById("share-url").textContent = link;',
+    '  var usesLabel = maxViews === "999" ? "unlimited downloads" : (maxViews === "1" ? "1 download" : maxViews + " downloads");',
+    '  document.getElementById("share-uses-label").textContent = "This link allows " + usesLabel + ".";',
+    '  document.getElementById("share-result").style.display = "block";',
+    '}',
+    '',
+    'function copyShare() {',
+    '  var url = document.getElementById("share-url").textContent;',
+    '  navigator.clipboard.writeText(url).then(function() {',
+    '    showAlert("Link copied!", "ok");',
+    '  }).catch(function() {',
+    '    showAlert("Copy failed — select the link manually");',
+    '  });',
+    '}',
+    '',
+    'function esc(s) {',
+    '  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");',
+    '}',
+    '',
+    'function fmtSize(b) {',
+    '  if (!b) return "0 B";',
+    '  var units = ["B","KB","MB","GB"];',
+    '  var i = 0;',
+    '  while (b >= 1024 && i < units.length - 1) { b /= 1024; i++; }',
+    '  return b.toFixed(i ? 1 : 0) + " " + units[i];',
+    '}',
+    '',
+    '(async function init() {',
+    '  var saved = lsGet("sess");',
+    '  if (saved) {',
+    '    SESSION = saved;',
+    '    var r = await api("/api/me");',
+    '    if (r.ok) { showPortal(r.data); return; }',
+    '    lsDel("sess"); SESSION = null;',
+    '  }',
+    '  showAuth();',
+    '})();'
+  ].join('\n');
+}
+
+/* ================================================================
+ * API handlers
+ * ================================================================ */
+
+// ── Signup step 1: validate → create Stripe Checkout session ──────
+async function signupCheckout(request, env) {
+  const { username, email, password, plan } = await request.json();
+  if (!username || !email || !password) return json({ error: 'All fields required' }, 400);
+  if (password.length < 8) return json({ error: 'Password must be at least 8 characters' }, 400);
+  if (!PLANS[plan]) return json({ error: 'Invalid plan' }, 400);
+
+  // Check availability before sending to Stripe
+  const existing = await env.DB.prepare(
+    'SELECT id FROM users WHERE username=? OR email=?'
+  ).bind(username.trim(), email.trim().toLowerCase()).first();
+  if (existing) return json({ error: 'Username or email already taken' }, 409);
+
+  const { hash, salt } = await hashPassword(password);
+  const priceId = { starter: env.STRIPE_PRICE_STARTER, pro: env.STRIPE_PRICE_PRO, business: env.STRIPE_PRICE_BUSINESS }[plan];
+  if (!priceId) return json({ error: 'Stripe price not configured for this plan' }, 500);
+
+  const origin = env.SITE_ORIGIN || 'https://files.linearit.co';
+  const session = await stripeApi(env, 'POST', '/checkout/sessions', {
+    'mode': 'subscription',
+    'line_items[0][price]': priceId,
+    'line_items[0][quantity]': '1',
+    'success_url': origin + '/signup-complete?session_id={CHECKOUT_SESSION_ID}',
+    'cancel_url': origin + '/',
+    'allow_promotion_codes': 'true',
+    'customer_email': email.trim().toLowerCase(),
+    'subscription_data[metadata][plan]': plan,
+    'metadata[username]': username.trim(),
+    'metadata[email]': email.trim().toLowerCase(),
+    'metadata[pw_hash]': hash,
+    'metadata[pw_salt]': salt,
+    'metadata[plan]': plan,
+  });
+
+  if (session.error) return json({ error: session.error.message || 'Stripe error' }, 500);
+  return json({ url: session.url });
+}
+
+// ── Signup step 2: verify payment → create account ────────────────
+async function signupComplete(request, env) {
+  const { session_id } = await request.json();
+  if (!session_id) return json({ error: 'Missing session_id' }, 400);
+
+  const session = await stripeApi(env, 'GET', '/checkout/sessions/' + session_id + '?expand[]=subscription', null);
+  if (!session || session.error) return json({ error: 'Could not verify payment' }, 400);
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') return json({ error: 'Payment not completed' }, 402);
+
+  const meta = session.metadata || {};
+  const { username, email, pw_hash, pw_salt, plan } = meta;
+  if (!username || !email || !pw_hash || !plan) return json({ error: 'Missing account details' }, 400);
+  if (!PLANS[plan]) return json({ error: 'Invalid plan' }, 400);
+
+  const stripeCustomerId = session.customer;
+  const stripeSubId = session.subscription && (session.subscription.id || session.subscription);
+
+  // Idempotent: if user already exists (page refresh), just log them in
+  let row = await env.DB.prepare('SELECT id, username, email FROM users WHERE email=?')
+    .bind(email).first();
+
+  if (!row) {
+    row = await env.DB.prepare(
+      'INSERT INTO users (username, email, pw_hash, pw_salt, stripe_customer_id, stripe_sub_id, plan, storage_limit, status) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id, username, email'
+    ).bind(username, email, pw_hash, pw_salt, stripeCustomerId, stripeSubId || null, plan, PLANS[plan].bytes, 'active').first();
+  }
+
+  const token = await makeSessionToken(env, row.id);
+  return json({ token, user: { id: row.id, username: row.username, email: row.email, plan } });
+}
+
+// ── Signup via invite code: free 14-day trial, no payment ─────────
+async function signupInvite(request, env) {
+  const { username, email, password, code } = await request.json();
+  if (!username || !email || !password) return json({ error: 'All fields required' }, 400);
+  if (password.length < 8) return json({ error: 'Password must be at least 8 characters' }, 400);
+
+  // The invite code is configured as a Worker var/secret named INVITE_CODE.
+  if (!env.INVITE_CODE) return json({ error: 'Invite codes are not enabled' }, 403);
+  if (!code || code.trim() !== env.INVITE_CODE) return json({ error: 'Invalid invite code' }, 403);
+
+  const existing = await env.DB.prepare(
+    'SELECT id FROM users WHERE username=? OR email=?'
+  ).bind(username.trim(), email.trim().toLowerCase()).first();
+  if (existing) return json({ error: 'Username or email already taken' }, 409);
+
+  const { hash, salt } = await hashPassword(password);
+  // Trial lasts 14 days from now.
+  const trialUntil = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+  const row = await env.DB.prepare(
+    "INSERT INTO users (username, email, pw_hash, pw_salt, plan, storage_limit, status, trial_until) VALUES (?,?,?,?,?,?,?,?) RETURNING id, username, email"
+  ).bind(username.trim(), email.trim().toLowerCase(), hash, salt, 'starter', PLANS.starter.bytes, 'active', trialUntil).first();
+
+  const token = await makeSessionToken(env, row.id);
+  return json({ token, user: { id: row.id, username: row.username, email: row.email, plan: 'starter' } });
+}
+
+// ── Billing: Stripe Customer Portal link ──────────────────────────
+async function billingPortal(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+
+  const u = await env.DB.prepare('SELECT stripe_customer_id FROM users WHERE id=?').bind(user.id).first();
+  if (!u || !u.stripe_customer_id) return json({ error: 'No billing account found' }, 404);
+
+  const origin = env.SITE_ORIGIN || 'https://files.linearit.co';
+  const portal = await stripeApi(env, 'POST', '/billing_portal/sessions', {
+    customer: u.stripe_customer_id,
+    return_url: origin + '/',
+  });
+  if (portal.error) return json({ error: portal.error.message || 'Stripe error' }, 500);
+  return json({ url: portal.url });
+}
+
+// ── Stripe webhook ────────────────────────────────────────────────
+async function stripeWebhook(request, env) {
+  const body = await request.text();
+  const sig = request.headers.get('stripe-signature') || '';
+  const valid = await verifyStripeSignature(body, sig, env.STRIPE_WEBHOOK_SECRET || '');
+  if (!valid) return new Response('Bad signature', { status: 400 });
+
+  const event = JSON.parse(body);
+  const sub = event.data && event.data.object;
+
+  if (event.type === 'customer.subscription.deleted') {
+    await env.DB.prepare("UPDATE users SET status='cancelled' WHERE stripe_customer_id=?")
+      .bind(sub.customer).run();
+  }
+  if (event.type === 'customer.subscription.updated') {
+    // Plan change: find new price and update storage limit
+    const priceId = sub.items && sub.items.data && sub.items.data[0] && sub.items.data[0].price && sub.items.data[0].price.id;
+    const plan = priceId ? priceIdToPlan(env, priceId) : null;
+    if (plan && PLANS[plan]) {
+      await env.DB.prepare("UPDATE users SET plan=?, storage_limit=?, status='active' WHERE stripe_customer_id=?")
+        .bind(plan, PLANS[plan].bytes, sub.customer).run();
+    }
+    if (sub.status === 'active' || sub.status === 'trialing') {
+      await env.DB.prepare("UPDATE users SET status='active' WHERE stripe_customer_id=?").bind(sub.customer).run();
+    }
+  }
+  if (event.type === 'invoice.payment_failed') {
+    await env.DB.prepare("UPDATE users SET status='past_due' WHERE stripe_customer_id=?")
+      .bind(sub.customer).run();
+  }
+
+  return new Response('ok', { status: 200 });
+}
+
+function priceIdToPlan(env, priceId) {
+  if (priceId === env.STRIPE_PRICE_STARTER) return 'starter';
+  if (priceId === env.STRIPE_PRICE_PRO) return 'pro';
+  if (priceId === env.STRIPE_PRICE_BUSINESS) return 'business';
+  return null;
+}
+
+// ── Cron: sync subscription statuses from Stripe ──────────────────
+async function syncSubscriptions(env) {
+  const pastDue = await env.DB.prepare(
+    "SELECT stripe_sub_id FROM users WHERE status='active' AND stripe_sub_id IS NOT NULL"
+  ).all();
+  // Lightweight: just trust webhooks; this is a fallback safety net
+  // A full sync would query Stripe for each subscription — skip for now to stay within CPU limits
+}
+
+// ── Stripe API helper ─────────────────────────────────────────────
+async function stripeApi(env, method, path, params) {
+  const opts = {
+    method,
+    headers: { 'Authorization': 'Bearer ' + env.STRIPE_SECRET_KEY },
+  };
+  if (params && method !== 'GET') {
+    opts.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    opts.body = new URLSearchParams(params).toString();
+  }
+  const r = await fetch('https://api.stripe.com/v1' + path, opts);
+  return r.json();
+}
+
+async function verifyStripeSignature(rawBody, sigHeader, secret) {
+  if (!secret || !sigHeader) return false;
+  try {
+    const ts = (sigHeader.split(',').find(p => p.startsWith('t=')) || '').slice(2);
+    const v1 = (sigHeader.split(',').find(p => p.startsWith('v1=')) || '').slice(3);
+    if (!ts || !v1) return false;
+    const payload = ts + '.' + rawBody;
+    const key = await crypto.subtle.importKey('raw', enc(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = await crypto.subtle.sign('HMAC', key, enc(payload));
+    const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return computed === v1;
+  } catch(e) { return false; }
+}
+
+// ── Signup (kept for backward compat — not used in new flow) ──────
+async function signup(request, env) {
+  const { username, email, password } = await request.json();
+  if (!username || !email || !password) return json({ error: 'All fields required' }, 400);
+  if (password.length < 8) return json({ error: 'Password must be at least 8 characters' }, 400);
+
+  const { hash, salt } = await hashPassword(password);
+  try {
+    const row = await env.DB.prepare(
+      'INSERT INTO users (username, email, pw_hash, pw_salt) VALUES (?,?,?,?) RETURNING id, username, email'
+    ).bind(username.trim(), email.trim().toLowerCase(), hash, salt).first();
+
+    const token = await makeSessionToken(env, row.id);
+    return json({ token, user: { id: row.id, username: row.username, email: row.email } });
+  } catch (e) {
+    if (String(e).includes('UNIQUE')) return json({ error: 'Username or email already taken' }, 409);
+    throw e;
+  }
+}
+
+// ── Login ─────────────────────────────────────────────────────────
+async function loginUser(request, env) {
+  const { username, password } = await request.json();
+  if (!username || !password) return json({ error: 'Username and password required' }, 400);
+
+  const row = await env.DB.prepare(
+    'SELECT id, username, email, pw_hash, pw_salt, trial_until FROM users WHERE username=? OR email=?'
+  ).bind(username.trim(), username.trim().toLowerCase()).first();
+
+  if (!row) return json({ error: 'Invalid username or password' }, 401);
+  const ok = await verifyPassword(password, row.pw_hash, row.pw_salt);
+  if (!ok) return json({ error: 'Invalid username or password' }, 401);
+  if (row.trial_until && new Date(row.trial_until) < new Date()) {
+    return json({ error: 'Your 14-day free trial has ended. Please subscribe to keep using your account.' }, 403);
+  }
+
+  const token = await makeSessionToken(env, row.id);
+  return json({ token, user: { id: row.id, username: row.username, email: row.email } });
+}
+
+// ── Logout ────────────────────────────────────────────────────────
+async function logout(request, env) {
+  const token = getBearerToken(request);
+  if (token) await env.DB.prepare('DELETE FROM sessions WHERE token=?').bind(token).run().catch(() => {});
+  return json({ ok: true });
+}
+
+// ── Me ────────────────────────────────────────────────────────────
+async function me(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const used = await storageUsed(env, user.id);
+  return json({
+    id: user.id, username: user.username, email: user.email,
+    plan: user.plan || 'starter',
+    status: user.status || 'active',
+    storage_limit: user.storage_limit || PLANS.starter.bytes,
+    storage_used: used.total,
+    transfers_used: used.transfers,
+  });
+}
+
+// ── List files ────────────────────────────────────────────────────
+async function listFiles(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const rows = await env.DB.prepare(
+    'SELECT id, name, size, mime, created_at FROM files WHERE user_id=? ORDER BY created_at DESC'
+  ).bind(user.id).all();
+  return json({ files: rows.results || [] });
+}
+
+// ── Upload file ───────────────────────────────────────────────────
+async function uploadFile(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+
+  // Enforce storage limit
+  const limit = user.storage_limit || PLANS.starter.bytes;
+  const used = (await storageUsed(env, user.id)).total;
+
+  const form = await request.formData();
+  const file = form.get('file');
+  if (!file || typeof file === 'string') return json({ error: 'No file provided' }, 400);
+  if (used + file.size > limit) return json({ error: storageFullMessage(user) }, 413);
+
+  const r2Key = `users/${user.id}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
+  await env.FILES.put(r2Key, file.stream(), {
+    httpMetadata: { contentType: file.type || 'application/octet-stream' }
+  });
+
+  await env.DB.prepare(
+    'INSERT INTO files (user_id, r2_key, name, size, mime) VALUES (?,?,?,?,?)'
+  ).bind(user.id, r2Key, file.name, file.size, file.type || null).run();
+
+  return json({ ok: true });
+}
+
+// ── Download file (stream directly from R2) ───────────────────────
+async function downloadFile(request, env, url) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+
+  const id = Number(url.searchParams.get('id'));
+  const row = await env.DB.prepare(
+    'SELECT r2_key, name, mime FROM files WHERE id=? AND user_id=?'
+  ).bind(id, user.id).first();
+  if (!row) return json({ error: 'File not found' }, 404);
+
+  const obj = await env.FILES.get(row.r2_key);
+  if (!obj) return json({ error: 'File not found in storage' }, 404);
+
+  const safeName = row.name.replace(/"/g, '');
+  return corsHeaders(new Response(obj.body, {
+    headers: {
+      'Content-Type': row.mime || obj.httpMetadata?.contentType || 'application/octet-stream',
+      'Content-Disposition': 'attachment; filename="' + safeName + '"',
+    }
+  }));
+}
+
+// ── Delete file ───────────────────────────────────────────────────
+async function deleteFile(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+
+  const { id } = await request.json();
+  const row = await env.DB.prepare(
+    'SELECT r2_key FROM files WHERE id=? AND user_id=?'
+  ).bind(id, user.id).first();
+  if (!row) return json({ error: 'File not found' }, 404);
+
+  await env.FILES.delete(row.r2_key);
+  await env.DB.prepare('DELETE FROM files WHERE id=?').bind(id).run();
+  return json({ ok: true });
+}
+
+// ── Create share ──────────────────────────────────────────────────
+async function createShare(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+
+  // Two ways in: the browser has already uploaded the file in parts
+  // (JSON with its key — works for any size), or the original single
+  // form upload (kept so an old open tab still works).
+  const isJson = (request.headers.get('Content-Type') || '').includes('application/json');
+  const form = isJson ? null : await request.formData();
+  const body = isJson ? await request.json() : null;
+  const field = (k) => isJson ? body[k] : form.get(k);
+  const password = field('password');
+  const recipientEmail = field('recipient_email') || null;
+  const expiresAt = field('expires_at') || null;
+  const maxViewsRaw = parseInt(field('max_views') || '1', 10);
+  const maxViews = (!maxViewsRaw || maxViewsRaw < 1) ? 1 : Math.min(maxViewsRaw, 999);
+  if (!password) return json({ error: 'Password required' }, 400);
+
+  let r2Key, name, size, mime;
+  if (isJson) {
+    r2Key = String(body.key || '');
+    if (!r2Key.startsWith(`shares/${user.id}/`)) return json({ error: 'No file provided' }, 400);
+    const head = await env.FILES.head(r2Key);
+    if (!head) return json({ error: 'The file did not finish uploading' }, 400);
+    name = cleanDisplayName(body.name);
+    size = head.size;
+    mime = cleanMime(head.httpMetadata && head.httpMetadata.contentType);
+  } else {
+    const file = form.get('file');
+    if (!file || typeof file === 'string') return json({ error: 'No file provided' }, 400);
+    // Store the file in R2 under shares/
+    r2Key = `shares/${user.id}/${crypto.randomUUID()}-${sanitizeFilename(file.name)}`;
+    await env.FILES.put(r2Key, file.stream(), {
+      httpMetadata: { contentType: file.type || 'application/octet-stream' }
+    });
+    name = file.name; size = file.size; mime = file.type || null;
+  }
+
+  // Save the file record (owned by the sender)
+  const fileRow = await env.DB.prepare(
+    'INSERT INTO files (user_id, r2_key, name, size, mime) VALUES (?,?,?,?,?) RETURNING id'
+  ).bind(user.id, r2Key, name, size, mime).first();
+
+  const { hash, salt } = await hashPassword(password);
+  const token = crypto.randomUUID().replace(/-/g, '');
+
+  await env.DB.prepare(
+    'INSERT INTO shares (token, file_id, pw_hash, pw_salt, recipient_email, expires_at, max_views) VALUES (?,?,?,?,?,?,?)'
+  ).bind(token, fileRow.id, hash, salt, recipientEmail, expiresAt || null, maxViews).run();
+
+  return json({ token });
+}
+
+// ── View share (burn after first successful view) ──────────────────
+async function viewShare(request, env, ctx) {
+  const { token, password, link } = await request.json();
+  if (!token || !password) return json({ error: 'Token and password required' }, 400);
+
+  const share = await env.DB.prepare(
+    `SELECT s.id, s.token, s.pw_hash, s.pw_salt, s.viewed, s.max_views, s.expires_at,
+            f.id AS file_id, f.r2_key, f.name
+     FROM shares s JOIN files f ON f.id = s.file_id
+     WHERE s.token=?`
+  ).bind(token).first();
+
+  if (!share) return json({ error: 'Link not found or already used' }, 404);
+  if (share.viewed >= share.max_views) return json({ error: 'This link has reached its download limit' }, 410);
+  if (share.expires_at && new Date(share.expires_at) < new Date()) return json({ error: 'This link has expired' }, 410);
+
+  const ok = await verifyPassword(password, share.pw_hash, share.pw_salt);
+  if (!ok) return json({ error: 'Incorrect password' }, 401);
+
+  // Link mode (current page): burn a view, then hand back a short-lived
+  // signed URL. The browser downloads from it directly, so a multi-GB file
+  // streams to disk instead of being held in memory, and a dropped download
+  // can resume. The bytes are removed by the cron a day after the last view.
+  if (link) {
+    const head = await env.FILES.head(share.r2_key);
+    if (!head) return json({ error: 'File not found in storage' }, 404);
+    const claimed = await env.DB.prepare(
+      'UPDATE shares SET viewed=viewed+1 WHERE id=? AND viewed<max_views'
+    ).bind(share.id).run();
+    if (claimed.meta && claimed.meta.changes === 0) return json({ error: 'This link has reached its download limit' }, 410);
+    if (share.viewed + 1 >= share.max_views) {
+      await env.DB.prepare("UPDATE shares SET burned_at=? WHERE id=?").bind(new Date().toISOString(), share.id).run();
+    }
+    return json({ url: await signedFileUrl(env, share.file_id, 6 * 3600) });
+  }
+
+  // Fetch the R2 object BEFORE burning the link so a storage failure
+  // doesn't permanently destroy access.
+  const obj = await env.FILES.get(share.r2_key);
+  if (!obj) return json({ error: 'File not found in storage' }, 404);
+
+  // Atomically increment the view counter — if another request beat us to the limit, bail
+  const result = await env.DB.prepare(
+    'UPDATE shares SET viewed=viewed+1 WHERE id=? AND viewed<max_views'
+  ).bind(share.id).run();
+
+  if (result.meta && result.meta.changes === 0) {
+    return json({ error: 'This link has reached its download limit' }, 410);
+  }
+
+  const newViewed = share.viewed + 1;
+  // Clean up R2 only when the last allowed download is used
+  if (newViewed >= share.max_views) {
+    if (ctx && ctx.waitUntil) ctx.waitUntil(env.FILES.delete(share.r2_key).catch(() => {}));
+  }
+
+  const safeName = share.name.replace(/"/g, '');
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': obj.httpMetadata?.contentType || 'application/octet-stream',
+      'Content-Disposition': 'attachment; filename="' + safeName + '"',
+    }
+  });
+}
+
+// ── Create a secret (public, no auth) ─────────────────────────────
+async function createSecret(request, env) {
+  const { text, password, days, max_views } = await request.json();
+  if (!text || !String(text).length) return json({ error: 'Nothing to share' }, 400);
+  if (String(text).length > 100000) return json({ error: 'Message is too long (100 KB max)' }, 413);
+
+  const dayN = Math.min(Math.max(parseInt(days || '7', 10) || 7, 1), 30);
+  const mvN = Math.min(Math.max(parseInt(max_views || '1', 10) || 1, 1), 10);
+  const expiresAt = new Date(Date.now() + dayN * 24 * 60 * 60 * 1000).toISOString();
+
+  const { payload, iv } = await encryptText(env, String(text));
+
+  let pwHash = null, pwSalt = null;
+  if (password && String(password).length) {
+    const h = await hashPassword(String(password));
+    pwHash = h.hash; pwSalt = h.salt;
+  }
+
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  await env.DB.prepare(
+    'INSERT INTO secrets (token, payload, iv, pw_hash, pw_salt, expires_at, max_views) VALUES (?,?,?,?,?,?,?)'
+  ).bind(token, payload, iv, pwHash, pwSalt, expiresAt, mvN).run();
+
+  return json({ token });
+}
+
+// ── View a secret (burn after the allowed number of views) ────────
+async function viewSecret(request, env, ctx) {
+  const { token, password } = await request.json();
+  if (!token) return json({ error: 'Invalid link' }, 400);
+
+  const row = await env.DB.prepare(
+    'SELECT id, payload, iv, pw_hash, pw_salt, viewed, max_views, expires_at FROM secrets WHERE token=?'
+  ).bind(token).first();
+
+  if (!row) return json({ error: 'This message was not found or has already been deleted' }, 404);
+  if (row.expires_at && new Date(row.expires_at) < new Date()) {
+    await env.DB.prepare('DELETE FROM secrets WHERE id=?').bind(row.id).run();
+    return json({ error: 'This message has expired' }, 410);
+  }
+  if (row.viewed >= row.max_views) return json({ error: 'This message has already been viewed' }, 410);
+
+  if (row.pw_hash) {
+    if (!password) return json({ error: 'Password required', needPassword: true }, 401);
+    const ok = await verifyPassword(String(password), row.pw_hash, row.pw_salt);
+    if (!ok) return json({ error: 'Incorrect password', needPassword: true }, 401);
+  }
+
+  let secret;
+  try { secret = await decryptText(env, row.payload, row.iv); }
+  catch (e) { return json({ error: 'Could not decrypt message' }, 500); }
+
+  // Atomically claim a view; bail if someone else hit the limit first.
+  const result = await env.DB.prepare(
+    'UPDATE secrets SET viewed=viewed+1 WHERE id=? AND viewed<max_views'
+  ).bind(row.id).run();
+  if (result.meta && result.meta.changes === 0) {
+    return json({ error: 'This message has already been viewed' }, 410);
+  }
+
+  // Delete once the last allowed view is used.
+  if (row.viewed + 1 >= row.max_views) {
+    const del = env.DB.prepare('DELETE FROM secrets WHERE id=?').bind(row.id).run();
+    if (ctx && ctx.waitUntil) ctx.waitUntil(del.catch(() => {})); else await del.catch(() => {});
+  }
+
+  return json({ secret });
+}
+
+// ── Cron: purge used-up / expired shares and expired transfers ────
+async function purgeExpired(env) {
+  const now = new Date().toISOString().slice(0, 10);
+  // A share is done once every allowed download is used (a day later, so a
+  // signed download link handed out at the last view can still finish) or
+  // once its expiry date has passed.
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const doneWhere = `(s.viewed >= s.max_views AND (s.burned_at IS NULL OR s.burned_at < ?))
+     OR (s.expires_at IS NOT NULL AND s.expires_at < ?)`;
+  const expired = await env.DB.prepare(
+    `SELECT s.id, f.id AS file_id, f.r2_key FROM shares s JOIN files f ON f.id=s.file_id WHERE ${doneWhere} LIMIT 200`
+  ).bind(dayAgo, now).all();
+
+  const rows = expired.results || [];
+  if (rows.length) {
+    await env.FILES.delete(rows.map(r => r.r2_key)).catch(() => {});
+    await env.DB.batch(rows.flatMap(r => [
+      env.DB.prepare('DELETE FROM shares WHERE id=?').bind(r.id),
+      // The file row only exists for the share; leaving it would keep a
+      // dead entry in My Files and keep counting against storage.
+      env.DB.prepare("DELETE FROM files WHERE id=? AND r2_key LIKE 'shares/%'").bind(r.file_id),
+    ]));
+  }
+
+  await purgeTransfers(env);
+
+  // Purge expired secrets (uses full ISO timestamp)
+  await env.DB.prepare(
+    `DELETE FROM secrets WHERE expires_at IS NOT NULL AND expires_at < ?`
+  ).bind(new Date().toISOString()).run().catch(() => {});
+}
+
+/* ================================================================
+ * Encryption helpers for secrets (AES-GCM, key from SESSION_SECRET)
+ * ================================================================ */
+async function secretKey(env) {
+  const material = await crypto.subtle.digest('SHA-256', enc(env.SESSION_SECRET || 'linearit-default-key'));
+  return crypto.subtle.importKey('raw', material, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+function bufToB64(buf) {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(buf)));
+}
+function b64ToBuf(b64) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+async function encryptText(env, text) {
+  const key = await secretKey(env);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc(text));
+  return { payload: bufToB64(ct), iv: bufToB64(iv) };
+}
+async function decryptText(env, payloadB64, ivB64) {
+  const key = await secretKey(env);
+  const iv = b64ToBuf(ivB64);
+  const ct = b64ToBuf(payloadB64);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  return new TextDecoder().decode(pt);
+}
+
+/* ================================================================
+ * Auth helpers
+ * ================================================================ */
+async function hashPassword(password) {
+  const salt = crypto.randomUUID();
+  const key = await crypto.subtle.importKey('raw', enc(password + salt), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc(salt), iterations: 100000 }, key, 256);
+  const hash = btoa(String.fromCharCode(...new Uint8Array(bits)));
+  return { hash, salt };
+}
+
+async function verifyPassword(password, hash, salt) {
+  const key = await crypto.subtle.importKey('raw', enc(password + salt), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc(salt), iterations: 100000 }, key, 256);
+  const candidate = btoa(String.fromCharCode(...new Uint8Array(bits)));
+  return candidate === hash;
+}
+
+async function makeSessionToken(env, userId) {
+  const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  await env.DB.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?,?,?)').bind(token, userId, expiresAt).run();
+  return token;
+}
+
+async function requireAuth(request, env) {
+  const token = getBearerToken(request);
+  if (!token) return null;
+  const row = await env.DB.prepare(
+    'SELECT u.id, u.username, u.email, u.plan, u.status, u.storage_limit, u.stripe_customer_id, u.trial_until FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires_at > datetime("now")'
+  ).bind(token).first();
+  if (!row) return null;
+  // If this is a trial account and the trial has ended, deny access.
+  if (row.trial_until && new Date(row.trial_until) < new Date()) return null;
+  return row;
+}
+
+function getBearerToken(request) {
+  return (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim() || null;
+}
+
+/* ================================================================
+ * Misc helpers
+ * ================================================================ */
+const enc = s => new TextEncoder().encode(s);
+const json = (obj, status = 200) =>
+  new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
+
+function corsHeaders(res) {
+  const h = new Headers(res.headers);
+  h.set('Access-Control-Allow-Origin', '*');
+  h.set('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
+  h.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  return new Response(res.body, { status: res.status, headers: h });
+}
+
+function htmlResponse(html) {
+  return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+}
+
+function sanitizeFilename(name) {
+  return String(name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 200);
+}
+
+/* ================================================================
+ * Big files — chunked uploads, signed downloads
+ * ================================================================
+ * One Worker request can carry at most 100 MB, and request.formData()
+ * holds the whole file in memory, so the original single-request upload
+ * failed on anything big. Every upload now goes up in 16 MB parts through
+ * R2 multipart (files of 16 MB or less go up in one PUT):
+ *
+ *   POST /api/upload/start      {name,size,type,kind}  -> {key, upload, partSize}
+ *   POST /api/upload/multipart  {key}                  -> {upload}      (transfer files)
+ *   PUT  /api/upload/put?key=K                          whole small file
+ *   PUT  /api/upload/part?key=K&upload=U&part=P         one part
+ *   POST /api/upload/complete   {key, upload, parts}
+ *
+ * then /api/files/register (My Files), /api/share/create (Secure Send) or
+ * /api/transfer/file-done (Transfer) records it. Keys are always minted by
+ * the server under the user's own prefix, and every call checks that prefix,
+ * so nobody can write into someone else's space.
+ *
+ * Downloads go through /dl?f=&e=&s= — an HMAC-signed, time-limited link —
+ * so the browser saves straight to disk (no multi-GB blob in memory) and a
+ * dropped download can resume with Range.
+ * ================================================================ */
+const PART_SIZE = 16 * 1024 * 1024;
+const TRANSFER_HOURS = [1, 24, 72, 168, 336];     // 1h, 1d, 3d, 7d, 14d
+const TRANSFER_MAX_FILES = 500;
+// Each file in a ZIP is one R2 read inside one request; stay well under
+// the per-request subrequest limit on every Workers plan.
+const ZIP_MAX_FILES = 40;
+
+let schemaReady = false;
+async function ensureSchema(env) {
+  if (schemaReady) return;
+  await env.DB.batch([
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS transfers (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      token      TEXT    NOT NULL UNIQUE,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title      TEXT,
+      message    TEXT,
+      total      INTEGER NOT NULL DEFAULT 0,
+      file_count INTEGER NOT NULL DEFAULT 0,
+      status     TEXT    NOT NULL DEFAULT 'uploading',
+      expires_at TEXT    NOT NULL,
+      downloads  INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    )`),
+    env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_transfers_user ON transfers(user_id)`),
+    env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_transfers_exp ON transfers(expires_at)`),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS transfer_files (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      transfer_id INTEGER NOT NULL REFERENCES transfers(id) ON DELETE CASCADE,
+      n           INTEGER NOT NULL,
+      name        TEXT    NOT NULL,
+      size        INTEGER NOT NULL,
+      mime        TEXT,
+      r2_key      TEXT    NOT NULL,
+      crc         INTEGER,
+      done        INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(transfer_id, n)
+    )`),
+  ]);
+  // Added for signed share downloads; harmless "duplicate column" once it exists.
+  await env.DB.prepare('ALTER TABLE shares ADD COLUMN burned_at TEXT').run().catch(() => {});
+  schemaReady = true;
+}
+
+const nowIso = () => new Date().toISOString();
+
+async function storageUsed(env, userId) {
+  const f = await env.DB.prepare('SELECT COALESCE(SUM(size),0) AS t FROM files WHERE user_id=?').bind(userId).first();
+  const t = await env.DB.prepare('SELECT COALESCE(SUM(total),0) AS t FROM transfers WHERE user_id=? AND expires_at > ?').bind(userId, nowIso()).first();
+  const files = f ? f.t : 0, transfers = t ? t.t : 0;
+  return { files, transfers, total: files + transfers };
+}
+
+function storageFullMessage(user) {
+  const info = PLANS[user.plan || 'starter'] || PLANS.starter;
+  return 'Storage limit reached (' + info.gb + ' GB on your ' + info.name + ' plan). Delete something or upgrade your plan.';
+}
+
+function ownsKey(user, key) {
+  return typeof key === 'string' && !key.includes('..') &&
+    ['users', 'shares', 'transfers'].some(p => key.startsWith(p + '/' + user.id + '/'));
+}
+
+// A transfer's files can only be written while it is still uploading.
+async function keyWritable(env, user, key) {
+  if (!ownsKey(user, key)) return false;
+  if (!key.startsWith('transfers/')) return true;
+  const tid = Number(key.split('/')[2]);
+  const row = await env.DB.prepare("SELECT status FROM transfers WHERE id=? AND user_id=?").bind(tid, user.id).first();
+  return !!row && row.status === 'uploading';
+}
+
+async function uploadStart(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { name, size, type, kind } = await request.json();
+  const n = Number(size);
+  if (!Number.isSafeInteger(n) || n < 0) return json({ error: 'Bad file size' }, 400);
+  if (kind !== 'file' && kind !== 'share') return json({ error: 'Bad upload kind' }, 400);
+  const limit = user.storage_limit || PLANS.starter.bytes;
+  if ((await storageUsed(env, user.id)).total + n > limit) return json({ error: storageFullMessage(user) }, 413);
+
+  const key = (kind === 'share' ? 'shares/' : 'users/') + user.id + '/' + crypto.randomUUID() + '-' + sanitizeFilename(name);
+  let upload = null;
+  if (n > PART_SIZE) {
+    const mp = await env.FILES.createMultipartUpload(key, { httpMetadata: { contentType: cleanMime(type) } });
+    upload = mp.uploadId;
+  }
+  return json({ key, upload, partSize: PART_SIZE });
+}
+
+async function uploadMultipart(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { key } = await request.json();
+  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
+  const row = key.startsWith('transfers/')
+    ? await env.DB.prepare('SELECT mime FROM transfer_files WHERE r2_key=?').bind(key).first() : null;
+  const mp = await env.FILES.createMultipartUpload(key, { httpMetadata: { contentType: cleanMime(row && row.mime) } });
+  return json({ upload: mp.uploadId, partSize: PART_SIZE });
+}
+
+async function uploadPut(request, env, url) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const key = url.searchParams.get('key');
+  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
+  const len = Number(request.headers.get('Content-Length'));
+  if (!(len >= 0) || len > PART_SIZE) return json({ error: 'Too large for one request — send it in parts' }, 400);
+  await env.FILES.put(key, request.body, { httpMetadata: { contentType: cleanMime(request.headers.get('Content-Type')) } });
+  return json({ ok: true });
+}
+
+async function uploadPart(request, env, url) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const key = url.searchParams.get('key');
+  const upload = url.searchParams.get('upload');
+  const part = Number(url.searchParams.get('part'));
+  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
+  if (!upload || !Number.isInteger(part) || part < 1 || part > 10000) return json({ error: 'Bad part' }, 400);
+  if (Number(request.headers.get('Content-Length')) > PART_SIZE) return json({ error: 'Part too large' }, 400);
+  const done = await env.FILES.resumeMultipartUpload(key, upload).uploadPart(part, request.body);
+  return json({ partNumber: done.partNumber, etag: done.etag });
+}
+
+async function uploadComplete(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { key, upload, parts } = await request.json();
+  if (!(await keyWritable(env, user, key))) return json({ error: 'Not allowed' }, 403);
+  if (!upload || !Array.isArray(parts) || !parts.length) return json({ error: 'Bad request' }, 400);
+  const list = parts.map(p => ({ partNumber: Number(p.partNumber), etag: String(p.etag || '') }))
+    .sort((a, b) => a.partNumber - b.partNumber);
+  await env.FILES.resumeMultipartUpload(key, upload).complete(list);
+  return json({ ok: true });
+}
+
+// My Files: record an upload that finished. The size comes from R2, not
+// the browser, and the storage limit is checked again now that it's real.
+async function registerFile(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { key, name } = await request.json();
+  if (typeof key !== 'string' || !key.startsWith('users/' + user.id + '/')) return json({ error: 'Not allowed' }, 403);
+  const head = await env.FILES.head(key);
+  if (!head) return json({ error: 'The file did not finish uploading' }, 400);
+  const dup = await env.DB.prepare('SELECT id FROM files WHERE r2_key=?').bind(key).first();
+  if (dup) return json({ ok: true, id: dup.id });
+  const limit = user.storage_limit || PLANS.starter.bytes;
+  if ((await storageUsed(env, user.id)).total + head.size > limit) {
+    await env.FILES.delete(key);
+    return json({ error: storageFullMessage(user) }, 413);
+  }
+  const mime = cleanMime(head.httpMetadata && head.httpMetadata.contentType);
+  const row = await env.DB.prepare(
+    'INSERT INTO files (user_id, r2_key, name, size, mime) VALUES (?,?,?,?,?) RETURNING id'
+  ).bind(user.id, key, cleanDisplayName(name), head.size, mime).first();
+  return json({ ok: true, id: row.id });
+}
+
+// My Files: a signed link the browser can download from directly.
+async function fileLink(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { id } = await request.json();
+  const row = await env.DB.prepare('SELECT id FROM files WHERE id=? AND user_id=?').bind(Number(id), user.id).first();
+  if (!row) return json({ error: 'File not found' }, 404);
+  return json({ url: await signedFileUrl(env, row.id, 6 * 3600) });
+}
+
+async function hmacHex(env, msg) {
+  const key = await crypto.subtle.importKey('raw', enc('dl:' + (env.SESSION_SECRET || 'linearit-default-key')),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', key, enc(msg));
+  return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function signedFileUrl(env, fileId, ttlSeconds) {
+  const e = Math.floor(Date.now() / 1000) + ttlSeconds;
+  return '/dl?f=' + fileId + '&e=' + e + '&s=' + (await hmacHex(env, 'f.' + fileId + '.' + e));
+}
+
+async function signedDownload(request, env, url) {
+  const f = Number(url.searchParams.get('f'));
+  const e = Number(url.searchParams.get('e'));
+  const s = String(url.searchParams.get('s') || '');
+  if (!Number.isInteger(f) || !Number.isInteger(e) || e < Date.now() / 1000) {
+    return messagePage('This download link has expired', 'Go back and click download again to get a fresh link.', 410);
+  }
+  const want = await hmacHex(env, 'f.' + f + '.' + e);
+  let diff = want.length ^ s.length;
+  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ (s.charCodeAt(i) || 0);
+  if (diff) return messagePage('This download link is not valid', 'Go back and click download again.', 403);
+  const row = await env.DB.prepare('SELECT r2_key, name, size, mime FROM files WHERE id=?').bind(f).first();
+  if (!row) return messagePage('File not found', 'It may have been deleted.', 404);
+  return streamObject(request, env, row.r2_key, row.name, row.mime, row.size);
+}
+
+// Serve one R2 object as a download, with Range so big downloads resume.
+async function streamObject(request, env, key, name, mime, size) {
+  const headers = downloadHeaders(name, mime);
+  headers.set('Accept-Ranges', 'bytes');
+  if (!Number.isFinite(size)) {
+    const head = await env.FILES.head(key);
+    if (!head) return messagePage('File not found', 'It may have been deleted.', 404);
+    size = head.size;
+  }
+  const range = parseRange(request.headers.get('Range'), size);
+  if (range === false) return new Response(null, { status: 416, headers: { 'Content-Range': 'bytes */' + size } });
+  if (request.method === 'HEAD') {
+    headers.set('Content-Length', String(size));
+    return new Response(null, { status: 200, headers });
+  }
+  const obj = await env.FILES.get(key, range ? { range: { offset: range.start, length: range.end - range.start + 1 } } : undefined);
+  if (!obj) return messagePage('File not found', 'It may have been deleted.', 404);
+  if (range) {
+    headers.set('Content-Range', 'bytes ' + range.start + '-' + range.end + '/' + size);
+    headers.set('Content-Length', String(range.end - range.start + 1));
+    return new Response(obj.body, { status: 206, headers });
+  }
+  headers.set('Content-Length', String(size));
+  return new Response(obj.body, { status: 200, headers });
+}
+
+// Always "attachment" + nosniff + a sandbox CSP: the browser saves the
+// original bytes, and nothing uploaded can ever run as a page here.
+function downloadHeaders(filename, mime) {
+  const base = String(filename || 'file').split('/').pop();
+  const ascii = base.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
+  return new Headers({
+    'Content-Type': mime || 'application/octet-stream',
+    'Content-Disposition': 'attachment; filename="' + ascii + '"; filename*=UTF-8\'\'' + encodeURIComponent(base),
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Security-Policy': "sandbox; default-src 'none'",
+    'Cache-Control': 'private, no-store',
+  });
+}
+
+// null = no range, false = unsatisfiable, else {start, end} inclusive.
+function parseRange(header, size) {
+  if (!header) return null;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  let start, end;
+  if (m[1] === '') { start = Math.max(0, size - Number(m[2])); end = size - 1; }
+  else { start = Number(m[1]); end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1); }
+  if (start >= size || start > end) return false;
+  return { start, end };
+}
+
+function cleanMime(t) {
+  t = String(t || '').toLowerCase().split(';')[0].trim();
+  return /^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(t) && t.length < 100 ? t : 'application/octet-stream';
+}
+
+// A name to show and save as. Folder paths (from a dropped folder) are kept
+// with "/" but can't climb out of themselves.
+function cleanDisplayName(raw) {
+  let s = String(raw || '').normalize('NFC').replace(/\\/g, '/').replace(/[\u0000-\u001f\u007f<>:"|?*]/g, '_');
+  s = s.split('/').map(x => x.trim()).filter(x => x && x !== '.' && x !== '..').join('/') || 'file';
+  if (s.length > 240) {
+    const dot = s.lastIndexOf('.');
+    const ext = dot > s.length - 12 && dot > 0 ? s.slice(dot) : '';
+    s = s.slice(0, 240 - ext.length) + ext;
+  }
+  return s;
+}
+
+/* ================================================================
+ * Transfer — send many files with one link that expires
+ * ================================================================
+ * The WeTransfer idea, inside the portal. Files are stored byte for byte
+ * (nothing resized or re-encoded) under transfers/<user>/<transfer>/<n>,
+ * and "Download all" is a ZIP built with the STORE method, so even the
+ * bundle is the original files unchanged. A transfer's bytes count toward
+ * the sender's plan storage only while its link is alive.
+ *
+ * The link is dead the moment it expires (every request checks), and the
+ * cron deletes the bytes. The sender sees how many times it was downloaded.
+ * ================================================================ */
+async function listTransfers(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const rows = await env.DB.prepare(
+    "SELECT id, token, title, total, file_count, status, expires_at, downloads, created_at FROM transfers WHERE user_id=? AND status='ready' AND expires_at > ? ORDER BY id DESC LIMIT 100"
+  ).bind(user.id, nowIso()).all();
+  return json({ transfers: rows.results || [] });
+}
+
+async function createTransfer(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const body = await request.json();
+  const hours = Number(body.hours);
+  if (!TRANSFER_HOURS.includes(hours)) return json({ error: 'Pick how long the link should last' }, 400);
+  const list = Array.isArray(body.files) ? body.files : [];
+  if (!list.length) return json({ error: 'Add at least one file' }, 400);
+  if (list.length > TRANSFER_MAX_FILES) return json({ error: 'Up to ' + TRANSFER_MAX_FILES + ' files per transfer' }, 400);
+
+  const used = new Set();
+  const files = [];
+  let total = 0;
+  for (const f of list) {
+    const size = Number(f && f.size);
+    if (!Number.isSafeInteger(size) || size < 0) return json({ error: 'A file has an impossible size' }, 400);
+    total += size;
+    files.push({ name: uniqueName(cleanDisplayName(f.name), used), size, mime: cleanMime(f.type) });
+  }
+  const limit = user.storage_limit || PLANS.starter.bytes;
+  if ((await storageUsed(env, user.id)).total + total > limit) return json({ error: storageFullMessage(user) }, 413);
+
+  const token = randomToken(24);
+  const expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+  const t = await env.DB.prepare(
+    'INSERT INTO transfers (token, user_id, title, message, total, file_count, expires_at) VALUES (?,?,?,?,?,?,?) RETURNING id'
+  ).bind(token, user.id, String(body.title || '').trim().slice(0, 120) || null, String(body.message || '').trim().slice(0, 2000) || null,
+    total, files.length, expiresAt).first();
+
+  const out = files.map((f, n) => ({ n, name: f.name, size: f.size, key: 'transfers/' + user.id + '/' + t.id + '/' + n }));
+  await env.DB.batch(out.map((f, n) => env.DB.prepare(
+    'INSERT INTO transfer_files (transfer_id, n, name, size, mime, r2_key) VALUES (?,?,?,?,?,?)'
+  ).bind(t.id, n, f.name, f.size, files[n].mime, f.key)));
+
+  return json({ id: t.id, token, expires_at: expiresAt, partSize: PART_SIZE, files: out });
+}
+
+// Called once per file as it lands: checks it arrived at exactly the size
+// announced (so nothing is ever silently cut short) and stores its CRC-32,
+// which the ZIP needs.
+async function transferFileDone(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { id, n, crc } = await request.json();
+  const row = await env.DB.prepare(
+    "SELECT tf.id, tf.size, tf.r2_key FROM transfer_files tf JOIN transfers t ON t.id=tf.transfer_id WHERE t.id=? AND t.user_id=? AND t.status='uploading' AND tf.n=?"
+  ).bind(Number(id), user.id, Number(n)).first();
+  if (!row) return json({ error: 'Not found' }, 404);
+  const head = await env.FILES.head(row.r2_key);
+  if (!head || head.size !== row.size) return json({ error: 'That file did not arrive complete — it will be sent again' }, 409);
+  const c = Number(crc);
+  await env.DB.prepare('UPDATE transfer_files SET done=1, crc=? WHERE id=?')
+    .bind(Number.isInteger(c) && c >= 0 && c <= 0xffffffff ? c : null, row.id).run();
+  return json({ ok: true });
+}
+
+async function finishTransfer(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { id } = await request.json();
+  const t = await env.DB.prepare('SELECT id, token, status, expires_at FROM transfers WHERE id=? AND user_id=?').bind(Number(id), user.id).first();
+  if (!t) return json({ error: 'Not found' }, 404);
+  const left = await env.DB.prepare('SELECT COUNT(*) AS c FROM transfer_files WHERE transfer_id=? AND done=0').bind(t.id).first();
+  if (left.c > 0) return json({ error: left.c + ' file(s) have not finished uploading' }, 409);
+  await env.DB.prepare("UPDATE transfers SET status='ready' WHERE id=?").bind(t.id).run();
+  return json({ ok: true, token: t.token, expires_at: t.expires_at });
+}
+
+async function deleteTransfer(request, env) {
+  const user = await requireAuth(request, env);
+  if (!user) return json({ error: 'Unauthorized' }, 401);
+  const { id } = await request.json();
+  const t = await env.DB.prepare('SELECT id, user_id FROM transfers WHERE id=? AND user_id=?').bind(Number(id), user.id).first();
+  if (!t) return json({ error: 'Not found' }, 404);
+  await removeTransfer(env, t);
+  return json({ ok: true });
+}
+
+async function removeTransfer(env, t) {
+  const prefix = 'transfers/' + t.user_id + '/' + t.id + '/';
+  let cursor;
+  do {
+    const page = await env.FILES.list({ prefix, cursor, limit: 1000 });
+    const keys = page.objects.map(o => o.key);
+    if (keys.length) await env.FILES.delete(keys);
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM transfer_files WHERE transfer_id=?').bind(t.id),
+    env.DB.prepare('DELETE FROM transfers WHERE id=?').bind(t.id),
+  ]);
+}
+
+async function purgeTransfers(env) {
+  // A handful per run keeps each run inside the per-request limits; the
+  // links themselves already stopped working at expiry.
+  const rows = await env.DB.prepare('SELECT id, user_id FROM transfers WHERE expires_at < ? LIMIT 12').bind(nowIso()).all();
+  for (const t of (rows.results || [])) await removeTransfer(env, t).catch(e => console.error('purge transfer', t.id, e));
+}
+
+// GET /t/<token>            the download page
+// GET /t/<token>/<n>        one file
+// GET /t/<token>/all.zip    everything, uncompressed
+async function transferPublic(request, env, ctx, path) {
+  const parts = path.split('/');           // ["", "t", token, which?]
+  const token = parts[2] || '';
+  const which = parts[3];
+  if (!/^[A-Za-z0-9]{16,64}$/.test(token)) return messagePage('This link isn\'t right', 'Check you copied the whole link.', 404);
+  const t = await env.DB.prepare(
+    "SELECT t.id, t.user_id, t.token, t.title, t.message, t.total, t.file_count, t.status, t.expires_at, t.created_at, u.username FROM transfers t JOIN users u ON u.id=t.user_id WHERE t.token=?"
+  ).bind(token).first();
+  if (!t || t.status !== 'ready') return messagePage('This link doesn\'t work', 'The files were deleted, or the link was never finished.', 404);
+  if (t.expires_at <= nowIso()) {
+    ctx.waitUntil(removeTransfer(env, t).catch(() => {}));
+    return messagePage('This link has expired', 'The files have been deleted. Ask the sender to send them again.', 410);
+  }
+  const files = (await env.DB.prepare('SELECT n, name, size, mime, r2_key, crc FROM transfer_files WHERE transfer_id=? ORDER BY n').bind(t.id).all()).results || [];
+
+  if (!which) return htmlResponse(renderTransferPage(t, files));
+
+  // Count a download once, not once per resumed chunk.
+  const range = request.headers.get('Range');
+  const firstByte = request.method === 'GET' && (!range || /^bytes=0-/.test(range));
+  if (which === 'all.zip') {
+    if (firstByte) ctx.waitUntil(env.DB.prepare('UPDATE transfers SET downloads=downloads+1 WHERE id=?').bind(t.id).run());
+    return zipTransfer(request, ctx, env, t, files);
+  }
+  const f = files.find(x => String(x.n) === which);
+  if (!f) return messagePage('File not found', 'It isn\'t part of this transfer.', 404);
+  if (firstByte) ctx.waitUntil(env.DB.prepare('UPDATE transfers SET downloads=downloads+1 WHERE id=?').bind(t.id).run());
+  return streamObject(request, env, f.r2_key, f.name, f.mime, f.size);
+}
+
+/* One uncompressed (STORE) ZIP, streamed straight from R2. The Worker
+ * never looks at file bytes: it writes a header, pipes the object through
+ * untouched, writes the next header. That's only possible because each
+ * file's CRC-32 was worked out in the sender's browser during upload. The
+ * total length is known up front, so the browser shows real progress.
+ * ZIP64 is used automatically past 4 GB. */
+function zipTransfer(request, ctx, env, t, files) {
+  if (files.length > ZIP_MAX_FILES || files.some(f => f.crc == null)) {
+    return messagePage('Download these one at a time', 'This transfer is too large to bundle — go back and use the download buttons.', 409);
+  }
+  const plan = zipPlan(files, t.created_at);
+  const name = (String(t.title || '').replace(/[\u0000-\u001f\u007f\\/<>:"|?*]/g, '').trim().slice(0, 80) || 'linear-transfer') + '.zip';
+  const headers = downloadHeaders(name, 'application/zip');
+  headers.set('Content-Length', String(plan.total));
+  if (request.method === 'HEAD') return new Response(null, { status: 200, headers });
+
+  const { readable, writable } = new FixedLengthStream(plan.total);
+  ctx.waitUntil((async () => {
+    let writer = writable.getWriter();
+    try {
+      for (let i = 0; i < files.length; i++) {
+        await writer.write(plan.locals[i]);
+        const obj = await env.FILES.get(files[i].r2_key);
+        if (!obj) throw new Error('missing ' + files[i].r2_key);
+        writer.releaseLock();
+        await obj.body.pipeTo(writable, { preventClose: true });
+        writer = writable.getWriter();
+      }
+      await writer.write(plan.tail);
+      await writer.close();
+    } catch (err) {
+      console.error('zip failed', t.id, err && err.message);
+      try { await writable.abort(err); } catch (_) {}
+    }
+  })());
+  return new Response(readable, { status: 200, headers });
+}
+
+function zipPlan(files, createdAt) {
+  const d = new Date(String(createdAt || '').replace(' ', 'T') + (String(createdAt || '').endsWith('Z') ? '' : 'Z'));
+  const ok = !isNaN(d.getTime());
+  const dosTime = ok ? (d.getUTCHours() << 11) | (d.getUTCMinutes() << 5) | (d.getUTCSeconds() >> 1) : 0;
+  const dosDate = ok ? (Math.max(0, d.getUTCFullYear() - 1980) << 9) | ((d.getUTCMonth() + 1) << 5) | d.getUTCDate() : (1 << 5) | 1;
+  const MAX32 = 0xffffffff;
+  const locals = [], central = [];
+  let offset = 0;
+
+  for (const f of files) {
+    const name = enc(f.name);
+    const big = f.size >= MAX32, bigOffset = offset >= MAX32, zip64 = big || bigOffset;
+
+    const lextra = big ? 20 : 0;
+    const local = new Uint8Array(30 + name.length + lextra);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, zip64 ? 45 : 20, true);
+    lv.setUint16(6, 0x0800, true);          // UTF-8 names
+    lv.setUint16(8, 0, true);               // STORE: no compression
+    lv.setUint16(10, dosTime, true);
+    lv.setUint16(12, dosDate, true);
+    lv.setUint32(14, f.crc >>> 0, true);
+    lv.setUint32(18, big ? MAX32 : f.size, true);
+    lv.setUint32(22, big ? MAX32 : f.size, true);
+    lv.setUint16(26, name.length, true);
+    lv.setUint16(28, lextra, true);
+    local.set(name, 30);
+    if (big) {
+      const p = 30 + name.length;
+      lv.setUint16(p, 0x0001, true); lv.setUint16(p + 2, 16, true);
+      setU64(lv, p + 4, f.size); setU64(lv, p + 12, f.size);
+    }
+
+    const cfields = (big ? 2 : 0) + (bigOffset ? 1 : 0);
+    const cextra = cfields ? 4 + cfields * 8 : 0;
+    const cen = new Uint8Array(46 + name.length + cextra);
+    const cv = new DataView(cen.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 45, true);
+    cv.setUint16(6, zip64 ? 45 : 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, dosTime, true);
+    cv.setUint16(14, dosDate, true);
+    cv.setUint32(16, f.crc >>> 0, true);
+    cv.setUint32(20, big ? MAX32 : f.size, true);
+    cv.setUint32(24, big ? MAX32 : f.size, true);
+    cv.setUint16(28, name.length, true);
+    cv.setUint16(30, cextra, true);
+    cv.setUint32(42, bigOffset ? MAX32 : offset, true);
+    cen.set(name, 46);
+    if (cextra) {
+      let p = 46 + name.length;
+      cv.setUint16(p, 0x0001, true); cv.setUint16(p + 2, cfields * 8, true); p += 4;
+      if (big) { setU64(cv, p, f.size); setU64(cv, p + 8, f.size); p += 16; }
+      if (bigOffset) setU64(cv, p, offset);
+    }
+    locals.push(local); central.push(cen);
+    offset += local.length + f.size;
+  }
+
+  const cdOffset = offset;
+  const cdSize = central.reduce((s, c) => s + c.length, 0);
+  const count = files.length;
+  const zip64End = cdOffset >= MAX32 || cdSize >= MAX32 || count >= 0xffff;
+  const tail = new Uint8Array(cdSize + (zip64End ? 76 : 0) + 22);
+  let p = 0;
+  for (const c of central) { tail.set(c, p); p += c.length; }
+  const tv = new DataView(tail.buffer);
+  if (zip64End) {
+    const rec = cdOffset + cdSize;
+    tv.setUint32(p, 0x06064b50, true); setU64(tv, p + 4, 44);
+    tv.setUint16(p + 12, 45, true); tv.setUint16(p + 14, 45, true);
+    tv.setUint32(p + 16, 0, true); tv.setUint32(p + 20, 0, true);
+    setU64(tv, p + 24, count); setU64(tv, p + 32, count);
+    setU64(tv, p + 40, cdSize); setU64(tv, p + 48, cdOffset);
+    p += 56;
+    tv.setUint32(p, 0x07064b50, true); tv.setUint32(p + 4, 0, true);
+    setU64(tv, p + 8, rec); tv.setUint32(p + 16, 1, true);
+    p += 20;
+  }
+  tv.setUint32(p, 0x06054b50, true);
+  tv.setUint16(p + 4, 0, true); tv.setUint16(p + 6, 0, true);
+  tv.setUint16(p + 8, zip64End ? 0xffff : count, true);
+  tv.setUint16(p + 10, zip64End ? 0xffff : count, true);
+  tv.setUint32(p + 12, zip64End ? MAX32 : cdSize, true);
+  tv.setUint32(p + 16, zip64End ? MAX32 : cdOffset, true);
+  tv.setUint16(p + 20, 0, true);
+  return { locals, tail, total: offset + tail.length };
+}
+
+function setU64(view, at, n) {
+  view.setUint32(at, n % 0x100000000, true);
+  view.setUint32(at + 4, Math.floor(n / 0x100000000), true);
+}
+
+function uniqueName(name, used) {
+  const dot = name.lastIndexOf('.'), slash = name.lastIndexOf('/');
+  const stem = dot > slash + 1 ? name.slice(0, dot) : name;
+  const ext = dot > slash + 1 ? name.slice(dot) : '';
+  let candidate = name;
+  for (let i = 2; used.has(candidate.toLowerCase()); i++) candidate = stem + ' (' + i + ')' + ext;
+  used.add(candidate.toLowerCase());
+  return candidate;
+}
+
+function randomToken(len) {
+  const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const out = [];
+  const bytes = new Uint8Array(len * 2);
+  while (out.length < len) {
+    crypto.getRandomValues(bytes);
+    for (const b of bytes) if (b < 248 && out.length < len) out.push(abc[b % 62]); // 248 = 4*62: no bias
+  }
+  return out.join('');
+}
+
+const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function fmtBytes(n) {
+  const u = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + ' ' + u[i];
+}
+
+function fileEmoji(name, mime) {
+  const ext = (String(name).split('.').pop() || '').toLowerCase();
+  mime = mime || '';
+  if (mime.startsWith('image/') || /^(heic|heif|raw|cr2|nef|arw|dng)$/.test(ext)) return '🖼️';
+  if (mime.startsWith('video/')) return '🎬';
+  if (mime.startsWith('audio/')) return '🎵';
+  if (ext === 'pdf') return '📕';
+  if (/^(zip|rar|7z|gz|tar)$/.test(ext)) return '🗜️';
+  if (/^(doc|docx|txt|rtf|odt|pages)$/.test(ext)) return '📄';
+  if (/^(xls|xlsx|csv|numbers)$/.test(ext)) return '📊';
+  if (/^(ppt|pptx|key)$/.test(ext)) return '📽️';
+  return '📎';
+}
+
+function renderTransferPage(t, files) {
+  const left = new Date(t.expires_at).getTime() - Date.now();
+  const leftText = left < 3600e3 ? Math.max(1, Math.round(left / 60e3)) + ' minutes'
+    : left < 48 * 3600e3 ? Math.round(left / 3600e3) + ' hours' : Math.round(left / 86400e3) + ' days';
+  const heading = t.title || (files.length === 1 ? files[0].name.split('/').pop() : files.length + ' files for you');
+  const zipOk = files.length > 1 && files.length <= ZIP_MAX_FILES && files.every(f => f.crc != null);
+  const rows = files.map(f =>
+    '<li><span class="fic">' + fileEmoji(f.name, f.mime) + '</span><div class="fmeta"><div class="fname">' + escHtml(f.name) +
+    '</div><div class="fsize">' + fmtBytes(f.size) + '</div></div><a class="dl" href="/t/' + t.token + '/' + f.n +
+    '" data-dl aria-label="Download ' + escHtml(f.name) + '">Download</a></li>').join('');
+  const main = files.length === 1
+    ? '<a class="btn" href="/t/' + t.token + '/0">Download (' + fmtBytes(t.total) + ')</a>'
+    : zipOk
+      ? '<a class="btn" href="/t/' + t.token + '/all.zip">Download all (' + fmtBytes(t.total) + ')</a>'
+      : '<button class="btn" id="each">Download all ' + files.length + ' files</button>';
+
+  return `<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="referrer" content="no-referrer"/>
+<title>${escHtml(heading)} · Linear Tech Files</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>${passwordPageStyles()}
+.btn{display:block;text-align:center;text-decoration:none}
+.from{color:var(--muted);font-size:.85rem;text-align:center;margin-bottom:6px}
+.exp{color:var(--muted);font-size:.85rem;text-align:center;margin-bottom:18px}
+.exp b{color:#f59e0b}
+.note{white-space:pre-wrap;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:.9rem;margin-bottom:16px}
+.list{list-style:none;max-height:360px;overflow:auto;margin-bottom:12px}
+.list li{display:flex;align-items:center;gap:10px;padding:10px 2px;border-top:1px solid var(--border)}
+.list li:first-child{border-top:none}
+.fic{flex:0 0 34px;height:34px;border-radius:8px;background:var(--accent-bg);display:grid;place-items:center;font-size:17px}
+.fmeta{flex:1;min-width:0}
+.fname{font-weight:600;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsize{font-size:.76rem;color:var(--muted)}
+.dl{font-size:.8rem;font-weight:600;color:var(--accent);text-decoration:none;border:1px solid var(--border2);padding:6px 11px;border-radius:8px}
+.dl:hover{border-color:var(--accent)}
+.sum{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:16px}
+.promise{font-size:.78rem;color:var(--muted);margin-top:14px;line-height:1.55;text-align:center}
+</style>
+</head>
+<body>
+${passwordHeader('Files')}
+<main>
+<div class="card">
+  <h2>${escHtml(heading)}</h2>
+  <p class="from">Sent by ${escHtml(t.username)}</p>
+  <p class="exp">Available for <b>${leftText}</b> — the link then expires and the files are deleted.</p>
+  ${t.message ? '<div class="note">' + escHtml(t.message) + '</div>' : ''}
+  <ul class="list">${rows}</ul>
+  <div class="sum"><span>${files.length} ${files.length === 1 ? 'file' : 'files'}</span><span>${fmtBytes(t.total)}</span></div>
+  ${main}
+  <p class="promise">🔒 These are the original files, byte for byte — nothing was resized or compressed.</p>
+</div>
+</main>
+<div class="foot">Linear Tech Files · <a href="/">Send your own files</a></div>
+<script>
+${passwordThemeScript()}
+(function(){
+  var b=document.getElementById('each'); if(!b) return;
+  b.onclick=function(){
+    var links=[].slice.call(document.querySelectorAll('[data-dl]')), i=0;
+    b.disabled=true;
+    (function next(){
+      if(i>=links.length){ b.textContent='All downloads started'; return; }
+      b.textContent='Starting download '+(i+1)+' of '+links.length+'…';
+      var a=document.createElement('a'); a.href=links[i++].href; a.download=''; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(next, 900);
+    })();
+  };
+})();
+</script>
+</body>
+</html>`;
+}
+
+// A small branded page for links that don't work (expired, deleted, bad).
+function messagePage(title, text, status) {
+  return new Response(`<!DOCTYPE html><html lang="en" data-theme="dark"><head><meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escHtml(title)} · Linear Tech Files</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>${passwordPageStyles()}</style></head><body>${passwordHeader('Files')}
+<main><div class="card"><div class="lock-ring" style="font-size:28px">⌛</div><h2>${escHtml(title)}</h2><p class="desc" style="margin-bottom:0">${escHtml(text)}</p></div></main>
+<div class="foot">Linear Tech Files · <a href="/">Send your own files</a></div>
+<script>${passwordThemeScript()}</script></body></html>`,
+    { status, headers: { 'Content-Type': 'text/html;charset=UTF-8', 'Cache-Control': 'no-store' } });
+}
+
+/* ================================================================
+ * portal.js — the chunked uploader (used by every tab) + Transfer tab
+ * ================================================================
+ * Kept as a raw string rather than a function's .toString(): bundlers
+ * can inject helpers into function bodies that don't exist in the browser.
+ * So: no backticks and no dollar-brace inside it.
+ * ================================================================ */
+function portalScript() {
+  return String.raw`(function () {
+  "use strict";
+  var CONCURRENCY = 4;   // requests in flight at once (also caps memory: 4 x 16 MB)
+  var MAX_TRIES = 6;     // per request, with backoff, before giving up
+
+  function sess() { try { return localStorage.getItem("sess"); } catch (e) { return null; } }
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  function fmt(n) {
+    var u = ["bytes", "KB", "MB", "GB", "TB"], i = 0;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return (i ? n.toFixed(n < 10 ? 1 : 0) : n) + " " + u[i];
+  }
+  function fmtLeft(ms) {
+    if (ms <= 0) return "now";
+    var m = Math.round(ms / 60000); if (m < 60) return m + (m === 1 ? " minute" : " minutes");
+    var h = Math.round(m / 60); if (h < 48) return h + (h === 1 ? " hour" : " hours");
+    return Math.round(h / 24) + " days";
+  }
+
+  // CRC-32 (the ZIP one), fed in file order while uploading, so the server
+  // can build "Download all" without re-reading the bytes.
+  var TABLE = (function () {
+    var t = new Int32Array(256);
+    for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c; }
+    return t;
+  })();
+  function crcUpdate(crc, b) {
+    var c = crc ^ -1;
+    for (var i = 0; i < b.length; i++) c = TABLE[(c ^ b[i]) & 0xff] ^ (c >>> 8);
+    return c ^ -1;
+  }
+
+  function post(path, body) {
+    return fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + sess() },
+      body: JSON.stringify(body || {})
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { var e = new Error(d.error || ("Request failed (" + r.status + ")")); e.status = r.status; throw e; }
+        return d;
+      });
+    });
+  }
+  function get(path) {
+    return fetch(path, { headers: { "Authorization": "Bearer " + sess() } }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || "Request failed"); return d; });
+    });
+  }
+
+  // At most CONCURRENCY requests in flight, shared by every upload on the page.
+  var pool = (function (n) {
+    var free = n, waiting = [];
+    return {
+      acquire: function () { if (free > 0) { free--; return Promise.resolve(); } return new Promise(function (r) { waiting.push(r); }); },
+      release: function () { var next = waiting.shift(); if (next) next(); else free++; }
+    };
+  })(CONCURRENCY);
+
+  // XHR (not fetch) because only XHR reports upload progress. Retries
+  // network errors, 5xx, 408 and 429 with backoff.
+  async function send(method, url, body, headers, onBytes) {
+    for (var attempt = 1; ; attempt++) {
+      var sent = 0;
+      try {
+        return await new Promise(function (resolve, reject) {
+          var x = new XMLHttpRequest();
+          x.open(method, url);
+          x.setRequestHeader("Authorization", "Bearer " + sess());
+          for (var k in headers) x.setRequestHeader(k, headers[k]);
+          x.upload.onprogress = function (e) { onBytes(e.loaded - sent); sent = e.loaded; };
+          x.onload = function () {
+            var d = null; try { d = JSON.parse(x.responseText); } catch (e) {}
+            if (x.status >= 200 && x.status < 300) { onBytes(body.byteLength - sent); sent = body.byteLength; resolve(d); }
+            else { var e = new Error((d && d.error) || ("Upload failed (" + x.status + ")")); e.status = x.status; reject(e); }
+          };
+          x.onerror = function () { reject(new Error("Connection lost")); };
+          x.send(body);
+        });
+      } catch (e) {
+        onBytes(-sent);
+        var retry = !e.status || e.status >= 500 || e.status === 408 || e.status === 429;
+        if (!retry || attempt >= MAX_TRIES) throw e;
+        await new Promise(function (r) { setTimeout(r, Math.min(16000, 1000 * Math.pow(2, attempt - 1))); });
+      }
+    }
+  }
+
+  // Put one File at a server-minted key. Small files: one PUT. Big files:
+  // 16 MB parts, read in order (so the CRC runs start to finish) and sent
+  // several at a time. Returns the CRC-32.
+  async function uploadKey(file, key, upload, partSize, onBytes) {
+    var q = "key=" + encodeURIComponent(key);
+    if (!upload) {
+      await pool.acquire();
+      try {
+        var whole = new Uint8Array(await file.arrayBuffer());
+        var c0 = crcUpdate(0, whole);
+        await send("PUT", "/api/upload/put?" + q, whole, { "Content-Type": file.type || "application/octet-stream" }, onBytes);
+        return c0 >>> 0;
+      } finally { pool.release(); }
+    }
+    var count = Math.ceil(file.size / partSize), etags = [], inflight = [], failed = null, crc = 0;
+    for (var p = 0; p < count && !failed; p++) {
+      await pool.acquire();
+      if (failed) { pool.release(); break; }
+      var buf;
+      try { buf = new Uint8Array(await file.slice(p * partSize, Math.min(file.size, (p + 1) * partSize)).arrayBuffer()); }
+      catch (e) { pool.release(); failed = new Error("Couldn't read " + file.name + " — was it moved?"); break; }
+      crc = crcUpdate(crc, buf);
+      (function (partNo, data) {
+        inflight.push(send("PUT", "/api/upload/part?" + q + "&upload=" + encodeURIComponent(upload) + "&part=" + partNo, data, {}, onBytes)
+          .then(function (r) { etags.push({ partNumber: partNo, etag: r.etag }); })
+          .catch(function (e) { failed = failed || e; })
+          .then(function () { pool.release(); }));
+      })(p + 1, buf);
+    }
+    await Promise.all(inflight);
+    if (failed) throw failed;
+    await post("/api/upload/complete", { key: key, upload: upload, parts: etags });
+    return crc >>> 0;
+  }
+
+  // Speed / time-left readout for a batch of bytes.
+  function tracker(total, cb) {
+    var done = 0, samples = [], last = 0;
+    function paint(force) {
+      var now = Date.now();
+      if (!force && now - last < 250) return;
+      last = now;
+      samples.push([now, done]);
+      while (samples.length > 1 && now - samples[0][0] > 8000) samples.shift();
+      var rate = now > samples[0][0] ? (done - samples[0][1]) / (now - samples[0][0]) * 1000 : 0;
+      var pct = total ? Math.min(100, Math.floor(done / total * 100)) : 100;
+      var text = fmt(Math.min(done, total)) + " of " + fmt(total) +
+        (rate > 0 && done < total ? " · " + fmt(rate) + "/s · about " + fmtLeft((total - done) / rate * 1000) + " left" : "");
+      cb({ pct: pct, done: done, total: total, text: text });
+    }
+    return { add: function (d) { done += d; paint(false); }, finish: function () { done = total; paint(true); } };
+  }
+
+  // My Files / Secure Send: upload one file of any size.
+  async function uploadToKind(file, kind, prog) {
+    var t = typeof prog === "function" ? tracker(file.size, prog) : prog;
+    var start = await post("/api/upload/start", { name: file.name, size: file.size, type: file.type, kind: kind });
+    await uploadKey(file, start.key, start.upload, start.partSize, function (d) { if (t) t.add(d); });
+    return { key: start.key };
+  }
+
+  // Run fn(file, tracker) over many files, a few at a time, with one progress bar.
+  async function uploadMany(files, fn, onProgress) {
+    var total = files.reduce(function (s, f) { return s + f.size; }, 0);
+    var t = tracker(total, onProgress), i = 0;
+    async function worker() { while (i < files.length) { var f = files[i++]; await fn(f, t); } }
+    var workers = []; for (var w = 0; w < Math.min(3, files.length); w++) workers.push(worker());
+    await Promise.all(workers);
+    t.finish();
+  }
+
+  /* ------------------------------------------------------------------
+   * Transfer tab
+   * ---------------------------------------------------------------- */
+  var picked = [];     // { file, path }
+  var job = null;      // the transfer being uploaded
+
+  function add(list) {
+    var seen = {};
+    picked.forEach(function (p) { seen[p.path + "|" + p.file.size] = 1; });
+    list.forEach(function (p) {
+      if (/(^|\/)(\.DS_Store|Thumbs\.db|desktop\.ini)$/i.test(p.path)) return;
+      var k = p.path + "|" + p.file.size;
+      if (!seen[k]) { seen[k] = 1; picked.push(p); }
+    });
+    renderPicked();
+  }
+
+  function renderPicked() {
+    var ul = $("tx-list"); ul.textContent = "";
+    picked.forEach(function (p, i) {
+      var li = el("li");
+      li.appendChild(el("span", "up-name", p.path));
+      li.appendChild(el("span", "up-size", fmt(p.file.size)));
+      var x = el("button", "up-x", "×"); x.title = "Remove"; x.type = "button";
+      x.onclick = function () { picked.splice(i, 1); renderPicked(); };
+      li.appendChild(x);
+      ul.appendChild(li);
+    });
+    var total = picked.reduce(function (s, p) { return s + p.file.size; }, 0);
+    $("tx-sum").textContent = picked.length ? picked.length + (picked.length === 1 ? " file · " : " files · ") + fmt(total) : "";
+    $("tx-send").disabled = !picked.length || picked.length > 500;
+  }
+
+  // Read a dropped folder all the way down, keeping the folder names.
+  async function walk(entry, prefix, out) {
+    if (entry.isFile) {
+      var f = await new Promise(function (res, rej) { entry.file(res, rej); });
+      out.push({ file: f, path: prefix + f.name });
+    } else if (entry.isDirectory) {
+      var reader = entry.createReader(), batch;
+      do {
+        batch = await new Promise(function (res, rej) { reader.readEntries(res, rej); });
+        for (var i = 0; i < batch.length; i++) await walk(batch[i], prefix + entry.name + "/", out);
+      } while (batch.length);
+    }
+  }
+
+  function showStep(step) {
+    $("tx-pick").style.display = step === "pick" ? "block" : "none";
+    $("tx-progress").style.display = step === "progress" ? "block" : "none";
+    $("tx-done").style.display = step === "done" ? "block" : "none";
+  }
+
+  function setupTransfer() {
+    if (!$("tx-drop")) return;
+    $("tx-add-files").onclick = function (e) { e.stopPropagation(); $("tx-file-input").click(); };
+    $("tx-add-folder").onclick = function (e) { e.stopPropagation(); $("tx-folder-input").click(); };
+    $("tx-file-input").onchange = function (e) { add([].map.call(e.target.files, function (f) { return { file: f, path: f.name }; })); e.target.value = ""; };
+    $("tx-folder-input").onchange = function (e) { add([].map.call(e.target.files, function (f) { return { file: f, path: f.webkitRelativePath || f.name }; })); e.target.value = ""; };
+    var zone = $("tx-drop");
+    zone.addEventListener("dragover", function (e) { e.preventDefault(); zone.classList.add("over"); });
+    zone.addEventListener("dragleave", function () { zone.classList.remove("over"); });
+    zone.addEventListener("drop", async function (e) {
+      e.preventDefault(); zone.classList.remove("over");
+      var entries = [].map.call(e.dataTransfer.items || [], function (i) { return i.webkitGetAsEntry && i.webkitGetAsEntry(); }).filter(Boolean);
+      if (entries.length) { var out = []; for (var i = 0; i < entries.length; i++) await walk(entries[i], "", out); add(out); }
+      else add([].map.call(e.dataTransfer.files, function (f) { return { file: f, path: f.name }; }));
+    });
+    $("tx-send").onclick = start;
+    $("tx-retry").onclick = run;
+    $("tx-cancel").onclick = function () {
+      if (job) post("/api/transfer/delete", { id: job.id }).catch(function () {});
+      job = null; showStep("pick");
+    };
+    $("tx-again").onclick = function () { picked = []; renderPicked(); $("tx-title").value = ""; $("tx-message").value = ""; showStep("pick"); };
+    $("tx-copy").onclick = function () { copy($("tx-url").textContent); };
+  }
+
+  async function start() {
+    $("tx-send").disabled = true;
+    try {
+      var r = await post("/api/transfer/create", {
+        title: $("tx-title").value, message: $("tx-message").value, hours: Number($("tx-hours").value),
+        files: picked.map(function (p) { return { name: p.path, size: p.file.size, type: p.file.type }; })
+      });
+      job = { id: r.id, token: r.token, expires: r.expires_at, partSize: r.partSize, files: r.files.map(function (f, i) {
+        return { n: f.n, key: f.key, name: f.name, size: f.size, file: picked[i].file, done: false };
+      }) };
+      showStep("progress");
+      run();
+    } catch (e) {
+      if (typeof showAlert === "function") showAlert(e.message);
+      $("tx-send").disabled = false;
+    }
+  }
+
+  var guard = function (e) { e.preventDefault(); e.returnValue = ""; };
+
+  async function run() {
+    $("tx-err").style.display = "none"; $("tx-retry-row").style.display = "none";
+    window.addEventListener("beforeunload", guard);
+    var wake = null; try { wake = await navigator.wakeLock.request("screen"); } catch (e) {}
+    var todo = job.files.filter(function (f) { return !f.done; });
+    var total = job.files.reduce(function (s, f) { return s + f.size; }, 0);
+    var t = tracker(total, function (p) { $("tx-bar").style.width = p.pct + "%"; $("tx-bytes").textContent = p.text; });
+    t.add(job.files.reduce(function (s, f) { return s + (f.done ? f.size : 0); }, 0));
+    var failed = null, i = 0;
+    async function worker() {
+      while (i < todo.length && !failed) {
+        var f = todo[i++], sent = 0;
+        try {
+          var upload = null;
+          if (f.size > job.partSize) upload = (await post("/api/upload/multipart", { key: f.key })).upload;
+          var crc = await uploadKey(f.file, f.key, upload, job.partSize, function (d) { sent += d; t.add(d); });
+          await post("/api/transfer/file-done", { id: job.id, n: f.n, crc: crc });
+          f.done = true;
+        } catch (e) { t.add(-sent); failed = failed || e; }
+      }
+    }
+    var ws = []; for (var w = 0; w < Math.min(3, todo.length); w++) ws.push(worker());
+    await Promise.all(ws);
+    try {
+      if (failed) throw failed;
+      var fin = await post("/api/transfer/finish", { id: job.id });
+      t.finish();
+      var link = location.origin + "/t/" + fin.token;
+      $("tx-url").textContent = link;
+      $("tx-done-info").textContent = job.files.length + (job.files.length === 1 ? " file, " : " files, ") + fmt(total) + " — at full original quality.";
+      $("tx-exp").textContent = "Expires " + new Date(fin.expires_at).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + ". Anyone with the link can download until then.";
+      showStep("done");
+      job = null; picked = []; renderPicked();
+      loadTransfers();
+      if (typeof loadStorage === "function") { var me = await fetch("/api/me", { headers: { "Authorization": "Bearer " + sess() } }); if (me.ok) loadStorage(await me.json()); }
+    } catch (e) {
+      $("tx-err").textContent = e.message + " — files already sent are kept; Try again picks up the rest.";
+      $("tx-err").style.display = "block"; $("tx-retry-row").style.display = "flex";
+    } finally {
+      window.removeEventListener("beforeunload", guard);
+      try { if (wake) wake.release(); } catch (e) {}
+    }
+  }
+
+  function copy(text) {
+    var ok = function () { if (typeof showAlert === "function") showAlert("Link copied!", "ok"); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(ok, function () { prompt("Copy this link:", text); });
+    else prompt("Copy this link:", text);
+  }
+
+  async function loadTransfers() {
+    var box = $("tx-history"); if (!box) return;
+    var d;
+    try { d = await get("/api/transfers"); } catch (e) { return; }
+    var list = d.transfers || [];
+    box.textContent = "";
+    if (!list.length) { box.appendChild(el("p", null, "Nothing sent yet.")).style.cssText = "color:var(--muted);font-size:.88rem"; return; }
+    list.forEach(function (t) {
+      var row = el("div", "tx-item");
+      var main = el("div", "tx-main");
+      var title = el("div", "tx-title", t.title || (t.file_count + (t.file_count === 1 ? " file" : " files")));
+      title.appendChild(el("span", "pill", t.downloads + (t.downloads === 1 ? " download" : " downloads")));
+      main.appendChild(title);
+      main.appendChild(el("div", "tx-meta", t.file_count + (t.file_count === 1 ? " file · " : " files · ") + fmt(t.total) + " · expires in " + fmtLeft(new Date(t.expires_at) - Date.now())));
+      var c = el("button", "btn btn-sm btn-outline", "Copy link");
+      c.onclick = function () { copy(location.origin + "/t/" + t.token); };
+      var x = el("button", "btn btn-sm btn-danger", "Delete");
+      x.onclick = async function () {
+        if (!confirm("Delete this transfer now? The link stops working straight away.")) return;
+        try { await post("/api/transfer/delete", { id: t.id }); loadTransfers(); } catch (e) { if (typeof showAlert === "function") showAlert(e.message); }
+      };
+      row.appendChild(main); row.appendChild(c); row.appendChild(x);
+      box.appendChild(row);
+    });
+  }
+
+  window.LT = { post: post, uploadToKind: uploadToKind, uploadMany: uploadMany, loadTransfers: loadTransfers };
+  setupTransfer();
+})();`;
+}
