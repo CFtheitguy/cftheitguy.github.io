@@ -275,6 +275,59 @@
       run: exportRun
     },
     {
+      id: "impose",
+      ic: "📖",
+      nm: "Impose",
+      ds: "Booklets, 2-up, cut & stack",
+      accept: "application/pdf",
+      multiple: false,
+      grid: false,
+      dropBig: "Choose a PDF, or drop one here",
+      dropSmall: "Lay its pages out on sheets for printing — booklets, N-up, cards",
+      label: "File to impose",
+      go: "Impose and save",
+      hint: "",
+      opts: [
+        { kind: "select", id: "layout", label: "Layout", options: [
+          ["booklet", "Booklet (fold in half)"],
+          ["nup", "N-up (several pages per sheet)"],
+          ["cutstack", "Cut & stack"],
+          ["repeat", "Step & repeat (copies of each page)"]
+        ] },
+        { kind: "select", id: "per", label: "Pages per sheet", only: ["nup", "cutstack", "repeat"], options: [
+          ["2", "2"], ["4", "4"], ["6", "6"], ["8", "8"], ["9", "9"], ["10", "10"], ["16", "16"]
+        ], value: "2" },
+        { kind: "select", id: "sheet", label: "Sheet size", options: [
+          ["same", "Same as the pages (shrink to fit)"],
+          ["actual", "Big enough to keep pages full size"],
+          ["letter", "US Letter"],
+          ["legal", "US Legal"],
+          ["tabloid", "Tabloid / Ledger (11×17)"],
+          ["a4", "A4"],
+          ["a3", "A3"]
+        ] },
+        { kind: "select", id: "dir", label: "Page order", options: [
+          ["ltr", "Left to right"],
+          ["rtl", "Right to left (Hebrew)"]
+        ] },
+        { kind: "select", id: "margin", label: "Sheet margin", options: [
+          ["0", "None"], ["18", "Small (¼ in)"], ["36", "Roomy (½ in)"]
+        ], value: "18" },
+        { kind: "select", id: "gap", label: "Space between pages", only: ["nup", "cutstack", "repeat"], options: [
+          ["0", "None"], ["9", "Small (⅛ in)"], ["18", "Roomy (¼ in)"]
+        ] },
+        { kind: "select", id: "marks", label: "Crop marks", options: [
+          ["no", "No"], ["yes", "Yes"]
+        ] },
+        { kind: "select", id: "flip", label: "Double-sided printer", only: ["booklet"], options: [
+          ["short", "Flips on short edge"],
+          ["long", "Flips on long edge"]
+        ] }
+      ],
+      ready: function () { return state.files.length === 1; },
+      run: imposeRun
+    },
+    {
       id: "stamp",
       ic: "💧",
       nm: "Watermark",
@@ -382,11 +435,23 @@
         if (o.value) el.value = o.value;
       }
       el.id = "opt-" + o.id;
+      if (o.only) wrap.dataset.only = o.only.join(" ");
       el.addEventListener("input", function () { onOptInput(o.id); });
       el.addEventListener("change", function () { onOptInput(o.id); });
       wrap.appendChild(el);
       optsEl.appendChild(wrap);
     });
+    paintOptVisibility();
+  }
+
+  /* Some options only mean something for one layout (the duplex flip only
+     matters to a booklet), so they are hidden rather than left to confuse. */
+  function paintOptVisibility() {
+    var layout = optValue("layout");
+    Array.prototype.forEach.call(optsEl.querySelectorAll("[data-only]"), function (w) {
+      w.style.display = w.dataset.only.split(" ").indexOf(layout) === -1 ? "none" : "";
+    });
+    if (currentTool() && currentTool().id === "impose") hintEl.textContent = imposeHint();
   }
 
   function optValue(id) {
@@ -400,6 +465,7 @@
       state.selected = new Set(idx);
       paintSelection();
     }
+    if (id === "layout") paintOptVisibility();
     refreshGo();
   }
 
@@ -1001,6 +1067,200 @@
         show("ok", "Saved " + idx.length + (idx.length === 1 ? " image." : " images."));
       });
     });
+  }
+
+  /* ---- impose ----------------------------------------------------------
+     Lays the original pages out on bigger (or the same size) sheets the way a
+     print shop would. Each source page is embedded as a form XObject, so text
+     and vector art stay sharp — nothing is rasterised. */
+  var SHEETS = {
+    letter: [612, 792], legal: [612, 1008], tabloid: [792, 1224],
+    a4: [595.28, 841.89], a3: [841.89, 1190.55]
+  };
+
+  function imposeHint() {
+    var layout = optValue("layout");
+    if (layout === "booklet") return "Print double-sided, fold the stack in half and staple the spine.";
+    if (layout === "cutstack") return "Cut the printed stack into piles and put the piles on top of each other — the pages come out in order.";
+    if (layout === "repeat") return "Each page fills its own sheet with copies — good for cards, labels and tickets.";
+    return "Pages are shrunk to fit, never enlarged.";
+  }
+
+  /* Every way to split n cells into columns × rows, on both orientations of
+     the sheet; the one that lets the pages print biggest wins. */
+  function chooseGrid(n, pw, ph, sheet, margin, gap, forceCols) {
+    var best = null;
+    var shapes = sheet ? [[sheet[0], sheet[1]], [sheet[1], sheet[0]]] : [null];
+    for (var c = 1; c <= n; c++) {
+      if (n % c) continue;
+      if (forceCols && c !== forceCols) continue;
+      var r = n / c;
+      shapes.forEach(function (sh) {
+        var W, H, s;
+        if (sh) {
+          W = sh[0]; H = sh[1];
+          s = Math.min((W - 2 * margin - (c - 1) * gap) / (c * pw),
+                       (H - 2 * margin - (r - 1) * gap) / (r * ph));
+        } else {
+          /* Full-size sheet: pick the grid whose sheet is closest to square. */
+          W = c * pw + (c - 1) * gap + 2 * margin;
+          H = r * ph + (r - 1) * gap + 2 * margin;
+          s = 1 - Math.abs(Math.log(W / H)) / 100;
+        }
+        if (s > 0 && (!best || s > best.score + 1e-9)) {
+          best = { cols: c, rows: r, W: W, H: H, score: s, scale: sh ? Math.min(1, s) : 1 };
+        }
+      });
+    }
+    return best;
+  }
+
+  /* Draw one embedded page, fitted and centred in a cell, honouring the
+     page's own /Rotate (an embedded page is always the unrotated original). */
+  function placePage(sheet, emb, rot, cell) {
+    rot = ((rot % 360) + 360) % 360;
+    var quarter = rot === 90 || rot === 270;
+    var dw = quarter ? emb.height : emb.width;
+    var dh = quarter ? emb.width : emb.height;
+    var s = Math.min(cell.w / dw, cell.h / dh);
+    var x0 = cell.x + (cell.w - dw * s) / 2;
+    var y0 = cell.y + (cell.h - dh * s) / 2;
+    var w = emb.width * s, h = emb.height * s;
+    var x = x0, y = y0;
+    if (rot === 90) y = y0 + w;
+    else if (rot === 180) { x = x0 + w; y = y0 + h; }
+    else if (rot === 270) x = x0 + h;
+    sheet.drawPage(emb, { x: x, y: y, width: w, height: h, rotate: PDFLib.degrees(-rot) });
+  }
+
+  function drawCropMarks(sheet, grid, margin) {
+    var len = Math.min(14, margin - 4);
+    if (len < 4) return;
+    var off = 3, ink = PDFLib.rgb(0, 0, 0), th = 0.5;
+    var xs = [], ys = [];
+    grid.cells.forEach(function (c) {
+      [c.x, c.x + c.w].forEach(function (v) { if (xs.indexOf(v) === -1) xs.push(v); });
+      [c.y, c.y + c.h].forEach(function (v) { if (ys.indexOf(v) === -1) ys.push(v); });
+    });
+    var left = Math.min.apply(null, xs), right = Math.max.apply(null, xs);
+    var bottom = Math.min.apply(null, ys), top = Math.max.apply(null, ys);
+    xs.forEach(function (x) {
+      sheet.drawLine({ start: { x: x, y: top + off }, end: { x: x, y: top + off + len }, thickness: th, color: ink });
+      sheet.drawLine({ start: { x: x, y: bottom - off }, end: { x: x, y: bottom - off - len }, thickness: th, color: ink });
+    });
+    ys.forEach(function (y) {
+      sheet.drawLine({ start: { x: left - off, y: y }, end: { x: left - off - len, y: y }, thickness: th, color: ink });
+      sheet.drawLine({ start: { x: right + off, y: y }, end: { x: right + off + len, y: y }, thickness: th, color: ink });
+    });
+  }
+
+  function imposeRun() {
+    var f = state.files[0];
+    var layout = optValue("layout");
+    var rtl = optValue("dir") === "rtl";
+    var margin = parseInt(optValue("margin"), 10) || 0;
+    var gap = layout === "booklet" ? 0 : (parseInt(optValue("gap"), 10) || 0);
+    var marks = optValue("marks") === "yes";
+    var flipLong = optValue("flip") === "long";
+    var sheetOpt = optValue("sheet");
+    var per = layout === "booklet" ? 2 : parseInt(optValue("per"), 10);
+    show("busy", "Imposing…");
+
+    return readBuffer(f)
+      .then(function (buf) { return loadPdf(buf, f.name); })
+      .then(function (src) {
+        var srcPages = src.getPages();
+        var N = srcPages.length;
+        var rots = srcPages.map(function (p) { return p.getRotation().angle; });
+        var boxes = srcPages.map(function (p) {
+          var b = p.getCropBox();
+          return { left: b.x, bottom: b.y, right: b.x + b.width, top: b.y + b.height };
+        });
+
+        /* The first page sets the cell size — it is the page the reader sees
+           as "the page size"; odd pages are fitted into it. */
+        var q0 = rots[0] === 90 || rots[0] === 270;
+        var b0 = srcPages[0].getCropBox();
+        var pw = q0 ? b0.height : b0.width, ph = q0 ? b0.width : b0.height;
+
+        var sheetSize = sheetOpt === "same" ? [pw, ph] : (sheetOpt === "actual" ? null : SHEETS[sheetOpt]);
+        var g = chooseGrid(per, pw, ph, sheetSize, margin, gap, layout === "booklet" ? 2 : 0);
+        if (!g) throw new Error("Those pages don't fit on that sheet with that margin — try a bigger sheet or a smaller margin.");
+
+        var cw = pw * g.scale, ch = ph * g.scale;
+        var gridW = g.cols * cw + (g.cols - 1) * gap, gridH = g.rows * ch + (g.rows - 1) * gap;
+        var ox = (g.W - gridW) / 2, oy = (g.H - gridH) / 2;
+        /* Cells in reading order: top row first, left→right (or right→left). */
+        g.cells = [];
+        for (var r = 0; r < g.rows; r++) {
+          for (var c = 0; c < g.cols; c++) {
+            var col = rtl ? g.cols - 1 - c : c;
+            g.cells.push({
+              x: ox + col * (cw + gap),
+              y: oy + (g.rows - 1 - r) * (ch + gap),
+              w: cw, h: ch
+            });
+          }
+        }
+
+        /* Build the running order: one array of page indices (or -1 for a
+           blank) per sheet side. */
+        var sides = [], i, s;
+        if (layout === "booklet") {
+          var total = Math.ceil(N / 4) * 4;
+          for (i = 0; i < total / 4; i++) {
+            sides.push({ pages: [total - 1 - 2 * i, 2 * i], back: false });
+            sides.push({ pages: [2 * i + 1, total - 2 - 2 * i], back: true });
+          }
+          sides.forEach(function (sd) {
+            sd.pages = sd.pages.map(function (p) { return p < N ? p : -1; });
+          });
+        } else if (layout === "nup") {
+          for (i = 0; i < N; i += per) {
+            var row = [];
+            for (s = 0; s < per; s++) row.push(i + s < N ? i + s : -1);
+            sides.push({ pages: row });
+          }
+        } else if (layout === "cutstack") {
+          var nSheets = Math.ceil(N / per);
+          for (s = 0; s < nSheets; s++) {
+            var cs = [];
+            for (i = 0; i < per; i++) { var k = i * nSheets + s; cs.push(k < N ? k : -1); }
+            sides.push({ pages: cs });
+          }
+        } else {
+          for (i = 0; i < N; i++) {
+            var rep = [];
+            for (s = 0; s < per; s++) rep.push(i);
+            sides.push({ pages: rep });
+          }
+        }
+
+        return PDFLib.PDFDocument.create().then(function (out) {
+          return out.embedPages(srcPages, boxes).then(function (embs) {
+            sides.forEach(function (sd) {
+              var sheet = out.addPage([g.W, g.H]);
+              /* A long-edge duplexer turns the back of a landscape sheet upside
+                 down, so the backs are pre-rotated to come out the right way. */
+              var turn = sd.back && flipLong;
+              sd.pages.forEach(function (p, n) {
+                if (p < 0) return;
+                var cell = g.cells[n];
+                if (turn) cell = { x: g.W - cell.x - cell.w, y: g.H - cell.y - cell.h, w: cell.w, h: cell.h };
+                placePage(sheet, embs[p], rots[p] + (turn ? 180 : 0), cell);
+              });
+              if (marks) drawCropMarks(sheet, g, Math.min(ox, oy));
+            });
+            return out.save();
+          }).then(function (bytes) {
+            download(new Blob([bytes], { type: "application/pdf" }), baseName(f.name) + "-" + layout + ".pdf");
+            var note = marks && Math.min(ox, oy) < 8 ? " Crop marks were left off — add a sheet margin to make room for them." : "";
+            show("ok", (layout === "booklet"
+              ? "Saved your booklet — " + sides.length / 2 + (sides.length === 2 ? " sheet" : " sheets") + " of paper, printed on both sides."
+              : "Saved " + sides.length + (sides.length === 1 ? " sheet." : " sheets.")) + note);
+          });
+        });
+      });
   }
 
   function stampRun() {
