@@ -1,0 +1,16 @@
+{
+  "name": "design-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cloudflare Worker for Linear Design (design-api.linearit.co): free stock photo search via Pexels. Holds the Pexels key as an encrypted secret so it never reaches the browser.",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail",
+    "test": "node test/run.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.138.0"
+  }
+}

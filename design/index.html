@@ -16,8 +16,11 @@
 <!-- Locked to this origin: no directive names a remote host, so nothing on this
      page can send a design or a photo anywhere. Fonts are the system's own.
      'wasm-unsafe-eval' lets the background remover compile its WebAssembly
-     runtime, which is served from /design/vendor like everything else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' blob: data:; font-src 'self' data: blob:; manifest-src 'self'; worker-src 'self';"/>
+     runtime, which is served from /design/vendor like everything else.
+     The two remote hosts are opt-in features: images.pexels.com for stock-photo
+     thumbnails, design-api.linearit.co for photo search (our own Worker,
+     see /design-worker). Uploads never go to either. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob: https://images.pexels.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' blob: data: https://design-api.linearit.co; font-src 'self' data: blob:; manifest-src 'self'; worker-src 'self';"/>
 <meta name="referrer" content="no-referrer"/>
 <link rel="stylesheet" href="/design/vendor/fonts/fonts.css"/>
 <style>
@@ -57,6 +60,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .topbtn:hover{border-color:var(--line2)}
 .topbtn.primary{background:var(--accent);border-color:var(--accent);color:#04121a;font-weight:700}
 .topbtn.primary:hover{filter:brightness(1.08)}
+.topbtn.on{border-color:var(--accent);background:var(--accent-bg)}
 .menu{position:fixed;z-index:70;min-width:230px;background:var(--panel);border:1px solid var(--line2);border-radius:9px;padding:5px;box-shadow:0 12px 36px rgba(0,0,0,.5);max-height:calc(100vh - 60px);overflow:auto}
 .menu button{display:flex;width:100%;justify-content:space-between;gap:24px;background:none;border:0;text-align:left;padding:7px 10px;border-radius:6px}
 .menu button:hover:not(:disabled){background:var(--accent-bg)}
@@ -131,6 +135,12 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .upgrid button{background:var(--well);border:0;border-radius:6px;padding:0;aspect-ratio:1;overflow:hidden;position:relative}
 .upgrid img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
 .upgrid button:hover{outline:2px solid var(--accent)}
+.pgrid{columns:2;column-gap:6px}
+.pgrid button{display:block;width:100%;margin:0 0 6px;border:0;padding:0;border-radius:6px;overflow:hidden;position:relative;background:var(--well);break-inside:avoid}
+.pgrid img{display:block;width:100%;height:auto}
+.pgrid button span{position:absolute;left:0;right:0;bottom:0;padding:10px 6px 4px;font-size:10.5px;color:#fff;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.65));opacity:0;transition:opacity .15s}
+.pgrid button:hover span{opacity:1}
+.pgrid button:hover{outline:2px solid var(--accent)}
 .layer{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:default}
 .layer:hover{background:var(--panel2)}
 .layer.on{background:var(--accent-bg)}
@@ -261,7 +271,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
   .rail{width:auto;height:60px;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:0;overflow-x:auto}
   .rail button{flex:1 0 62px;padding:6px 2px}
   .rail button.on{box-shadow:inset 0 3px 0 var(--accent)}
-  .drawer{left:0;right:0;top:auto;bottom:0;width:auto;height:58%;border-radius:14px 14px 0 0;border-right:0}
+  .drawer{left:0;right:0;top:auto;bottom:60px;width:auto;height:calc(58% - 30px);border-radius:14px 14px 0 0;border-right:0}   /* sits above the tab bar so tabs stay reachable */
   .pages{height:74px}
   .pthumb{height:50px}.pthumb canvas{max-height:46px}
   .padd{height:50px;width:50px}
@@ -283,6 +293,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
   <button class="tb icon" id="redoBtn" type="button" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
   <input id="docName" type="text" value="Untitled design" aria-label="Design name" spellcheck="false"/>
   <span class="grow"></span>
+  <button class="topbtn hide-sm" id="playBtn" type="button" title="Play animations (P)"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5-5.5 3.5z"/></svg><span>Play</span></button>
   <button class="topbtn hide-sm" id="presentBtn" type="button" title="Present full screen"><svg class="i" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>Present</button>
   <button class="topbtn" id="propsToggle" type="button">Edit</button>
   <button class="topbtn primary" id="exportBtn" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="hide-sm">Download</span></button>
@@ -327,6 +338,9 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
       <div class="perk"><b>Real fonts, everywhere</b><span>36 designer fonts that look the same on every device — plus curved text and your own uploaded fonts.</span></div>
       <div class="perk"><b>Print-ready PDFs</b><span>Bleed and crop marks in one tick, for the print shop.</span></div>
       <div class="perk"><b>Works offline</b><span>Install it like an app and keep designing with no connection.</span></div>
+      <div class="perk"><b>Animate &amp; export video</b><span>Make designs move, then download an MP4 or GIF for Reels, Stories and email.</span></div>
+      <div class="perk"><b>Mockups</b><span>See your design on a phone, T-shirt, mug, poster or billboard.</span></div>
+      <div class="perk"><b>Free stock photos</b><span>Search thousands of free photos from Pexels right inside the editor.</span></div>
       <div class="perk"><b>Private by design</b><span>Your photos and designs never leave this device. No upload, no sign-in.</span></div>
     </div>
   </div>

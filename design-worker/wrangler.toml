@@ -1,0 +1,38 @@
+# Cloudflare Worker config for Linear Design's online features — design-api.linearit.co
+# -------------------------------------------------------------------------------------
+# A SEPARATE, isolated Worker, like board-worker and speed-worker: its own folder,
+# its own config, no shared bindings. It can't affect any other linearit.co app.
+#
+# It serves stock photo search for https://www.linearit.co/design/ , proxied to
+# Pexels (free). The Pexels key is an ENCRYPTED SECRET set with
+# `wrangler secret put` — never in this file (the repo is public). Full
+# step-by-step setup is in README.md.
+#
+#   cd design-worker
+#   npm install
+#   npx wrangler login                      # once per machine
+#   npx wrangler deploy
+#   npx wrangler secret put PEXELS_KEY
+
+name = "design-worker"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Vanity hostname -> this Worker. Creates the Custom Domain + DNS record on deploy.
+routes = [
+  { pattern = "design-api.linearit.co", custom_domain = true }
+]
+
+[vars]
+# Only pages on these origins may call this Worker (comma-separated).
+ALLOWED_ORIGINS = "https://www.linearit.co,https://linearit.co"
+
+# Per-visitor limit (keyed by IP), so nobody can burn through the Pexels quota.
+# period must be 10 or 60 (seconds).
+[[ratelimits]]
+name = "PHOTO_LIMIT"
+namespace_id = "7101"
+  [ratelimits.simple]
+  limit = 60
+  period = 60
