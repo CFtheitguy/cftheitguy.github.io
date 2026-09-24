@@ -92,12 +92,12 @@ const PALETTES = {
 // ---------------------------------------------------------------- type pairings
 const F = (h, hw, b, bw, up, ls, hi) => ({ h, hw, b, bw, up, ls, hi });
 const FONTPAIRS = {
-  bold: [F('Impact', 400, 'Helvetica', 600, true, .01), F('Arial Black', 900, 'Helvetica', 500, true, -.01), F('Futura', 800, 'Futura', 500, true, .02), F('Helvetica', 900, 'Helvetica', 500, false, -.03)],
-  elegant: [F('Didot', 400, 'Gill Sans', 400, false, 0), F('Georgia', 400, 'Futura', 400, false, 0, true), F('Script', 400, 'Garamond', 400, false, 0), F('Copperplate', 400, 'Palatino', 400, true, .08), F('Palatino', 400, 'Gill Sans', 400, true, .12)],
-  fun: [F('Trebuchet', 900, 'Trebuchet', 600, false, -.01), F('Marker', 700, 'Verdana', 400, false, 0), F('Rockwell', 800, 'Trebuchet', 500, true, .02), F('Arial Black', 900, 'Verdana', 400, false, -.02)],
-  calm: [F('Optima', 600, 'Optima', 400, false, 0), F('Gill Sans', 500, 'Gill Sans', 400, true, .14), F('Georgia', 400, 'Sans', 400, false, 0, true), F('Futura', 500, 'Sans', 400, true, .12)],
-  pro: [F('Sans', 800, 'Sans', 400, false, -.02), F('Helvetica', 700, 'Georgia', 400, false, -.02), F('Futura', 700, 'Sans', 400, true, .04), F('Mono', 700, 'Sans', 400, false, -.02)],
-  natural: [F('Rockwell', 700, 'Gill Sans', 400, false, 0), F('Garamond', 600, 'Futura', 400, false, 0), F('Typewriter', 700, 'Typewriter', 400, true, .04), F('Georgia', 700, 'Trebuchet', 400, false, 0, true)],
+  bold: [F('Anton', 400, 'Montserrat', 700, true, .01), F('Archivo Black', 400, 'Inter', 700, false, -.01), F('Montserrat', 900, 'Montserrat', 700, true, .01), F('Bebas Neue', 400, 'Poppins', 600, true, .04), F('Oswald', 700, 'Roboto', 400, true, .01)],
+  elegant: [F('Playfair Display', 400, 'Lato', 400, false, 0), F('Cormorant Garamond', 500, 'Raleway', 400, false, 0, true), F('Great Vibes', 400, 'Cormorant Garamond', 500, false, 0), F('Cinzel', 400, 'Lora', 400, true, .08), F('DM Serif Display', 400, 'Josefin Sans', 400, false, 0)],
+  fun: [F('Fredoka', 700, 'Nunito', 400, false, 0), F('Pacifico', 400, 'Poppins', 400, false, 0), F('Righteous', 400, 'Rubik', 400, false, 0), F('Lobster', 400, 'Open Sans', 400, false, 0), F('Permanent Marker', 400, 'Work Sans', 400, false, 0)],
+  calm: [F('Lora', 400, 'Nunito', 400, false, 0, true), F('Josefin Sans', 700, 'Lato', 400, true, .12), F('Comfortaa', 700, 'Nunito', 400, false, 0), F('Raleway', 700, 'Open Sans', 400, false, .01)],
+  pro: [F('Inter', 700, 'Inter', 400, false, -.02), F('Poppins', 800, 'Poppins', 400, false, -.01), F('Space Grotesk', 700, 'Inter', 400, false, -.02), F('Montserrat', 700, 'Open Sans', 400, false, 0)],
+  natural: [F('Alfa Slab One', 400, 'Work Sans', 400, false, 0), F('Merriweather', 700, 'Lato', 400, false, 0), F('Caveat', 700, 'Raleway', 400, false, 0), F('Libre Baskerville', 700, 'Josefin Sans', 400, false, 0), F('Amatic SC', 700, 'Josefin Sans', 400, true, .02)],
 };
 
 // ---------------------------------------------------------------- topics
@@ -551,5 +551,6 @@ function search(q, category) {
 }
 const CATEGORIES = [...new Set(TOPICS.map(t => t.c))];
 
-window.LDTemplates = { FORMATS, TOPICS, LAYOUTS, PALETTES, FONTPAIRS, COUNT, VARIANTS, CATEGORIES, decode, build, describe, search };
+function faces() { const out = []; for (const m in FONTPAIRS) for (const f of FONTPAIRS[m]) { out.push([f.h, f.hw, !!f.hi], [f.b, f.bw, false], [f.b, 600, false], [f.b, 700, false]); } return out; }
+window.LDTemplates = { faces, FORMATS, TOPICS, LAYOUTS, PALETTES, FONTPAIRS, COUNT, VARIANTS, CATEGORIES, decode, build, describe, search };
 })();

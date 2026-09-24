@@ -34,7 +34,45 @@ const FONTS = [
   ['Brush', '"Brush Script MT", "Bradley Hand", "Segoe Print", cursive'],
   ['Marker', '"Marker Felt", "Comic Sans MS", "Chalkboard SE", "Segoe Print", cursive'],
 ];
-const fontStack = name => (FONTS.find(f => f[0] === name) || FONTS[0])[1];
+// Bundled Google Fonts (OFL), served from /design/vendor/fonts — the same on
+// every device, unlike system fonts. [name, category, weights, fallback]
+const WEBFONTS = [
+  ['Inter', 'Sans', [400, 700], 'sans-serif'], ['Roboto', 'Sans', [400, 700], 'sans-serif'], ['Open Sans', 'Sans', [400, 700], 'sans-serif'],
+  ['Lato', 'Sans', [400, 700, 900], 'sans-serif'], ['Montserrat', 'Sans', [400, 700, 900], 'sans-serif'], ['Poppins', 'Sans', [400, 600, 800], 'sans-serif'],
+  ['Raleway', 'Sans', [400, 700], 'sans-serif'], ['Nunito', 'Sans', [400, 800], 'sans-serif'], ['Work Sans', 'Sans', [400, 700], 'sans-serif'],
+  ['Space Grotesk', 'Sans', [400, 700], 'sans-serif'], ['Josefin Sans', 'Sans', [400, 700], 'sans-serif'], ['Rubik', 'Sans', [400, 700], 'sans-serif'],
+  ['Comfortaa', 'Sans', [400, 700], 'sans-serif'], ['Fredoka', 'Sans', [400, 700], 'sans-serif'],
+  ['Playfair Display', 'Serif', [400, 700], 'serif'], ['Lora', 'Serif', [400, 700], 'serif'], ['Merriweather', 'Serif', [400, 700], 'serif'],
+  ['Libre Baskerville', 'Serif', [400, 700], 'serif'], ['Cormorant Garamond', 'Serif', [500, 700], 'serif'], ['DM Serif Display', 'Serif', [400], 'serif'], ['Cinzel', 'Serif', [400, 700], 'serif'],
+  ['Oswald', 'Display', [400, 700], 'sans-serif'], ['Bebas Neue', 'Display', [400], 'sans-serif'], ['Anton', 'Display', [400], 'sans-serif'],
+  ['Archivo Black', 'Display', [400], 'sans-serif'], ['Abril Fatface', 'Display', [400], 'serif'], ['Alfa Slab One', 'Display', [400], 'serif'], ['Righteous', 'Display', [400], 'sans-serif'],
+  ['Pacifico', 'Script', [400], 'cursive'], ['Lobster', 'Script', [400], 'cursive'], ['Dancing Script', 'Script', [400, 700], 'cursive'], ['Great Vibes', 'Script', [400], 'cursive'],
+  ['Caveat', 'Handwritten', [400, 700], 'cursive'], ['Permanent Marker', 'Handwritten', [400], 'cursive'], ['Amatic SC', 'Handwritten', [400, 700], 'cursive'], ['Shadows Into Light', 'Handwritten', [400], 'cursive'],
+];
+const WEB = new Map(WEBFONTS.map(f => [f[0], f]));
+const fontStack = name => WEB.has(name) ? `"${name}", ${WEB.get(name)[3]}` : (FONTS.find(f => f[0] === name) || FONTS[0])[1];
+// Canvas text only uses a web font once it has loaded, so the first use of a
+// face kicks off its download and onFontLoad() lets the editor redraw.
+const fontsLoaded = new Set(), fontsPending = new Map();
+let fontListener = null;
+function faceKey(name, weight, italic) {
+  const ws = WEB.get(name)[2], w = +weight || 400;
+  const near = ws.reduce((a, b) => Math.abs(b - w) < Math.abs(a - w) ? b : a);
+  return `${italic ? 'italic ' : ''}${near} 32px "${name}"`;
+}
+function loadFont(name, weight, italic) {
+  if (!WEB.has(name) || typeof document === 'undefined' || !document.fonts) return Promise.resolve();
+  const k = faceKey(name, weight, italic);
+  if (fontsLoaded.has(k)) return Promise.resolve();
+  if (!fontsPending.has(k)) fontsPending.set(k, document.fonts.load(k).catch(() => {}).then(() => { fontsLoaded.add(k); fontsPending.delete(k); if (fontListener) fontListener(); }));
+  return fontsPending.get(k);
+}
+function fontReady(name, weight, italic) {
+  if (!WEB.has(name)) return true;
+  if (fontsLoaded.has(faceKey(name, weight, italic))) return true;
+  loadFont(name, weight, italic); return false;
+}
+function onFontLoad(fn) { fontListener = fn; }
 const custom = new Map();   // fonts the user loaded from a file: name -> family
 function fontFamily(name) { return custom.has(name) ? `"${custom.get(name)}", sans-serif` : fontStack(name); }
 
@@ -58,6 +96,7 @@ function mix(a, b, t) { const A = hexRgb(a), B = hexRgb(b); return '#' + A.map((
 // ---------------------------------------------------------------- text
 const mctx = document.createElement('canvas').getContext('2d');
 function fontCss(el, size) {
+  fontReady(el.font, el.weight, el.italic);
   return `${el.italic ? 'italic ' : ''}${el.weight || 400} ${size || el.size}px ${fontFamily(el.font)}`;
 }
 function measure(ctx, s, ls) {
@@ -92,8 +131,22 @@ function textLines(el, w) {
   return out;
 }
 function textHeight(el, lines) { return Math.max(1, (lines || textLines(el)).length * el.size * (el.lh || 1.2)); }
+// Curved text: the whole text on one arc. curve is -100..100; 100 bends it
+// into a full circle, negative values bend it the other way (a smile).
+function curveLayout(el) {
+  mctx.font = fontCss(el);
+  const ls = (el.ls || 0) * el.size;
+  const text = (el.upper ? String(el.text).toUpperCase() : String(el.text)).replace(/\s*\n\s*/g, ' ');
+  const chars = [...text], cw = chars.map(c => mctx.measureText(c).width);
+  const L = Math.max(1, cw.reduce((a, b) => a + b, 0) + ls * Math.max(0, chars.length - 1));
+  const th = Math.max(.05, Math.abs(el.curve) / 100 * Math.PI * 2), R = L / th;
+  const chord = th >= Math.PI ? 2 * R : 2 * R * Math.sin(th / 2);
+  const sag = th >= Math.PI ? R * (1 - Math.cos(th / 2)) : R * (1 - Math.cos(th / 2));
+  return { chars, cw, L, th, R, w: chord + el.size * 1.1, h: Math.min(2 * R, sag) + el.size * 1.25, ls };
+}
 function syncText(el) {
-  if (el.type === 'text') el.h = textHeight(el);
+  if (el.type === 'text' && el.curve) { const c = curveLayout(el); el.w = c.w; el.h = c.h; }
+  else if (el.type === 'text') el.h = textHeight(el);
   else if (el.type === 'table') el.h = tableLayout(el).h;
   return el;
 }
@@ -395,8 +448,8 @@ function drawPattern(ctx, pat, W, H) {
 // Filters are done on pixels rather than with ctx.filter, which older Safari
 // ignores — so exports look the same everywhere. Results are cached.
 const filtered = new WeakMap();
-function hasFilter(f) { return f && (f.bright || f.contrast || f.sat || f.warm || f.gray || f.sepia || f.blur || f.fade || f.vignette); }
-function filterKey(f) { return [f.bright, f.contrast, f.sat, f.warm, f.gray, f.sepia, f.blur, f.fade, f.vignette].join(','); }
+function hasFilter(f) { return f && (f.bright || f.contrast || f.sat || f.warm || f.gray || f.sepia || f.blur || f.fade || f.vignette || f.duo); }
+function filterKey(f) { return [f.bright, f.contrast, f.sat, f.warm, f.gray, f.sepia, f.blur, f.fade, f.vignette, f.duo && f.duo.join('/')].join(','); }
 function filteredImage(img, f) {
   if (!hasFilter(f)) return img;
   let m = filtered.get(img); if (!m) filtered.set(img, m = new Map());
@@ -411,6 +464,7 @@ function filteredImage(img, f) {
   const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
   const br = (f.bright || 0) / 100 * 255 * .6, ct = 1 + (f.contrast || 0) / 100, sat = 1 + (f.sat || 0) / 100, wm = (f.warm || 0) / 100 * 40;
   const gray = (f.gray || 0) / 100, sep = (f.sepia || 0) / 100, fade = (f.fade || 0) / 100;
+  const duo = f.duo ? [hexRgb(f.duo[0]), hexRgb(f.duo[1])] : null;
   for (let i = 0; i < p.length; i += 4) {
     let r = p[i], gg = p[i + 1], b = p[i + 2];
     r += br; gg += br; b += br;
@@ -420,6 +474,7 @@ function filteredImage(img, f) {
     r += wm; b -= wm;
     if (sep) { const sr = .393 * r + .769 * gg + .189 * b, sg = .349 * r + .686 * gg + .168 * b, sb = .272 * r + .534 * gg + .131 * b; r += (sr - r) * sep; gg += (sg - gg) * sep; b += (sb - b) * sep; }
     if (fade) { r = r + (200 - r) * fade * .35; gg = gg + (200 - gg) * fade * .35; b = b + (200 - b) * fade * .35; }
+    if (duo) { const t = Math.max(0, Math.min(1, (.299 * r + .587 * gg + .114 * b) / 255)); r = duo[0][0] + (duo[1][0] - duo[0][0]) * t; gg = duo[0][1] + (duo[1][1] - duo[0][1]) * t; b = duo[0][2] + (duo[1][2] - duo[0][2]) * t; }
     p[i] = r; p[i + 1] = gg; p[i + 2] = b;
   }
   g.putImageData(d, 0, 0);
@@ -521,6 +576,7 @@ function drawChart(ctx, el) {
   const W = el.w, H = el.h, k = Math.min(W, H) / 400;
   const surface = chartSurface(el), ink = el.ink || (lum(surface) < .35 ? '#f5f5f4' : '#1f2328');
   const muted = mix(ink, surface, .38), grid = mix(ink, surface, .86), base = mix(ink, surface, .55);
+  fontReady(el.font || 'Sans', 700); fontReady(el.font || 'Sans', 400);
   const fam = fontFamily(el.font || 'Sans'), fs = Math.max(6, 14 * k * (el.textScale || 1));
   const labels = el.labels || [], series = (el.series || []).filter(s => s && s.values);
   if (el.bg && el.bg !== 'none') { const p = new Path2D(); roundRect(p, 0, 0, W, H, 14 * k); ctx.fillStyle = el.bg; ctx.fill(p); }
@@ -820,8 +876,27 @@ function drawIcon(ctx, el) {
   if (el.solid) { ctx.fillStyle = el.color; ctx.fill(p); }
   ctx.strokeStyle = el.color; ctx.lineWidth = el.sw || 1.8; ctx.stroke(p);
 }
+function drawCurved(ctx, el) {
+  const c = curveLayout(el), up = el.curve > 0, sz = el.size;
+  ctx.font = fontCss(el); ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'center';
+  const cx = el.w / 2, cy = up ? sz * .85 + c.R : el.h - sz * .3 - c.R;
+  const fill = paint(ctx, el.color, el.w, el.h) || '#000';
+  let acc = 0;
+  c.chars.forEach((ch, i) => {
+    const a = -c.th / 2 + (acc + c.cw[i] / 2) / c.R;
+    acc += c.cw[i] + c.ls;
+    ctx.save();
+    if (up) { ctx.translate(cx + c.R * Math.sin(a), cy - c.R * Math.cos(a)); ctx.rotate(a); }
+    else { ctx.translate(cx + c.R * Math.sin(a), cy + c.R * Math.cos(a)); ctx.rotate(-a); }
+    if (el.outline && el.outline.w) { ctx.lineJoin = 'round'; ctx.strokeStyle = el.outline.color || '#000'; ctx.lineWidth = el.outline.w * sz / 50; ctx.strokeText(ch, 0, 0); }
+    if (!(el.outline && el.outline.only)) { ctx.fillStyle = fill; ctx.fillText(ch, 0, 0); }
+    ctx.restore();
+  });
+  ctx.textAlign = 'start';
+}
 function drawText(ctx, el, env) {
   if (env.editing && env.editing === el.id) return;
+  if (el.curve) return drawCurved(ctx, el);
   const lines = textLines(el), lh = el.size * (el.lh || 1.2), ls = (el.ls || 0) * el.size;
   ctx.font = fontCss(el); ctx.textBaseline = 'middle';
   const widths = lines.map(l => measure(ctx, l, ls));
@@ -876,14 +951,35 @@ function drawImage(ctx, el, env) {
   const k = Math.max(el.w / iw, el.h / ih) * zoom;
   const dw = iw * k, dh = ih * k;
   const dx = (el.w - dw) / 2 + (el.px || 0) * (dw - el.w) / 2, dy = (el.h - dh) / 2 + (el.py || 0) * (dh - el.h) / 2;
-  if (mask) {
-    if (el.shadow) { ctx.fillStyle = '#000'; ctx.fill(mask); ctx.shadowColor = 'transparent'; }
-    ctx.clip(mask);
-  } else if (el.shadow) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, el.w, el.h); ctx.shadowColor = 'transparent'; }
-  if (!mask) { ctx.beginPath(); ctx.rect(0, 0, el.w, el.h); ctx.clip(); }
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(src, dx, dy, dw, dh);
-  if (el.border && el.border.w) { ctx.lineWidth = el.border.w * 2; ctx.strokeStyle = el.border.color; ctx.stroke(mask || rectPath(el.w, el.h)); }
+  const paintPhoto = c => {
+    c.save();
+    if (mask) c.clip(mask); else { c.beginPath(); c.rect(0, 0, el.w, el.h); c.clip(); }
+    c.imageSmoothingQuality = 'high';
+    c.drawImage(src, dx, dy, dw, dh);
+    c.restore();
+    if (el.border && el.border.w) { c.lineWidth = el.border.w * 2; c.strokeStyle = el.border.color; c.save(); c.clip(mask || rectPath(el.w, el.h)); c.stroke(mask || rectPath(el.w, el.h)); c.restore(); }
+  };
+  const stick = el.stick && el.stick.w > 0 ? el.stick : null;
+  if (!el.shadow && !stick) { ctx.shadowColor = 'transparent'; paintPhoto(ctx); return; }
+  // Shadows and sticker outlines follow the photo's own alpha (a cut-out casts
+  // a subject-shaped shadow), so the photo is composed off-screen first.
+  const sc = Math.max(.05, Math.min(env.scale || 1, 3000 / Math.max(el.w, el.h)));
+  const pad = stick ? stick.w : 0;
+  const ow = Math.max(1, Math.ceil((el.w + pad * 2) * sc)), oh = Math.max(1, Math.ceil((el.h + pad * 2) * sc));
+  const off = document.createElement('canvas'); off.width = ow; off.height = oh;
+  const og = off.getContext('2d'); og.scale(sc, sc); og.translate(pad, pad);
+  paintPhoto(og);
+  let out = off;
+  if (stick) {
+    const sil = document.createElement('canvas'); sil.width = ow; sil.height = oh;
+    const sg = sil.getContext('2d'); sg.drawImage(off, 0, 0); sg.globalCompositeOperation = 'source-in'; sg.fillStyle = stick.color || '#ffffff'; sg.fillRect(0, 0, ow, oh);
+    const comb = document.createElement('canvas'); comb.width = ow; comb.height = oh;
+    const cg = comb.getContext('2d'), r = stick.w * sc, n = Math.min(72, Math.max(16, Math.ceil(r * 1.6)));
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; cg.drawImage(sil, Math.cos(a) * r, Math.sin(a) * r); }
+    cg.drawImage(off, 0, 0);
+    out = comb;
+  }
+  ctx.drawImage(out, -pad, -pad, el.w + pad * 2, el.h + pad * 2);
 }
 function rectPath(w, h) { const p = new Path2D(); p.rect(0, 0, w, h); return p; }
 
@@ -912,7 +1008,7 @@ function renderPage(ctx, page, W, H, env) {
 }
 
 window.LDCore = {
-  FONTS, fontStack, fontFamily, custom, uid, rng, rgba, lum, mix, hexRgb,
+  FONTS, WEBFONTS, fontStack, fontFamily, custom, loadFont, fontReady, onFontLoad, uid, rng, rgba, lum, mix, hexRgb,
   fontCss, textLines, textHeight, syncText, textWidth, fitText, measure,
   paint, fillColor, SHAPES, shapePath, isLine, ICONS, PATTERNS, MASKS,
   drawElement, drawBackground, renderPage, filteredImage,

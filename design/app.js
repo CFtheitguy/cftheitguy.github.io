@@ -78,6 +78,8 @@ const ICO = {
   flipH: 'M12 3v18M8 7l-5 5 5 5zM16 7l5 5-5 5z', flipV: 'M3 12h18M7 8l5-5 5 5zM7 16l5 5 5-5z',
   fwd: 'M8 8h12v12H8z|M4 4h10v2M4 4v10h2', bwd: 'M4 4h12v12H4z|M20 8v12H8',
   distH: 'M4 3v18M20 3v18M9 8h6v8H9z', distV: 'M3 4h18M3 20h18M8 9h8v6H8z',
+  brush: 'M18 3l3 3-9 9-3-3zM9 12l-2.5.5C4 13 4 16 3 20c3.5-1 7-1 7.5-3.5L11 14',
+  paste: 'M8 4h8v3H8zM6 5H5v16h14V5h-1M9 14l2 2 4-4',
   qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2',
   table: 'M3 5h18v14H3zM3 10h18M3 14.5h18M9 5v14M15 5v14',
   wand: 'M4 20L15 9M13 7l2-2 4 4-2 2zM6 4v3M4.5 5.5h3M19 14v3M17.5 15.5h3',
@@ -122,6 +124,7 @@ function readImageFile(file) {
 }
 async function uploadFiles(files, at) {
   const list = [...files].filter(f => /^image\//.test(f.type) || /\.(heic|heif|jpe?g|png|gif|webp|svg)$/i.test(f.name));
+  const keepSel = doc ? sel.slice() : [];
   if (!list.length) return toast('Those files aren’t images.', true);
   let added = 0;
   for (const f of list) {
@@ -130,7 +133,9 @@ async function uploadFiles(files, at) {
       const id = addImage(src);
       uploads.unshift(id);
       await new Promise(r => { const im = images.get(id).img; im.complete ? r() : im.addEventListener('load', r, { once: true }); });
-      if (doc && list.length <= 6) {
+      const empties = doc ? keepSel.map(byId).filter(e => e && e.type === 'image' && !e.src && !e.locked) : [];
+      if (empties.length && !at) { empties[0].src = id; }
+      else if (doc && list.length <= 6) {
         const target = at && hitTest(at[0], at[1]);
         if (target && target.type === 'image' && !target.locked) { target.src = id; sel = [target.id]; }
         else addPhotoEl(id, at && added === 0 ? at : null, added * 30);
@@ -404,8 +409,9 @@ cv.addEventListener('pointerdown', e => {
     const now = performance.now();
     if (lastTap.id === el.id && now - lastTap.t < 380 && !e.shiftKey) { lastTap = { t: 0, id: null }; drag = null; onDouble(el); return; }
     lastTap = { t: now, id: el.id };
-    if (e.shiftKey || e.metaKey || e.ctrlKey) { sel = sel.includes(el.id) ? sel.filter(i => i !== el.id) : [...sel, el.id]; buildProps(); requestRender(); return; }
-    if (!sel.includes(el.id)) { sel = [el.id]; buildProps(); }
+    const mates = groupOf(el);
+    if (e.shiftKey || e.metaKey || e.ctrlKey) { sel = sel.includes(el.id) ? sel.filter(i => !mates.includes(i)) : [...sel, ...mates]; buildProps(); requestRender(); return; }
+    if (!sel.includes(el.id)) { sel = mates; buildProps(); }
     const els = selEls();
     drag = { mode: 'move', p0: p, orig: new Map(els.map(x => [x.id, clone(x)])), moved: false };
     requestRender();
@@ -449,7 +455,7 @@ cv.addEventListener('pointermove', e => {
     drag.cur = p;
     const l = Math.min(p[0], drag.p0[0]), r = Math.max(p[0], drag.p0[0]), t = Math.min(p[1], drag.p0[1]), b = Math.max(p[1], drag.p0[1]);
     const hit = page().els.filter(el => { if (el.hidden) return false; const B = aabb([el]); return B.l < r && B.r > l && B.t < b && B.b > t; }).map(el => el.id);
-    sel = [...new Set([...drag.base, ...hit])];
+    sel = expandGroups([...new Set([...drag.base, ...hit])]);
     requestRender(); return;
   }
   const dx = p[0] - drag.p0[0], dy = p[1] - drag.p0[1];
@@ -580,7 +586,7 @@ function onDouble(el) {
   else if (el.type === 'chart' || el.type === 'table') dataDialog(el);
   else if (el.type === 'shape' && !C.isLine(el)) {   // double-click a shape to type in it
     const s = S();
-    const t = { id: nid(), type: 'text', text: 'Your text', font: 'Sans', weight: 700, size: Math.max(12, Math.min(el.h * .22, s * .06)), color: C.lum(C.fillColor(el.fill)) > .55 ? '#111111' : '#ffffff', align: 'center', lh: 1.15, ls: 0, x: 0, y: 0, w: el.w * .8, h: 10, rot: el.rot || 0, opacity: 1 };
+    const t = { id: nid(), type: 'text', text: 'Your text', font: brand.head || 'Poppins', weight: 700, size: Math.max(12, Math.min(el.h * .22, s * .06)), color: C.lum(C.fillColor(el.fill)) > .55 ? '#111111' : '#ffffff', align: 'center', lh: 1.15, ls: 0, x: 0, y: 0, w: el.w * .8, h: 10, rot: el.rot || 0, opacity: 1 };
     C.syncText(t); t.x = el.x + (el.w - t.w) / 2; t.y = el.y + (el.h - t.h) / 2;
     const i = page().els.indexOf(el); page().els.splice(i + 1, 0, t);
     commit(); startEdit(t, true);
@@ -635,7 +641,7 @@ function stopEdit() {
 function addText(kind, text) {
   const s = S();
   const spec = { heading: [.1, 800, 'Add a heading'], sub: [.055, 600, 'Add a subheading'], body: [.032, 400, 'Add a little bit of body text'] }[kind] || [.05, 400, ''];
-  const el = { id: nid(), type: 'text', text: text || spec[2], font: brand[kind === 'heading' ? 'head' : 'body'] || 'Sans', weight: spec[1], size: Math.round(s * spec[0]), color: '#111111', align: 'center', lh: 1.2, ls: 0, x: 0, y: 0, w: 10, h: 10, rot: 0, opacity: 1 };
+  const el = { id: nid(), type: 'text', text: text || spec[2], font: brand[kind === 'heading' ? 'head' : 'body'] || (kind === 'heading' ? 'Poppins' : 'Inter'), weight: spec[1], size: Math.round(s * spec[0]), color: '#111111', align: 'center', lh: 1.2, ls: 0, x: 0, y: 0, w: 10, h: 10, rot: 0, opacity: 1 };
   if (C.lum(C.fillColor(page().bg.fill)) < .35 && !page().bg.image) el.color = '#ffffff';
   el.w = 1e5; el.w = Math.min(doc.w * .86, Math.ceil(C.textWidth(el)) + 4); C.syncText(el);
   place(el, null, 0);
@@ -712,7 +718,7 @@ function duplicate() {
   const els = selEls();
   if (!els.length) return;
   const off = S() * .03;
-  const copies = els.map(el => Object.assign(clone(el), { id: nid(), x: el.x + off, y: el.y + off, locked: false }));
+  const copies = regroup(els.map(el => Object.assign(clone(el), { id: nid(), x: el.x + off, y: el.y + off, locked: false })));
   page().els.push(...copies); sel = copies.map(c => c.id); commit();
 }
 function del() {
@@ -728,15 +734,104 @@ function copySel(cut) {
 function pasteClip() {
   if (!clip) return;
   const off = S() * .03;
-  const copies = clip.map(el => Object.assign(clone(el), { id: nid(), x: el.x + off, y: el.y + off }));
+  const copies = regroup(clip.map(el => Object.assign(clone(el), { id: nid(), x: el.x + off, y: el.y + off })));
   clip = copies.map(c => clone(c));
   page().els.push(...copies); sel = copies.map(c => c.id); commit();
+}
+
+// ---------------------------------------------------------------- photo grids
+// Cells as [x, y, w, h] in 0..1 of the area; gaps are added when placed.
+const GRIDS = [
+  ['2 across', [[0, 0, .5, 1], [.5, 0, .5, 1]]],
+  ['2 down', [[0, 0, 1, .5], [0, .5, 1, .5]]],
+  ['1 + 2', [[0, 0, .6, 1], [.6, 0, .4, .5], [.6, .5, .4, .5]]],
+  ['2 + 1', [[0, 0, .5, .55], [.5, 0, .5, .55], [0, .55, 1, .45]]],
+  ['3 across', [[0, 0, 1 / 3, 1], [1 / 3, 0, 1 / 3, 1], [2 / 3, 0, 1 / 3, 1]]],
+  ['4 grid', [[0, 0, .5, .5], [.5, 0, .5, .5], [0, .5, .5, .5], [.5, .5, .5, .5]]],
+  ['1 + 3', [[0, 0, 1, .6], [0, .6, 1 / 3, .4], [1 / 3, .6, 1 / 3, .4], [2 / 3, .6, 1 / 3, .4]]],
+  ['2 + 3', [[0, 0, .5, .5], [.5, 0, .5, .5], [0, .5, 1 / 3, .5], [1 / 3, .5, 1 / 3, .5], [2 / 3, .5, 1 / 3, .5]]],
+  ['6 grid', [[0, 0, 1 / 3, .5], [1 / 3, 0, 1 / 3, .5], [2 / 3, 0, 1 / 3, .5], [0, .5, 1 / 3, .5], [1 / 3, .5, 1 / 3, .5], [2 / 3, .5, 1 / 3, .5]]],
+  ['9 grid', [0, 1, 2].flatMap(r => [0, 1, 2].map(c => [c / 3, r / 3, 1 / 3, 1 / 3]))],
+  ['Big + 4', [[0, 0, .5, 1], [.5, 0, .25, .5], [.75, 0, .25, .5], [.5, .5, .25, .5], [.75, .5, .25, .5]]],
+  ['Filmstrip', [[0, 0, .25, 1], [.25, 0, .25, 1], [.5, 0, .25, 1], [.75, 0, .25, 1]]],
+];
+function addGrid(cells, o) {
+  o = o || {};
+  const gap = o.gap != null ? o.gap : S() * .012, m = o.margin != null ? o.margin : 0;
+  const W = doc.w - m * 2, H = doc.h - m * 2, g = 'g' + nid(), ids = [];
+  const tints = ['#d9dde6', '#cfd6e3', '#dfe3ea', '#d3d9e4'];
+  cells.forEach(([x, y, w, h2], i) => {
+    const el = { id: nid(), type: 'image', src: null, x: m + x * W + gap / 2, y: m + y * H + gap / 2, w: w * W - gap, h: h2 * H - gap, rot: 0, opacity: 1, mask: 'none', zoom: 1, px: 0, py: 0, group: g, ph: tints[i % tints.length] };
+    page().els.push(el); ids.push(el.id);
+  });
+  sel = ids; commit();
+  toast('Photo grid added. Drop photos onto the frames, or upload several at once to fill them in order.');
+}
+
+// ---------------------------------------------------------------- copy / paste style
+const STYLE_KEYS = {
+  text: ['font', 'weight', 'italic', 'underline', 'upper', 'color', 'lh', 'ls', 'align', 'outline', 'box', 'shadow', 'opacity', 'curve'],
+  shape: ['fill', 'stroke', 'sw', 'dash', 'radius', 'shadow', 'opacity'],
+  icon: ['color', 'sw', 'solid', 'shadow', 'opacity'],
+  image: ['filter', 'mask', 'border', 'shadow', 'opacity', 'stick'],
+  qr: ['fg', 'bg', 'style', 'eye', 'eyeColor', 'radius', 'quiet'],
+  chart: ['font', 'ink', 'bg', 'textScale', 'grid', 'legend', 'values', 'prefix', 'suffix'],
+  table: ['font', 'size', 'weight', 'color', 'hcolor', 'hbg', 'bg', 'band', 'line', 'lines', 'lw', 'pad', 'radius', 'hupper', 'align'],
+};
+let styleClip = null;
+function copyStyle() {
+  const el = selEls()[0]; if (!el) return;
+  styleClip = { type: el.type, v: clone(Object.fromEntries(STYLE_KEYS[el.type].map(k => [k, el[k]]))) };
+  toast('Style copied — select something and paste it with Ctrl+Alt+V.'); buildProps();
+}
+function pasteStyle() {
+  if (!styleClip) return toast('Copy a style first (Ctrl+Alt+C).');
+  let n = 0;
+  for (const el of selEls()) {
+    if (el.locked) continue;
+    if (el.type === styleClip.type) { for (const k of STYLE_KEYS[el.type]) { if (styleClip.v[k] === undefined) delete el[k]; else el[k] = clone(styleClip.v[k]); } n++; }
+    else if (styleClip.type === 'text' && el.type === 'table') { el.font = styleClip.v.font; el.color = C.fillColor(styleClip.v.color); n++; }
+    else { const col = styleClip.v.fill || styleClip.v.color; if (col && (el.type === 'shape' || el.type === 'icon' || el.type === 'text')) { el[el.type === 'shape' ? 'fill' : 'color'] = clone(col); n++; } }
+    C.syncText(el);
+  }
+  if (n) commit(); else toast('Nothing selected that can take that style.');
+}
+
+// ---------------------------------------------------------------- groups
+// A group is just a shared `group` id: clicking any member selects them all,
+// and double-clicking still edits the one under the pointer.
+function groupOf(el) { return el.group ? page().els.filter(x => x.group === el.group && !x.hidden).map(x => x.id) : [el.id]; }
+function expandGroups(ids) {
+  const gs = new Set(ids.map(byId).filter(e => e && e.group).map(e => e.group));
+  return gs.size ? [...new Set([...ids, ...page().els.filter(e => gs.has(e.group) && !e.hidden).map(e => e.id)])] : ids;
+}
+function regroup(copies) {   // copies get their own group ids, so they don't join the originals
+  const map = new Map();
+  for (const c of copies) if (c.group) { if (!map.has(c.group)) map.set(c.group, 'g' + nid()); c.group = map.get(c.group); }
+  return copies;
+}
+function isOneGroup(els) { return els.length > 1 && els[0].group && els.every(e => e.group === els[0].group); }
+function groupSel() {
+  const els = selEls();
+  if (els.length < 2) return toast('Select two or more elements to group them.');
+  const g = 'g' + nid(); els.forEach(e => e.group = g);
+  // keep a group together in the stacking order, at the topmost member's position
+  const arr = page().els, top = Math.max(...els.map(e => arr.indexOf(e)));
+  const rest = arr.filter(e => e.group !== g), at = rest.indexOf(arr.slice(top + 1).find(e => e.group !== g));
+  const members = arr.filter(e => e.group === g);
+  page().els = at < 0 ? [...rest, ...members] : [...rest.slice(0, at), ...members, ...rest.slice(at)];
+  commit(); toast('Grouped. Ctrl+Shift+G to ungroup.');
+}
+function ungroupSel() {
+  const els = selEls().filter(e => e.group);
+  if (!els.length) return;
+  els.forEach(e => delete e.group); commit(); toast('Ungrouped.');
 }
 
 // ---------------------------------------------------------------- pages
 function addPage(dup) {
   const p = dup ? Object.assign(clone(page()), { id: 'p' + Date.now().toString(36) + (uidN++) }) : blankPage();
-  if (dup) p.els.forEach(el => el.id = nid());
+  if (dup) { p.els.forEach(el => el.id = nid()); regroup(p.els); }
   if (!dup) p.bg = { fill: '#ffffff' };
   doc.pages.splice(doc.cur + 1, 0, p); doc.cur++; sel = []; commit({ keepClean: true });
 }
@@ -853,8 +948,10 @@ function pb(content, title, fn, on, cls) { return h('button', { class: 'pb' + (o
 function group(title, ...kids) { return h('div', { class: 'pgroup' }, h('h3', null, ...[].concat(title)), ...kids); }
 function fontSelect(val, onSet) {
   const s = h('select', { 'aria-label': 'Font' });
-  const names = [...C.FONTS.map(f => f[0]), ...C.custom.keys()];
-  for (const n of names) s.append(h('option', { value: n, selected: n === val, style: `font-family:${C.fontFamily(n)}` }, n));
+  const opt = n => h('option', { value: n, selected: n === val, style: `font-family:${C.fontFamily(n)}` }, n);
+  if (C.custom.size) s.append(h('optgroup', { label: 'Your fonts' }, [...C.custom.keys()].map(opt)));
+  for (const cat of ['Sans', 'Serif', 'Display', 'Script', 'Handwritten']) s.append(h('optgroup', { label: cat }, C.WEBFONTS.filter(f => f[1] === cat).map(f => opt(f[0]))));
+  s.append(h('optgroup', { label: 'This device’s fonts' }, C.FONTS.map(f => opt(f[0]))));
   s.append(h('option', { value: '__upload' }, 'Upload a font…'));
   s.addEventListener('change', () => { if (s.value === '__upload') { s.value = val; fontTarget = onSet; $('fileFont').click(); return; } onSet(s.value); commit(); });
   return s;
@@ -869,9 +966,12 @@ function buildProps() {
   const el = els[0];
   const names = { text: 'Text', shape: 'Shape', icon: 'Icon', image: el.src ? 'Photo' : 'Photo frame', qr: 'QR code', chart: 'Chart', table: 'Table' };
   P.append(group([names[el.type], h('span', { class: 'btnrow' },
+    pb(ICO.brush, 'Copy style (Ctrl+Alt+C)', copyStyle),
+    styleClip ? pb(ICO.paste, 'Paste style (Ctrl+Alt+V)', pasteStyle) : null,
     pb(ICO.copy, 'Duplicate (Ctrl+D)', duplicate),
     pb(el.locked ? ICO.lock : ICO.unlock, el.locked ? 'Unlock' : 'Lock', () => { el.locked = !el.locked; commit(); }, el.locked),
     pb(ICO.trash, 'Delete', del, false, 'danger'))]));
+  if (el.group) P.append(group('Group', h('button', { class: 'pb wide', type: 'button', style: 'width:100%', onclick: () => { sel = groupOf(el); buildProps(); requestRender(); } }, 'Select the whole group')));
   if (el.type === 'text') textProps(el);
   if (el.type === 'shape') shapeProps(el);
   if (el.type === 'icon') iconProps(el);
@@ -951,6 +1051,7 @@ function textProps(el) {
       pb(ICO.txtR, 'Align right', () => { el.align = 'right'; commit(); }, el.align === 'right')),
     slider('Line height', el.lh || 1.2, .6, 3, .05, v => { el.lh = v; up(); }, v => (+v).toFixed(2)),
     slider('Spacing', Math.round((el.ls || 0) * 1000), -100, 800, 5, v => { el.ls = v / 1000; up(); }),
+    slider('Curve', el.curve || 0, -100, 100, 1, v => { const cx = el.x + el.w / 2, cy = el.y + el.h / 2; if (!v && el.curve) { el.curve = 0; el.w = 1e5; el.w = Math.min(doc.w * .9, Math.ceil(C.textWidth(el)) + 4); } else el.curve = v; up(); el.x = cx - el.w / 2; el.y = cy - el.h / 2; }),
     h('div', { class: 'prow', style: 'margin-top:4px' }, h('button', { class: 'pb wide', type: 'button', onclick: () => { el.w = 1e5; el.w = Math.ceil(C.textWidth(el)) + 4; up(); commit(); } }, 'Fit box to text'), h('button', { class: 'pb wide', type: 'button', onclick: () => startEdit(el) }, 'Edit text'))));
   const cur = effectOf(el);
   const fxPrev = { none: '', shadow: 'text-shadow:2px 2px 2px #000', lift: 'text-shadow:0 3px 8px rgba(0,0,0,.6)', hollow: 'color:transparent;-webkit-text-stroke:1px #fff', outline: '-webkit-text-stroke:1px #000;color:#fff', neon: 'text-shadow:0 0 6px #0ff,0 0 10px #0ff', highlight: 'background:#ffde59;color:#111;padding:0 3px', block: 'background:#111;color:#fff;padding:1px 5px;border-radius:3px', splice: 'color:#fff;-webkit-text-stroke:1px #000;text-shadow:2px 2px 0 #ff5757' };
@@ -994,6 +1095,7 @@ const FILTERS = [
   ['Original', {}], ['Vivid', { sat: 45, contrast: 12 }], ['Warm', { warm: 45, sat: 10 }], ['Cool', { warm: -45 }], ['Mono', { gray: 100 }],
   ['Noir', { gray: 100, contrast: 45, bright: -8 }], ['Vintage', { sepia: 60, fade: 40, vignette: 40 }], ['Fade', { fade: 70, contrast: -15 }],
   ['Dreamy', { blur: 12, bright: 10, fade: 30 }], ['Drama', { contrast: 50, sat: -20, vignette: 60 }], ['Sunny', { bright: 12, warm: 30, sat: 20 }], ['Moody', { bright: -18, sat: -30, contrast: 20, vignette: 50 }],
+  ['Duo blue', { duo: ['#101a4a', '#7de3ff'] }], ['Duo pink', { duo: ['#2d0a52', '#ff8fc7'] }], ['Duo gold', { duo: ['#241400', '#ffd166'] }],
 ];
 function imageProps(el) {
   const f = el.filter || (el.filter = {});
@@ -1011,6 +1113,10 @@ function imageProps(el) {
     el.src ? h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-top:4px', onclick: () => { el.src = null; commit(); } }, 'Empty this frame') : null));
   if (!el.src) return;
   P.append(group('Filters', h('div', { class: 'fxgrid' }, FILTERS.map(([n, v]) => h('button', { type: 'button', class: JSON.stringify(v) === JSON.stringify(Object.fromEntries(Object.entries(f).filter(([, x]) => x))) ? 'on' : '', onclick: () => { el.filter = clone(v); commit(); } }, n)))));
+  if (f.duo) P.append(group('Duotone', prow('Shadows', colorBtn(f.duo[0], v => { f.duo = [v, f.duo[1]]; })), prow('Highlights', colorBtn(f.duo[1], v => { f.duo = [f.duo[0], v]; }))));
+  const st = el.stick;
+  P.append(group(['Sticker outline', h('label', null, h('input', { type: 'checkbox', checked: !!(st && st.w), onchange: e => { el.stick = e.target.checked ? { w: Math.round(S() * .012), color: '#ffffff' } : null; commit(); } }), 'On')],
+    st && st.w ? [prow('Colour', colorBtn(st.color, v => st.color = v)), slider('Thickness', st.w, 1, Math.round(S() * .05), 1, v => st.w = v)] : h('p', { class: 'hint' }, 'A border that follows the subject — best after Remove background.')));
   P.append(group('Adjust',
     slider('Brightness', f.bright || 0, -100, 100, 1, v => f.bright = v), slider('Contrast', f.contrast || 0, -100, 100, 1, v => f.contrast = v),
     slider('Saturation', f.sat || 0, -100, 100, 1, v => f.sat = v), slider('Warmth', f.warm || 0, -100, 100, 1, v => f.warm = v),
@@ -1020,7 +1126,9 @@ function imageProps(el) {
   P.append(group('Border', prow('Colour', colorBtn(bd.color, v => { el.border = Object.assign({}, bd, el.border, { color: v }); })), slider('Width', bd.w || 0, 0, Math.round(S() * .04), 1, v => { el.border = Object.assign({}, bd, el.border, { w: v }); })));
 }
 function buildMultiProps(els) {
-  P.append(group([`${els.length} elements`, h('span', { class: 'btnrow' }, pb(ICO.copy, 'Duplicate', duplicate), pb(ICO.trash, 'Delete', del, false, 'danger'))]),
+  const grouped = isOneGroup(els);
+  P.append(group([grouped ? `Group of ${els.length}` : `${els.length} elements`, h('span', { class: 'btnrow' }, pb(ICO.copy, 'Duplicate', duplicate), pb(ICO.trash, 'Delete', del, false, 'danger'))]),
+    group('Group', h('button', { class: 'pb wide', type: 'button', style: 'width:100%', onclick: grouped ? ungroupSel : groupSel }, grouped ? 'Ungroup (Ctrl+Shift+G)' : 'Group (Ctrl+G)'), grouped ? h('p', { class: 'hint', style: 'margin-top:8px' }, 'Double-click a member to edit just that one.') : null),
     group('Align to each other', h('div', { class: 'btnrow' },
       pb(ICO.alL, 'Align left', () => alignTo('l')), pb(ICO.alC, 'Align centres', () => alignTo('c')), pb(ICO.alR, 'Align right', () => alignTo('r')),
       pb(ICO.alT, 'Align top', () => alignTo('t')), pb(ICO.alM, 'Align middles', () => alignTo('m')), pb(ICO.alB, 'Align bottom', () => alignTo('b')),
@@ -1120,6 +1228,7 @@ function tabTemplates(body) {
   let t = 0;
   q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { tplFilter.q = q.value; fill(); }, 250); });
   const fill = () => {
+    if (!fontsReadyFlag) { templateFonts.then(() => { fontsReadyFlag = true; if (body.isConnected && tab === 'templates') fill(); }); return; }
     if (stopDrawerGrid) stopDrawerGrid();
     grid.textContent = '';
     const list = TP.search(tplFilter.q, tplFilter.cat);
@@ -1130,6 +1239,7 @@ function tabTemplates(body) {
   fill();
 }
 function applyTemplate(d) {
+  if (!fontsReadyFlag) { templateFonts.then(() => { fontsReadyFlag = true; applyTemplate(d); }); return; }
   if (editingId) stopEdit();
   const pg = TP.build(d, doc.w, doc.h);
   const p = page();
@@ -1160,6 +1270,10 @@ function tabElements(body) {
     if (m('qr code link wifi wi-fi contact scan barcode')) {
       box.append(h('div', { class: 'sec' }, 'QR code'),
         h('button', { class: 'bigbtn', type: 'button', style: 'display:flex;gap:10px;align-items:center', onclick: () => qrDialog(null) }, svg(ICO.qr), h('span', null, h('b', null, 'Add a QR code'), h('br'), h('small', { style: 'color:var(--muted)' }, 'Website, Wi-Fi, contact card, email, phone…'))));
+    }
+    if (m('photo grid collage frames layout')) {
+      box.append(h('div', { class: 'sec' }, 'Photo grids'));
+      box.append(h('div', { class: 'egrid' }, GRIDS.map(([n, cells]) => h('button', { class: 'eb', type: 'button', title: n + ' photo grid', onclick: () => addGrid(cells) }, miniCanvas((x, S2) => { const p0 = S2 * .12, w = S2 - p0 * 2, g = S2 * .035; cells.forEach(([cx, cy, cw, ch]) => { x.fillStyle = '#9aa6bf'; x.fillRect(p0 + cx * w + g / 2, p0 + cy * w + g / 2, cw * w - g, ch * w - g); }); })))));
     }
     const charts = C.CHART_KINDS.filter(([k, n]) => m(n + ' chart graph data'));
     if (charts.length) {
@@ -1215,18 +1329,20 @@ function tabElements(body) {
 
 // ---- text
 const COMBOS = [
-  { n: 'Sale', els: s => [T('BIG SALE', 'Impact', 400, s * .16, '#111111'), T('UP TO 50% OFF', 'Helvetica', 700, s * .05, '#ffffff', { box: { color: '#ff3131', pad: .35, r: .1, full: true }, ls: .1 })] },
-  { n: 'Elegant', els: s => [T('Olivia & James', 'Script', 400, s * .11, '#2b2622'), T('ARE GETTING MARRIED', 'Gill Sans', 400, s * .032, '#6d5d4b', { ls: .3 })] },
-  { n: 'Headline + body', els: s => [T('Your Big Idea', 'Sans', 800, s * .09, '#111111'), T('Add a short description that explains the idea in a sentence or two.', 'Sans', 400, s * .032, '#444444', { w: s * .6 })] },
-  { n: 'Hollow', els: s => [T('SUMMER', 'Arial Black', 900, s * .14, '#ff66c4', { outline: { w: 3, color: '#ff66c4', only: true } }), T('SUMMER', 'Arial Black', 900, s * .14, '#ff66c4')] },
-  { n: 'Quote', els: s => [T('“Done is better than perfect.”', 'Georgia', 400, s * .075, '#1f1f1f', { italic: true, w: s * .7 }), T('— SHERYL SANDBERG', 'Futura', 500, s * .028, '#777777', { ls: .2 })] },
-  { n: 'Neon', els: s => [T('OPEN LATE', 'Futura', 700, s * .11, '#5ce1e6', { shadow: { color: '#5ce1e6', alpha: 1, blur: s * .04, x: 0, y: 0 } })] },
-  { n: 'Retro', els: s => [T('Good Vibes', 'Rockwell', 800, s * .12, '#ffbd59', { outline: { w: 4, color: '#1b1b3a' }, shadow: { color: '#ff5757', alpha: 1, blur: 0, x: s * .012, y: s * .012 } }), T('ONLY', 'Rockwell', 700, s * .04, '#1b1b3a', { ls: .5 })] },
-  { n: 'Highlight', els: s => [T('Tips you’ll actually use', 'Marker', 700, s * .07, '#111111', { box: { color: '#ffde59', pad: .2, r: .1 }, w: s * .7 })] },
-  { n: 'Event', els: s => [T('SATURDAY · JUNE 14', 'Helvetica', 700, s * .03, '#8c52ff', { ls: .2 }), T('Grand Opening', 'Didot', 400, s * .1, '#111111'), T('10 AM – 4 PM · 123 MAIN STREET', 'Helvetica', 500, s * .026, '#555555', { ls: .12 })] },
-  { n: 'Price', els: s => [T('$29', 'Arial Black', 900, s * .2, '#00bf63'), T('PER MONTH', 'Helvetica', 700, s * .03, '#111111', { ls: .3 })] },
-  { n: 'Typewriter', els: s => [T('Chapter One', 'Typewriter', 700, s * .08, '#3c2a1e'), T('It was a quiet morning when everything changed.', 'Typewriter', 400, s * .03, '#3c2a1e', { w: s * .6 })] },
-  { n: 'Stacked', els: s => [T('WORK', 'Impact', 400, s * .14, '#111111', { lh: .95 }), T('HARD', 'Impact', 400, s * .14, '#5e17eb', { lh: .95 }), T('PLAY', 'Impact', 400, s * .14, '#111111', { lh: .95 })] },
+  { n: 'Sale', els: s => [T('BIG SALE', 'Anton', 400, s * .16, '#111111'), T('UP TO 50% OFF', 'Montserrat', 700, s * .05, '#ffffff', { box: { color: '#ff3131', pad: .35, r: .1, full: true }, ls: .1 })] },
+  { n: 'Elegant', els: s => [T('Olivia & James', 'Great Vibes', 400, s * .12, '#2b2622'), T('ARE GETTING MARRIED', 'Josefin Sans', 400, s * .032, '#6d5d4b', { ls: .3 })] },
+  { n: 'Headline + body', els: s => [T('Your Big Idea', 'Poppins', 800, s * .09, '#111111'), T('Add a short description that explains the idea in a sentence or two.', 'Poppins', 400, s * .032, '#444444', { w: s * .6 })] },
+  { n: 'Hollow', els: s => [T('SUMMER', 'Archivo Black', 400, s * .14, '#ff66c4', { outline: { w: 3, color: '#ff66c4', only: true } }), T('SUMMER', 'Archivo Black', 400, s * .14, '#ff66c4')] },
+  { n: 'Quote', els: s => [T('“Done is better than perfect.”', 'Playfair Display', 400, s * .075, '#1f1f1f', { italic: true, w: s * .7 }), T('— SHERYL SANDBERG', 'Montserrat', 700, s * .028, '#777777', { ls: .2 })] },
+  { n: 'Neon', els: s => [T('OPEN LATE', 'Righteous', 400, s * .11, '#5ce1e6', { shadow: { color: '#5ce1e6', alpha: 1, blur: s * .04, x: 0, y: 0 } })] },
+  { n: 'Retro', els: s => [T('Good Vibes', 'Alfa Slab One', 400, s * .12, '#ffbd59', { outline: { w: 4, color: '#1b1b3a' }, shadow: { color: '#ff5757', alpha: 1, blur: 0, x: s * .012, y: s * .012 } }), T('ONLY', 'Josefin Sans', 700, s * .04, '#1b1b3a', { ls: .5 })] },
+  { n: 'Highlight', els: s => [T('Tips you’ll actually use', 'Permanent Marker', 400, s * .07, '#111111', { box: { color: '#ffde59', pad: .2, r: .1 }, w: s * .7 })] },
+  { n: 'Event', els: s => [T('SATURDAY · JUNE 14', 'Josefin Sans', 700, s * .03, '#8c52ff', { ls: .2 }), T('Grand Opening', 'DM Serif Display', 400, s * .1, '#111111'), T('10 AM – 4 PM · 123 MAIN STREET', 'Josefin Sans', 400, s * .026, '#555555', { ls: .12 })] },
+  { n: 'Price', els: s => [T('$29', 'Archivo Black', 400, s * .2, '#00bf63'), T('PER MONTH', 'Montserrat', 700, s * .03, '#111111', { ls: .3 })] },
+  { n: 'Handwritten', els: s => [T('Thank you!', 'Caveat', 700, s * .12, '#3c2a1e'), T('We couldn’t have done it without you.', 'Caveat', 400, s * .045, '#3c2a1e', { w: s * .6 })] },
+  { n: 'Stacked', els: s => [T('WORK', 'Bebas Neue', 400, s * .15, '#111111', { lh: .9 }), T('HARD', 'Bebas Neue', 400, s * .15, '#5e17eb', { lh: .9 }), T('PLAY', 'Bebas Neue', 400, s * .15, '#111111', { lh: .9 })] },
+  { n: 'Fun', els: s => [T('Party Time!', 'Pacifico', 400, s * .11, '#ff66c4'), T('SATURDAY AT 7', 'Fredoka', 700, s * .04, '#5e17eb', { ls: .1 })] },
+  { n: 'Classic', els: s => [T('THE GRAND', 'Cinzel', 700, s * .08, '#1d2a24', { ls: .1 }), T('Est. 1998 · Fine Dining', 'Cormorant Garamond', 500, s * .045, '#6b5a3e', { italic: true })] },
 ];
 function T(text, font, weight, size, color, o) { return Object.assign({ type: 'text', text, font, weight, size, color, align: 'center', lh: 1.15, ls: 0, x: 0, y: 0, w: 0, h: 0, rot: 0, opacity: 1 }, o || {}); }
 function comboEls(combo, s) {
@@ -1258,12 +1374,14 @@ function tabText(body) {
     } });
     const c = miniCanvas(() => {}, 10);
     c.width = 560; c.height = 200; c.style.width = '100%'; c.style.height = 'auto';
-    const x = c.getContext('2d');
-    const grp = comboEls(combo, 1000);
-    const k = Math.min(520 / grp.w, 170 / grp.h);
-    x.translate((560 - grp.w * k) / 2, (200 - grp.h * k) / 2); x.scale(k, k);
-    grp.els.forEach(el => C.drawElement(x, el, { scale: k }));
     b.append(c); body.append(b);
+    Promise.all(combo.els(100).map(e => C.loadFont(e.font, e.weight, e.italic))).then(() => {
+      const x = c.getContext('2d');
+      const grp = comboEls(combo, 1000);
+      const k = Math.min(520 / grp.w, 170 / grp.h);
+      x.translate((560 - grp.w * k) / 2, (200 - grp.h * k) / 2); x.scale(k, k);
+      grp.els.forEach(el => C.drawElement(x, el, { scale: k }));
+    });
   }
   body.append(h('div', { class: 'sec' }, 'Your fonts'),
     h('button', { class: 'bigbtn', type: 'button', onclick: () => { fontTarget = null; $('fileFont').click(); } }, 'Upload a font (.ttf, .otf, .woff)'),
@@ -1357,7 +1475,7 @@ function tabLayers(body) {
     const name = el.type === 'qr' ? 'QR code' : el.type === 'chart' ? 'Chart' : el.type === 'table' ? 'Table' : el.type === 'text' ? el.text.split('\n')[0].slice(0, 40) || 'Text' : el.type === 'image' ? (el.src ? 'Photo' : 'Photo frame') : el.type === 'icon' ? 'Icon: ' + el.icon : (C.SHAPES.find(s => s[0] === el.shape) || [0, 'Shape'])[1];
     const tyIcon = { text: ICO.text, image: C.ICONS.image, icon: C.ICONS.star, shape: ICO.elements, qr: ICO.qr, chart: C.ICONS.chart, table: ICO.table }[el.type];
     const row = h('div', { class: 'layer' + (sel.includes(el.id) ? ' on' : ''), draggable: 'true', onclick: e => { if (e.shiftKey) sel = sel.includes(el.id) ? sel.filter(i => i !== el.id) : [...sel, el.id]; else sel = [el.id]; buildProps(); requestRender(); showTab('layers'); } },
-      h('span', { class: 'ty' }, svg(tyIcon)), h('span', { class: 'nm' }, name),
+      h('span', { class: 'ty', style: el.group ? 'box-shadow:inset 3px 0 0 var(--accent)' : '' }, svg(tyIcon)), h('span', { class: 'nm' }, name),
       h('button', { type: 'button', class: el.hidden ? 'off' : '', title: el.hidden ? 'Show' : 'Hide', onclick: e => { e.stopPropagation(); el.hidden = !el.hidden; if (el.hidden) sel = sel.filter(i => i !== el.id); commit(); } }, svg(ICO.eye)),
       h('button', { type: 'button', class: el.locked ? '' : 'off', title: el.locked ? 'Unlock' : 'Lock', onclick: e => { e.stopPropagation(); el.locked = !el.locked; commit(); } }, svg(el.locked ? ICO.lock : ICO.unlock)));
     row.addEventListener('dragstart', () => { dragId = el.id; });
@@ -1428,6 +1546,9 @@ window.addEventListener('keydown', e => {
   if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && k === 'y') { e.preventDefault(); redo(); return; }
   if (mod && k === 'd') { e.preventDefault(); duplicate(); return; }
+  if (mod && k === 'g') { e.preventDefault(); e.shiftKey ? ungroupSel() : groupSel(); return; }
+  if (mod && e.altKey && k === 'c') { e.preventDefault(); copyStyle(); return; }
+  if (mod && e.altKey && k === 'v') { e.preventDefault(); pasteStyle(); return; }
   if (mod && k === 'c') { copySel(false); return; }
   if (mod && k === 'x') { copySel(true); return; }
   if (mod && k === 'a') { e.preventDefault(); sel = page().els.filter(x => !x.hidden).map(x => x.id); buildProps(); requestRender(); return; }
@@ -1447,6 +1568,7 @@ window.addEventListener('keydown', e => {
     for (const el of selEls()) if (!el.locked) { el.x += dx; el.y += dy; }
     requestRender(); nudgeCommit(); return;
   }
+  if (e.key === '?') { shortcutsDialog(); return; }
   if (k === 't') { addText('heading'); return; }
   if (k === 'r') { addShape('rect'); return; }
   if (k === 'c' || k === 'o') { addShape('ellipse'); return; }
@@ -1473,6 +1595,7 @@ cv.addEventListener('contextmenu', e => {
     ['Copy', 'Ctrl+C', () => copySel(false), !has], ['Paste', 'Ctrl+V', pasteClip, !clip], ['Duplicate', 'Ctrl+D', duplicate, !has], ['Delete', 'Del', del, !has], null,
     ['Bring forward', 'Ctrl+]', () => reorder('fwd'), !has], ['Send backward', 'Ctrl+[', () => reorder('bwd'), !has], ['Bring to front', '', () => reorder('front'), !has], ['Send to back', '', () => reorder('back'), !has], null,
     [selEls().some(x => x.locked) ? 'Unlock' : 'Lock', '', () => { const lk = !selEls().some(x => x.locked); selEls().forEach(x => x.locked = lk); commit(); }, !has],
+    [isOneGroup(selEls()) ? 'Ungroup' : 'Group', isOneGroup(selEls()) ? 'Ctrl+Shift+G' : 'Ctrl+G', () => isOneGroup(selEls()) ? ungroupSel() : groupSel(), sel.length < 2],
     ['Select all', 'Ctrl+A', () => { sel = page().els.map(x => x.id); buildProps(); requestRender(); }],
   ]);
 });
@@ -1494,9 +1617,24 @@ $('fileBtn').addEventListener('click', e => {
   openMenu(r.left, r.bottom + 4, [
     ['New design…', '', goHome], ['Open design file…', '', () => $('fileProject').click()], ['Save design file', 'Ctrl+S', saveProject], null,
     ['Resize…', '', resizeDialog], ['Download…', '', exportDialog], ['Present', '', present], null,
-    ['Upload photos…', '', () => $('fileImg').click()], ['Upload a font…', '', () => { fontTarget = null; $('fileFont').click(); }],
+    ['Upload photos…', '', () => $('fileImg').click()], ['Upload a font…', '', () => { fontTarget = null; $('fileFont').click(); }], null,
+    ['Keyboard shortcuts', '?', shortcutsDialog], ['Install as an app…', '', installApp],
   ]);
 });
+
+// ---------------------------------------------------------------- keyboard shortcuts sheet
+function shortcutsDialog() {
+  const mac = /Mac|iPhone|iPad/.test(navigator.platform), M = mac ? '⌘' : 'Ctrl';
+  const rows = [
+    ['Undo / redo', `${M}+Z / ${M}+Shift+Z`], ['Copy, cut, paste', `${M}+C / X / V`], ['Duplicate', `${M}+D`], ['Delete', 'Delete or Backspace'],
+    ['Select all', `${M}+A`], ['Group / ungroup', `${M}+G / ${M}+Shift+G`], ['Copy / paste style', `${M}+Alt+C / ${M}+Alt+V`],
+    ['Bring forward / send backward', `${M}+] / ${M}+[`], ['To front / to back', `${M}+Shift+] / [`], ['Nudge', 'Arrow keys (Shift = 10 px)'],
+    ['Edit selected text', 'Enter or double-click'], ['Add text / rectangle / circle / line', 'T / R / C / L'],
+    ['Zoom in / out / fit', `${M}+ + / ${M}+ − / ${M}+0`], ['Pan', 'Space + drag, or scroll'], ['Keep proportions / snap rotation', 'Shift while dragging'],
+    ['Move without snapping', 'Alt while dragging'], ['Save design file', `${M}+S`], ['This list', '?'],
+  ];
+  dialog('Keyboard shortcuts', h('div', { style: 'display:grid;grid-template-columns:1fr auto;gap:8px 16px' }, rows.flatMap(([a, b]) => [h('span', { style: 'color:var(--muted)' }, a), h('kbd', { style: 'font:inherit;font-size:12px;background:var(--well);border:1px solid var(--line);border-radius:5px;padding:2px 7px;white-space:nowrap' }, b)])), 'Close');
+}
 
 // ---------------------------------------------------------------- dialogs
 function dialog(title, body, okLabel, onOk) {
@@ -1570,12 +1708,61 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 const toBlob = (c, type, q) => new Promise(r => c.toBlob(r, type, q));
-async function imagesReady() { await Promise.all([...images.values()].map(r => r.img.decode ? r.img.decode().catch(() => {}) : null)); }
+function docFonts() {
+  const out = [];
+  for (const pg of doc.pages) for (const el of pg.els) {
+    if (el.type === 'text') out.push(C.loadFont(el.font, el.weight, el.italic));
+    if (el.type === 'table') out.push(C.loadFont(el.font, el.weight || 400), C.loadFont(el.font, el.hweight || 700));
+    if (el.type === 'chart') out.push(C.loadFont(el.font || 'Sans', 400), C.loadFont(el.font || 'Sans', 700));
+  }
+  return Promise.all(out);
+}
+async function imagesReady() {
+  await docFonts(); await Promise.all([...images.values()].map(r => r.img.decode ? r.img.decode().catch(() => {}) : null)); }
 function pageCanvas(pg, k, transparent) {
   const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(doc.w * k)); c.height = Math.max(1, Math.round(doc.h * k));
   const x = c.getContext('2d'); x.scale(k, k);
   if (!transparent) { x.fillStyle = '#ffffff'; x.fillRect(0, 0, doc.w, doc.h); }
   C.renderPage(x, pg, doc.w, doc.h, { scale: k, images: getImg, transparent });
+  return c;
+}
+// Print version of a page: 0.125 in bleed on every side plus a margin for crop
+// marks. Shapes and photos that touch the page edge are stretched into the
+// bleed so nothing white shows if the cut drifts.
+function printGeom(k) {
+  const dpi = doc.dpi || 96, b = .125 * dpi, m = .25 * dpi;
+  const W = doc.w + 2 * (b + m), H = doc.h + 2 * (b + m);
+  if (W * k * H * k > MAX_PIXELS) k = Math.sqrt(MAX_PIXELS / (W * H));
+  return { dpi, b, m, W, H, k };
+}
+function printCanvas(pg, k0) {
+  const { b, m, W, H, k, dpi } = printGeom(k0);
+  const c = document.createElement('canvas'); c.width = Math.round(W * k); c.height = Math.round(H * k);
+  const x = c.getContext('2d'); x.scale(k, k);
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, H);
+  x.save(); x.translate(m, m); x.beginPath(); x.rect(0, 0, doc.w + 2 * b, doc.h + 2 * b); x.clip();
+  C.drawBackground(x, pg.bg, doc.w + 2 * b, doc.h + 2 * b, { images: getImg, scale: k });
+  x.translate(b, b);
+  const env = { scale: k, images: getImg };
+  for (const el of pg.els) {
+    let e = el;
+    if (!el.rot && (el.type === 'shape' || el.type === 'image') && !C.isLine(el)) {
+      e = Object.assign({}, el);
+      if (el.x <= .5) { e.x -= b; e.w += b; }
+      if (el.x + el.w >= doc.w - .5) e.w += b;
+      if (el.y <= .5) { e.y -= b; e.h += b; }
+      if (el.y + el.h >= doc.h - .5) e.h += b;
+    }
+    C.drawElement(x, e, env);
+  }
+  x.restore();
+  // crop marks at the trim corners, kept out of the bleed
+  x.strokeStyle = '#000000'; x.lineWidth = .25 / 72 * dpi;
+  const t0 = m + b, tx = [t0, t0 + doc.w], ty = [t0, t0 + doc.h], a = m * .1, z = m * .9;
+  x.beginPath();
+  for (const X of tx) { x.moveTo(X, a); x.lineTo(X, z); x.moveTo(X, H - a); x.lineTo(X, H - z); }
+  for (const Y of ty) { x.moveTo(a, Y); x.lineTo(z, Y); x.moveTo(W - a, Y); x.lineTo(W - z, Y); }
+  x.stroke();
   return c;
 }
 let pdfLib = null;
@@ -1594,13 +1781,15 @@ function exportDialog() {
   const sizeOut = h('span', { class: 'hint' });
   const which = h('select', null, h('option', { value: 'cur' }, `Current page (${doc.cur + 1})`), doc.pages.length > 1 ? h('option', { value: 'all', selected: true }, `All ${doc.pages.length} pages`) : null);
   const transp = h('label', { style: 'display:flex;gap:8px;align-items:center' }, h('input', { type: 'checkbox' }), 'Transparent background');
+  const bleed = h('label', { style: 'display:flex;gap:8px;align-items:flex-start' }, h('input', { type: 'checkbox', style: 'margin-top:3px' }), h('span', null, 'Print-ready: add bleed and crop marks', h('small', { style: 'display:block;color:var(--faint)' }, 'Adds 0.125 in past each edge — what most print shops ask for.')));
   const upd = () => {
     let k = +scale.value; if (doc.w * k * doc.h * k > MAX_PIXELS) k = Math.sqrt(MAX_PIXELS / (doc.w * doc.h));
     sizeOut.textContent = `${Math.round(doc.w * k)} × ${Math.round(doc.h * k)} px`;
     transp.hidden = type !== 'png';
+    bleed.hidden = type !== 'pdf';
   };
   scale.addEventListener('change', upd); upd();
-  dialog('Download', [radios, prow('Size', scale, sizeOut), prow('Pages', which), transp], 'Download', async () => {
+  dialog('Download', [radios, prow('Size', scale, sizeOut), prow('Pages', which), transp, bleed], 'Download', async () => {
     let k = +scale.value; if (doc.w * k * doc.h * k > MAX_PIXELS) k = Math.sqrt(MAX_PIXELS / (doc.w * doc.h));
     const pages = which.value === 'all' ? doc.pages : [page()];
     const tr = type === 'png' && transp.querySelector('input').checked;
@@ -1611,12 +1800,19 @@ function exportDialog() {
         const PL = await loadPdfLib();
         const pdf = await PL.PDFDocument.create();
         pdf.setTitle(doc.name || 'Design'); pdf.setCreator('Linear Design');
-        const pw = doc.w * 72 / (doc.dpi || 96), ph = doc.h * 72 / (doc.dpi || 96);
+        const print = bleed.querySelector('input').checked, pt = 72 / (doc.dpi || 96);
+        const G = printGeom(+scale.value);
+        const pw = (print ? G.W : doc.w) * pt, ph = (print ? G.H : doc.h) * pt;
         for (const pg of pages) {
-          const c = pageCanvas(pg, k, false);
+          const c = print ? printCanvas(pg, +scale.value) : pageCanvas(pg, k, false);
           const bytes = new Uint8Array(await (await toBlob(c, 'image/jpeg', .95)).arrayBuffer());
           const im = await pdf.embedJpg(bytes);
-          pdf.addPage([pw, ph]).drawImage(im, { x: 0, y: 0, width: pw, height: ph });
+          const pp = pdf.addPage([pw, ph]);
+          pp.drawImage(im, { x: 0, y: 0, width: pw, height: ph });
+          if (print && pp.setTrimBox) {
+            pp.setBleedBox(G.m * pt, G.m * pt, (doc.w + 2 * G.b) * pt, (doc.h + 2 * G.b) * pt);
+            pp.setTrimBox((G.m + G.b) * pt, (G.m + G.b) * pt, doc.w * pt, doc.h * pt);
+          }
         }
         download(new Blob([await pdf.save()], { type: 'application/pdf' }), safeName() + '.pdf');
       } else {
@@ -1736,6 +1932,7 @@ function loadFontFile(f) {
 
 // ---------------------------------------------------------------- home screen
 const homeState = { fmt: 'ig-post', cat: '', q: '' };
+let fontsReadyFlag = false;
 let stopHomeGrid = null;
 function goHome() {
   if (editingId) stopEdit();
@@ -1756,6 +1953,7 @@ function buildHome() {
   fillHomeGrid();
 }
 function fillHomeGrid() {
+  if (!fontsReadyFlag) { templateFonts.then(() => { fontsReadyFlag = true; fillHomeGrid(); }); return; }
   const f = fmtById(homeState.fmt);
   const list = TP.search(homeState.q, homeState.cat);
   $('hTplTitle').textContent = `${f.n} templates`;
@@ -1807,7 +2005,7 @@ function chartDefaults(kind) {
 }
 function addChart(kind, at) {
   const s = S(), round = kind === 'pie' || kind === 'donut';
-  const el = Object.assign({ id: nid(), type: 'chart', kind, x: 0, y: 0, w: round ? s * .55 : s * .7, h: round ? s * .62 : s * .48, rot: 0, opacity: 1, bg: 'none', surface: pageSurface(), font: brand.body || 'Sans' }, chartDefaults(kind));
+  const el = Object.assign({ id: nid(), type: 'chart', kind, x: 0, y: 0, w: round ? s * .55 : s * .7, h: round ? s * .62 : s * .48, rot: 0, opacity: 1, bg: 'none', surface: pageSurface(), font: brand.body || 'Inter' }, chartDefaults(kind));
   place(el, at); page().els.push(el); sel = [el.id]; commit();
 }
 const TABLE_STYLES = {
@@ -1817,7 +2015,7 @@ const TABLE_STYLES = {
 };
 function addTable(style, at) {
   const s = S();
-  const el = Object.assign({ id: nid(), type: 'table', rows: [['Plan', 'Basic', 'Pro'], ['Help desk', 'Business hours', '24/7'], ['Backups', 'Weekly', 'Daily'], ['Price', '$99/mo', '$199/mo']], font: brand.body || 'Sans', size: Math.round(s * .03), header: true, x: 0, y: 0, w: s * .76, h: 10, rot: 0, opacity: 1 }, clone(TABLE_STYLES[style] || TABLE_STYLES.bold));
+  const el = Object.assign({ id: nid(), type: 'table', rows: [['Plan', 'Basic', 'Pro'], ['Help desk', 'Business hours', '24/7'], ['Backups', 'Weekly', 'Daily'], ['Price', '$99/mo', '$199/mo']], font: brand.body || 'Inter', size: Math.round(s * .03), header: true, x: 0, y: 0, w: s * .76, h: 10, rot: 0, opacity: 1 }, clone(TABLE_STYLES[style] || TABLE_STYLES.bold));
   C.syncText(el); place(el, at); page().els.push(el); sel = [el.id]; commit();
 }
 
@@ -2164,15 +2362,42 @@ new ResizeObserver(() => { const had = vw; resizeCanvas(); if (doc && !had) fit(
 window.addEventListener('resize', () => { if (doc) thumbsSoon(); });
 document.addEventListener('gesturestart', e => e.preventDefault());   // stop iOS page-zoom fighting the pinch
 
+let fontT = 0;
+C.onFontLoad(() => {
+  clearTimeout(fontT);
+  fontT = setTimeout(() => {
+    if (!doc) return;
+    for (const pg of doc.pages) for (const el of pg.els) if (el.type === 'text' || el.type === 'table') C.syncText(el);
+    requestRender(); thumbsSoon(); placeEditor();
+  }, 60);
+});
 buildRail();
 if (window.innerWidth < 980) $('drawer').classList.add('closed');
 resizeCanvas();
+// Template thumbnails measure text to fit it, so their fonts must be loaded first.
+const templateFonts = Promise.race([Promise.all(TP.faces().map(f => C.loadFont(f[0], f[1], f[2]))), new Promise(r => setTimeout(r, 6000))]);
 buildHome();
 showContinue();
 // Deep links: /design/#new=ig-story or #t=search%20words
 const hsh = new URLSearchParams(location.hash.slice(1));
 if (hsh.get('new') && fmtById(hsh.get('new'))) { const f = fmtById(hsh.get('new')); newDoc(f.w, f.h, { fmt: f.id, name: 'Untitled ' + f.n }); }
 else if (hsh.get('t')) { $('hSearch').value = homeState.q = hsh.get('t'); fillHomeGrid(); }
+
+// ---------------------------------------------------------------- install & offline
+let installPrompt = null;
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; $('hInstall').hidden = false; });
+window.addEventListener('appinstalled', () => { installPrompt = null; $('hInstall').hidden = true; toast('Installed — Linear Design now opens like an app, even offline.'); });
+function installApp() {
+  if (installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; $('hInstall').hidden = true; }); return; }
+  if (standalone()) return toast('You’re already using the installed app.');
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return toast('On iPhone or iPad: tap the Share button, then “Add to Home Screen”.');
+  toast('Use your browser’s menu → “Install app” (or “Add to Home screen”).');
+}
+$('hInstall').addEventListener('click', installApp);
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/design/sw.js', { scope: '/design/' }).catch(() => {}));
+}
 
 // Exposed for automated checks only.
 window.__ld = { get doc() { return doc; }, get sel() { return sel; }, set sel(v) { sel = v; buildProps(); requestRender(); }, commit, undo, redo, applyTemplate, newDoc, view, toPage, toScr, exportDialog, resizeDesign, addText, addShape, addIcon, addFrame, addEmoji, projectData, loadProject, uploads, images, addImage };

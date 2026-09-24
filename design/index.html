@@ -8,6 +8,7 @@
 <link rel="canonical" href="https://www.linearit.co/design/"/>
 <link rel="icon" href="/design/assets/icon.png"/>
 <link rel="apple-touch-icon" href="/design/assets/icon.png"/>
+<link rel="manifest" href="/design/manifest.webmanifest"/>
 <meta name="theme-color" content="#1b1d24"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -16,8 +17,9 @@
      page can send a design or a photo anywhere. Fonts are the system's own.
      'wasm-unsafe-eval' lets the background remover compile its WebAssembly
      runtime, which is served from /design/vendor like everything else. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' blob: data:; font-src 'self' data: blob:;"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' blob: data:; font-src 'self' data: blob:; manifest-src 'self'; worker-src 'self';"/>
 <meta name="referrer" content="no-referrer"/>
+<link rel="stylesheet" href="/design/vendor/fonts/fonts.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
@@ -301,7 +303,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 
 <div class="home" id="home">
   <div class="hwrap">
-    <div class="htop"><a class="brand" href="/projects/">Linear</a><span class="appname">Design</span><span class="grow"></span><button class="topbtn" id="hOpen" type="button">Open a design file</button></div>
+    <div class="htop"><a class="brand" href="/projects/">Linear</a><span class="appname">Design</span><span class="grow"></span><button class="topbtn" id="hInstall" type="button" hidden>Install app</button><button class="topbtn" id="hOpen" type="button">Open a design file</button></div>
     <div class="hero">
       <h1>What will you design today?</h1>
       <p><b id="hCount">11,256</b> free templates · 21 sizes · no account · nothing leaves your device</p>
@@ -322,6 +324,9 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
       <div class="perk"><b>Transparent PNG, PDF, JPG</b><span>Print-ready PDFs and high-resolution images. No watermarks.</span></div>
       <div class="perk"><b>One-click background remover</b><span>AI that runs on your device — plus erase and restore brushes for the fiddly bits.</span></div>
       <div class="perk"><b>QR codes, charts, tables</b><span>Wi-Fi and contact-card QR codes, seven chart types and tables you can paste straight from Excel.</span></div>
+      <div class="perk"><b>Real fonts, everywhere</b><span>36 designer fonts that look the same on every device — plus curved text and your own uploaded fonts.</span></div>
+      <div class="perk"><b>Print-ready PDFs</b><span>Bleed and crop marks in one tick, for the print shop.</span></div>
+      <div class="perk"><b>Works offline</b><span>Install it like an app and keep designing with no connection.</span></div>
       <div class="perk"><b>Private by design</b><span>Your photos and designs never leave this device. No upload, no sign-in.</span></div>
     </div>
   </div>
