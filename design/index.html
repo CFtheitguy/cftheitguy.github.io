@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Linear Design — free graphic design app</title>
-<meta name="description" content="Design social posts, flyers, posters, invitations, business cards, thumbnails and presentations in your browser. Over 11,000 templates in 21 sizes, one-click background remover, QR codes, charts and tables, magic resize, brand kit, transparent PNG and PDF export — free, no account, nothing uploaded. From Linear IT."/>
+<meta name="description" content="Design social posts, flyers, posters, invitations, business cards, thumbnails and presentations in your browser. Over 15,000 templates in 21 sizes, one-click background remover, QR codes, charts and tables, magic resize, brand kit, transparent PNG and PDF export — free, no account, nothing uploaded. From Linear IT."/>
 <link rel="canonical" href="https://www.linearit.co/design/"/>
 <link rel="icon" href="/design/assets/icon.png"/>
 <link rel="apple-touch-icon" href="/design/assets/icon.png"/>
@@ -98,6 +98,23 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .zoomctl input{width:110px}
 .zoomctl output{min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
 
+/* ---------- your templates, version history ---------- */
+.mytplsec{margin:10px 0 4px}
+.mytplgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mytplgrid.home{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:8px}
+.mytpl{min-width:0}
+.mytpl-img{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:4/3;padding:6px;border:0;border-radius:7px;background:var(--well);overflow:hidden}
+.mytpl-img img{max-width:100%;max-height:100%;display:block;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.mytpl-img:hover{outline:2px solid var(--accent)}
+.mytpl-row{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin-top:3px}
+.mytpl-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mytpl-row button{background:none;border:0;color:var(--faint);font-size:16px;line-height:1;padding:2px 5px}
+.mytpl-row button:hover{color:#ff5757}
+.verlist{display:grid;gap:8px;max-height:52vh;overflow-y:auto;margin-top:8px}
+.ver{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:6px;border:1px solid var(--line);border-radius:8px}
+.ver img{width:64px;height:48px;object-fit:contain;background:var(--well);border-radius:4px}
+.ver b{display:block;font-size:13px}
+.ver small{color:var(--faint);font-size:12px}
 /* ---------- drawer contents ---------- */
 .search{width:100%;padding:9px 11px;border-radius:8px;font-size:14px}
 .chips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 8px;scrollbar-width:thin}
@@ -239,9 +256,9 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .dlg .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
 .dlg .foot button{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:7px 15px}
 .dlg .foot button.ok{background:var(--accent);border-color:var(--accent);color:#04121a;font-weight:700}
-.dlg label.opt{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
-.dlg label.opt:has(input:checked){border-color:var(--accent);background:var(--accent-bg)}
-.dlg label.opt small{display:block;color:var(--muted)}
+.dlg label.opt,.drawer label.opt{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.dlg label.opt:has(input:checked),.drawer label.opt:has(input:checked){border-color:var(--accent);background:var(--accent-bg)}
+.dlg label.opt small,.drawer label.opt small{display:block;color:var(--muted)}
 .fmtlist{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:260px;overflow:auto}
 .fmtlist button{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:8px;text-align:left;color:var(--text)}
 .fmtlist button.on{border-color:var(--accent);background:var(--accent-bg)}
@@ -314,13 +331,14 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 
 <div class="home" id="home">
   <div class="hwrap">
-    <div class="htop"><a class="brand" href="/projects/">Linear</a><span class="appname">Design</span><span class="grow"></span><button class="topbtn" id="hInstall" type="button" hidden>Install app</button><button class="topbtn" id="hOpen" type="button">Open a design file</button></div>
+    <div class="htop"><a class="brand" href="/projects/">Linear</a><span class="appname">Design</span><span class="grow"></span><button class="topbtn" id="hInstall" type="button" hidden>Install app</button><button class="topbtn" id="hOpen" type="button">Open a design or PDF</button></div>
     <div class="hero">
       <h1>What will you design today?</h1>
-      <p><b id="hCount">11,256</b> free templates · 21 sizes · no account · nothing leaves your device</p>
+      <p><b id="hCount">15,960</b> free templates · 21 sizes · no account · nothing leaves your device</p>
       <input class="search" id="hSearch" type="search" placeholder="Search templates: birthday, sale, hiring, menu…" aria-label="Search templates"/>
     </div>
     <button class="cont" id="hContinue" type="button" hidden><canvas id="hContCv" width="140" height="80"></canvas><div><b id="hContName"></b><span>Pick up where you left off</span></div></button>
+    <div id="hMine" hidden></div>
     <div class="hsec"><h2>Start a blank design</h2><button class="topbtn" id="hCustom" type="button">Custom size</button></div>
     <div class="ftiles" id="hFormats"></div>
     <div class="hsec"><h2 id="hTplTitle">Templates</h2></div>
@@ -341,6 +359,10 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
       <div class="perk"><b>Animate &amp; export video</b><span>Make designs move, then download an MP4 or GIF for Reels, Stories and email.</span></div>
       <div class="perk"><b>Mockups</b><span>See your design on a phone, T-shirt, mug, poster or billboard.</span></div>
       <div class="perk"><b>Free stock photos</b><span>Search thousands of free photos from Pexels right inside the editor.</span></div>
+      <div class="perk"><b>Magic eraser &amp; upscaler</b><span>Brush away anything, sharpen small photos up to 4×, blur backgrounds and copy text out of a photo — all on your device.</span></div>
+      <div class="perk"><b>Draw &amp; mark up</b><span>Pen, marker and highlighter, pressure-sensitive with a stylus.</span></div>
+      <div class="perk"><b>PowerPoint &amp; PDF</b><span>Download as an editable PowerPoint, or open a PDF and design on top of it.</span></div>
+      <div class="perk"><b>Your templates &amp; history</b><span>Save your own templates, and go back to any earlier version.</span></div>
       <div class="perk"><b>Private by design</b><span>Your photos and designs never leave this device. No upload, no sign-in.</span></div>
     </div>
   </div>
@@ -348,7 +370,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 
 <input type="file" id="fileImg" accept="image/*" multiple hidden>
 <input type="file" id="fileReplace" accept="image/*" hidden>
-<input type="file" id="fileProject" accept=".ldesign,.json,application/json" hidden>
+<input type="file" id="fileProject" accept=".ldesign,.json,application/json,.pdf,application/pdf" hidden>
 <input type="file" id="fileFont" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
 <input type="file" id="fileLogo" accept="image/*" hidden>
 <div id="toasts" aria-live="polite"></div>

@@ -895,7 +895,34 @@ function drawElement(ctx, el, env) {
   else if (el.type === 'shape') drawShape(ctx, el);
   else if (el.type === 'icon') drawIcon(ctx, el);
   else if (el.type === 'image') drawImage(ctx, el, env);
+  else if (el.type === 'draw') drawStroke(ctx, el);
   ctx.restore();
+}
+// Freehand strokes. Points are stored 0..1 inside the element's box, so the
+// stroke stretches with it; each point carries a pressure (0..1).
+function strokePath(ctx, pts, W, H) {
+  ctx.beginPath();
+  const P = i => [pts[i][0] * W, pts[i][1] * H];
+  if (pts.length === 1) { const [x, y] = P(0); ctx.moveTo(x, y); ctx.lineTo(x + .01, y); return; }
+  let [x0, y0] = P(0); ctx.moveTo(x0, y0);
+  for (let i = 1; i < pts.length - 1; i++) { const [x, y] = P(i), [nx, ny] = P(i + 1); ctx.quadraticCurveTo(x, y, (x + nx) / 2, (y + ny) / 2); }
+  const [xl, yl] = P(pts.length - 1); ctx.lineTo(xl, yl);
+}
+function drawStroke(ctx, el) {
+  const pts = el.pts || [], W = el.w, H = el.h;
+  if (!pts.length) return;
+  ctx.strokeStyle = fillColor(el.color); ctx.lineJoin = 'round';
+  if (el.pen === 'hl') { ctx.globalAlpha *= .38; ctx.lineCap = 'butt'; ctx.lineWidth = el.sw; strokePath(ctx, pts, W, H); ctx.stroke(); return; }
+  ctx.lineCap = 'round';
+  if (el.pen === 'marker' || pts.length < 3) { ctx.lineWidth = el.sw; strokePath(ctx, pts, W, H); ctx.stroke(); return; }
+  // pen: width follows pressure, tapered at both ends
+  const n = pts.length, mid = i => [(pts[i][0] + pts[i + 1][0]) / 2 * W, (pts[i][1] + pts[i + 1][1]) / 2 * H];
+  for (let i = 1; i < n - 1; i++) {
+    const a = i === 1 ? [pts[0][0] * W, pts[0][1] * H] : mid(i - 1), b = i === n - 2 ? [pts[n - 1][0] * W, pts[n - 1][1] * H] : mid(i);
+    const taper = Math.min(1, (i + 1) / 5, (n - i) / 5);
+    ctx.lineWidth = Math.max(.6, el.sw * (.35 + .9 * (pts[i][2] == null ? .5 : pts[i][2])) * (.45 + .55 * taper));
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo(pts[i][0] * W, pts[i][1] * H, b[0], b[1]); ctx.stroke();
+  }
 }
 function drawShape(ctx, el) {
   const path = shapePath(el);
