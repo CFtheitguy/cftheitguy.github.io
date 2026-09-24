@@ -24,3 +24,9 @@ e13f7f94fc51b4ca72b12faeb1ee95f4ace6dfbc8939bc718aabdc0a27c4299b  ort/ort-wasm-s
 `fonts/*.woff2` — 36 Google Fonts families (latin subset) from Fontsource 5.x
 (`@fontsource/<family>`), all under the SIL Open Font License 1.1.
 `fonts/fonts.css` declares them; the editor loads each face on first use.
+
+## Video export
+
+`mp4/mp4-muxer.js` and `mp4/webm-muxer.js` — from npm `mp4-muxer@5.2.2` and
+`webm-muxer@5.1.4` (`build/*.js`), both MIT © Vanilagy (`mp4/LICENSE`). Loaded
+only when someone downloads an MP4.

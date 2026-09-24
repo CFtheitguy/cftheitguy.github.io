@@ -60,6 +60,8 @@ function h(tag, props, ...kids) {
 const svg = (d, cls) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', cls || 'i'); s.innerHTML = d.split('|').map(p => `<path d="${p}"/>`).join(''); return s; };
 const ICO = {
   templates: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  photos: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M17 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z',
+  magic: 'M5 19L16 8M14 6l2-2 4 4-2 2M7 4v3M5.5 5.5h3M18 15v3M16.5 16.5h3',
   elements: 'M12 3l4 7H8zM4 14h7v7H4zM21 17.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z',
   text: 'M5 7V4h14v3M12 4v16M9 20h6',
   uploads: 'M12 16V4M7 9l5-5 5 5M5 20h14',
@@ -252,8 +254,9 @@ function render() {
   // checkerboard shows through a transparent background
   g.fillStyle = '#e9ebef'; g.fillRect(px, py, W, H);
   g.translate(px, py); g.scale(zoom, zoom);
-  C.renderPage(g, page(), doc.w, doc.h, { scale: zoom * dpr, images: getImg, editor: true, editing: editingId });
+  C.renderPage(g, page(), doc.w, doc.h, playing ? { scale: zoom * dpr, images: getImg, t: playing.t, dur: pageDur(page()) } : { scale: zoom * dpr, images: getImg, editor: true, editing: editingId });
   g.restore();
+  if (playing) { drawPlayBar(); return; }
   drawOverlay();
 }
 function corners(el) {
@@ -379,6 +382,7 @@ let spaceDown = false;
 function evPos(e) { const r = work.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
 cv.addEventListener('pointerdown', e => {
   if (!doc) return;
+  if (playing) { stopPlay(); return; }
   // Stop the browser's own mousedown focus handling, which would immediately
   // blur the text editor a double-click just opened. Blur other fields by hand.
   e.preventDefault();
@@ -979,6 +983,7 @@ function buildProps() {
   if (el.type === 'qr') qrProps(el);
   if (el.type === 'chart') chartProps(el);
   if (el.type === 'table') tableProps(el);
+  animProps(el);
   commonProps(el);
 }
 function commonProps(el) {
@@ -1052,6 +1057,7 @@ function textProps(el) {
     slider('Line height', el.lh || 1.2, .6, 3, .05, v => { el.lh = v; up(); }, v => (+v).toFixed(2)),
     slider('Spacing', Math.round((el.ls || 0) * 1000), -100, 800, 5, v => { el.ls = v / 1000; up(); }),
     slider('Curve', el.curve || 0, -100, 100, 1, v => { const cx = el.x + el.w / 2, cy = el.y + el.h / 2; if (!v && el.curve) { el.curve = 0; el.w = 1e5; el.w = Math.min(doc.w * .9, Math.ceil(C.textWidth(el)) + 4); } else el.curve = v; up(); el.x = cx - el.w / 2; el.y = cy - el.h / 2; }),
+    h('button', { class: 'pb wide magic', type: 'button', style: 'width:100%;margin:4px 0 8px', onclick: () => magicWrite(el) }, svg(ICO.magic), 'Magic Write'),
     h('div', { class: 'prow', style: 'margin-top:4px' }, h('button', { class: 'pb wide', type: 'button', onclick: () => { el.w = 1e5; el.w = Math.ceil(C.textWidth(el)) + 4; up(); commit(); } }, 'Fit box to text'), h('button', { class: 'pb wide', type: 'button', onclick: () => startEdit(el) }, 'Edit text'))));
   const cur = effectOf(el);
   const fxPrev = { none: '', shadow: 'text-shadow:2px 2px 2px #000', lift: 'text-shadow:0 3px 8px rgba(0,0,0,.6)', hollow: 'color:transparent;-webkit-text-stroke:1px #fff', outline: '-webkit-text-stroke:1px #000;color:#fff', neon: 'text-shadow:0 0 6px #0ff,0 0 10px #0ff', highlight: 'background:#ffde59;color:#111;padding:0 3px', block: 'background:#111;color:#fff;padding:1px 5px;border-radius:3px', splice: 'color:#fff;-webkit-text-stroke:1px #000;text-shadow:2px 2px 0 #ff5757' };
@@ -1106,6 +1112,7 @@ function imageProps(el) {
     el.src ? h('div', { class: 'btnrow', style: 'margin-bottom:8px' },
       h('button', { class: 'pb wide', type: 'button', style: 'background:var(--accent-bg);border-color:var(--accent)', onclick: () => bgDialog(el) }, svg(ICO.wand), 'Remove background'),
       el.srcOriginal ? h('button', { class: 'pb wide', type: 'button', onclick: () => { el.src = el.srcOriginal; el.srcOriginal = null; commit(); } }, 'Restore original') : null) : null,
+    el.credit && el.src ? h('p', { class: 'hint', style: 'margin-bottom:8px' }, 'Photo by ', h('a', { href: el.credit.url, target: '_blank', rel: 'noopener', style: 'color:var(--accent)' }, el.credit.by), ' on Pexels') : null,
     h('div', { class: 'prow' }, h('span', null, 'Shape'), h('select', { onchange: e => { el.mask = e.target.value; if (el.mask === 'blob' && !el.seed) el.seed = 7; commit(); } }, C.MASKS.map(([k, n]) => h('option', { value: k, selected: (el.mask || 'none') === k }, n)))),
     el.src ? [slider('Zoom', Math.round((el.zoom || 1) * 100), 100, 400, 1, v => el.zoom = v / 100, v => v + '%'),
       slider('Move X', Math.round((el.px || 0) * 100), -100, 100, 1, v => el.px = v / 100),
@@ -1152,6 +1159,7 @@ function buildPageProps() {
       prow('Tint', colorBtn(bg.tint || '#000000', v => { bg.tint = v; if (bg.tintA == null) bg.tintA = .3; })),
       slider('Tint strength', Math.round((bg.tint ? (bg.tintA == null ? .35 : bg.tintA) : 0) * 100), 0, 95, 1, v => { if (!bg.tint) bg.tint = '#000000'; bg.tintA = v / 100; }, v => v + '%'),
       h('button', { class: 'pb wide', type: 'button', style: 'width:100%', onclick: () => { bg.image = null; bg.tint = null; commit(); } }, 'Remove photo background')] : null));
+  pageAnimProps();
   P.append(group('Page', h('div', { class: 'btnrow' },
     h('button', { class: 'pb wide', type: 'button', onclick: () => addPage(false) }, 'Add page'),
     h('button', { class: 'pb wide', type: 'button', onclick: () => addPage(true) }, 'Duplicate'),
@@ -1163,7 +1171,7 @@ function buildPageProps() {
 }
 
 // ---------------------------------------------------------------- drawer tabs
-const TABS = [['templates', 'Templates'], ['elements', 'Elements'], ['text', 'Text'], ['uploads', 'Uploads'], ['background', 'Background'], ['brand', 'Brand'], ['layers', 'Layers']];
+const TABS = [['templates', 'Templates'], ['elements', 'Elements'], ['photos', 'Photos'], ['text', 'Text'], ['uploads', 'Uploads'], ['background', 'Background'], ['brand', 'Brand'], ['layers', 'Layers']];
 function buildRail() {
   const r = $('rail'); r.textContent = '';
   for (const [k, n] of TABS) r.append(h('button', { type: 'button', class: k === tab && !$('drawer').classList.contains('closed') ? 'on' : '', 'data-tab': k, onclick: () => { if (tab === k && !$('drawer').classList.contains('closed')) closeDrawer(); else showTab(k); } }, svg(ICO[k]), n));
@@ -1177,7 +1185,7 @@ function showTab(k) {
   if (stopDrawerGrid) { stopDrawerGrid(); stopDrawerGrid = null; }
   const keepScroll = body.dataset.tab === k ? body.scrollTop : 0;
   body.textContent = ''; body.dataset.tab = k;
-  ({ templates: tabTemplates, elements: tabElements, text: tabText, uploads: tabUploads, background: tabBackground, brand: tabBrand, layers: tabLayers })[k](body);
+  ({ templates: tabTemplates, elements: tabElements, photos: tabPhotos, text: tabText, uploads: tabUploads, background: tabBackground, brand: tabBrand, layers: tabLayers })[k](body);
   body.scrollTop = keepScroll;
   buildRail();
   if (wasClosed) setTimeout(resizeCanvas, 0);
@@ -1360,6 +1368,7 @@ function comboEls(combo, s) {
 function tabText(body) {
   body.append(
     h('button', { class: 'bigbtn accent', type: 'button', onclick: () => addText('heading') }, 'Add a text box'),
+    h('button', { class: 'bigbtn magic', type: 'button', style: 'text-align:center', onclick: () => magicWrite(null) }, '✨ Magic Write — let AI write it'),
     h('button', { class: 'bigbtn', type: 'button', style: 'font-size:22px;font-weight:800', onclick: () => addText('heading') }, 'Add a heading'),
     h('button', { class: 'bigbtn', type: 'button', style: 'font-size:16px;font-weight:600', onclick: () => addText('sub') }, 'Add a subheading'),
     h('button', { class: 'bigbtn', type: 'button', style: 'font-size:12.5px', onclick: () => addText('body') }, 'Add a little bit of body text'),
@@ -1540,6 +1549,7 @@ function openFromHomeDrop(files) {
 // ---------------------------------------------------------------- keyboard & clipboard
 const typing = e => { const t = e.target; return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable); };
 window.addEventListener('keydown', e => {
+  if (playing && !typing(e)) { e.preventDefault(); stopPlay(); return; }
   if (e.key === ' ' && !typing(e)) { spaceDown = true; if (doc) cv.style.cursor = 'grab'; e.preventDefault(); return; }
   if (!doc || !$('home').hidden || typing(e) || document.querySelector('.scrim,.present')) return;
   const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
@@ -1569,6 +1579,7 @@ window.addEventListener('keydown', e => {
     requestRender(); nudgeCommit(); return;
   }
   if (e.key === '?') { shortcutsDialog(); return; }
+  if (k === 'p') { play(doc.pages.length > 1); return; }
   if (k === 't') { addText('heading'); return; }
   if (k === 'r') { addShape('rect'); return; }
   if (k === 'c' || k === 'o') { addShape('ellipse'); return; }
@@ -1616,11 +1627,357 @@ $('fileBtn').addEventListener('click', e => {
   const r = e.currentTarget.getBoundingClientRect();
   openMenu(r.left, r.bottom + 4, [
     ['New design…', '', goHome], ['Open design file…', '', () => $('fileProject').click()], ['Save design file', 'Ctrl+S', saveProject], null,
-    ['Resize…', '', resizeDialog], ['Download…', '', exportDialog], ['Present', '', present], null,
+    ['Resize…', '', resizeDialog], ['Download…', '', exportDialog], ['Mockups…', '', mockupDialog], ['Present', '', present], null,
     ['Upload photos…', '', () => $('fileImg').click()], ['Upload a font…', '', () => { fontTarget = null; $('fileFont').click(); }], null,
     ['Keyboard shortcuts', '?', shortcutsDialog], ['Install as an app…', '', installApp],
   ]);
 });
+
+// ---------------------------------------------------------------- animation
+// A page lasts page.dur seconds, or — if unset — long enough for its last
+// entrance animation to finish plus a beat to read it (never under 3 s).
+function pageDur(pg) {
+  if (pg.dur) return pg.dur;
+  let end = 0;
+  for (const el of pg.els) if (el.anim && el.anim.in && el.anim.in !== 'none') end = Math.max(end, (el.anim.delay || 0) + (el.anim.dur || .8));
+  return Math.max(end ? end + 2 : 5, 3);
+}
+const hasAnim = pg => pg.els.some(e => e.anim && ((e.anim.in && e.anim.in !== 'none') || (e.anim.loop && e.anim.loop !== 'none')));
+let playing = null;
+function play(all) {
+  if (!doc) return;
+  if (playing) return stopPlay();
+  if (editingId) stopEdit();
+  closePop(); sel = []; buildProps();
+  playing = { t: 0, t0: performance.now(), all: !!all, from: doc.cur };
+  $('playBtn').classList.add('on'); $('playBtn').lastChild.textContent = 'Stop';
+  const step = now => {
+    if (!playing) return;
+    playing.t = (now - playing.t0) / 1000;
+    if (playing.t > pageDur(page())) {
+      if (playing.all && doc.cur < doc.pages.length - 1) { doc.cur++; playing.t0 = now; playing.t = 0; buildPages(); }
+      else { stopPlay(); return; }
+    }
+    render(); playing.raf = requestAnimationFrame(step);
+  };
+  playing.raf = requestAnimationFrame(step);
+}
+function stopPlay() {
+  if (!playing) return;
+  cancelAnimationFrame(playing.raf);
+  playing = null;
+  $('playBtn').classList.remove('on'); $('playBtn').lastChild.textContent = 'Play';
+  buildPages(); buildProps(); requestRender();
+}
+function drawPlayBar() {
+  const d = pageDur(page()), w = Math.min(1, playing.t / d) * doc.w * view.zoom;
+  g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(view.px, view.py + doc.h * view.zoom + 8, doc.w * view.zoom, 3);
+  g.fillStyle = '#00b0ec'; g.fillRect(view.px, view.py + doc.h * view.zoom + 8, w, 3);
+}
+const PAGE_ANIMS = [['rise', 'Rise'], ['fade', 'Fade'], ['pop', 'Pop'], ['slide', 'Slide'], ['typewriter', 'Typewriter'], ['mixed', 'Mix it up']];
+function animatePage(kind) {
+  const els = page().els.slice().sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  const big = Math.max(0, ...els.map(e => e.w * e.h));
+  let i = 0;
+  for (const el of els) {
+    if (el.locked && el.w * el.h >= big * .8) { delete el.anim; continue; }
+    const background = el.w >= doc.w * .9 && el.h >= doc.h * .9;
+    if (kind === 'none') { delete el.anim; continue; }
+    let k = kind;
+    if (kind === 'typewriter' && el.type !== 'text') k = 'fade';
+    if (kind === 'mixed') k = background ? 'fade' : el.type === 'text' ? (el.size > S() * .08 ? 'rise' : 'fade') : el.type === 'image' ? 'zoom' : el.type === 'shape' ? 'pop' : 'rise';
+    el.anim = Object.assign({}, el.anim, { in: k, dur: background ? .6 : k === 'typewriter' ? Math.min(2.5, .05 * String(el.text).length + .4) : .7, delay: background ? 0 : +(.15 + i * .18).toFixed(2) });
+    if (!background) i++;
+  }
+  commit();
+  play(false);
+}
+function animProps(el) {
+  const a = el.anim || {};
+  const set = (k, v) => { el.anim = Object.assign({}, el.anim, { [k]: v }); if (!el.anim.in && !el.anim.loop) delete el.anim; };
+  P.append(group('Animate',
+    h('div', { class: 'prow' }, h('span', null, 'Entrance'), h('select', { onchange: e => { set('in', e.target.value); commit(); if (e.target.value !== 'none') play(false); } }, h('option', { value: 'none' }, 'None'), C.ANIMS.map(([k, n]) => h('option', { value: k, selected: a.in === k }, n)))),
+    a.in && a.in !== 'none' ? [slider('Speed', a.dur || .8, .2, 3, .1, v => set('dur', v), v => (+v).toFixed(1) + ' s'), slider('Delay', a.delay || 0, 0, 8, .1, v => set('delay', v), v => (+v).toFixed(1) + ' s')] : null,
+    h('div', { class: 'prow' }, h('span', null, 'Loop'), h('select', { onchange: e => { set('loop', e.target.value); commit(); if (e.target.value !== 'none') play(false); } }, h('option', { value: 'none' }, 'None'), C.LOOPS.map(([k, n]) => h('option', { value: k, selected: a.loop === k }, n)))),
+    h('label', { style: 'display:flex;gap:8px;align-items:center;color:var(--muted);margin-top:4px' }, h('input', { type: 'checkbox', checked: a.out === 'fade', onchange: e => { set('out', e.target.checked ? 'fade' : null); commit(); } }), 'Fade out at the end'),
+    h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-top:8px', onclick: () => play(false) }, '▶ Preview page')));
+}
+function pageAnimProps() {
+  const pg = page();
+  P.append(group('Animate page',
+    h('div', { class: 'fxgrid' }, PAGE_ANIMS.map(([k, n]) => h('button', { type: 'button', onclick: () => animatePage(k) }, n))),
+    slider('Page length', pg.dur || pageDur(pg), 1, 30, .5, v => { pg.dur = v; }, v => (+v).toFixed(1) + ' s'),
+    h('div', { class: 'btnrow', style: 'margin-top:6px' },
+      h('button', { class: 'pb wide', type: 'button', onclick: () => play(false) }, '▶ Play page'),
+      h('button', { class: 'pb wide', type: 'button', disabled: !hasAnim(pg), onclick: () => animatePage('none') }, 'Remove')),
+    h('p', { class: 'hint', style: 'margin-top:8px' }, 'Download as MP4 or GIF to keep the motion. PNG, JPG and PDF show the finished frame.')));
+}
+
+// Frames for video/GIF export: every page in order, each for its own length.
+function timeline(pages, fps) {
+  const spans = []; let f = 0;
+  for (const pg of pages) { const n = Math.max(1, Math.round(pageDur(pg) * fps)); spans.push({ pg, from: f, n }); f += n; }
+  return { spans, frames: f };
+}
+function frameAt(tl, i, fps) { for (const s of tl.spans) if (i < s.from + s.n) return { pg: s.pg, t: (i - s.from) / fps }; const s = tl.spans[tl.spans.length - 1]; return { pg: s.pg, t: s.n / fps }; }
+function progressUI(title) {
+  const ctl = new AbortController();
+  const bar = h('i'), txt = h('div', null, title);
+  const sc = h('div', { class: 'scrim' }, h('div', { class: 'dlg', role: 'dialog', 'aria-label': title }, h('h2', null, title), h('div', { class: 'body' }, txt, h('div', { class: 'bgbusy', style: 'position:static;background:none;padding:0' }, h('div', { class: 'bar', style: 'width:100%' }, bar))), h('div', { class: 'foot' }, h('button', { type: 'button', onclick: () => ctl.abort() }, 'Cancel'))));
+  document.body.append(sc);
+  return { signal: ctl.signal, set: (p, t) => { bar.style.width = Math.round(p * 100) + '%'; if (t) txt.textContent = t; }, close: () => sc.remove() };
+}
+let videoMod = null;
+function loadVideoMod() {
+  if (window.LDVideo) return Promise.resolve(window.LDVideo);
+  if (!videoMod) videoMod = new Promise((res, rej) => { const s = h('script', { src: '/design/export-video.js' }); s.onload = () => res(window.LDVideo); s.onerror = () => { videoMod = null; rej(new Error('Couldn’t load the video exporter.')); }; document.head.append(s); });
+  return videoMod;
+}
+async function exportMotion(kind, pages, longSide) {
+  const V = await loadVideoMod();
+  if (kind === 'mp4') V.fixWebmDuration = fixWebmDuration;
+  const fps = kind === 'gif' ? 15 : 30;
+  let k = Math.min(1, longSide / Math.max(doc.w, doc.h));
+  let w = Math.round(doc.w * k), hh = Math.round(doc.h * k);
+  if (kind === 'mp4') { w -= w % 2; hh -= hh % 2; }
+  k = w / doc.w;
+  const tl = timeline(pages, fps);
+  const ui = progressUI(kind === 'gif' ? 'Making your GIF…' : 'Making your video…');
+  try {
+    await imagesReady();
+    const draw = (ctx, i) => {
+      const { pg, t } = frameAt(tl, i, fps);
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, hh);
+      ctx.setTransform(w / doc.w, 0, 0, hh / doc.h, 0, 0);
+      C.renderPage(ctx, pg, doc.w, doc.h, { scale: k, images: getImg, t, dur: pageDur(pg) });
+    };
+    const out = await V[kind]({ width: w, height: hh, fps, frames: tl.frames, draw, signal: ui.signal, onProgress: p => ui.set(p, `${Math.round(p * 100)}% · ${(tl.frames / fps).toFixed(1)} s at ${w} × ${hh}`) });
+    download(out.blob, safeName() + '.' + out.ext);
+    toast(`Downloaded ${out.ext.toUpperCase()} — ${(out.blob.size / 1048576).toFixed(1)} MB.`);
+  } catch (err) {
+    if (err && err.name === 'AbortError') toast('Cancelled.');
+    else { console.error(err); toast('Couldn’t make that: ' + (err.message || err), true); }
+  } finally { ui.close(); }
+}
+// MediaRecorder writes WebM without a duration; add one so players can seek.
+// (Same fix as Linear Video; only used by the real-time fallback.)
+async function fixWebmDuration(blob, ms) {
+  try {
+    const headLen = Math.min(blob.size, 65536);
+    const b = new Uint8Array(await blob.slice(0, headLen).arrayBuffer());
+    const vint = (p, keep) => { const first = b[p]; let len = 1, mask = 0x80; while (len <= 8 && !(first & mask)) { len++; mask >>= 1; } if (len > 8) throw new Error('bad vint'); let v = keep ? first : first & (mask - 1); for (let i = 1; i < len; i++) v = v * 256 + b[p + i]; return { v, len }; };
+    let p = 0, id = vint(p, true);
+    if (id.v !== 0x1A45DFA3) throw new Error('not EBML');
+    p += id.len; let sz = vint(p); p += sz.len + sz.v;
+    id = vint(p, true); if (id.v !== 0x18538067) throw new Error('no segment');
+    p += id.len; p += vint(p).len;
+    while (p < headLen - 12) {
+      id = vint(p, true); const szp = p + id.len; sz = vint(szp); const cs = szp + sz.len;
+      if (id.v === 0x114D9B74) throw new Error('seek head');
+      if (id.v === 0x1F43B675) break;
+      if (id.v === 0x1549A966) {
+        const infoEnd = cs + sz.v; if (infoEnd > headLen) throw new Error('info too long');
+        let scale = 1e6, durAt = -1, durLen = 0;
+        for (let q = cs; q < infoEnd;) { const cid = vint(q, true), csz = vint(q + cid.len), dp = q + cid.len + csz.len; if (cid.v === 0x2AD7B1) { let s2 = 0; for (let i = 0; i < csz.v; i++) s2 = s2 * 256 + b[dp + i]; scale = s2 || 1e6; } if (cid.v === 0x4489) { durAt = dp; durLen = csz.v; } q = dp + csz.v; }
+        const val = ms * 1e6 / scale;
+        if (durAt >= 0) { const dv = new DataView(b.buffer); if (durLen === 8) dv.setFloat64(durAt, val); else if (durLen === 4) dv.setFloat32(durAt, val); else throw new Error('odd'); return new Blob([b, blob.slice(headLen)], { type: blob.type }); }
+        const newSize = sz.v + 11; if (newSize >= Math.pow(2, 7 * sz.len) - 1) throw new Error('size');
+        const sb = new Uint8Array(sz.len); let v = newSize; for (let i = sz.len - 1; i >= 0; i--) { sb[i] = v % 256; v = Math.floor(v / 256); } sb[0] |= 0x80 >> (sz.len - 1);
+        const du = new Uint8Array(11); du[0] = 0x44; du[1] = 0x89; du[2] = 0x88; new DataView(du.buffer).setFloat64(3, val);
+        return new Blob([b.subarray(0, szp), sb, b.subarray(cs, infoEnd), du, b.subarray(infoEnd), blob.slice(headLen)], { type: blob.type });
+      }
+      p = cs + sz.v;
+    }
+  } catch { /* keep the recording as it is */ }
+  return blob;
+}
+
+// ---------------------------------------------------------------- online features (design-api.linearit.co)
+// Stock photos and Magic Write go through our own Worker, which holds the API
+// keys. Everything else in the app works without it.
+const API = 'https://design-api.linearit.co';
+let health = null;
+function apiHealth() {
+  if (!health) health = fetch(API + '/health', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ ok: false, photos: false, write: false, offline: navigator.onLine === false }));
+  // (Unreachable while online means the Worker isn't deployed yet: shown as "not switched on".)
+  return health;
+}
+async function api(path, o) {
+  let r;
+  try { r = await fetch(API + path, o); }
+  catch { throw new Error(navigator.onLine === false ? 'You’re offline — this feature needs the internet.' : 'Couldn’t reach the Linear Design service. Try again in a moment.'); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || 'Something went wrong — try again.');
+  return d;
+}
+function notSetUp(what) {
+  return h('div', { class: 'note', style: 'background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--muted)' },
+    h('b', { style: 'color:var(--text);display:block;margin-bottom:4px' }, `${what} isn’t switched on yet`),
+    'The site owner needs to finish a one-time setup (see design-worker/README.md in the website’s code). Everything else in Linear Design works without it.');
+}
+
+// ---- stock photos (Pexels)
+const photoState = { q: '', orient: '', page: 0, more: true, items: [], loading: false };
+function tabPhotos(body) {
+  const q = h('input', { class: 'search', type: 'search', placeholder: 'Search free stock photos', value: photoState.q, 'aria-label': 'Search photos' });
+  const chips = h('div', { class: 'chips' }, [['', 'Any shape'], ['landscape', 'Wide'], ['portrait', 'Tall'], ['square', 'Square']].map(([k, n]) => h('button', { type: 'button', class: photoState.orient === k ? 'on' : '', onclick: () => { photoState.orient = k; resetPhotos(); showTab('photos'); } }, n)));
+  const status = h('div', { class: 'count' });
+  const grid = h('div', { class: 'pgrid' }), sent = h('div', { class: 'sentinel' });
+  const credit = h('p', { class: 'note', style: 'margin-top:4px' }, 'Photos provided by ', h('a', { href: 'https://www.pexels.com', target: '_blank', rel: 'noopener', style: 'color:var(--accent)' }, 'Pexels'), ' — free to use. Searches are sent to Pexels; your own uploads never are.');
+  body.append(q, chips, status, grid, sent, credit);
+  let t = 0;
+  q.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => { photoState.q = q.value.trim(); resetPhotos(); fill(true); }, 450); });
+  const card = p => {
+    const b = h('button', { type: 'button', title: `Photo by ${p.by} on Pexels`, style: `background:${p.color};aspect-ratio:${p.w}/${p.h}`, onclick: () => usePhoto(p, b) },
+      h('img', { src: p.thumb, alt: p.alt || 'Stock photo', loading: 'lazy', width: 350, height: Math.round(350 * p.h / p.w) }), h('span', null, p.by));
+    return b;
+  };
+  const fill = async (fresh) => {
+    if (fresh) grid.textContent = '';
+    const hs = await apiHealth();
+    if (!hs.photos) { grid.replaceWith(hs.offline ? h('p', { class: 'note' }, 'Stock photos need an internet connection.') : notSetUp('Stock photo search')); sent.remove(); return; }
+    photoState.items.forEach(p => grid.append(card(p)));
+    status.textContent = photoState.q ? `Results for “${photoState.q}”` : 'Popular right now';
+    more();
+  };
+  const more = async () => {
+    if (photoState.loading || !photoState.more || !body.isConnected) return;
+    if (!(await apiHealth()).photos) return;
+    photoState.loading = true;
+    try {
+      const d = await api(`/photos/search?q=${encodeURIComponent(photoState.q)}&page=${photoState.page + 1}${photoState.orient ? '&orientation=' + photoState.orient : ''}`);
+      photoState.page++; photoState.more = d.more && photoState.page < 20;
+      d.photos.forEach(p => { photoState.items.push(p); grid.append(card(p)); });
+      if (!photoState.items.length) status.textContent = 'No photos found — try another word.';
+    } catch (err) { status.textContent = err.message; photoState.more = false; }
+    photoState.loading = false;
+  };
+  const io = new IntersectionObserver(e => { if (e.some(x => x.isIntersecting)) more(); }, { root: body, rootMargin: '600px' });
+  io.observe(sent);
+  fill(false);
+}
+function resetPhotos() { Object.assign(photoState, { page: 0, more: true, items: [], loading: false }); }
+async function usePhoto(p, btn) {
+  if (btn) btn.style.opacity = .5;
+  try {
+    const r = await fetch(`${API}/photos/image?u=${encodeURIComponent(p.large)}`);
+    if (!r.ok) throw new Error('Couldn’t download that photo.');
+    const blob = await r.blob();
+    const src = await readImageFile(new File([blob], 'pexels.jpg', { type: blob.type || 'image/jpeg' }));
+    const id = addImage(src); uploads.unshift(id);
+    await new Promise(res => { const im = images.get(id).img; im.complete ? res() : im.addEventListener('load', res, { once: true }); });
+    const target = selEls().find(e => e.type === 'image' && !e.src && !e.locked) || (sel.length === 1 && selEls()[0].type === 'image' && !selEls()[0].locked ? selEls()[0] : null);
+    if (target) { target.src = id; target.credit = { by: p.by, url: p.url }; }
+    else { addPhotoEl(id); selEls()[0].credit = { by: p.by, url: p.url }; }
+    commit();
+    toast(`Photo by ${p.by} on Pexels`);
+  } catch (err) { toast(err.message || 'Couldn’t add that photo.', true); }
+  if (btn) btn.style.opacity = '';
+}
+
+// ---- Magic Write (Claude, via the Worker)
+const WRITE_TASKS = [['headline', 'Headlines'], ['tagline', 'Taglines'], ['cta', 'Button text'], ['caption', 'Social caption'], ['rewrite', 'Rewrite'], ['shorter', 'Shorter'], ['longer', 'Longer'], ['fix', 'Fix spelling'], ['ideas', 'Anything']];
+const WRITE_TONES = ['friendly', 'professional', 'playful', 'bold', 'elegant', 'urgent', 'calm'];
+let writePrefs = { task: 'headline', tone: 'friendly', context: '' };
+const isPlaceholder = t => /^(Add a (heading|subheading|text box|little bit of body text)|Your text)$/i.test(String(t).trim());
+function designContext() {
+  const texts = page().els.filter(e => e.type === 'text' && !isPlaceholder(e.text) && /[a-z]{2}/i.test(e.text)).sort((a, b) => b.size - a.size).map(e => e.text.replace(/\s+/g, ' ')).slice(0, 5);
+  return [doc.name && !/^Untitled/.test(doc.name) ? doc.name : '', ...texts].filter(Boolean).join(' · ').slice(0, 400);
+}
+async function magicWrite(el) {
+  if (editingId) stopEdit();
+  const hs = await apiHealth();
+  let task = el ? (writePrefs.task === 'headline' && el.size < S() * .05 ? 'rewrite' : writePrefs.task) : writePrefs.task, tone = writePrefs.tone;
+  const taskSel = h('select', { onchange: e => { task = e.target.value; } }, WRITE_TASKS.map(([k, n]) => h('option', { value: k, selected: k === task }, n)));
+  const toneChips = h('div', { class: 'chips', style: 'padding:0' });
+  const drawTones = () => { toneChips.textContent = ''; toneChips.append(...WRITE_TONES.map(k => h('button', { type: 'button', class: k === tone ? 'on' : '', onclick: () => { tone = k; drawTones(); } }, k[0].toUpperCase() + k.slice(1)))); };
+  drawTones();
+  const ctxBox = h('textarea', { placeholder: 'What’s it for? e.g. “Grand opening of a coffee shop on Main Street, free pastries Saturday”' });
+  ctxBox.value = writePrefs.context || designContext();
+  const textBox = h('textarea', { placeholder: 'Your text (for rewrite, shorter, longer, fix spelling)' });
+  textBox.value = el && !isPlaceholder(el.text) ? el.text : '';
+  const out = h('div', { class: 'sugg' });
+  const go = h('button', { class: 'pb wide magic', type: 'button', style: 'padding:9px' }, svg(ICO.magic), 'Write');
+  const use = txt => {
+    if (el && byId(el.id)) { el.text = txt; C.syncText(el); sel = [el.id]; commit(); toast('Text replaced — Ctrl+Z to undo.'); }
+    else { const t = addText(task === 'caption' || task === 'longer' ? 'body' : task === 'cta' || task === 'tagline' ? 'sub' : 'heading', txt); t.w = Math.min(doc.w * .8, t.w); C.syncText(t); commit(); }
+  };
+  go.addEventListener('click', async () => {
+    const text = textBox.value.trim(), context = ctxBox.value.trim();
+    if (['rewrite', 'shorter', 'longer', 'fix'].includes(task) && !text) return toast('Type or select some text to rewrite first.', true);
+    if (!text && !context) return toast('Tell Magic Write what the design is about.', true);
+    writePrefs = { task, tone, context };
+    go.disabled = true; out.textContent = ''; out.append(h('p', { class: 'note' }, 'Writing…'));
+    try {
+      const d = await api('/write', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task, tone, text, context }) });
+      out.textContent = '';
+      for (const sug of d.suggestions) out.append(h('div', { class: 's' }, h('p', null, sug),
+        h('button', { class: 'pb', type: 'button', onclick: () => use(sug) }, el ? 'Use' : 'Add'),
+        h('button', { class: 'pb', type: 'button', title: 'Copy', onclick: () => { navigator.clipboard && navigator.clipboard.writeText(sug); toast('Copied.'); } }, svg(ICO.copy))));
+    } catch (err) { out.textContent = ''; out.append(h('p', { class: 'note', style: 'color:var(--danger)' }, err.message)); }
+    go.disabled = false;
+  });
+  const body = hs.write ? [
+    h('div', { class: 'prow' }, h('span', null, 'Write'), taskSel),
+    h('div', null, h('div', { class: 'sec', style: 'margin-top:0' }, 'Tone'), toneChips),
+    h('label', { style: 'display:grid;gap:4px;color:var(--muted)' }, 'About the design', ctxBox),
+    h('label', { style: 'display:grid;gap:4px;color:var(--muted)' }, 'Text', textBox),
+    go, out,
+    h('p', { class: 'hint' }, 'Magic Write uses Claude by Anthropic. What you type here is sent to Anthropic to write suggestions; your designs and photos aren’t. Check facts, prices and dates before you publish.'),
+  ] : [hs.offline ? h('p', { class: 'note' }, 'Magic Write needs an internet connection.') : notSetUp('Magic Write')];
+  dialog('✨ Magic Write', body, 'Done');
+  const d = document.querySelector('.scrim:last-child .dlg'); if (d) d.style.width = '560px';
+}
+
+// ---------------------------------------------------------------- mockups
+let mockMod = null;
+function loadMockups() {
+  if (window.LDMock) return Promise.resolve(window.LDMock);
+  if (!mockMod) mockMod = new Promise((res, rej) => { const s = h('script', { src: '/design/mockups.js' }); s.onload = () => res(window.LDMock); s.onerror = () => { mockMod = null; rej(new Error('Couldn’t load mockups.')); }; document.head.append(s); });
+  return mockMod;
+}
+async function mockupDialog() {
+  if (!doc) return;
+  if (editingId) stopEdit();
+  const M = await loadMockups();
+  await imagesReady();
+  const art = pageCanvas(page(), Math.min(2, 1400 / Math.max(doc.w, doc.h)), false);
+  const o = { bg: '#e9edf3', item: '#ffffff', frame: '#1c1c1c' };
+  let kind = doc.h > doc.w * 1.4 ? 'phone' : doc.w > doc.h * 1.2 ? 'laptop' : 'poster';
+  const big = document.createElement('canvas'); big.style.cssText = 'width:100%;height:auto;border-radius:10px;display:block';
+  const thumbs = h('div', { class: 'egrid three' });
+  const paint = () => { const c = M.render(kind, art, o); big.width = c.width; big.height = c.height; big.getContext('2d').drawImage(c, 0, 0); };
+  const drawThumbs = () => {
+    thumbs.textContent = '';
+    for (const [k, n] of M.KINDS) {
+      const c = M.render(k, art, o), t = document.createElement('canvas'); t.width = 240; t.height = 180; t.getContext('2d').drawImage(c, 0, 0, 240, 180);
+      t.style.cssText = 'width:100%;height:auto;border-radius:6px';
+      thumbs.append(h('button', { class: 'eb', type: 'button', title: n, style: 'aspect-ratio:auto;padding:4px;display:grid;gap:4px;font-size:11px;color:var(--muted)' + (k === kind ? ';border-color:var(--accent)' : ''), onclick: () => { kind = k; paint(); drawThumbs(); } }, t, n));
+    }
+  };
+  const colorRow = (label, key, list) => h('div', { class: 'prow' }, h('span', null, label), h('div', { class: 'btnrow' }, list.map(c => h('button', { class: 'sw', type: 'button', title: c, style: `background:${c};width:26px`, onclick: () => { o[key] = c; paint(); drawThumbs(); } })),
+    h('input', { type: 'color', value: o[key], style: 'width:32px;height:26px;border:0;background:none', oninput: e => { o[key] = e.target.value; paint(); }, onchange: drawThumbs })));
+  paint(); drawThumbs();
+  const saveBlob = () => new Promise(r => big.toBlob(r, 'image/png'));
+  const body = h('div', { class: 'bgwrap', style: 'grid-template-columns:1fr 300px' },
+    h('div', null, big),
+    h('div', { style: 'display:grid;gap:10px;align-content:start' }, thumbs,
+      colorRow('Backdrop', 'bg', ['#e9edf3', '#f5efe6', '#1f2430', '#d8efe6', '#fde2e4']),
+      colorRow('Shirt / mug', 'item', ['#ffffff', '#111111', '#1e3a8a', '#b91c1c', '#6b7280']),
+      colorRow('Frame', 'frame', ['#1c1c1c', '#ffffff', '#8b5e3c', '#c9a227']),
+      h('button', { class: 'pb wide', type: 'button', onclick: async () => { const b = await saveBlob(); download(b, `${safeName()}-${kind}-mockup.png`); } }, 'Download PNG')));
+  dialog('Mockups', body, 'Add to design as a new page', async () => {
+    const b = await saveBlob();
+    const id = addImage(await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); }));
+    await new Promise(r => { const im = images.get(id).img; im.complete ? r() : im.addEventListener('load', r, { once: true }); });
+    const pg = blankPage(); pg.bg = { fill: o.bg };
+    const k = Math.max(doc.w / M.OUT_W, doc.h / M.OUT_H);
+    pg.els.push({ id: nid(), type: 'image', src: id, x: (doc.w - M.OUT_W * k) / 2, y: (doc.h - M.OUT_H * k) / 2, w: M.OUT_W * k, h: M.OUT_H * k, rot: 0, opacity: 1, mask: 'none', zoom: 1, px: 0, py: 0 });
+    doc.pages.splice(doc.cur + 1, 0, pg); doc.cur++; sel = []; commit({ keepClean: true });
+    toast('Mockup added as a new page.');
+  });
+  const d = document.querySelector('.scrim:last-child .dlg'); if (d) d.classList.add('wide');
+}
 
 // ---------------------------------------------------------------- keyboard shortcuts sheet
 function shortcutsDialog() {
@@ -1631,7 +1988,7 @@ function shortcutsDialog() {
     ['Bring forward / send backward', `${M}+] / ${M}+[`], ['To front / to back', `${M}+Shift+] / [`], ['Nudge', 'Arrow keys (Shift = 10 px)'],
     ['Edit selected text', 'Enter or double-click'], ['Add text / rectangle / circle / line', 'T / R / C / L'],
     ['Zoom in / out / fit', `${M}+ + / ${M}+ − / ${M}+0`], ['Pan', 'Space + drag, or scroll'], ['Keep proportions / snap rotation', 'Shift while dragging'],
-    ['Move without snapping', 'Alt while dragging'], ['Save design file', `${M}+S`], ['This list', '?'],
+    ['Move without snapping', 'Alt while dragging'], ['Play animations', 'P (any key stops)'], ['Save design file', `${M}+S`], ['This list', '?'],
   ];
   dialog('Keyboard shortcuts', h('div', { style: 'display:grid;grid-template-columns:1fr auto;gap:8px 16px' }, rows.flatMap(([a, b]) => [h('span', { style: 'color:var(--muted)' }, a), h('kbd', { style: 'font:inherit;font-size:12px;background:var(--well);border:1px solid var(--line);border-radius:5px;padding:2px 7px;white-space:nowrap' }, b)])), 'Close');
 }
@@ -1775,10 +2132,15 @@ function exportDialog() {
   if (!doc) return;
   if (editingId) stopEdit();
   let type = 'png';
-  const opts = [['png', 'PNG', 'Sharpest. Best for social media and anything with text.'], ['jpg', 'JPG', 'Smaller file. Best for photos.'], ['pdf', 'PDF', 'Best for printing and multi-page designs.']];
+  const anim = doc.pages.some(hasAnim);
+  const opts = [['png', 'PNG', 'Sharpest. Best for social media and anything with text.'], ['jpg', 'JPG', 'Smaller file. Best for photos.'], ['pdf', 'PDF', 'Best for printing and multi-page designs.'], ['mp4', 'MP4 video', anim ? 'Plays your animations — for Reels, TikTok, Stories, YouTube.' : 'A video of your pages. Add animations to make them move.'], ['gif', 'GIF', 'A short looping animation for emails, websites and chats.']];
+  if (anim) type = 'mp4';
   const radios = h('div', { style: 'display:grid;gap:8px' }, opts.map(([k, n, d]) => h('label', { class: 'opt' }, h('input', { type: 'radio', name: 'ft', value: k, checked: k === type, onchange: () => { type = k; upd(); } }), h('span', null, h('b', null, n), h('small', null, d)))));
   const scale = h('select', null, [.5, 1, 2, 3, 4].map(v => h('option', { value: v, selected: v === (doc.w < 1300 ? 2 : 1) }, v + '×')));
   const sizeOut = h('span', { class: 'hint' });
+  const vres = h('select', null, [[720, 'Small (720p)'], [1080, 'HD (1080p)'], [1920, 'Full HD (long side 1920)']].map(([v, n]) => h('option', { value: v, selected: v === 1920 }, n)));
+  const gres = h('select', null, [[480, 'Small (480 px)'], [720, 'Medium (720 px)'], [1080, 'Large (1080 px)']].map(([v, n]) => h('option', { value: v, selected: v === 720 }, n)));
+  const vrow = prow('Size', vres), grow2 = prow('Size', gres), srow = prow('Size', scale, sizeOut);
   const which = h('select', null, h('option', { value: 'cur' }, `Current page (${doc.cur + 1})`), doc.pages.length > 1 ? h('option', { value: 'all', selected: true }, `All ${doc.pages.length} pages`) : null);
   const transp = h('label', { style: 'display:flex;gap:8px;align-items:center' }, h('input', { type: 'checkbox' }), 'Transparent background');
   const bleed = h('label', { style: 'display:flex;gap:8px;align-items:flex-start' }, h('input', { type: 'checkbox', style: 'margin-top:3px' }), h('span', null, 'Print-ready: add bleed and crop marks', h('small', { style: 'display:block;color:var(--faint)' }, 'Adds 0.125 in past each edge — what most print shops ask for.')));
@@ -1787,9 +2149,12 @@ function exportDialog() {
     sizeOut.textContent = `${Math.round(doc.w * k)} × ${Math.round(doc.h * k)} px`;
     transp.hidden = type !== 'png';
     bleed.hidden = type !== 'pdf';
+    vrow.hidden = type !== 'mp4'; grow2.hidden = type !== 'gif'; srow.hidden = type === 'mp4' || type === 'gif';
   };
   scale.addEventListener('change', upd); upd();
-  dialog('Download', [radios, prow('Size', scale, sizeOut), prow('Pages', which), transp, bleed], 'Download', async () => {
+  const mockLink = h('button', { class: 'pb wide', type: 'button', onclick: () => { document.querySelector('.scrim:last-child').remove(); mockupDialog(); } }, 'See it as a mockup (phone, T-shirt, mug…)');
+  dialog('Download', [radios, srow, vrow, grow2, prow('Pages', which), transp, bleed, mockLink], 'Download', async () => {
+    if (type === 'mp4' || type === 'gif') { const pages = which.value === 'all' ? doc.pages : [page()]; setTimeout(() => exportMotion(type, pages, +(type === 'gif' ? gres : vres).value), 0); return; }
     let k = +scale.value; if (doc.w * k * doc.h * k > MAX_PIXELS) k = Math.sqrt(MAX_PIXELS / (doc.w * doc.h));
     const pages = which.value === 'all' ? doc.pages : [page()];
     const tr = type === 'png' && transp.querySelector('input').checked;
@@ -1837,14 +2202,19 @@ function present() {
   const c = document.createElement('canvas');
   const n = h('div', { class: 'pn' });
   const ov = h('div', { class: 'present', tabindex: '0' }, c, n);
-  const draw = () => {
-    const d = Math.min(2, window.devicePixelRatio || 1), k = Math.min(window.innerWidth / doc.w, window.innerHeight / doc.h);
-    c.width = Math.round(doc.w * k * d); c.height = Math.round(doc.h * k * d); c.style.width = c.width / d + 'px'; c.style.height = c.height / d + 'px';
-    const x = c.getContext('2d'); x.scale(k * d, k * d); C.renderPage(x, doc.pages[i], doc.w, doc.h, { scale: k * d, images: getImg });
-    n.textContent = `${i + 1} / ${doc.pages.length} · Esc to exit`;
+  let t0 = performance.now(), raf = 0;
+  const frame = () => {
+    const pg = doc.pages[i], d = Math.min(2, window.devicePixelRatio || 1), k = Math.min(window.innerWidth / doc.w, window.innerHeight / doc.h);
+    const W = Math.round(doc.w * k * d), H = Math.round(doc.h * k * d);
+    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; c.style.width = W / d + 'px'; c.style.height = H / d + 'px'; }
+    const x = c.getContext('2d'); x.setTransform(k * d, 0, 0, k * d, 0, 0); x.fillStyle = '#ffffff'; x.fillRect(0, 0, doc.w, doc.h);
+    const t = (performance.now() - t0) / 1000, anim = hasAnim(pg);
+    C.renderPage(x, pg, doc.w, doc.h, anim ? { scale: k * d, images: getImg, t, dur: 1e9 } : { scale: k * d, images: getImg });
+    raf = anim && ov.isConnected ? requestAnimationFrame(frame) : 0;
   };
+  const draw = () => { cancelAnimationFrame(raf); t0 = performance.now(); frame(); n.textContent = `${i + 1} / ${doc.pages.length} · Esc to exit`; };
   const go = d => { i = clamp(i + d, 0, doc.pages.length - 1); draw(); };
-  const exit = () => { window.removeEventListener('resize', draw); ov.remove(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
+  const exit = () => { cancelAnimationFrame(raf); window.removeEventListener('resize', draw); ov.remove(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); };
   ov.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') exit(); else if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) go(1); else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) go(-1); });
   ov.addEventListener('click', e => { if (e.clientX < window.innerWidth / 3) go(-1); else go(1); });
   document.addEventListener('fullscreenchange', function f() { if (!document.fullscreenElement) { document.removeEventListener('fullscreenchange', f); if (ov.isConnected) exit(); } });
@@ -2329,6 +2699,7 @@ $('redoBtn').addEventListener('click', redo);
 $('resizeBtn').addEventListener('click', resizeDialog);
 $('exportBtn').addEventListener('click', exportDialog);
 $('presentBtn').addEventListener('click', present);
+$('playBtn').addEventListener('click', () => play(doc && doc.pages.length > 1));
 $('propsToggle').addEventListener('click', () => document.body.classList.toggle('showprops'));
 $('dClose').addEventListener('click', closeDrawer);
 $('docName').addEventListener('change', e => { if (doc) { doc.name = e.target.value.trim() || 'Untitled design'; saveSoon(); } });

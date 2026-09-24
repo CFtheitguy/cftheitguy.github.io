@@ -6,7 +6,7 @@
  * under the same name, so they're cache-first and only downloaded once.
  */
 'use strict';
-const CACHE = 'linear-design-v1';
+const CACHE = 'linear-design-v2';
 const CORE = ['/design/', '/design/core.js', '/design/templates.js', '/design/app.js', '/design/qr.js', '/design/bgremove.js',
   '/design/vendor/fonts/fonts.css', '/design/assets/icon.png', '/design/manifest.webmanifest', '/photos/assets/logo-white.png'];
 
