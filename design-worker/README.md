@@ -31,6 +31,22 @@ else in Linear Design keeps working.
 
 ---
 
+## Setup without a terminal (Cloudflare dashboard)
+
+1. Get a Pexels key (step 1 below).
+2. **dash.cloudflare.com** → **Workers & Pages** → **Create** → Worker → name it
+   `design-worker` → **Deploy**.
+3. **Edit code** → delete everything → paste the whole of
+   [`src/index.js`](src/index.js) → **Deploy**.
+4. Worker → **Settings → Variables and Secrets → Add** → Type **Secret**,
+   Name `PEXELS_KEY`, Value = your key → **Deploy**.
+5. Worker → **Settings → Domains & Routes → Add → Custom domain** →
+   `design-api.linearit.co` → **Add domain**.
+6. Check **https://design-api.linearit.co/health** shows `"photos":true`.
+
+(The dashboard route has no per-visitor rate limit — that binding is set in
+`wrangler.toml` — but results are still cached and Pexels' own limits apply.)
+
 ## Setup — step by step
 
 You need to be logged into the **same Cloudflare account that owns `linearit.co`**

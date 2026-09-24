@@ -14,7 +14,9 @@ const PEXELS = 'https://api.pexels.com/v1';
 
 function allowedOrigin(req, env) {
   const origin = req.headers.get('Origin') || '';
-  const list = String(env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+  // Defaults to linearit.co, so a Worker pasted into the Cloudflare dashboard
+  // needs no settings besides the PEXELS_KEY secret.
+  const list = String(env.ALLOWED_ORIGINS || 'https://www.linearit.co,https://linearit.co').split(',').map(s => s.trim()).filter(Boolean);
   return list.includes(origin) ? origin : null;
 }
 function cors(origin) {
