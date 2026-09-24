@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Linear Video — free video editor</title>
+<meta name="description" content="A free video editor in your browser: multi-track timeline, trim and split, titles, fades, speed, volume, colour adjustments, picture-in-picture and export to MP4 or WebM. Your videos are never uploaded. From Linear IT."/>
+<link rel="canonical" href="https://www.linearit.co/video/"/>
+<link rel="icon" href="/video/assets/icon.png"/>
+<link rel="apple-touch-icon" href="/video/assets/icon.png"/>
+<meta name="theme-color" content="#1b1d24"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Linear Video"/>
+<!-- Locked to this origin: no directive names a remote host, so nothing on
+     this page can send a video anywhere. Media plays from blob: URLs made in the tab. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' blob: data:;"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+:root{
+  --bg:#1b1d24;--panel:#262932;--panel2:#2e323d;--well:#15171d;
+  --line:#3a3f4d;--line2:#4a5062;
+  --text:#e4e7ef;--muted:#99a0b4;--faint:#646b80;
+  --accent:#00b0ec;--accent-bg:rgba(0,176,236,.18);
+  --danger:#f87171;
+  --c-video:#3b6fd8;--c-image:#8a5cd6;--c-text:#d08a2c;--c-audio:#2e9d6a;
+  --head:112px;--trackh:58px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font:13px/1.4 var(--font);-webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.4;cursor:default}
+input[type=number],input[type=text],select,textarea{background:var(--well);border:1px solid var(--line);border-radius:5px;padding:3px 6px;outline:none;min-width:0}
+textarea{resize:vertical;user-select:text;-webkit-user-select:text}
+input:focus-visible,select:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=range]{accent-color:var(--accent);width:100%;vertical-align:middle}
+input[type=checkbox]{accent-color:var(--accent);vertical-align:middle}
+input[type=color]{width:34px;height:24px;border:1px solid var(--line);border-radius:5px;background:var(--well);padding:1px}
+svg.i{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- top bar ---------- */
+.top{display:flex;align-items:center;gap:6px;height:42px;padding:0 8px 0 12px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.brand{display:block;width:92px;height:24px;background:url("/photos/assets/logo-white.png") left center/contain no-repeat;text-indent:-9999px;overflow:hidden;flex:none;margin-right:2px}
+.appname{color:var(--muted);font-weight:600;margin-right:8px;white-space:nowrap}
+#projName{width:180px;background:none;border-color:transparent}
+#projName:hover,#projName:focus{border-color:var(--line)}
+.grow{flex:1;min-width:0}
+.topbtn{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 11px;white-space:nowrap;flex:none}
+.topbtn:hover:not(:disabled){border-color:var(--line2)}
+.topbtn.icon{padding:5px 7px}
+.topbtn.primary{background:var(--accent);border-color:var(--accent);color:#04121a;font-weight:600}
+.topbtn.primary:hover{filter:brightness(1.08)}
+.panelbtn{display:none}
+
+/* ---------- main area ---------- */
+.upper{flex:1;display:flex;min-height:0;position:relative}
+.bin,.insp{width:250px;flex:none;background:var(--panel);display:flex;flex-direction:column;min-height:0}
+.bin{border-right:1px solid var(--line)}
+.insp{width:280px;border-left:1px solid var(--line)}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 10px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);flex:none;min-height:37px}
+.phead button{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:2px 8px;font-size:11px;letter-spacing:0;text-transform:none;font-weight:600;color:var(--text)}
+.phead button:hover{border-color:var(--line2)}
+#media{flex:1;overflow-y:auto;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start}
+.mitem{position:relative;background:var(--well);border:1px solid var(--line);border-radius:7px;overflow:hidden;cursor:grab;touch-action:pan-y}
+.mitem:hover{border-color:var(--line2)}
+.mitem .th{aspect-ratio:16/10;background:#000 center/cover no-repeat;display:grid;place-items:center;color:var(--faint)}
+.mitem .th svg{width:26px;height:26px}
+.mitem .nm{padding:4px 6px 1px;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mitem .meta{padding:0 6px 5px;font-size:11px;color:var(--faint);display:flex;justify-content:space-between}
+.mitem .add{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:6px;border:0;background:rgba(0,0,0,.65);color:#fff;display:grid;place-items:center;opacity:0;transition:opacity .12s}
+.mitem:hover .add,.mitem .add:focus-visible{opacity:1}
+@media (hover:none){.mitem .add{opacity:1}}
+.binempty{grid-column:1/-1;color:var(--faint);font-size:12.5px;text-align:center;padding:24px 8px;border:1.5px dashed var(--line);border-radius:10px}
+.binempty button{margin-top:10px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 12px;color:var(--text)}
+.binfoot{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px;border-top:1px solid var(--line);flex:none}
+.binfoot button{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px}
+.binfoot button:hover{border-color:var(--line2)}
+
+.viewer{flex:1;min-width:0;display:flex;flex-direction:column;background:#101116}
+.screen{flex:1;min-height:0;position:relative;display:grid;place-items:center;padding:14px;overflow:hidden}
+#view{display:block;background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 6px 40px rgba(0,0,0,.6);touch-action:none}
+.welcome{position:absolute;inset:0;display:grid;place-items:center;padding:20px;overflow:auto;z-index:3;background:#101116}
+.wcard{max-width:560px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.wcard h1{font-size:22px;letter-spacing:-.01em;margin-bottom:6px}
+.wcard p{color:var(--muted);font-size:14px;margin-bottom:18px}
+.wbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.wbtns button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px 12px;text-align:left}
+.wbtns button:hover{border-color:var(--accent)}
+.wbtns b{display:block;font-size:14px;margin-bottom:2px}
+.wbtns span{color:var(--muted);font-size:12.5px}
+.wnote{font-size:12.5px;color:var(--faint);border-top:1px solid var(--line);padding-top:14px}
+.transport{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-top:1px solid var(--line);background:var(--panel);flex:none}
+.transport button{background:none;border:0;border-radius:6px;width:34px;height:30px;display:grid;place-items:center;color:var(--muted)}
+.transport button:hover:not(:disabled){background:var(--panel2);color:var(--text)}
+.transport #playBtn{background:var(--panel2);color:var(--text);width:42px}
+.tc{font:12.5px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--text);min-width:170px;text-align:center;font-variant-numeric:tabular-nums}
+.tc span{color:var(--faint)}
+
+/* inspector */
+#insp{flex:1;overflow-y:auto;padding:4px 0 16px}
+.sec{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.05);display:grid;gap:9px}
+.sec h3{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.row{display:grid;grid-template-columns:78px 1fr 46px;align-items:center;gap:8px}
+.row.two{grid-template-columns:78px 1fr}
+.row>span:first-child{color:var(--muted)}
+.row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--text);font-size:12px}
+.seg{display:inline-flex;width:100%}
+.seg button{flex:1;background:var(--panel2);border:1px solid var(--line);padding:4px 6px;margin-left:-1px;font-size:12px}
+.seg button:first-child{border-radius:5px 0 0 5px;margin-left:0}
+.seg button:last-child{border-radius:0 5px 5px 0}
+.seg button.on{background:var(--accent-bg);border-color:var(--accent);position:relative}
+.ibtns{display:flex;flex-wrap:wrap;gap:6px}
+.ibtns button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:12px}
+.ibtns button:hover{border-color:var(--line2)}
+.ibtns button.danger{color:var(--danger)}
+.inote{color:var(--faint);font-size:12px;padding:14px 12px}
+.inote b{color:var(--muted);font-weight:600}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin-top:10px;font-size:12px}
+.keys kbd{font:11px ui-monospace,Menlo,Consolas,monospace;background:var(--well);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--muted);justify-self:start}
+
+/* ---------- timeline ---------- */
+.splitter{height:6px;background:var(--panel);border-top:1px solid var(--line);cursor:ns-resize;flex:none;touch-action:none;position:relative}
+.splitter::after{content:"";position:absolute;left:50%;top:1px;width:36px;height:3px;margin-left:-18px;border-radius:2px;background:var(--line2)}
+.tlbar{display:flex;align-items:center;gap:4px;padding:5px 8px;background:var(--panel);border-bottom:1px solid var(--line);flex:none;overflow-x:auto;scrollbar-width:none}
+.tlbar::-webkit-scrollbar{display:none}
+.tlbar button{display:inline-flex;align-items:center;gap:5px;background:none;border:0;border-radius:6px;padding:5px 8px;color:var(--muted);white-space:nowrap}
+.tlbar button:hover:not(:disabled){background:var(--panel2);color:var(--text)}
+.tlbar button.on{background:var(--accent-bg);color:var(--accent)}
+.tlbar .sep{width:1px;height:20px;background:var(--line);margin:0 4px;flex:none}
+.tlbar label{display:inline-flex;align-items:center;gap:6px;color:var(--muted);flex:none}
+.tlbar input[type=range]{width:110px}
+.timeline{height:260px;flex:none;display:flex;flex-direction:column;background:#17191f;min-height:120px}
+#tlScroll{flex:1;overflow:auto;position:relative;min-height:0;touch-action:pan-x pan-y}
+#tlInner{position:relative;min-height:100%}
+.rulerRow{position:sticky;top:0;z-index:6;height:26px;display:flex;background:var(--panel)}
+.corner{position:sticky;left:0;z-index:2;width:var(--head);flex:none;background:var(--panel);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+#ruler{position:sticky;left:var(--head);display:block;height:26px;border-bottom:1px solid var(--line);cursor:col-resize;touch-action:none}
+.trow{display:flex;height:var(--trackh);border-bottom:1px solid #22252d}
+.trow.audio{height:48px}
+.thead{position:sticky;left:0;z-index:4;width:var(--head);flex:none;background:var(--panel);border-right:1px solid var(--line);display:flex;align-items:center;gap:2px;padding:0 4px 0 8px}
+.thead .tn{flex:1;font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.03em}
+.thead button{background:none;border:0;width:24px;height:24px;border-radius:5px;display:grid;place-items:center;color:var(--muted)}
+.thead button:hover{background:var(--panel2);color:var(--text)}
+.thead button.off{color:var(--danger)}
+@media (hover:hover){.thead .rm{opacity:0}.trow:hover .rm{opacity:1}}
+.thead svg{width:15px;height:15px}
+.lane{position:relative;flex:1;touch-action:pan-x pan-y}
+.lane.drop{background:rgba(0,176,236,.07)}
+.clip{position:absolute;top:4px;bottom:4px;border-radius:6px;overflow:hidden;cursor:grab;background:var(--c-video);border:1px solid rgba(255,255,255,.18);touch-action:none;
+  background-repeat:repeat-x;background-size:auto 100%}
+.clip.image{background-color:var(--c-image)}
+.clip.text{background-color:var(--c-text)}
+.clip.audio{background-color:var(--c-audio);background-repeat:no-repeat}
+.clip.sel{border:2px solid #fff;box-shadow:0 0 0 1px #000}
+.clip.dragging{opacity:.85;z-index:5;cursor:grabbing}
+.clip.hidden{opacity:.45}
+.clip .lbl{position:absolute;left:0;right:0;top:0;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,0));pointer-events:none;text-shadow:0 1px 2px #000}
+.clip .lbl small{font-weight:400;opacity:.8;margin-left:4px}
+.clip .fade{position:absolute;top:0;bottom:0;pointer-events:none}
+.clip .fade.in{left:0;background:linear-gradient(to bottom right,rgba(0,0,0,.55) 50%,transparent 50%)}
+.clip .fade.out{right:0;background:linear-gradient(to bottom left,rgba(0,0,0,.55) 50%,transparent 50%)}
+.clip .h{position:absolute;top:0;bottom:0;width:9px;cursor:ew-resize;z-index:2}
+.clip .h.l{left:0}.clip .h.r{right:0}
+.clip.sel .h::after{content:"";position:absolute;top:50%;width:3px;height:18px;margin-top:-9px;border-radius:2px;background:#fff}
+.clip.sel .h.l::after{left:2px}.clip.sel .h.r::after{right:2px}
+#playhead{position:absolute;top:0;bottom:0;width:0;z-index:7;pointer-events:none;left:var(--head)}
+#playhead::before{content:"";position:absolute;top:0;bottom:0;left:-1px;width:2px;background:#ff4d5e}
+#playhead::after{content:"";position:absolute;top:0;left:-7px;border:7px solid transparent;border-top:9px solid #ff4d5e}
+#snapline{position:absolute;top:26px;bottom:0;width:0;z-index:6;pointer-events:none;border-left:1px dashed #ffd84d}
+.tlempty{position:absolute;left:calc(var(--head) + 20px);top:44px;color:var(--faint);font-size:12.5px;pointer-events:none}
+
+/* ---------- status ---------- */
+.status{display:flex;gap:16px;align-items:center;height:24px;padding:0 12px;background:var(--panel);border-top:1px solid var(--line);color:var(--muted);font-size:12px;flex:none;white-space:nowrap;overflow:hidden}
+.status .grow{overflow:hidden;text-overflow:ellipsis}
+.status .priv{color:var(--faint)}
+
+/* ---------- menus, dialogs, toasts ---------- */
+.menu{position:fixed;z-index:50;min-width:210px;background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:5px;box-shadow:0 12px 36px rgba(0,0,0,.5)}
+.menu button{display:flex;width:100%;justify-content:space-between;gap:24px;background:none;border:0;text-align:left;padding:6px 10px;border-radius:5px}
+.menu button:hover:not(:disabled){background:var(--accent-bg)}
+.menu button.on::after{content:"✓";color:var(--accent)}
+.menu .sub{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:6px 10px 2px}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+.scrim{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.dlg{width:380px;max-width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.55);max-height:calc(100vh - 32px);display:flex;flex-direction:column}
+.dlg h2{font-size:14px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.dlg .body{padding:14px 16px;overflow:auto;display:grid;gap:12px}
+.dlg .row{grid-template-columns:96px 1fr}
+.dlg .note{color:var(--faint);font-size:12px}
+.dlg .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.dlg .foot button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 14px}
+.dlg .foot button.ok{background:var(--accent);border-color:var(--accent);color:#04121a;font-weight:600}
+.bar{height:8px;border-radius:4px;background:var(--well);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s linear}
+.dlg a.dl{display:block;text-align:center;background:var(--accent);color:#04121a;font-weight:600;border-radius:8px;padding:10px;text-decoration:none}
+#toasts{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);z-index:80;display:grid;gap:8px;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+.toast{background:#0b0c10;border:1px solid var(--line2);border-radius:9px;padding:9px 14px;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:tin .18s ease-out}
+.toast.err{border-color:var(--danger)}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+.dropping .upper::after{content:"Drop to import";position:absolute;inset:12px;border:2px dashed var(--accent);border-radius:14px;display:grid;place-items:center;font-size:18px;color:var(--accent);background:rgba(0,176,236,.08);z-index:20;pointer-events:none}
+#pool{position:fixed;left:0;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none}
+#ghost{position:fixed;z-index:90;pointer-events:none;padding:5px 10px;border-radius:6px;background:var(--accent);color:#04121a;font-weight:600;font-size:12px;transform:translate(-50%,-130%)}
+
+/* ---------- narrow screens ---------- */
+@media (max-width:900px){
+  .appname,#projName,.hide-sm{display:none}
+  .panelbtn{display:inline-flex}
+  .bin,.insp{position:absolute;top:0;bottom:0;z-index:30;box-shadow:0 0 40px rgba(0,0,0,.5);transition:transform .2s;width:min(290px,86vw)}
+  .bin{left:0;transform:translateX(-105%)}
+  .insp{right:0;transform:translateX(105%)}
+  body.show-bin .bin,body.show-insp .insp{transform:none}
+  .tc{min-width:0}
+  :root{--head:74px}
+  .thead .tn{font-size:10.5px}
+  .timeline{height:220px}
+  .wbtns{grid-template-columns:1fr}
+  .wcard{padding:18px}
+  #loopBtn{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/projects/">Linear</a>
+  <span class="appname">Video</span>
+  <input type="text" id="projName" value="My video" aria-label="Project name" spellcheck="false">
+  <button class="topbtn panelbtn" id="binToggle" type="button">Media</button>
+  <span class="grow"></span>
+  <button class="topbtn icon" id="undoBtn" type="button" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="i" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+  <button class="topbtn icon" id="redoBtn" type="button" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="i" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+  <button class="topbtn hide-sm" id="formatBtn" type="button" title="Frame size">16:9</button>
+  <button class="topbtn panelbtn" id="inspToggle" type="button">Edit</button>
+  <button class="topbtn primary" id="exportBtn" type="button">Export</button>
+</header>
+
+<div class="upper">
+  <aside class="bin" id="bin" aria-label="Media">
+    <div class="phead">Media <button type="button" id="importBtn">+ Import</button></div>
+    <div id="media"></div>
+    <div class="binfoot">
+      <button type="button" id="addTitle"><svg class="i" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>Title</button>
+      <button type="button" id="addColor"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Colour</button>
+    </div>
+  </aside>
+
+  <section class="viewer">
+    <div class="screen" id="screen">
+      <canvas id="view" width="1280" height="720" aria-label="Preview"></canvas>
+      <div class="welcome" id="welcome">
+        <div class="wcard">
+          <h1>Linear Video</h1>
+          <p>A video editor that runs entirely in your browser. Put clips, photos, music and titles on a timeline, trim and split them, add fades and colour, and export a finished video.</p>
+          <div class="wbtns">
+            <button type="button" id="wOpen"><b>Import media</b><span>Video, photos and audio — or drop files anywhere</span></button>
+            <button type="button" id="wTitle"><b>Start with a title</b><span>A blank project with a title card</span></button>
+          </div>
+          <p class="wnote">Your videos never leave this device. There is no upload and no account: files are read straight from your disk inside this tab, and the export is made here too. Keep the tab open until you’ve downloaded your video — closing it discards the project.</p>
+        </div>
+      </div>
+    </div>
+    <div class="transport">
+      <button type="button" id="toStart" title="Go to start (Home)" aria-label="Go to start"><svg class="i" viewBox="0 0 24 24"><path d="M6 5v14M19 5 9 12l10 7z"/></svg></button>
+      <button type="button" id="stepBack" title="Back one frame (←)" aria-label="Back one frame"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+      <button type="button" id="playBtn" title="Play / pause (Space)" aria-label="Play"><svg class="i" viewBox="0 0 24 24" id="playIco"><path d="M7 4v16l13-8z" fill="currentColor"/></svg></button>
+      <button type="button" id="stepFwd" title="Forward one frame (→)" aria-label="Forward one frame"><svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button type="button" id="toEnd" title="Go to end (End)" aria-label="Go to end"><svg class="i" viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z"/></svg></button>
+      <div class="tc" id="tc">00:00.00 <span>/ 00:00.00</span></div>
+      <button type="button" id="loopBtn" title="Loop playback" aria-label="Loop"><svg class="i" viewBox="0 0 24 24"><path d="M17 2l3 3-3 3"/><path d="M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3"/><path d="M20 13v2a4 4 0 0 1-4 4H4"/></svg></button>
+      <button type="button" id="snapBtn" title="Save this frame as a picture" aria-label="Save frame"><svg class="i" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+    </div>
+  </section>
+
+  <aside class="insp" id="inspPanel" aria-label="Clip settings">
+    <div class="phead" id="inspHead">Clip</div>
+    <div id="insp"></div>
+  </aside>
+</div>
+
+<div class="splitter" id="splitter" title="Drag to resize the timeline"></div>
+<section class="timeline" id="timeline" aria-label="Timeline">
+  <div class="tlbar">
+    <button type="button" id="tSplit" title="Split at playhead (S)"><svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>Split</button>
+    <button type="button" id="tDup" title="Duplicate (Ctrl+D)"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg><span class="hide-sm">Duplicate</span></button>
+    <button type="button" id="tDel" title="Delete (Del)"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span class="hide-sm">Delete</span></button>
+    <button type="button" id="tRipple" title="Delete and close the gap (Shift+Del)"><svg class="i" viewBox="0 0 24 24"><path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4"/></svg><span class="hide-sm">Ripple delete</span></button>
+    <span class="sep"></span>
+    <button type="button" id="tMagnet" class="on" title="Snap to clip edges and the playhead (N)"><svg class="i" viewBox="0 0 24 24"><path d="M6 4v8a6 6 0 0 0 12 0V4h-4v8a2 2 0 0 1-4 0V4zM6 8h4M14 8h4"/></svg><span class="hide-sm">Snap</span></button>
+    <button type="button" id="tAddV" title="Add a video track"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Video track</button>
+    <button type="button" id="tAddA" title="Add an audio track"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Audio track</button>
+    <span class="grow"></span>
+    <label title="Timeline zoom"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5M8.5 11h5"/></svg><input type="range" id="zoom" min="0" max="1000" value="400" aria-label="Timeline zoom"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5M8.5 11h5M11 8.5v5"/></svg></label>
+    <button type="button" id="tFit" title="Fit the whole project (Shift+Z)">Fit</button>
+  </div>
+  <div id="tlScroll">
+    <div id="tlInner">
+      <div class="rulerRow"><div class="corner"></div><canvas id="ruler" height="26"></canvas></div>
+      <div id="tracks"></div>
+      <div id="snapline" hidden></div>
+      <div id="playhead"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="status">
+  <span id="stFmt">1920 × 1080 · 30 fps</span>
+  <span class="grow" id="stHint">Import media to begin.</span>
+  <span class="priv hide-sm">Nothing is uploaded</span>
+</footer>
+
+<input type="file" id="fileIn" accept="video/*,audio/*,image/*" multiple hidden>
+<div id="pool" aria-hidden="true"></div>
+<div id="toasts" aria-live="polite"></div>
+<script src="/video/app.js"></script>
+</body>
+</html>
