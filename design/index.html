@@ -18,8 +18,8 @@
      'wasm-unsafe-eval' lets the background remover compile its WebAssembly
      runtime, which is served from /design/vendor like everything else.
      The two remote hosts are opt-in features: images.pexels.com for stock-photo
-     thumbnails, design-api.linearit.co for photo search and Magic Write
-     (our own Worker, see /design-worker). Uploads never go to either. -->
+     thumbnails, design-api.linearit.co for photo search (our own Worker,
+     see /design-worker). Uploads never go to either. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob: https://images.pexels.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' blob: data: https://design-api.linearit.co; font-src 'self' data: blob:; manifest-src 'self'; worker-src 'self';"/>
 <meta name="referrer" content="no-referrer"/>
 <link rel="stylesheet" href="/design/vendor/fonts/fonts.css"/>
@@ -141,10 +141,6 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .pgrid button span{position:absolute;left:0;right:0;bottom:0;padding:10px 6px 4px;font-size:10.5px;color:#fff;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.65));opacity:0;transition:opacity .15s}
 .pgrid button:hover span{opacity:1}
 .pgrid button:hover{outline:2px solid var(--accent)}
-.sugg{display:grid;gap:8px;max-height:46vh;overflow:auto}
-.sugg .s{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
-.sugg .s p{flex:1;white-space:pre-wrap;user-select:text;-webkit-user-select:text}
-.magic{background:linear-gradient(120deg,#7b61ff,#00b0ec)!important;border:0!important;color:#fff!important;font-weight:700}
 .layer{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:default}
 .layer:hover{background:var(--panel2)}
 .layer.on{background:var(--accent-bg)}
@@ -344,7 +340,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
       <div class="perk"><b>Works offline</b><span>Install it like an app and keep designing with no connection.</span></div>
       <div class="perk"><b>Animate &amp; export video</b><span>Make designs move, then download an MP4 or GIF for Reels, Stories and email.</span></div>
       <div class="perk"><b>Mockups</b><span>See your design on a phone, T-shirt, mug, poster or billboard.</span></div>
-      <div class="perk"><b>Stock photos &amp; Magic Write</b><span>Search free photos and let AI suggest headlines and captions.</span></div>
+      <div class="perk"><b>Free stock photos</b><span>Search thousands of free photos from Pexels right inside the editor.</span></div>
       <div class="perk"><b>Private by design</b><span>Your photos and designs never leave this device. No upload, no sign-in.</span></div>
     </div>
   </div>
