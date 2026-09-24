@@ -1,4 +1,4 @@
-# Vendored for Linear Design's background remover
+# Vendored for Linear Design
 
 Loaded only when someone clicks **Remove background**; served from this origin
 so a photo never leaves the machine (the page's CSP names no remote host).
@@ -18,3 +18,9 @@ e13f7f94fc51b4ca72b12faeb1ee95f4ace6dfbc8939bc718aabdc0a27c4299b  ort/ort-wasm-s
 3398c10d07d229bd91b364548e130e0e51a8e5704b88c7c083ebbeb78842dee2  ort/ort-wasm-simd-threaded.wasm
 7796a15f0a31d9900955c4fc75aaf6890ee7a6beaa30afc10a2587346334fb4a  ort/ort.wasm.min.js
 ```
+
+## Fonts
+
+`fonts/*.woff2` — 36 Google Fonts families (latin subset) from Fontsource 5.x
+(`@fontsource/<family>`), all under the SIL Open Font License 1.1.
+`fonts/fonts.css` declares them; the editor loads each face on first use.
