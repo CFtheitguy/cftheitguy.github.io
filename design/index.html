@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Linear Design — free graphic design app</title>
+<meta name="description" content="Design social posts, flyers, posters, invitations, business cards, thumbnails and presentations in your browser. Over 11,000 templates in 21 sizes, magic resize, brand kit, transparent PNG and PDF export — free, no account, nothing uploaded. From Linear IT."/>
+<link rel="canonical" href="https://www.linearit.co/design/"/>
+<link rel="icon" href="/design/assets/icon.png"/>
+<link rel="apple-touch-icon" href="/design/assets/icon.png"/>
+<meta name="theme-color" content="#1b1d24"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Linear Design"/>
+<!-- Locked to this origin: no directive names a remote host, so nothing on this
+     page can send a design or a photo anywhere. Fonts are the system's own. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' blob: data:; font-src 'self' data: blob:;"/>
+<meta name="referrer" content="no-referrer"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+:root{
+  --bg:#1b1d24;--panel:#262932;--panel2:#2e323d;--well:#15171d;
+  --line:#3a3f4d;--line2:#4a5062;
+  --text:#e4e7ef;--muted:#99a0b4;--faint:#646b80;
+  --accent:#00b0ec;--accent-bg:rgba(0,176,236,.18);
+  --danger:#f87171;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font:13px/1.4 var(--font);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+input[type=number],input[type=text],input[type=search],select{background:var(--well);border:1px solid var(--line);border-radius:6px;padding:4px 7px;outline:none;min-width:0}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=range]{accent-color:var(--accent);width:100%;min-width:0}
+input[type=checkbox]{accent-color:var(--accent)}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- top bar ---------- */
+.top{display:flex;align-items:center;gap:6px;height:48px;padding:0 10px 0 12px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.brand{display:block;width:92px;height:24px;background:url("/photos/assets/logo-white.png") left center/contain no-repeat;text-indent:-9999px;overflow:hidden;flex:none}
+.appname{color:var(--muted);font-weight:600;margin-right:6px;white-space:nowrap}
+.tb{background:none;border:0;border-radius:6px;padding:6px 9px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;color:var(--text)}
+.tb:hover:not(:disabled){background:var(--panel2)}
+.tb:disabled{color:var(--faint);cursor:default}
+.tb.icon{padding:6px}
+#docName{background:transparent;border:1px solid transparent;border-radius:6px;padding:5px 8px;width:220px;min-width:60px;flex:0 1 220px;color:var(--text)}
+#docName:hover{border-color:var(--line)}
+#docName:focus{border-color:var(--accent);background:var(--well)}
+.grow{flex:1}
+.topbtn{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:7px 13px;white-space:nowrap;flex:none;display:inline-flex;gap:6px;align-items:center}
+.topbtn:hover{border-color:var(--line2)}
+.topbtn.primary{background:var(--accent);border-color:var(--accent);color:#04121a;font-weight:700}
+.topbtn.primary:hover{filter:brightness(1.08)}
+.menu{position:fixed;z-index:70;min-width:230px;background:var(--panel);border:1px solid var(--line2);border-radius:9px;padding:5px;box-shadow:0 12px 36px rgba(0,0,0,.5);max-height:calc(100vh - 60px);overflow:auto}
+.menu button{display:flex;width:100%;justify-content:space-between;gap:24px;background:none;border:0;text-align:left;padding:7px 10px;border-radius:6px}
+.menu button:hover:not(:disabled){background:var(--accent-bg)}
+.menu kbd{color:var(--faint);font:inherit;font-size:12px}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+
+/* ---------- layout ---------- */
+.main{flex:1;display:flex;min-height:0;position:relative}
+.rail{width:72px;flex:none;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:6px 0;gap:2px;overflow-y:auto;scrollbar-width:none}
+.rail button{background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px;font-size:11px;border-radius:0}
+.rail button svg{width:22px;height:22px}
+.rail button:hover{color:var(--text)}
+.rail button.on{color:var(--accent);background:var(--accent-bg);box-shadow:inset 3px 0 0 var(--accent)}
+.drawer{width:330px;flex:none;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.drawer.closed{display:none}
+.dhead{display:flex;align-items:center;gap:8px;padding:12px 12px 8px;flex:none}
+.dhead h2{font-size:15px;flex:1}
+.dbody{flex:1;overflow-y:auto;padding:4px 12px 16px;min-height:0}
+.work{flex:1;position:relative;overflow:hidden;background:#101116;min-width:0;touch-action:none}
+#view{position:absolute;inset:0;width:100%;height:100%;display:block}
+#textEdit{position:absolute;z-index:5;background:transparent;border:0;outline:1.5px dashed var(--accent);resize:none;overflow:hidden;padding:0;margin:0;white-space:pre-wrap;overflow-wrap:break-word;word-break:break-word;caret-color:var(--accent);user-select:text;-webkit-user-select:text;transform-origin:50% 50%}
+.props{width:272px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;min-height:0;padding-bottom:30px}
+.dropping .work::after{content:"Drop to add";position:absolute;inset:12px;border:2px dashed var(--accent);border-radius:14px;display:grid;place-items:center;font-size:18px;color:var(--accent);background:rgba(0,176,236,.08);z-index:20;pointer-events:none}
+
+/* ---------- pages strip ---------- */
+.pages{height:92px;flex:none;background:var(--panel);border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 12px;overflow-x:auto}
+.pthumb{position:relative;flex:none;height:64px;border:2px solid transparent;border-radius:6px;padding:0;background:var(--well);display:grid;place-items:center;overflow:hidden}
+.pthumb.on{border-color:var(--accent)}
+.pthumb canvas{display:block;max-height:60px;max-width:120px}
+.pthumb span{position:absolute;left:3px;bottom:2px;font-size:10px;background:rgba(0,0,0,.6);color:#fff;border-radius:3px;padding:0 4px}
+.padd{flex:none;height:64px;width:64px;border:1.5px dashed var(--line2);border-radius:6px;background:none;color:var(--muted);font-size:22px}
+.padd:hover{color:var(--text);border-color:var(--accent)}
+.pactions{display:flex;gap:2px;flex:none;margin-left:auto;align-items:center;color:var(--muted)}
+.zoomctl{display:flex;align-items:center;gap:6px;color:var(--muted);flex:none;padding-left:8px;border-left:1px solid var(--line)}
+.zoomctl input{width:110px}
+.zoomctl output{min-width:42px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- drawer contents ---------- */
+.search{width:100%;padding:9px 11px;border-radius:8px;font-size:14px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:10px 0 8px;scrollbar-width:thin}
+.chips button{flex:none;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px;color:var(--muted);font-size:12px;white-space:nowrap}
+.chips button:hover{color:var(--text)}
+.chips button.on{background:var(--accent-bg);border-color:var(--accent);color:var(--text)}
+.count{color:var(--faint);font-size:12px;margin:2px 0 8px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tcard{position:relative;border:0;padding:0;background:var(--well);border-radius:7px;overflow:hidden;display:block;width:100%}
+.tcard canvas{display:block;width:100%;height:auto}
+.tcard:hover{outline:2px solid var(--accent)}
+.tcard .tl{position:absolute;left:0;right:0;bottom:0;padding:14px 7px 5px;font-size:11px;text-align:left;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7));opacity:0;transition:opacity .15s}
+.tcard:hover .tl{opacity:1}
+.sentinel{height:40px}
+.sec{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.sec button{background:none;border:0;color:var(--accent);font-size:11px;text-transform:none;letter-spacing:0;font-weight:600}
+.egrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.egrid.five{grid-template-columns:repeat(5,1fr)}
+.egrid.three{grid-template-columns:repeat(3,1fr)}
+.eb{aspect-ratio:1;background:var(--panel2);border:1px solid transparent;border-radius:7px;display:grid;place-items:center;padding:6px;color:var(--text)}
+.eb:hover{border-color:var(--accent)}
+.eb canvas,.eb img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.eb.emoji{font-size:26px;line-height:1;padding:0}
+.bigbtn{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:left;margin-bottom:8px;color:var(--text);display:block}
+.bigbtn:hover{border-color:var(--accent)}
+.bigbtn.accent{background:var(--accent);color:#04121a;border-color:var(--accent);font-weight:700;text-align:center}
+.combo{width:100%;background:#fff;color:#111;border:0;border-radius:8px;padding:14px 10px;margin-bottom:8px;text-align:center;display:block;overflow:hidden}
+.combo:hover{outline:2px solid var(--accent)}
+.swgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.sw{aspect-ratio:1;border-radius:50%;border:1px solid rgba(255,255,255,.15);padding:0}
+.sw:hover{transform:scale(1.08)}
+.sw.sq{border-radius:6px}
+.note{color:var(--faint);font-size:12px;line-height:1.5;margin-top:8px}
+.upgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.upgrid button{background:var(--well);border:0;border-radius:6px;padding:0;aspect-ratio:1;overflow:hidden;position:relative}
+.upgrid img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.upgrid button:hover{outline:2px solid var(--accent)}
+.layer{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:6px;cursor:default}
+.layer:hover{background:var(--panel2)}
+.layer.on{background:var(--accent-bg)}
+.layer .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer .ty{width:28px;height:28px;border-radius:5px;background:var(--well);display:grid;place-items:center;color:var(--muted);flex:none}
+.layer button{background:none;border:0;color:var(--muted);width:26px;height:26px;border-radius:5px;display:grid;place-items:center}
+.layer button:hover{color:var(--text);background:var(--panel)}
+.layer button.off{opacity:.35}
+
+/* ---------- properties ---------- */
+.pgroup{padding:12px 14px;border-bottom:1px solid var(--line)}
+.pgroup h3{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.pgroup h3 label{text-transform:none;letter-spacing:0;font-weight:500;display:flex;gap:5px;align-items:center}
+.prow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.prow:last-child{margin-bottom:0}
+.prow>span{color:var(--muted);width:74px;flex:none}
+.prow select,.prow input[type=text]{flex:1}
+.prow input[type=number]{width:64px}
+.prow output{width:38px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.grid4{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.grid4 label{display:flex;align-items:center;gap:5px;color:var(--muted)}
+.grid4 input{width:100%}
+.btnrow{display:flex;gap:4px;flex-wrap:wrap}
+.pb{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 8px;display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:32px;color:var(--text)}
+.pb:hover{border-color:var(--line2)}
+.pb.on{background:var(--accent-bg);border-color:var(--accent)}
+.pb.wide{flex:1}
+.pb.danger:hover{border-color:var(--danger);color:var(--danger)}
+.csw{width:30px;height:30px;border-radius:7px;border:1px solid var(--line2);padding:0;flex:none;position:relative;overflow:hidden}
+.csw.none{background:linear-gradient(135deg,#fff 45%,#e11 47%,#e11 53%,#fff 55%)!important}
+.fxgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.fxgrid button{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:10px 4px;font-size:12px;color:var(--text)}
+.fxgrid button.on{border-color:var(--accent);background:var(--accent-bg)}
+.fxgrid button b{display:block;font-size:17px;margin-bottom:2px;font-family:Arial Black,Arial,sans-serif}
+.hint{color:var(--faint);font-size:12px;line-height:1.5}
+
+/* ---------- popover colour picker ---------- */
+.pop{position:fixed;z-index:75;width:252px;background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:12px;box-shadow:0 14px 40px rgba(0,0,0,.55);max-height:calc(100vh - 20px);overflow:auto}
+.pop .sec:first-child{margin-top:0}
+.pop .hexrow{display:flex;gap:6px;align-items:center}
+.pop .hexrow input[type=text]{flex:1;font-family:ui-monospace,Menlo,monospace}
+.pop input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-radius:6px;background:none;padding:0}
+
+/* ---------- home ---------- */
+.home{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;user-select:none}
+.hwrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+.htop{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.hero{border-radius:18px;padding:40px 28px 30px;text-align:center;background:linear-gradient(120deg,#0b5f86,#00b0ec 45%,#7b61ff);margin-bottom:26px}
+.hero h1{font-size:34px;letter-spacing:-.02em;color:#fff;margin-bottom:6px}
+.hero p{color:rgba(255,255,255,.88);font-size:15px;margin-bottom:20px}
+.hero .search{max-width:620px;padding:13px 16px;font-size:16px;border:0;border-radius:10px;background:#fff;color:#111}
+.ftiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:10px;margin-bottom:30px}
+.ftile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text)}
+.ftile:hover{border-color:var(--accent)}
+.ftile i{display:block;background:linear-gradient(135deg,#2f3a52,#46557a);border-radius:4px;border:1px solid var(--line2)}
+.ftile b{font-size:12.5px;font-weight:600;text-align:center}
+.ftile small{color:var(--faint);font-size:11px}
+.hsec{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 12px;gap:12px;flex-wrap:wrap}
+.hsec h2{font-size:19px}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.hgrid .tcard .tl{opacity:1}
+.cont{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:26px;width:100%;text-align:left;color:var(--text)}
+.cont:hover{border-color:var(--accent)}
+.cont canvas{border-radius:6px;max-height:80px;max-width:140px;background:#fff}
+.cont b{display:block;font-size:15px}
+.cont span{color:var(--muted)}
+.perks{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:34px 0 0}
+.perk{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.perk b{display:block;margin-bottom:3px}
+.perk span{color:var(--muted);font-size:12.5px}
+
+/* ---------- dialogs & toasts ---------- */
+.scrim{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.dlg{width:420px;max-width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.55);max-height:calc(100vh - 32px);display:flex;flex-direction:column}
+.dlg h2{font-size:15px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg .body{padding:14px 18px;overflow:auto;display:grid;gap:12px}
+.dlg .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid var(--line)}
+.dlg .foot button{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:7px 15px}
+.dlg .foot button.ok{background:var(--accent);border-color:var(--accent);color:#04121a;font-weight:700}
+.dlg label.opt{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.dlg label.opt:has(input:checked){border-color:var(--accent);background:var(--accent-bg)}
+.dlg label.opt small{display:block;color:var(--muted)}
+.fmtlist{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:260px;overflow:auto}
+.fmtlist button{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:8px;text-align:left;color:var(--text)}
+.fmtlist button.on{border-color:var(--accent);background:var(--accent-bg)}
+.fmtlist small{display:block;color:var(--faint)}
+#toasts{position:fixed;left:50%;bottom:108px;transform:translateX(-50%);z-index:90;display:grid;gap:8px;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+.toast{background:#0b0c10;border:1px solid var(--line2);border-radius:9px;padding:9px 14px;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:tin .18s ease-out}
+.toast.err{border-color:var(--danger)}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+.present{position:fixed;inset:0;z-index:95;background:#000;display:grid;place-items:center}
+.present canvas{max-width:100vw;max-height:100vh}
+.present .pn{position:fixed;bottom:14px;right:18px;color:rgba(255,255,255,.5);font-size:13px}
+
+/* ---------- narrow screens ---------- */
+#propsToggle{display:none}
+@media (max-width:980px){
+  .props{position:absolute;right:0;top:0;bottom:0;z-index:30;box-shadow:-10px 0 40px rgba(0,0,0,.5);transform:translateX(105%);transition:transform .2s;width:min(300px,88vw)}
+  body.showprops .props{transform:none}
+  #propsToggle{display:inline-flex}
+  .drawer{position:absolute;left:72px;top:0;bottom:0;z-index:31;box-shadow:10px 0 40px rgba(0,0,0,.5);width:min(330px,calc(100vw - 72px))}
+}
+@media (max-width:640px){
+  .appname,.hide-sm,.top>.brand{display:none!important}
+  .top{gap:2px;padding:0 6px}
+  .topbtn{padding:7px 10px}
+  #docName{width:90px;flex-basis:90px}
+  .main{flex-direction:column-reverse}
+  .rail{width:auto;height:60px;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:0;overflow-x:auto}
+  .rail button{flex:1 0 62px;padding:6px 2px}
+  .rail button.on{box-shadow:inset 0 3px 0 var(--accent)}
+  .drawer{left:0;right:0;top:auto;bottom:0;width:auto;height:58%;border-radius:14px 14px 0 0;border-right:0}
+  .pages{height:74px}
+  .pthumb{height:50px}.pthumb canvas{max-height:46px}
+  .padd{height:50px;width:50px}
+  .zoomctl input{width:70px}
+  .hero h1{font-size:25px}
+  .hgrid{grid-template-columns:repeat(2,1fr)}
+  #toasts{bottom:150px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/projects/">Linear</a>
+  <span class="appname">Design</span>
+  <button class="tb" id="homeBtn" type="button" title="All templates and sizes"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h14V10"/></svg><span class="hide-sm">Home</span></button>
+  <button class="tb" id="fileBtn" type="button">File</button>
+  <button class="tb hide-sm" id="resizeBtn" type="button" title="Resize to another format"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M4 4l7 7M20 20l-7-7"/></svg>Resize</button>
+  <button class="tb icon" id="undoBtn" type="button" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+  <button class="tb icon" id="redoBtn" type="button" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/></svg></button>
+  <input id="docName" type="text" value="Untitled design" aria-label="Design name" spellcheck="false"/>
+  <span class="grow"></span>
+  <button class="topbtn hide-sm" id="presentBtn" type="button" title="Present full screen"><svg class="i" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>Present</button>
+  <button class="topbtn" id="propsToggle" type="button">Edit</button>
+  <button class="topbtn primary" id="exportBtn" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="hide-sm">Download</span></button>
+</header>
+<div class="main">
+  <nav class="rail" id="rail" aria-label="Panels"></nav>
+  <aside class="drawer" id="drawer">
+    <div class="dhead"><h2 id="dTitle"></h2><button class="tb icon" id="dClose" type="button" aria-label="Close panel"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="dbody" id="dBody"></div>
+  </aside>
+  <div class="work" id="work">
+    <canvas id="view"></canvas>
+    <textarea id="textEdit" hidden spellcheck="false" aria-label="Edit text"></textarea>
+  </div>
+  <aside class="props" id="props" aria-label="Properties"></aside>
+</div>
+<footer class="pages" id="pages"></footer>
+
+<div class="home" id="home">
+  <div class="hwrap">
+    <div class="htop"><a class="brand" href="/projects/">Linear</a><span class="appname">Design</span><span class="grow"></span><button class="topbtn" id="hOpen" type="button">Open a design file</button></div>
+    <div class="hero">
+      <h1>What will you design today?</h1>
+      <p><b id="hCount">11,256</b> free templates · 21 sizes · no account · nothing leaves your device</p>
+      <input class="search" id="hSearch" type="search" placeholder="Search templates: birthday, sale, hiring, menu…" aria-label="Search templates"/>
+    </div>
+    <button class="cont" id="hContinue" type="button" hidden><canvas id="hContCv" width="140" height="80"></canvas><div><b id="hContName"></b><span>Pick up where you left off</span></div></button>
+    <div class="hsec"><h2>Start a blank design</h2><button class="topbtn" id="hCustom" type="button">Custom size</button></div>
+    <div class="ftiles" id="hFormats"></div>
+    <div class="hsec"><h2 id="hTplTitle">Templates</h2></div>
+    <div class="chips" id="hFmtChips"></div>
+    <div class="chips" id="hCatChips" style="padding-top:0"></div>
+    <div class="count" id="hTplCount"></div>
+    <div class="hgrid" id="hGrid"></div>
+    <div class="sentinel" id="hSentinel"></div>
+    <div class="perks">
+      <div class="perk"><b>Magic resize, free</b><span>Turn one design into a story, a flyer and a banner — templates re-flow to fit.</span></div>
+      <div class="perk"><b>Brand kit</b><span>Your colours, fonts and logo, one click to apply to any design.</span></div>
+      <div class="perk"><b>Transparent PNG, PDF, JPG</b><span>Print-ready PDFs and high-resolution images. No watermarks.</span></div>
+      <div class="perk"><b>Private by design</b><span>Your photos and designs never leave this device. No upload, no sign-in.</span></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileImg" accept="image/*" multiple hidden>
+<input type="file" id="fileReplace" accept="image/*" hidden>
+<input type="file" id="fileProject" accept=".ldesign,.json,application/json" hidden>
+<input type="file" id="fileFont" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
+<input type="file" id="fileLogo" accept="image/*" hidden>
+<div id="toasts" aria-live="polite"></div>
+<script src="/design/core.js"></script>
+<script src="/design/templates.js"></script>
+<script src="/design/app.js"></script>
+</body>
+</html>
