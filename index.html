@@ -127,7 +127,7 @@ section{scroll-margin-top:128px}
   padding:9px 16px;cursor:pointer;
   font-family:var(--mono);font-size:.72rem;font-weight:500;
   letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.85);
-  transition:border-color .2s,color .2s;
+  transition:border-color .2s,color .2s;white-space:nowrap;
 }
 .nav-drop-btn:hover{border-color:var(--aqua);color:var(--aqua)}
 .nav-drop-menu{
@@ -423,12 +423,12 @@ section{scroll-margin-top:128px}
   .posters{grid-template-columns:1fr}
   .contact-grid{grid-template-columns:1fr;gap:44px}
 }
-@media (max-width:680px){
+@media (max-width:1100px){
   .nav-links{
     display:none;
     position:absolute;top:120px;left:0;right:0;
     background:rgba(5,5,7,.97);flex-direction:column;
-    padding:26px 24px;gap:20px;align-items:flex-start;
+    padding:26px 24px;max-height:calc(100svh - 120px);overflow-y:auto;gap:20px;align-items:flex-start;
     border-bottom:1px solid rgba(255,255,255,.1);
   }
   .nav-links.open{display:flex}
@@ -441,6 +441,8 @@ section{scroll-margin-top:128px}
     box-shadow:none;padding:0;min-width:0;
   }
   .nav-drop-menu a{padding:0 0 18px}
+}
+@media (max-width:680px){
   .about-grid,.svc-grid,.stats-grid{grid-template-columns:1fr}
   .hero-logo img{height:54px}
   .section{padding:80px 20px}
@@ -593,8 +595,22 @@ section{scroll-margin-top:128px}
       <a href="#services">Services</a>
       <a href="#faq">FAQ</a>
       <a href="#contact">Contact</a>
+      <div class="nav-drop" id="toolsdrop">
+        <button class="nav-drop-btn" onclick="toggleDrop('toolsdrop')" aria-haspopup="true">Tools ▾</button>
+        <span class="nav-drop-label" aria-hidden="true">Tools</span>
+        <div class="nav-drop-menu">
+          <a href="/graphics/">🎨 Graphics<small>PDF, video, photo &amp; design editors</small></a>
+          <a href="/filter/">🛡 Filters<small>Content filters for home &amp; office</small></a>
+          <a href="/password/" target="_blank" rel="noopener">🔑 Password Generator<small>Strong random passwords, made in your browser</small></a>
+          <a href="/qr/" target="_blank" rel="noopener">▦ QR Reader<small>Get the link back from a QR code image</small></a>
+          <a href="/sign/" target="_blank" rel="noopener">✍ E-Signatures<small>Send a PDF out to be signed</small></a>
+          <a href="/board/" target="_blank" rel="noopener">🖊 Whiteboard<small>A board two people can draw on together</small></a>
+          <a href="/emails/" target="_blank" rel="noopener">✉ Email Viewer<small>Open .mbox, .eml &amp; Takeout archives</small></a>
+          <a href="/dr/" target="_blank" rel="noopener">🩺 AI Computer Doctor<small>Plain-English diagnosis for PC problems</small></a>
+        </div>
+      </div>
       <div class="nav-drop" id="itdrop">
-        <button class="nav-drop-btn" onclick="document.getElementById('itdrop').classList.toggle('open')" aria-haspopup="true">IT Support ▾</button>
+        <button class="nav-drop-btn" onclick="toggleDrop('itdrop')" aria-haspopup="true">IT Support ▾</button>
         <span class="nav-drop-label" aria-hidden="true">IT Support</span>
         <div class="nav-drop-menu">
           <a href="https://linearit.rmmservices.net/" target="_blank" rel="noopener">🔒 Client Login<small>Sign in to your client portal</small></a>
@@ -852,6 +868,8 @@ section{scroll-margin-top:128px}
         <a href="#services">Services</a>
         <a href="#faq">FAQ</a>
         <a href="#contact">Contact</a>
+        <a href="/graphics/">Graphics</a>
+        <a href="/filter/">Filters</a>
         <a href="https://speed.linearit.co/" target="_blank" rel="noopener">Speed Test</a>
       </div>
     </div>
@@ -868,9 +886,15 @@ document.getElementById("deviceField").value = params.get("device") || "";
 document.getElementById("userField").value = params.get("user") || "";
 document.getElementById("orgField").value = params.get("org") || "";
 
+function toggleDrop(id) {
+  document.querySelectorAll('.nav-drop').forEach(d => {
+    if (d.id === id) d.classList.toggle('open'); else d.classList.remove('open');
+  });
+}
 document.addEventListener('click', e => {
-  const drop = document.getElementById('itdrop');
-  if (!drop.contains(e.target)) drop.classList.remove('open');
+  document.querySelectorAll('.nav-drop').forEach(d => {
+    if (!d.contains(e.target)) d.classList.remove('open');
+  });
 });
 
 document.getElementById("year").textContent = new Date().getFullYear();
