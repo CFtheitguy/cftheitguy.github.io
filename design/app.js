@@ -61,7 +61,6 @@ const svg = (d, cls) => { const s = document.createElementNS('http://www.w3.org/
 const ICO = {
   templates: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
   photos: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M17 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z',
-  magic: 'M5 19L16 8M14 6l2-2 4 4-2 2M7 4v3M5.5 5.5h3M18 15v3M16.5 16.5h3',
   elements: 'M12 3l4 7H8zM4 14h7v7H4zM21 17.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z',
   text: 'M5 7V4h14v3M12 4v16M9 20h6',
   uploads: 'M12 16V4M7 9l5-5 5 5M5 20h14',
@@ -1057,7 +1056,6 @@ function textProps(el) {
     slider('Line height', el.lh || 1.2, .6, 3, .05, v => { el.lh = v; up(); }, v => (+v).toFixed(2)),
     slider('Spacing', Math.round((el.ls || 0) * 1000), -100, 800, 5, v => { el.ls = v / 1000; up(); }),
     slider('Curve', el.curve || 0, -100, 100, 1, v => { const cx = el.x + el.w / 2, cy = el.y + el.h / 2; if (!v && el.curve) { el.curve = 0; el.w = 1e5; el.w = Math.min(doc.w * .9, Math.ceil(C.textWidth(el)) + 4); } else el.curve = v; up(); el.x = cx - el.w / 2; el.y = cy - el.h / 2; }),
-    h('button', { class: 'pb wide magic', type: 'button', style: 'width:100%;margin:4px 0 8px', onclick: () => magicWrite(el) }, svg(ICO.magic), 'Magic Write'),
     h('div', { class: 'prow', style: 'margin-top:4px' }, h('button', { class: 'pb wide', type: 'button', onclick: () => { el.w = 1e5; el.w = Math.ceil(C.textWidth(el)) + 4; up(); commit(); } }, 'Fit box to text'), h('button', { class: 'pb wide', type: 'button', onclick: () => startEdit(el) }, 'Edit text'))));
   const cur = effectOf(el);
   const fxPrev = { none: '', shadow: 'text-shadow:2px 2px 2px #000', lift: 'text-shadow:0 3px 8px rgba(0,0,0,.6)', hollow: 'color:transparent;-webkit-text-stroke:1px #fff', outline: '-webkit-text-stroke:1px #000;color:#fff', neon: 'text-shadow:0 0 6px #0ff,0 0 10px #0ff', highlight: 'background:#ffde59;color:#111;padding:0 3px', block: 'background:#111;color:#fff;padding:1px 5px;border-radius:3px', splice: 'color:#fff;-webkit-text-stroke:1px #000;text-shadow:2px 2px 0 #ff5757' };
@@ -1368,7 +1366,6 @@ function comboEls(combo, s) {
 function tabText(body) {
   body.append(
     h('button', { class: 'bigbtn accent', type: 'button', onclick: () => addText('heading') }, 'Add a text box'),
-    h('button', { class: 'bigbtn magic', type: 'button', style: 'text-align:center', onclick: () => magicWrite(null) }, '✨ Magic Write — let AI write it'),
     h('button', { class: 'bigbtn', type: 'button', style: 'font-size:22px;font-weight:800', onclick: () => addText('heading') }, 'Add a heading'),
     h('button', { class: 'bigbtn', type: 'button', style: 'font-size:16px;font-weight:600', onclick: () => addText('sub') }, 'Add a subheading'),
     h('button', { class: 'bigbtn', type: 'button', style: 'font-size:12.5px', onclick: () => addText('body') }, 'Add a little bit of body text'),
@@ -1792,13 +1789,13 @@ async function fixWebmDuration(blob, ms) {
   return blob;
 }
 
-// ---------------------------------------------------------------- online features (design-api.linearit.co)
-// Stock photos and Magic Write go through our own Worker, which holds the API
-// keys. Everything else in the app works without it.
+// ---------------------------------------------------------------- stock photos (design-api.linearit.co)
+// Photo search goes through our own Worker, which holds the Pexels key.
+// Everything else in the app works without it.
 const API = 'https://design-api.linearit.co';
 let health = null;
 function apiHealth() {
-  if (!health) health = fetch(API + '/health', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ ok: false, photos: false, write: false, offline: navigator.onLine === false }));
+  if (!health) health = fetch(API + '/health', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ ok: false, photos: false, offline: navigator.onLine === false }));
   // (Unreachable while online means the Worker isn't deployed yet: shown as "not switched on".)
   return health;
 }
@@ -1873,60 +1870,6 @@ async function usePhoto(p, btn) {
     toast(`Photo by ${p.by} on Pexels`);
   } catch (err) { toast(err.message || 'Couldn’t add that photo.', true); }
   if (btn) btn.style.opacity = '';
-}
-
-// ---- Magic Write (Claude, via the Worker)
-const WRITE_TASKS = [['headline', 'Headlines'], ['tagline', 'Taglines'], ['cta', 'Button text'], ['caption', 'Social caption'], ['rewrite', 'Rewrite'], ['shorter', 'Shorter'], ['longer', 'Longer'], ['fix', 'Fix spelling'], ['ideas', 'Anything']];
-const WRITE_TONES = ['friendly', 'professional', 'playful', 'bold', 'elegant', 'urgent', 'calm'];
-let writePrefs = { task: 'headline', tone: 'friendly', context: '' };
-const isPlaceholder = t => /^(Add a (heading|subheading|text box|little bit of body text)|Your text)$/i.test(String(t).trim());
-function designContext() {
-  const texts = page().els.filter(e => e.type === 'text' && !isPlaceholder(e.text) && /[a-z]{2}/i.test(e.text)).sort((a, b) => b.size - a.size).map(e => e.text.replace(/\s+/g, ' ')).slice(0, 5);
-  return [doc.name && !/^Untitled/.test(doc.name) ? doc.name : '', ...texts].filter(Boolean).join(' · ').slice(0, 400);
-}
-async function magicWrite(el) {
-  if (editingId) stopEdit();
-  const hs = await apiHealth();
-  let task = el ? (writePrefs.task === 'headline' && el.size < S() * .05 ? 'rewrite' : writePrefs.task) : writePrefs.task, tone = writePrefs.tone;
-  const taskSel = h('select', { onchange: e => { task = e.target.value; } }, WRITE_TASKS.map(([k, n]) => h('option', { value: k, selected: k === task }, n)));
-  const toneChips = h('div', { class: 'chips', style: 'padding:0' });
-  const drawTones = () => { toneChips.textContent = ''; toneChips.append(...WRITE_TONES.map(k => h('button', { type: 'button', class: k === tone ? 'on' : '', onclick: () => { tone = k; drawTones(); } }, k[0].toUpperCase() + k.slice(1)))); };
-  drawTones();
-  const ctxBox = h('textarea', { placeholder: 'What’s it for? e.g. “Grand opening of a coffee shop on Main Street, free pastries Saturday”' });
-  ctxBox.value = writePrefs.context || designContext();
-  const textBox = h('textarea', { placeholder: 'Your text (for rewrite, shorter, longer, fix spelling)' });
-  textBox.value = el && !isPlaceholder(el.text) ? el.text : '';
-  const out = h('div', { class: 'sugg' });
-  const go = h('button', { class: 'pb wide magic', type: 'button', style: 'padding:9px' }, svg(ICO.magic), 'Write');
-  const use = txt => {
-    if (el && byId(el.id)) { el.text = txt; C.syncText(el); sel = [el.id]; commit(); toast('Text replaced — Ctrl+Z to undo.'); }
-    else { const t = addText(task === 'caption' || task === 'longer' ? 'body' : task === 'cta' || task === 'tagline' ? 'sub' : 'heading', txt); t.w = Math.min(doc.w * .8, t.w); C.syncText(t); commit(); }
-  };
-  go.addEventListener('click', async () => {
-    const text = textBox.value.trim(), context = ctxBox.value.trim();
-    if (['rewrite', 'shorter', 'longer', 'fix'].includes(task) && !text) return toast('Type or select some text to rewrite first.', true);
-    if (!text && !context) return toast('Tell Magic Write what the design is about.', true);
-    writePrefs = { task, tone, context };
-    go.disabled = true; out.textContent = ''; out.append(h('p', { class: 'note' }, 'Writing…'));
-    try {
-      const d = await api('/write', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task, tone, text, context }) });
-      out.textContent = '';
-      for (const sug of d.suggestions) out.append(h('div', { class: 's' }, h('p', null, sug),
-        h('button', { class: 'pb', type: 'button', onclick: () => use(sug) }, el ? 'Use' : 'Add'),
-        h('button', { class: 'pb', type: 'button', title: 'Copy', onclick: () => { navigator.clipboard && navigator.clipboard.writeText(sug); toast('Copied.'); } }, svg(ICO.copy))));
-    } catch (err) { out.textContent = ''; out.append(h('p', { class: 'note', style: 'color:var(--danger)' }, err.message)); }
-    go.disabled = false;
-  });
-  const body = hs.write ? [
-    h('div', { class: 'prow' }, h('span', null, 'Write'), taskSel),
-    h('div', null, h('div', { class: 'sec', style: 'margin-top:0' }, 'Tone'), toneChips),
-    h('label', { style: 'display:grid;gap:4px;color:var(--muted)' }, 'About the design', ctxBox),
-    h('label', { style: 'display:grid;gap:4px;color:var(--muted)' }, 'Text', textBox),
-    go, out,
-    h('p', { class: 'hint' }, 'Magic Write uses Claude by Anthropic. What you type here is sent to Anthropic to write suggestions; your designs and photos aren’t. Check facts, prices and dates before you publish.'),
-  ] : [hs.offline ? h('p', { class: 'note' }, 'Magic Write needs an internet connection.') : notSetUp('Magic Write')];
-  dialog('✨ Magic Write', body, 'Done');
-  const d = document.querySelector('.scrim:last-child .dlg'); if (d) d.style.width = '560px';
 }
 
 // ---------------------------------------------------------------- mockups

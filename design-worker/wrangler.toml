@@ -3,18 +3,16 @@
 # A SEPARATE, isolated Worker, like board-worker and speed-worker: its own folder,
 # its own config, no shared bindings. It can't affect any other linearit.co app.
 #
-# It does two things for https://www.linearit.co/design/ :
-#   /photos/*  — stock photo search, proxied to Pexels (PEXELS_KEY)
-#   /write     — "Magic Write" copy suggestions, via the Anthropic API (ANTHROPIC_KEY)
-# Both keys are ENCRYPTED SECRETS set with `wrangler secret put` — never in this
-# file (the repo is public). Full step-by-step setup is in README.md.
+# It serves stock photo search for https://www.linearit.co/design/ , proxied to
+# Pexels (free). The Pexels key is an ENCRYPTED SECRET set with
+# `wrangler secret put` — never in this file (the repo is public). Full
+# step-by-step setup is in README.md.
 #
 #   cd design-worker
 #   npm install
 #   npx wrangler login                      # once per machine
 #   npx wrangler deploy
 #   npx wrangler secret put PEXELS_KEY
-#   npx wrangler secret put ANTHROPIC_KEY
 
 name = "design-worker"
 main = "src/index.js"
@@ -27,23 +25,14 @@ routes = [
 ]
 
 [vars]
-# Which Claude model writes the suggestions. Change it here and redeploy.
-MODEL = "claude-opus-5"
 # Only pages on these origins may call this Worker (comma-separated).
 ALLOWED_ORIGINS = "https://www.linearit.co,https://linearit.co"
 
-# Per-visitor limits (keyed by IP), so nobody can burn through the Pexels quota
-# or run up the Anthropic bill. period must be 10 or 60 (seconds).
+# Per-visitor limit (keyed by IP), so nobody can burn through the Pexels quota.
+# period must be 10 or 60 (seconds).
 [[ratelimits]]
 name = "PHOTO_LIMIT"
 namespace_id = "7101"
   [ratelimits.simple]
   limit = 60
-  period = 60
-
-[[ratelimits]]
-name = "WRITE_LIMIT"
-namespace_id = "7102"
-  [ratelimits.simple]
-  limit = 8
   period = 60
