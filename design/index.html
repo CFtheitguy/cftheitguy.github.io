@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Linear Design — free graphic design app</title>
-<meta name="description" content="Design social posts, flyers, posters, invitations, business cards, thumbnails and presentations in your browser. Over 11,000 templates in 21 sizes, magic resize, brand kit, transparent PNG and PDF export — free, no account, nothing uploaded. From Linear IT."/>
+<meta name="description" content="Design social posts, flyers, posters, invitations, business cards, thumbnails and presentations in your browser. Over 11,000 templates in 21 sizes, one-click background remover, QR codes, charts and tables, magic resize, brand kit, transparent PNG and PDF export — free, no account, nothing uploaded. From Linear IT."/>
 <link rel="canonical" href="https://www.linearit.co/design/"/>
 <link rel="icon" href="/design/assets/icon.png"/>
 <link rel="apple-touch-icon" href="/design/assets/icon.png"/>
@@ -13,8 +13,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Linear Design"/>
 <!-- Locked to this origin: no directive names a remote host, so nothing on this
-     page can send a design or a photo anywhere. Fonts are the system's own. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' blob: data:; font-src 'self' data: blob:;"/>
+     page can send a design or a photo anywhere. Fonts are the system's own.
+     'wasm-unsafe-eval' lets the background remover compile its WebAssembly
+     runtime, which is served from /design/vendor like everything else. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; form-action 'none'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' blob: data:; font-src 'self' data: blob:;"/>
 <meta name="referrer" content="no-referrer"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -198,8 +200,27 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 .perk b{display:block;margin-bottom:3px}
 .perk span{color:var(--muted);font-size:12.5px}
 
+/* ---------- data grid, bg remover ---------- */
+.gridwrap{overflow:auto;max-height:52vh;border:1px solid var(--line);border-radius:8px}
+.dgrid{border-collapse:collapse}
+.dgrid td{border:1px solid var(--line);padding:0}
+.dgrid input{border:0;border-radius:0;background:var(--well);width:120px;padding:6px 8px}
+.dgrid tr:first-child input{font-weight:700}
+.dgrid td.rh input{color:var(--muted)}
+.bgwrap{display:grid;grid-template-columns:1fr 260px;gap:16px;align-items:start}
+.bgstage{position:relative;background:#fff;border-radius:10px;overflow:hidden;display:grid;place-items:center;min-height:320px;touch-action:none}
+.bgstage canvas{display:block;max-width:100%;max-height:62vh}
+.bgbusy{position:absolute;inset:0;display:grid;place-items:center;background:rgba(15,17,22,.72);color:#fff;text-align:center;padding:20px}
+.bgbusy .bar{width:220px;height:6px;border-radius:3px;background:rgba(255,255,255,.2);margin:12px auto 0;overflow:hidden}
+.bgbusy .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.qrprev{background:repeating-conic-gradient(#e5e7eb 0 25%,#fff 0 50%) 0 0/16px 16px;border-radius:10px;display:grid;place-items:center;padding:12px}
+.qrprev canvas{width:200px;height:200px}
+.dlg textarea{background:var(--well);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;min-height:70px;resize:vertical;outline:none}
+@media (max-width:760px){.bgwrap{grid-template-columns:1fr}}
+
 /* ---------- dialogs & toasts ---------- */
 .scrim{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.45)}
+.dlg.wide{width:960px}
 .dlg{width:420px;max-width:100%;background:var(--panel);border:1px solid var(--line2);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.55);max-height:calc(100vh - 32px);display:flex;flex-direction:column}
 .dlg h2{font-size:15px;padding:14px 18px;border-bottom:1px solid var(--line)}
 .dlg .body{padding:14px 18px;overflow:auto;display:grid;gap:12px}
@@ -299,6 +320,8 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
       <div class="perk"><b>Magic resize, free</b><span>Turn one design into a story, a flyer and a banner — templates re-flow to fit.</span></div>
       <div class="perk"><b>Brand kit</b><span>Your colours, fonts and logo, one click to apply to any design.</span></div>
       <div class="perk"><b>Transparent PNG, PDF, JPG</b><span>Print-ready PDFs and high-resolution images. No watermarks.</span></div>
+      <div class="perk"><b>One-click background remover</b><span>AI that runs on your device — plus erase and restore brushes for the fiddly bits.</span></div>
+      <div class="perk"><b>QR codes, charts, tables</b><span>Wi-Fi and contact-card QR codes, seven chart types and tables you can paste straight from Excel.</span></div>
       <div class="perk"><b>Private by design</b><span>Your photos and designs never leave this device. No upload, no sign-in.</span></div>
     </div>
   </div>
@@ -310,6 +333,7 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stro
 <input type="file" id="fileFont" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
 <input type="file" id="fileLogo" accept="image/*" hidden>
 <div id="toasts" aria-live="polite"></div>
+<script src="/design/qr.js"></script>
 <script src="/design/core.js"></script>
 <script src="/design/templates.js"></script>
 <script src="/design/app.js"></script>
