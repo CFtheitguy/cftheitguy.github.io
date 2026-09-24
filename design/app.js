@@ -78,6 +78,9 @@ const ICO = {
   flipH: 'M12 3v18M8 7l-5 5 5 5zM16 7l5 5-5 5z', flipV: 'M3 12h18M7 8l5-5 5 5zM7 16l5 5 5-5z',
   fwd: 'M8 8h12v12H8z|M4 4h10v2M4 4v10h2', bwd: 'M4 4h12v12H4z|M20 8v12H8',
   distH: 'M4 3v18M20 3v18M9 8h6v8H9z', distV: 'M3 4h18M3 20h18M8 9h8v6H8z',
+  qr: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2',
+  table: 'M3 5h18v14H3zM3 10h18M3 14.5h18M9 5v14M15 5v14',
+  wand: 'M4 20L15 9M13 7l2-2 4 4-2 2zM6 4v3M4.5 5.5h3M19 14v3M17.5 15.5h3',
   txtL: 'M4 6h16M4 10h10M4 14h16M4 18h10', txtC: 'M4 6h16M7 10h10M4 14h16M7 18h10', txtR: 'M4 6h16M10 10h10M4 14h16M10 18h10',
 };
 
@@ -269,8 +272,8 @@ function handles() {
   if (el.locked) return [];
   let kinds;
   if (C.isLine(el)) kinds = [[-1, 0], [1, 0]];
-  else if (el.type === 'text') kinds = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, 0], [1, 0]];
-  else if (el.type === 'icon') kinds = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  else if (el.type === 'text' || el.type === 'table') kinds = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, 0], [1, 0]];
+  else if (el.type === 'icon' || el.type === 'qr') kinds = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
   else kinds = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]];
   const cx = el.x + el.w / 2, cy = el.y + el.h / 2, a = (el.rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
   const loc = (lx, ly) => [cx + lx * c - ly * s, cy + lx * s + ly * c];
@@ -511,17 +514,17 @@ function doResize(p, shift) {
   const d = [qx * c + qy * s, -qx * s + qy * c];   // pointer in the element's own frame
   const ax = -hx * o.w / 2, ay = -hy * o.h / 2;     // the corner/edge that stays put
   const corner = hx !== 0 && hy !== 0;
-  const lock = el.type === 'icon' || (corner && (el.type === 'image' || el.type === 'text') ? !shift : corner && shift);
+  const lock = el.type === 'icon' || el.type === 'qr' || (corner && (el.type === 'image' || el.type === 'text') ? !shift : corner && shift);
   let w = o.w, hh = o.h;
   const min = 6 / view.zoom;
-  if (el.type === 'text') {
+  if (el.type === 'text' || el.type === 'table') {
     if (corner) {
       const dvx = d[0] - ax, dvy = d[1] - ay, gx = hx * o.w, gy = hy * o.h;
       const k = Math.max(.05, (dvx * gx + dvy * gy) / (gx * gx + gy * gy));
       el.size = Math.max(2, o.size * k); el.w = Math.max(min, o.w * k);
       if (o.shadow) el.shadow = Object.assign({}, o.shadow, { blur: o.shadow.blur * k, x: o.shadow.x * k, y: o.shadow.y * k });
     } else {
-      el.w = Math.max(el.size * .5, hx * d[0] + o.w / 2);
+      el.w = Math.max(el.size * (el.type === 'table' ? 3 : .5), hx * d[0] + o.w / 2);
     }
     C.syncText(el);
     w = el.w; hh = el.h;
@@ -564,7 +567,7 @@ function doGroupScale(p) {
 }
 function scaleEl(el, o, k) {
   el.w = o.w * k; el.h = o.h * k;
-  if (el.type === 'text') { el.size = o.size * k; C.syncText(el); }
+  if (el.type === 'text' || el.type === 'table') { el.size = o.size * k; C.syncText(el); }
   if (o.sw && el.type === 'shape') el.sw = o.sw * k;
   if (o.shadow) el.shadow = Object.assign({}, o.shadow, { blur: (o.shadow.blur || 0) * k, x: (o.shadow.x || 0) * k, y: (o.shadow.y || 0) * k });
 }
@@ -573,6 +576,8 @@ function onDouble(el) {
   if (el.locked) return toast('This element is locked — unlock it to edit.');
   if (el.type === 'text') startEdit(el);
   else if (el.type === 'image') { replaceTarget = el.id; $('fileReplace').click(); }
+  else if (el.type === 'qr') qrDialog(el);
+  else if (el.type === 'chart' || el.type === 'table') dataDialog(el);
   else if (el.type === 'shape' && !C.isLine(el)) {   // double-click a shape to type in it
     const s = S();
     const t = { id: nid(), type: 'text', text: 'Your text', font: 'Sans', weight: 700, size: Math.max(12, Math.min(el.h * .22, s * .06)), color: C.lum(C.fillColor(el.fill)) > .55 ? '#111111' : '#ffffff', align: 'center', lh: 1.15, ls: 0, x: 0, y: 0, w: el.w * .8, h: 10, rot: el.rot || 0, opacity: 1 };
@@ -862,7 +867,7 @@ function buildProps() {
   if (!els.length) return buildPageProps();
   if (els.length > 1) return buildMultiProps(els);
   const el = els[0];
-  const names = { text: 'Text', shape: 'Shape', icon: 'Icon', image: el.src ? 'Photo' : 'Photo frame' };
+  const names = { text: 'Text', shape: 'Shape', icon: 'Icon', image: el.src ? 'Photo' : 'Photo frame', qr: 'QR code', chart: 'Chart', table: 'Table' };
   P.append(group([names[el.type], h('span', { class: 'btnrow' },
     pb(ICO.copy, 'Duplicate (Ctrl+D)', duplicate),
     pb(el.locked ? ICO.lock : ICO.unlock, el.locked ? 'Unlock' : 'Lock', () => { el.locked = !el.locked; commit(); }, el.locked),
@@ -871,6 +876,9 @@ function buildProps() {
   if (el.type === 'shape') shapeProps(el);
   if (el.type === 'icon') iconProps(el);
   if (el.type === 'image') imageProps(el);
+  if (el.type === 'qr') qrProps(el);
+  if (el.type === 'chart') chartProps(el);
+  if (el.type === 'table') tableProps(el);
   commonProps(el);
 }
 function commonProps(el) {
@@ -884,9 +892,9 @@ function commonProps(el) {
       pb(ICO.flipH, 'Flip horizontal', () => { el.flipX = !el.flipX; commit(); }, el.flipX), pb(ICO.flipV, 'Flip vertical', () => { el.flipY = !el.flipY; commit(); }, el.flipY)),
     h('div', { class: 'grid4' },
       num('X', el.x, v => el.x = v), num('Y', el.y, v => el.y = v),
-      num('W', el.w, v => { v = Math.max(1, v); if (el.type === 'text') { el.w = v; C.syncText(el); } else if (el.type === 'icon') { el.w = el.h = v; } else el.w = v; }),
-      el.type === 'text' ? num('Rot', el.rot || 0, v => el.rot = v) : num('H', el.h, v => { v = Math.max(1, v); if (el.type === 'icon') el.w = el.h = v; else el.h = v; })),
-    el.type !== 'text' ? h('div', { class: 'grid4', style: 'margin-top:6px' }, num('Rot', el.rot || 0, v => el.rot = v)) : null,
+      num('W', el.w, v => { v = Math.max(1, v); if (el.type === 'text' || el.type === 'table') { el.w = v; C.syncText(el); } else if (el.type === 'icon' || el.type === 'qr') { el.w = el.h = v; } else el.w = v; }),
+      el.type === 'text' || el.type === 'table' ? num('Rot', el.rot || 0, v => el.rot = v) : num('H', el.h, v => { v = Math.max(1, v); if (el.type === 'icon' || el.type === 'qr') el.w = el.h = v; else el.h = v; })),
+    el.type !== 'text' && el.type !== 'table' ? h('div', { class: 'grid4', style: 'margin-top:6px' }, num('Rot', el.rot || 0, v => el.rot = v)) : null,
     h('div', { style: 'margin-top:8px' }, slider('Opacity', Math.round((el.opacity == null ? 1 : el.opacity) * 100), 0, 100, 1, v => el.opacity = v / 100, v => v + '%'))));
   const sh = el.shadow;
   const s = S();
@@ -993,6 +1001,9 @@ function imageProps(el) {
     h('div', { class: 'btnrow', style: 'margin-bottom:8px' },
       h('button', { class: 'pb wide', type: 'button', onclick: () => { replaceTarget = el.id; $('fileReplace').click(); } }, el.src ? 'Replace photo' : 'Add a photo'),
       el.src ? h('button', { class: 'pb wide', type: 'button', onclick: () => { page().bg.image = el.src; page().bg.filter = clone(f); page().els = page().els.filter(x => x !== el); sel = []; commit(); } }, 'Set as background') : null),
+    el.src ? h('div', { class: 'btnrow', style: 'margin-bottom:8px' },
+      h('button', { class: 'pb wide', type: 'button', style: 'background:var(--accent-bg);border-color:var(--accent)', onclick: () => bgDialog(el) }, svg(ICO.wand), 'Remove background'),
+      el.srcOriginal ? h('button', { class: 'pb wide', type: 'button', onclick: () => { el.src = el.srcOriginal; el.srcOriginal = null; commit(); } }, 'Restore original') : null) : null,
     h('div', { class: 'prow' }, h('span', null, 'Shape'), h('select', { onchange: e => { el.mask = e.target.value; if (el.mask === 'blob' && !el.seed) el.seed = 7; commit(); } }, C.MASKS.map(([k, n]) => h('option', { value: k, selected: (el.mask || 'none') === k }, n)))),
     el.src ? [slider('Zoom', Math.round((el.zoom || 1) * 100), 100, 400, 1, v => el.zoom = v / 100, v => v + '%'),
       slider('Move X', Math.round((el.px || 0) * 100), -100, 100, 1, v => el.px = v / 100),
@@ -1139,13 +1150,27 @@ function dragData(el, data) {
   el.addEventListener('dragstart', e => { e.dataTransfer.setData('text/x-ld', JSON.stringify(data)); e.dataTransfer.effectAllowed = 'copy'; });
 }
 function tabElements(body) {
-  const q = h('input', { class: 'search', type: 'search', placeholder: 'Search shapes, icons, stickers', 'aria-label': 'Search elements' });
+  const q = h('input', { class: 'search', type: 'search', placeholder: 'Search charts, tables, QR, shapes, icons…', 'aria-label': 'Search elements' });
   const box = h('div');
   body.append(q, box);
   const fill = () => {
     box.textContent = '';
     const w = q.value.trim().toLowerCase();
     const m = s => !w || s.toLowerCase().includes(w);
+    if (m('qr code link wifi wi-fi contact scan barcode')) {
+      box.append(h('div', { class: 'sec' }, 'QR code'),
+        h('button', { class: 'bigbtn', type: 'button', style: 'display:flex;gap:10px;align-items:center', onclick: () => qrDialog(null) }, svg(ICO.qr), h('span', null, h('b', null, 'Add a QR code'), h('br'), h('small', { style: 'color:var(--muted)' }, 'Website, Wi-Fi, contact card, email, phone…'))));
+    }
+    const charts = C.CHART_KINDS.filter(([k, n]) => m(n + ' chart graph data'));
+    if (charts.length) {
+      box.append(h('div', { class: 'sec' }, 'Charts'));
+      box.append(h('div', { class: 'egrid' }, charts.map(([k, n]) => { const b = h('button', { class: 'eb', type: 'button', title: n + ' chart', onclick: () => addChart(k) }, miniCanvas((x, S2) => { x.fillStyle = '#ffffff'; x.beginPath(); x.roundRect ? x.roundRect(2, 2, S2 - 4, S2 - 4, 10) : x.rect(2, 2, S2 - 4, S2 - 4); x.fill(); const round = k === 'pie' || k === 'donut'; C.drawElement(x, Object.assign({ type: 'chart', kind: k, x: 8, y: 10, w: S2 - 16, h: S2 - 20, surface: '#ffffff', values: false, legend: false, grid: round ? undefined : false, textScale: .01 }, chartDefaults(k)), { scale: 1 }); })); dragData(b, { kind: 'chart', k }); return b; })));
+    }
+    const tables = Object.keys(TABLE_STYLES).filter(k => m(k + ' table grid rows columns price list schedule'));
+    if (tables.length) {
+      box.append(h('div', { class: 'sec' }, 'Tables'));
+      box.append(h('div', { class: 'egrid three' }, tables.map(k => { const b = h('button', { class: 'eb', type: 'button', title: k + ' table', onclick: () => addTable(k) }, miniCanvas((x, S2) => { x.fillStyle = '#ffffff'; x.fillRect(0, 0, S2, S2); const t = Object.assign({ type: 'table', rows: [['A', 'B', 'C'], ['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9']], font: 'Sans', size: S2 * .1, x: S2 * .08, y: 0, w: S2 * .84 }, TABLE_STYLES[k]); C.syncText(t); t.y = (S2 - t.h) / 2; C.drawElement(x, t, { scale: 1 }); })); dragData(b, { kind: 'table', k }); return b; })));
+    }
     const shapes = C.SHAPES.filter(([k, n]) => !['line', 'dashed', 'arrowline'].includes(k) && m(n + ' ' + k + ' shape'));
     if (shapes.length) {
       box.append(h('div', { class: 'sec' }, 'Shapes'));
@@ -1329,8 +1354,8 @@ function tabLayers(body) {
   body.append(h('p', { class: 'note', style: 'margin:0 0 8px' }, 'Top of the list is in front. Drag to reorder.'));
   let dragId = null;
   for (const el of els) {
-    const name = el.type === 'text' ? el.text.split('\n')[0].slice(0, 40) || 'Text' : el.type === 'image' ? (el.src ? 'Photo' : 'Photo frame') : el.type === 'icon' ? 'Icon: ' + el.icon : (C.SHAPES.find(s => s[0] === el.shape) || [0, 'Shape'])[1];
-    const tyIcon = { text: ICO.text, image: C.ICONS.image, icon: C.ICONS.star, shape: ICO.elements }[el.type];
+    const name = el.type === 'qr' ? 'QR code' : el.type === 'chart' ? 'Chart' : el.type === 'table' ? 'Table' : el.type === 'text' ? el.text.split('\n')[0].slice(0, 40) || 'Text' : el.type === 'image' ? (el.src ? 'Photo' : 'Photo frame') : el.type === 'icon' ? 'Icon: ' + el.icon : (C.SHAPES.find(s => s[0] === el.shape) || [0, 'Shape'])[1];
+    const tyIcon = { text: ICO.text, image: C.ICONS.image, icon: C.ICONS.star, shape: ICO.elements, qr: ICO.qr, chart: C.ICONS.chart, table: ICO.table }[el.type];
     const row = h('div', { class: 'layer' + (sel.includes(el.id) ? ' on' : ''), draggable: 'true', onclick: e => { if (e.shiftKey) sel = sel.includes(el.id) ? sel.filter(i => i !== el.id) : [...sel, el.id]; else sel = [el.id]; buildProps(); requestRender(); showTab('layers'); } },
       h('span', { class: 'ty' }, svg(tyIcon)), h('span', { class: 'nm' }, name),
       h('button', { type: 'button', class: el.hidden ? 'off' : '', title: el.hidden ? 'Show' : 'Hide', onclick: e => { e.stopPropagation(); el.hidden = !el.hidden; if (el.hidden) sel = sel.filter(i => i !== el.id); commit(); } }, svg(ICO.eye)),
@@ -1366,6 +1391,8 @@ window.addEventListener('drop', e => {
     if (d.kind === 'icon') addIcon(d.k, at);
     if (d.kind === 'frame') addFrame(d.k, at);
     if (d.kind === 'emoji') addEmoji(d.k, at);
+    if (d.kind === 'chart') addChart(d.k, at);
+    if (d.kind === 'table') addTable(d.k, at);
     if (d.kind === 'img') {
       const t = at && hitTest(at[0], at[1]);
       if (t && t.type === 'image' && !t.locked) { t.src = d.k; sel = [t.id]; } else addPhotoEl(d.k, at);
@@ -1759,6 +1786,342 @@ async function showContinue() {
     setTimeout(() => { const x = c.getContext('2d'); x.setTransform(k * 2, 0, 0, k * 2, 0, 0); C.renderPage(x, d.pages[d.cur || 0] || d.pages[0], d.w, d.h, { scale: k * 2, images: getImg }); }, 300);
     b.onclick = () => loadProject(d).catch(() => toast('That design couldn’t be restored.', true));
   } catch { /* no saved design, or storage blocked */ }
+}
+
+// ---------------------------------------------------------------- QR codes, charts, tables
+function pageSurface() { const f = page().bg.fill; return page().bg.image ? '#ffffff' : C.fillColor(f); }
+function addQR(text, data, at) {
+  const sz = S() * .3;
+  const el = Object.assign({ id: nid(), type: 'qr', text, ecc: 'M', fg: '#000000', bg: '#ffffff', style: 'square', eye: 'square', quiet: 2, radius: 0, x: 0, y: 0, w: sz, h: sz, rot: 0, opacity: 1 }, data || {});
+  place(el, at); page().els.push(el); sel = [el.id]; commit();
+  return el;
+}
+const CHART_SAMPLE = {
+  one: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], series: [{ name: 'Sales', values: [12, 19, 15, 24, 28, 33] }] },
+  two: { labels: ['Q1', 'Q2', 'Q3', 'Q4'], series: [{ name: '2025', values: [18, 24, 21, 30] }, { name: '2026', values: [22, 29, 31, 38] }] },
+  pie: { labels: ['Social', 'Search', 'Email', 'Referral'], series: [{ name: 'Visitors', values: [42, 28, 18, 12] }] },
+};
+function chartDefaults(kind) {
+  const d = kind === 'pie' || kind === 'donut' ? CHART_SAMPLE.pie : kind === 'stacked' || kind === 'line' ? CHART_SAMPLE.two : CHART_SAMPLE.one;
+  return clone(d);
+}
+function addChart(kind, at) {
+  const s = S(), round = kind === 'pie' || kind === 'donut';
+  const el = Object.assign({ id: nid(), type: 'chart', kind, x: 0, y: 0, w: round ? s * .55 : s * .7, h: round ? s * .62 : s * .48, rot: 0, opacity: 1, bg: 'none', surface: pageSurface(), font: brand.body || 'Sans' }, chartDefaults(kind));
+  place(el, at); page().els.push(el); sel = [el.id]; commit();
+}
+const TABLE_STYLES = {
+  bold: { hbg: '#1f2937', hcolor: '#ffffff', band: '#f3f4f6', bg: '#ffffff', color: '#111827', line: '#e5e7eb', lines: 'rows', radius: .5 },
+  lined: { hbg: 'none', hcolor: '#111827', band: 'none', bg: 'none', color: '#111827', line: '#9ca3af', lines: 'rows', radius: 0, hupper: true },
+  grid: { hbg: '#e0f2fe', hcolor: '#0c4a6e', band: 'none', bg: '#ffffff', color: '#0f172a', line: '#94a3b8', lines: 'grid', radius: .3 },
+};
+function addTable(style, at) {
+  const s = S();
+  const el = Object.assign({ id: nid(), type: 'table', rows: [['Plan', 'Basic', 'Pro'], ['Help desk', 'Business hours', '24/7'], ['Backups', 'Weekly', 'Daily'], ['Price', '$99/mo', '$199/mo']], font: brand.body || 'Sans', size: Math.round(s * .03), header: true, x: 0, y: 0, w: s * .76, h: 10, rot: 0, opacity: 1 }, clone(TABLE_STYLES[style] || TABLE_STYLES.bold));
+  C.syncText(el); place(el, at); page().els.push(el); sel = [el.id]; commit();
+}
+
+function qrProps(el) {
+  P.append(group('QR code',
+    h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-bottom:10px', onclick: () => qrDialog(el) }, 'Edit link or content'),
+    h('p', { class: 'hint', style: 'margin-bottom:10px;word-break:break-all' }, el.text.length > 90 ? el.text.slice(0, 90) + '…' : el.text),
+    prow('Colour', colorBtn(el.fg, v => el.fg = v, { gradient: true })),
+    prow('Background', colorBtn(el.bg, v => el.bg = v, { none: true })),
+    prow('Corners', colorBtn(el.eyeColor || C.fillColor(el.fg), v => el.eyeColor = v)),
+    h('div', { class: 'sec' }, 'Pattern'),
+    h('div', { class: 'btnrow', style: 'margin-bottom:8px' }, [['square', 'Squares'], ['rounded', 'Rounded'], ['dots', 'Dots']].map(([k, n]) => pb(n, n, () => { el.style = k; commit(); }, (el.style || 'square') === k, 'wide'))),
+    h('div', { class: 'sec' }, 'Corner markers'),
+    h('div', { class: 'btnrow', style: 'margin-bottom:8px' }, [['square', 'Square'], ['rounded', 'Rounded'], ['circle', 'Circle']].map(([k, n]) => pb(n, n, () => { el.eye = k; commit(); }, (el.eye || 'square') === k, 'wide'))),
+    h('div', { class: 'prow' }, h('span', null, 'Error fix'), h('select', { onchange: e => { el.ecc = e.target.value; commit(); } }, [['L', 'Low (7%)'], ['M', 'Medium (15%)'], ['Q', 'High (25%)'], ['H', 'Highest (30%)']].map(([k, n]) => h('option', { value: k, selected: el.ecc === k }, n)))),
+    slider('Margin', el.quiet == null ? 2 : el.quiet, 0, 6, 1, v => el.quiet = v),
+    slider('Rounding', Math.round((el.radius || 0) * 100), 0, 20, 1, v => el.radius = v / 100),
+    qrWarning(el)));
+}
+function qrWarning(el) {
+  const fg = C.fillColor(el.fg), bg = !el.bg || el.bg === 'none' ? pageSurface() : el.bg;
+  const cr = (Math.max(C.lum(fg), C.lum(bg)) + .05) / (Math.min(C.lum(fg), C.lum(bg)) + .05);
+  if (cr < 3) return h('p', { class: 'hint', style: 'color:#f59e0b;margin-top:6px' }, 'Low contrast — phones may not be able to scan this. Use a dark code on a light background.');
+  if (C.lum(fg) > C.lum(bg)) return h('p', { class: 'hint', style: 'color:#f59e0b;margin-top:6px' }, 'Light-on-dark codes don’t scan on some phones. Dark on light is safest.');
+  return h('p', { class: 'hint', style: 'margin-top:6px' }, 'Test it with your phone camera before you print.');
+}
+function chartProps(el) {
+  const kinds = C.CHART_KINDS;
+  const round = el.kind === 'pie' || el.kind === 'donut';
+  P.append(group('Chart',
+    h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-bottom:10px', onclick: () => dataDialog(el) }, 'Edit data'),
+    h('div', { class: 'prow' }, h('span', null, 'Type'), h('select', { onchange: e => { el.kind = e.target.value; commit(); } }, kinds.map(([k, n]) => h('option', { value: k, selected: el.kind === k }, n)))),
+    h('div', { class: 'prow' }, fontSelect(el.font || 'Sans', v => { el.font = v; })),
+    slider('Text size', Math.round((el.textScale || 1) * 100), 50, 250, 5, v => el.textScale = v / 100, v => v + '%'),
+    prow('Text colour', colorBtn(el.ink || '#1f2328', v => el.ink = v)),
+    prow('Background', colorBtn(el.bg || 'none', v => { el.bg = v; }, { none: true })),
+    h('div', { class: 'grid4', style: 'margin-top:4px' },
+      h('label', null, h('input', { type: 'text', value: el.prefix || '', placeholder: 'Before, e.g. $', style: 'width:100%', onchange: e => { el.prefix = e.target.value.slice(0, 4); commit(); } })),
+      h('label', null, h('input', { type: 'text', value: el.suffix || '', placeholder: 'After, e.g. %', style: 'width:100%', onchange: e => { el.suffix = e.target.value.slice(0, 4); commit(); } }))),
+    h('div', { class: 'btnrow', style: 'margin-top:8px' },
+      pb('Values', 'Show values', () => { el.values = !(el.values != null ? el.values : round || (el.series.length === 1 && el.labels.length <= 12)); commit(); }, el.values != null ? el.values : round || (el.series.length === 1 && el.labels.length <= 12), 'wide'),
+      round ? null : pb('Grid', 'Show gridlines', () => { el.grid = el.grid === false; commit(); }, el.grid !== false, 'wide'),
+      pb('Legend', 'Show legend', () => { el.legend = el.legend === false; commit(); }, el.legend !== false, 'wide'))));
+  const n = round ? el.labels.length : el.series.length;
+  P.append(group(round ? 'Slice colours' : 'Series colours',
+    h('div', { class: 'btnrow' }, Array.from({ length: n }, (_, i) => {
+      const cur = C.seriesColor(el, i);
+      return colorBtn(cur, v => { if (round) { el.colors = (el.colors || []).slice(); el.colors[i] = v; } else el.series[i].color = v; }, { title: round ? el.labels[i] : el.series[i].name });
+    })),
+    h('p', { class: 'hint', style: 'margin-top:8px' }, 'Default colours are picked in a fixed order that stays readable for colour-blind viewers.'),
+    h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-top:6px', onclick: () => { el.series.forEach(s => delete s.color); el.colors = null; commit(); } }, 'Reset colours')));
+}
+function tableProps(el) {
+  const W = [[400, 'Regular'], [600, 'Semibold'], [700, 'Bold']];
+  P.append(group('Table',
+    h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-bottom:10px', onclick: () => dataDialog(el) }, 'Edit cells'),
+    h('div', { class: 'btnrow', style: 'margin-bottom:8px' }, Object.keys(TABLE_STYLES).map(k => pb(k[0].toUpperCase() + k.slice(1), k + ' style', () => { Object.assign(el, clone(TABLE_STYLES[k])); if (!TABLE_STYLES[k].hupper) el.hupper = false; C.syncText(el); commit(); }, false, 'wide'))),
+    h('div', { class: 'prow' }, fontSelect(el.font || 'Sans', v => { el.font = v; C.syncText(el); })),
+    h('div', { class: 'prow' },
+      h('input', { type: 'number', value: Math.round(el.size), min: 4, 'aria-label': 'Text size', style: 'width:70px', onchange: e => { el.size = Math.max(4, +e.target.value); C.syncText(el); commit(); } }),
+      h('select', { 'aria-label': 'Body weight', onchange: e => { el.weight = +e.target.value; C.syncText(el); commit(); } }, W.map(([v, n]) => h('option', { value: v, selected: (el.weight || 400) === v }, n)))),
+    h('div', { class: 'btnrow', style: 'margin-bottom:8px' },
+      pb('Header row', 'Header row', () => { el.header = el.header === false; C.syncText(el); commit(); }, el.header !== false, 'wide'),
+      pb('AA', 'Uppercase header', () => { el.hupper = !el.hupper; C.syncText(el); commit(); }, el.hupper)),
+    h('div', { class: 'prow' }, h('span', null, 'Align'), h('select', { onchange: e => { el.align = e.target.value; commit(); } }, [['auto', 'Auto (numbers right)'], ['left', 'Left'], ['center', 'Centre'], ['right', 'Right']].map(([k, n]) => h('option', { value: k, selected: (el.align || 'auto') === k }, n)))),
+    prow('Text', colorBtn(el.color || '#111111', v => el.color = v)),
+    prow('Header', colorBtn(el.hbg || 'none', v => el.hbg = v, { none: true }), colorBtn(el.hcolor || '#111111', v => el.hcolor = v, { title: 'Header text' })),
+    prow('Fill', colorBtn(el.bg || 'none', v => el.bg = v, { none: true }), colorBtn(el.band || 'none', v => el.band = v, { none: true, title: 'Alternate rows' })),
+    h('div', { class: 'prow' }, h('span', null, 'Lines'), h('select', { onchange: e => { el.lines = e.target.value; commit(); } }, [['rows', 'Between rows'], ['grid', 'Full grid'], ['none', 'None']].map(([k, n]) => h('option', { value: k, selected: (el.lines || 'rows') === k }, n))), colorBtn(el.line || '#d0d4dc', v => el.line = v)),
+    slider('Cell padding', Math.round((el.pad == null ? .6 : el.pad) * 100), 10, 200, 5, v => { el.pad = v / 100; C.syncText(el); }),
+    slider('Rounding', Math.round((el.radius || 0) * 100), 0, 150, 5, v => el.radius = v / 100)));
+}
+
+// A small spreadsheet: type, tab between cells, or paste straight from Excel/Sheets.
+function gridEditor(rows, o) {
+  o = o || {};
+  let data = rows.map(r => r.map(v => v == null ? '' : String(v)));
+  const wrap = h('div', { class: 'gridwrap' });
+  const draw = () => {
+    wrap.textContent = '';
+    const nc = Math.max(1, ...data.map(r => r.length));
+    data.forEach(r => { while (r.length < nc) r.push(''); });
+    const t = h('table', { class: 'dgrid' });
+    data.forEach((r, ri) => t.append(h('tr', null, r.map((v, ci) => {
+      const inp = h('input', { type: 'text', value: v, 'aria-label': `Row ${ri + 1}, column ${ci + 1}`, placeholder: ri === 0 && ci === 0 && o.corner ? o.corner : '', inputmode: o.numeric && ri > 0 && ci > 0 ? 'decimal' : null });
+      if (ri === 0 && ci === 0 && o.lockCorner) inp.disabled = true;
+      inp.addEventListener('input', () => { data[ri][ci] = inp.value; o.onChange && o.onChange(); });
+      inp.addEventListener('paste', e => {
+        const txt = e.clipboardData.getData('text/plain');
+        if (!/[\t\n]/.test(txt)) return;
+        e.preventDefault();
+        const lines = txt.replace(/\r/g, '').replace(/\n$/, '').split('\n').map(l => l.includes('\t') ? l.split('\t') : l.split(','));
+        lines.forEach((ln, i) => ln.forEach((v, j) => { const R = ri + i, Cc = ci + j; while (data.length <= R) data.push([]); while (data[R].length <= Cc) data[R].push(''); data[R][Cc] = v.trim(); }));
+        draw(); o.onChange && o.onChange();
+      });
+      return h('td', { class: ci === 0 ? 'rh' : '' }, inp);
+    }))));
+    wrap.append(t);
+  };
+  draw();
+  const btn = (t, fn) => h('button', { class: 'pb', type: 'button', onclick: () => { fn(); draw(); o.onChange && o.onChange(); } }, t);
+  const bar = h('div', { class: 'btnrow' },
+    btn('+ Row', () => data.push(new Array(data[0].length).fill(''))),
+    btn('− Row', () => { if (data.length > (o.minRows || 2)) data.pop(); }),
+    o.fixedCols ? null : btn('+ Column', () => data.forEach(r => r.push(''))),
+    o.fixedCols ? null : btn('− Column', () => { if (data[0].length > (o.minCols || 2)) data.forEach(r => r.pop()); }));
+  return { el: h('div', { style: 'display:grid;gap:8px' }, bar, wrap, h('p', { class: 'hint' }, 'Tip: copy cells from Excel or Google Sheets and paste into any box.')), get: () => data.map(r => r.slice()) };
+}
+function dataDialog(el) {
+  if (el.type === 'table') {
+    const g = gridEditor(el.rows, { minRows: 1, minCols: 1 });
+    dialog('Edit table', [g.el], 'Done', () => {
+      el.rows = g.get().filter((r, i) => i === 0 || r.some(v => v !== ''));
+      el.colW = null; C.syncText(el); commit();
+    });
+    return;
+  }
+  const round = el.kind === 'pie' || el.kind === 'donut';
+  const series = round ? [el.series[0]] : el.series;
+  const rows = [[round ? 'Slice' : 'Label', ...series.map(s => s.name || '')], ...el.labels.map((l, i) => [l, ...series.map(s => s.values[i] == null ? '' : s.values[i])])];
+  const g = gridEditor(rows, { corner: 'Label', lockCorner: true, fixedCols: round, numeric: true });
+  dialog(round ? 'Edit slices' : 'Edit chart data', [h('p', { class: 'hint' }, round ? 'One row per slice: a name and a number.' : 'Rows are categories (the x-axis). Each extra column is a series — name it in the top row.'), g.el], 'Done', () => {
+    const d = g.get();
+    const body = d.slice(1).filter(r => r.some(v => String(v).trim() !== ''));
+    if (!body.length) { toast('Add at least one row of data.', true); return false; }
+    const num = v => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isFinite(n) ? n : 0; };
+    el.labels = body.map(r => r[0]);
+    const cols = d[0].length - 1;
+    el.series = Array.from({ length: Math.max(1, cols) }, (_, j) => Object.assign({}, el.series[j] || {}, { name: d[0][j + 1] || `Series ${j + 1}`, values: body.map(r => num(r[j + 1])) }));
+    commit();
+  });
+}
+
+// ---- QR builder
+const QR_TYPES = [['url', 'Website'], ['wifi', 'Wi-Fi'], ['email', 'Email'], ['phone', 'Phone call'], ['sms', 'Text message'], ['vcard', 'Contact card'], ['text', 'Plain text']];
+function qrString(type, f) {
+  const esc = v => String(v || '').replace(/([\;,:"])/g, '\\$1');
+  switch (type) {
+    case 'url': { const u = (f.url || '').trim(); return !u ? '' : /^[a-z][a-z0-9+.-]*:/i.test(u) ? u : 'https://' + u; }
+    case 'wifi': return `WIFI:T:${f.sec || 'WPA'};S:${esc(f.ssid)};${f.sec === 'nopass' ? '' : `P:${esc(f.pass)};`}${f.hidden ? 'H:true;' : ''};`;
+    case 'email': { const q = [f.subject && 'subject=' + encodeURIComponent(f.subject), f.body && 'body=' + encodeURIComponent(f.body)].filter(Boolean).join('&'); return `mailto:${(f.to || '').trim()}${q ? '?' + q : ''}`; }
+    case 'phone': return 'tel:' + (f.tel || '').replace(/[^\d+]/g, '');
+    case 'sms': return `SMSTO:${(f.tel || '').replace(/[^\d+]/g, '')}:${f.msg || ''}`;
+    case 'vcard': return ['BEGIN:VCARD', 'VERSION:3.0', `N:${esc(f.last)};${esc(f.first)};;;`, `FN:${esc([f.first, f.last].filter(Boolean).join(' '))}`, f.org && `ORG:${esc(f.org)}`, f.title && `TITLE:${esc(f.title)}`, f.tel && `TEL;TYPE=CELL:${f.tel}`, f.email && `EMAIL:${f.email}`, f.url && `URL:${f.url}`, 'END:VCARD'].filter(Boolean).join('\n');
+    default: return f.text || '';
+  }
+}
+function qrDialog(el) {
+  let type = el ? el.qrType || 'text' : 'url';
+  const f = el ? Object.assign({}, el.qrData || { text: el.text }) : { url: '' };
+  const fieldsBox = h('div', { style: 'display:grid;gap:8px' });
+  const pv = document.createElement('canvas'); pv.width = pv.height = 400;
+  const info = h('p', { class: 'hint', style: 'text-align:center' });
+  const upd = () => {
+    const t = qrString(type, f), x = pv.getContext('2d');
+    x.clearRect(0, 0, 400, 400);
+    if (!t) { info.textContent = 'Fill in the details to see your code.'; return; }
+    try {
+      const q = window.LDQR.get(t, el ? el.ecc : 'M');
+      C.drawElement(x, Object.assign({ type: 'qr', x: 0, y: 0, w: 400, h: 400, fg: '#000000', bg: '#ffffff', quiet: 2 }, el ? { fg: el.fg, bg: el.bg, style: el.style, eye: el.eye, eyeColor: el.eyeColor, ecc: el.ecc } : {}, { text: t }), { scale: 1 });
+      info.textContent = `${q.size} × ${q.size} modules · ${t.length} characters`;
+    } catch { info.textContent = 'That’s too much for one QR code — shorten it.'; }
+  };
+  const inp = (key, label, o) => {
+    o = o || {};
+    const e = o.area ? h('textarea', { 'aria-label': label, placeholder: o.ph || '' }) : h('input', { type: o.type || 'text', 'aria-label': label, placeholder: o.ph || '', style: 'width:100%' });
+    e.value = f[key] || '';
+    e.addEventListener('input', () => { f[key] = e.value; upd(); });
+    return h('label', { style: 'display:grid;gap:4px;color:var(--muted)' }, label, e);
+  };
+  const fields = () => {
+    fieldsBox.textContent = '';
+    const add = (...k) => fieldsBox.append(...k);
+    if (type === 'url') add(inp('url', 'Web address', { ph: 'www.yourbusiness.com' }));
+    if (type === 'wifi') {
+      const sec = h('select', { onchange: e => { f.sec = e.target.value; fields(); upd(); } }, [['WPA', 'WPA / WPA2 / WPA3'], ['WEP', 'WEP'], ['nopass', 'No password']].map(([k, n]) => h('option', { value: k, selected: (f.sec || 'WPA') === k }, n)));
+      add(inp('ssid', 'Network name', { ph: 'Office-Guest' }), f.sec === 'nopass' ? null : inp('pass', 'Password'), h('label', { style: 'display:grid;gap:4px;color:var(--muted)' }, 'Security', sec),
+        h('label', { style: 'display:flex;gap:8px;align-items:center;color:var(--muted)' }, h('input', { type: 'checkbox', checked: !!f.hidden, onchange: e => { f.hidden = e.target.checked; upd(); } }), 'Hidden network'));
+    }
+    if (type === 'email') add(inp('to', 'To', { type: 'email', ph: 'hello@yourbusiness.com' }), inp('subject', 'Subject'), inp('body', 'Message', { area: true }));
+    if (type === 'phone') add(inp('tel', 'Phone number', { type: 'tel', ph: '+1 555 123 4567' }));
+    if (type === 'sms') add(inp('tel', 'Phone number', { type: 'tel' }), inp('msg', 'Message', { area: true }));
+    if (type === 'vcard') add(h('div', { class: 'grid4' }, inp('first', 'First name'), inp('last', 'Last name')), inp('org', 'Company'), inp('title', 'Job title'), inp('tel', 'Phone', { type: 'tel' }), inp('email', 'Email', { type: 'email' }), inp('url', 'Website'));
+    if (type === 'text') add(inp('text', 'Text', { area: true }));
+  };
+  const typeSel = h('select', { onchange: e => { type = e.target.value; fields(); upd(); } }, QR_TYPES.map(([k, n]) => h('option', { value: k, selected: k === type }, n)));
+  fields(); upd();
+  dialog(el ? 'Edit QR code' : 'Add a QR code', h('div', { style: 'display:grid;grid-template-columns:1fr 200px;gap:16px;align-items:start' },
+    h('div', { style: 'display:grid;gap:10px' }, h('label', { style: 'display:grid;gap:4px;color:var(--muted)' }, 'What should it open?', typeSel), fieldsBox),
+    h('div', { style: 'display:grid;gap:8px' }, h('div', { class: 'qrprev' }, pv), info)), el ? 'Update' : 'Add to design', () => {
+    const t = qrString(type, f);
+    if (!t) { toast('Fill in the details first.', true); return false; }
+    try { window.LDQR.get(t, el ? el.ecc : 'M'); } catch { toast('That’s too much for one QR code.', true); return false; }
+    if (el) { el.text = t; el.qrType = type; el.qrData = clone(f); commit(); }
+    else addQR(t, { qrType: type, qrData: clone(f) });
+  }).then(() => {});
+  const d = document.querySelector('.scrim:last-child .dlg'); if (d) d.style.width = '600px';
+}
+
+// ---- background remover
+let bgModule = null;
+function loadBgModule() {
+  if (window.LDBg) return Promise.resolve(window.LDBg);
+  if (!bgModule) bgModule = new Promise((res, rej) => { const s = h('script', { src: '/design/bgremove.js' }); s.onload = () => res(window.LDBg); s.onerror = () => { bgModule = null; rej(new Error('Couldn’t load the background remover.')); }; document.head.append(s); });
+  return bgModule;
+}
+function bgDialog(el) {
+  const img = getImg(el.src);
+  if (!img) return toast('Add a photo first.', true);
+  let kind = 'object', res = null, cleanup = 20, brush = null, bsize = 40, compare = false, busy = false;
+  let edit = null, eg = null;   // user's erase/restore strokes: white = keep, black = remove, transparent = untouched
+  const view = document.createElement('canvas');
+  const stage = h('div', { class: 'bgstage' }, view);
+  const bar = h('i'), msg = h('div', null, 'Loading…');
+  const busyEl = h('div', { class: 'bgbusy' }, h('div', null, msg, h('div', { class: 'bar' }, bar)));
+  stage.append(busyEl);
+  let outCanvas = null;
+  const compose = () => {
+    if (!res) return;
+    const { canvas, alpha } = res, W = canvas.width, H = canvas.height;
+    const src = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H);
+    const ed = eg ? eg.getImageData(0, 0, W, H).data : null;
+    const lo = cleanup / 100 * .45;
+    for (let i = 0; i < alpha.length; i++) {
+      let a = alpha[i];
+      a = lo ? Math.max(0, Math.min(1, (a - lo) / (1 - lo * 1.6))) : a;
+      if (ed) { const ea = ed[i * 4 + 3] / 255; if (ea) a = a * (1 - ea) + (ed[i * 4] / 255) * ea; }
+      src.data[i * 4 + 3] = Math.round(a * 255);
+    }
+    if (!outCanvas) { outCanvas = document.createElement('canvas'); outCanvas.width = W; outCanvas.height = H; }
+    outCanvas.getContext('2d').putImageData(src, 0, 0);
+    paintView();
+  };
+  const paintView = () => {
+    if (!res) return;
+    const W = res.canvas.width, H = res.canvas.height;
+    view.width = W; view.height = H;
+    const x = view.getContext('2d');
+    for (let yy = 0; yy < H; yy += 24) for (let xx = 0; xx < W; xx += 24) { x.fillStyle = ((xx + yy) / 24) % 2 ? '#ffffff' : '#e3e6ec'; x.fillRect(xx, yy, 24, 24); }
+    x.drawImage(compare ? res.canvas : outCanvas, 0, 0);
+  };
+  const run = async () => {
+    busy = true; busyEl.hidden = false; bar.style.width = '0';
+    const first = !window.LDBg || !window.LDBg.isLoaded(kind);
+    msg.textContent = first ? 'Downloading the background remover (first time only)…' : 'Removing the background…';
+    try {
+      const mod = await loadBgModule();
+      res = await mod.run(img, kind, (stage2, n, total) => {
+        if (stage2 === 'runtime') { msg.textContent = 'Downloading the background remover (first time only)…'; bar.style.width = Math.round(n / total * 60) + '%'; }
+        if (stage2 === 'model') { msg.textContent = 'Downloading the AI model (first time only)…'; bar.style.width = 60 + Math.round(n / total * 35) + '%'; }
+        if (stage2 === 'run') { msg.textContent = 'Removing the background…'; bar.style.width = '97%'; }
+      });
+      edit = document.createElement('canvas'); edit.width = res.canvas.width; edit.height = res.canvas.height; eg = edit.getContext('2d', { willReadFrequently: true });
+      outCanvas = null; compose(); busyEl.hidden = true;
+    } catch (err) {
+      console.error(err);
+      msg.textContent = 'Sorry — the background remover couldn’t run in this browser. ' + (err.message || '');
+      bar.parentNode.hidden = true;
+    }
+    busy = false;
+  };
+  // brush strokes on the preview
+  let painting = false, lastPt = null, raf2 = 0;
+  const toImg = e => { const r = view.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * view.width, (e.clientY - r.top) / r.height * view.height, view.width / r.width]; };
+  const stroke = (p) => {
+    const [x, y, k] = p;
+    eg.globalCompositeOperation = 'source-over';
+    eg.strokeStyle = eg.fillStyle = brush === 'erase' ? '#000000' : '#ffffff';
+    eg.lineWidth = bsize * k; eg.lineCap = 'round'; eg.lineJoin = 'round';
+    eg.beginPath(); if (lastPt) { eg.moveTo(lastPt[0], lastPt[1]); eg.lineTo(x, y); eg.stroke(); } else { eg.arc(x, y, bsize * k / 2, 0, Math.PI * 2); eg.fill(); }
+    lastPt = p;
+    if (!raf2) raf2 = requestAnimationFrame(() => { raf2 = 0; compose(); });
+  };
+  view.addEventListener('pointerdown', e => { if (!brush || !res || busy) return; e.preventDefault(); view.setPointerCapture(e.pointerId); painting = true; lastPt = null; stroke(toImg(e)); });
+  view.addEventListener('pointermove', e => { if (painting) stroke(toImg(e)); });
+  const endStroke = () => { painting = false; lastPt = null; };
+  view.addEventListener('pointerup', endStroke); view.addEventListener('pointercancel', endStroke);
+  const modeBtns = h('div', { class: 'btnrow' });
+  const drawModes = () => { modeBtns.textContent = ''; modeBtns.append(...[['object', 'Anything'], ['person', 'Person']].map(([k, n]) => pb(n, n, () => { if (busy || kind === k) return; kind = k; drawModes(); run(); }, kind === k, 'wide'))); };
+  drawModes();
+  const brushBtns = h('div', { class: 'btnrow' });
+  const drawBrush = () => { brushBtns.textContent = ''; brushBtns.append(...[[null, 'Off'], ['erase', 'Erase'], ['restore', 'Restore']].map(([k, n]) => pb(n, n + ' brush', () => { brush = k; view.style.cursor = k ? 'crosshair' : 'default'; drawBrush(); }, brush === k, 'wide'))); };
+  drawBrush();
+  const side = h('div', { style: 'display:grid;gap:12px' },
+    h('div', null, h('div', { class: 'sec', style: 'margin-top:0' }, 'What’s in the photo?'), modeBtns, h('p', { class: 'hint', style: 'margin-top:6px' }, '“Anything” works for products, pets, logos and people. Try “Person” for fine hair.')),
+    h('div', null, h('div', { class: 'sec' }, 'Clean up edges'), slider('Cleanup', cleanup, 0, 100, 1, v => { cleanup = v; compose(); })),
+    h('div', null, h('div', { class: 'sec' }, 'Touch up by hand'), brushBtns, slider('Brush size', bsize, 5, 150, 1, v => { bsize = v; }),
+      h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-top:4px', onclick: () => { if (eg) { eg.clearRect(0, 0, edit.width, edit.height); compose(); } } }, 'Undo all touch-ups')),
+    h('label', { style: 'display:flex;gap:8px;align-items:center;color:var(--muted)' }, h('input', { type: 'checkbox', onchange: e => { compare = e.target.checked; paintView(); } }), 'Show original'),
+    h('p', { class: 'hint' }, 'Runs on this device — your photo isn’t uploaded.'));
+  // the slider helper commits history on change; nothing to commit inside this dialog
+  side.querySelectorAll('input[type=range]').forEach(r => r.addEventListener('change', e => e.stopImmediatePropagation(), true));
+  dialog('Remove background', h('div', { class: 'bgwrap' }, stage, side), 'Apply', () => {
+    if (!res || !outCanvas) { toast('Still working — give it a moment.'); return false; }
+    // trim to the subject so the new image isn't mostly empty
+    const id = addImage(outCanvas.toDataURL('image/png'));
+    uploads.unshift(id);
+    el.srcOriginal = el.srcOriginal || el.src;
+    el.src = id;
+    commit();
+    toast('Background removed. “Restore original” brings it back.');
+  });
+  const d = document.querySelector('.scrim:last-child .dlg'); if (d) d.classList.add('wide');
+  run();
 }
 
 // ---------------------------------------------------------------- wiring

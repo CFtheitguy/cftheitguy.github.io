@@ -92,7 +92,11 @@ function textLines(el, w) {
   return out;
 }
 function textHeight(el, lines) { return Math.max(1, (lines || textLines(el)).length * el.size * (el.lh || 1.2)); }
-function syncText(el) { if (el.type === 'text') el.h = textHeight(el); return el; }
+function syncText(el) {
+  if (el.type === 'text') el.h = textHeight(el);
+  else if (el.type === 'table') el.h = tableLayout(el).h;
+  return el;
+}
 // Widest line — used to shrink a box to its text.
 function textWidth(el) {
   mctx.font = fontCss(el);
@@ -422,7 +426,9 @@ function filteredImage(img, f) {
   if (f.vignette) {
     const vg = g.createRadialGradient(c.width / 2, c.height / 2, Math.min(c.width, c.height) * .3, c.width / 2, c.height / 2, Math.hypot(c.width, c.height) / 2);
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${f.vignette / 100 * .85})`);
+    g.globalCompositeOperation = 'source-atop';   // don't paint over areas a background removal made transparent
     g.fillStyle = vg; g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'source-over';
   }
   m.set(key, c);
   return c;
@@ -439,6 +445,326 @@ function boxBlur(g, w, h, r) {
 }
 const MASKS = [['none', 'None'], ['round', 'Rounded'], ['ellipse', 'Circle'], ['arch', 'Arch'], ['hexagon', 'Hexagon'], ['blob', 'Blob'], ['heart', 'Heart'], ['star', 'Star'], ['diamond', 'Diamond'], ['triangle', 'Triangle']];
 
+// ---------------------------------------------------------------- QR codes
+function drawQR(ctx, el) {
+  let q;
+  try { q = window.LDQR.get(el.text || ' ', el.ecc || 'M'); }
+  catch {
+    ctx.fillStyle = '#fee2e2'; ctx.fillRect(0, 0, el.w, el.h);
+    ctx.strokeStyle = '#dc2626'; ctx.lineWidth = Math.max(2, el.w * .02);
+    ctx.beginPath(); ctx.moveTo(el.w * .2, el.h * .2); ctx.lineTo(el.w * .8, el.h * .8); ctx.moveTo(el.w * .8, el.h * .2); ctx.lineTo(el.w * .2, el.h * .8); ctx.stroke();
+    return;
+  }
+  const quiet = el.quiet == null ? 2 : el.quiet, n = q.size, m = Math.min(el.w, el.h) / (n + quiet * 2);
+  const ox = (el.w - m * n) / 2, oy = (el.h - m * n) / 2;
+  if (el.bg && el.bg !== 'none') { ctx.fillStyle = el.bg; const p = new Path2D(); roundRect(p, 0, 0, el.w, el.h, (el.radius || 0) * Math.min(el.w, el.h)); ctx.fill(p); }
+  ctx.shadowColor = 'transparent';
+  const fg = paint(ctx, el.fg || '#000000', el.w, el.h) || '#000';
+  ctx.fillStyle = fg;
+  const inEye = (x, y) => (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
+  const style = el.style || 'square';
+  const p = new Path2D();
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    if (!q.modules[y][x] || inEye(x, y)) continue;
+    const px = ox + x * m, py = oy + y * m;
+    if (style === 'dots') { p.moveTo(px + m * .95, py + m / 2); p.arc(px + m / 2, py + m / 2, m * .45, 0, Math.PI * 2); }
+    else if (style === 'rounded') roundRect(p, px + m * .04, py + m * .04, m * .92, m * .92, m * .32);
+    else p.rect(px - .02, py - .02, m + .04, m + .04);   // tiny overlap hides seams between modules
+  }
+  ctx.fill(p);
+  const eye = el.eye || 'square';
+  for (const [ex, ey] of [[0, 0], [n - 7, 0], [0, n - 7]]) {
+    const x0 = ox + ex * m, y0 = oy + ey * m, o = new Path2D(), inner = new Path2D();
+    if (eye === 'circle') { o.arc(x0 + 3.5 * m, y0 + 3.5 * m, 3.5 * m, 0, Math.PI * 2); o.arc(x0 + 3.5 * m, y0 + 3.5 * m, 2.5 * m, 0, Math.PI * 2, true); inner.arc(x0 + 3.5 * m, y0 + 3.5 * m, 1.5 * m, 0, Math.PI * 2); }
+    else {
+      const r = eye === 'rounded' ? 1 : 0;
+      roundRect(o, x0, y0, 7 * m, 7 * m, r * 2 * m);
+      const h = new Path2D(); roundRect(h, x0 + m, y0 + m, 5 * m, 5 * m, r * 1.3 * m);
+      o.addPath(h);
+      roundRect(inner, x0 + 2 * m, y0 + 2 * m, 3 * m, 3 * m, r * .9 * m);
+    }
+    ctx.fillStyle = el.eyeColor || fg;
+    ctx.fill(o, 'evenodd'); ctx.fill(inner);
+  }
+}
+
+// ---------------------------------------------------------------- charts
+// Categorical colours in a fixed order (never cycled or re-ranked), validated
+// for colour-vision deficiency on light and dark surfaces. Series keep their
+// slot's colour unless the user picks another.
+const SERIES = {
+  light: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'],
+  dark: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'],
+};
+const CHART_KINDS = [['column', 'Column'], ['bar', 'Bar'], ['stacked', 'Stacked'], ['line', 'Line'], ['area', 'Area'], ['pie', 'Pie'], ['donut', 'Donut']];
+function chartSurface(el) { return el.bg && el.bg !== 'none' ? el.bg : (el.surface || '#ffffff'); }
+function seriesColor(el, i) {
+  const own = el.kind === 'pie' || el.kind === 'donut' ? (el.colors || [])[i] : el.series && el.series[i] && el.series[i].color;
+  if (own) return own;
+  const pal = lum(chartSurface(el)) < .35 ? SERIES.dark : SERIES.light;
+  return pal[i % pal.length];
+}
+function fmtNum(v, el) {
+  const a = Math.abs(v);
+  let t = a >= 1e9 ? +(v / 1e9).toFixed(1) + 'B' : a >= 1e6 ? +(v / 1e6).toFixed(1) + 'M' : a >= 1e4 ? +(v / 1e3).toFixed(1) + 'K' : (Math.round(v * 100) / 100).toLocaleString('en-US');
+  return (el && el.prefix || '') + t + (el && el.suffix || '');
+}
+function niceTicks(lo, hi, want) {
+  if (lo === hi) { hi = lo + 1; }
+  const raw = (hi - lo) / Math.max(1, want), p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+  const a = Math.floor(lo / step + 1e-9) * step, b = Math.ceil(hi / step - 1e-9) * step, out = [];
+  for (let v = a; v <= b + step / 2; v += step) out.push(Math.round(v / step) * step);
+  return out;
+}
+function drawChart(ctx, el) {
+  const W = el.w, H = el.h, k = Math.min(W, H) / 400;
+  const surface = chartSurface(el), ink = el.ink || (lum(surface) < .35 ? '#f5f5f4' : '#1f2328');
+  const muted = mix(ink, surface, .38), grid = mix(ink, surface, .86), base = mix(ink, surface, .55);
+  const fam = fontFamily(el.font || 'Sans'), fs = Math.max(6, 14 * k * (el.textScale || 1));
+  const labels = el.labels || [], series = (el.series || []).filter(s => s && s.values);
+  if (el.bg && el.bg !== 'none') { const p = new Path2D(); roundRect(p, 0, 0, W, H, 14 * k); ctx.fillStyle = el.bg; ctx.fill(p); }
+  ctx.shadowColor = 'transparent';
+  const pad = el.bg && el.bg !== 'none' ? 18 * k : 2 * k;
+  let x0 = pad, y0 = pad, x1 = W - pad, y1 = H - pad;
+  const font = (w, sz) => `${w} ${sz || fs}px ${fam}`;
+  ctx.textBaseline = 'middle';
+  const kind = el.kind || 'column', pie = kind === 'pie' || kind === 'donut';
+  const val = (s, i) => { const v = +s.values[i]; return isFinite(v) ? v : 0; };
+
+  // legend: always for two or more series, and for pies (one entry per slice)
+  const entries = pie ? labels.map((l, i) => ({ name: l, color: seriesColor(el, i) })) : series.length > 1 ? series.map((s, i) => ({ name: s.name || `Series ${i + 1}`, color: seriesColor(el, i) })) : [];
+  if (entries.length && el.legend !== false) {
+    ctx.font = font(500);
+    const sw = 10 * k, gap = 16 * k, rowH = fs * 1.6;
+    let lx = x0, ly = y0 + rowH / 2;
+    for (const e of entries) {
+      const tw = ctx.measureText(e.name).width + sw + 6 * k;
+      if (lx + tw > x1 && lx > x0) { lx = x0; ly += rowH; }
+      ctx.fillStyle = e.color;
+      if (kind === 'line') { ctx.fillRect(lx, ly - 1.25 * k, sw + 2 * k, 2.5 * k); }
+      else { ctx.beginPath(); ctx.arc(lx + sw / 2, ly, sw / 2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = ink; ctx.textAlign = 'left'; ctx.fillText(e.name, lx + sw + 6 * k, ly);
+      lx += tw + gap;
+    }
+    y0 = ly + rowH / 2 + 8 * k;
+  }
+  if (!labels.length || !series.length) return;
+
+  if (pie) {
+    const s = series[0], vals = labels.map((_, i) => Math.max(0, val(s, i))), total = vals.reduce((a, b) => a + b, 0) || 1;
+    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, R = Math.max(4, Math.min(x1 - x0, y1 - y0) / 2), ri = kind === 'donut' ? R * .6 : 0, g = 2 * k;
+    let a = -Math.PI / 2;
+    vals.forEach((v, i) => {
+      const th = v / total * Math.PI * 2;
+      if (th <= 0) return;
+      const mid = a + th / 2, p = new Path2D();
+      const insO = Math.min(th / 2.2, g / 2 / R);
+      if (ri) {
+        const insI = Math.min(th / 2.2, g / 2 / ri);
+        p.arc(cx, cy, R, a + insO, a + th - insO); p.arc(cx, cy, ri, a + th - insI, a + insI, true); p.closePath();
+      } else {
+        const d = th < Math.PI * 1.999 ? Math.min(g / 2 / Math.sin(Math.min(th, Math.PI) / 2), R * .2) : 0;
+        const ccx = cx + Math.cos(mid) * d, ccy = cy + Math.sin(mid) * d;
+        p.moveTo(ccx, ccy); p.arc(cx, cy, R, a + insO, a + th - insO); p.closePath();
+      }
+      const col = seriesColor(el, i);
+      ctx.fillStyle = col; ctx.fill(p);
+      if (el.values !== false && th > .35) {
+        const rr = ri ? (R + ri) / 2 : R * .64, tx = cx + Math.cos(mid) * rr, ty = cy + Math.sin(mid) * rr;
+        const t = el.pct === false ? fmtNum(v, el) : Math.round(v / total * 100) + '%';
+        ctx.font = font(700, fs * 1.05); ctx.textAlign = 'center';
+        if (ctx.measureText(t).width < (ri ? R - ri : R * .7) * 1.2) { ctx.fillStyle = lum(col) > .45 ? '#111111' : '#ffffff'; ctx.fillText(t, tx, ty); }
+      }
+      a += th;
+    });
+    if (ri && el.values !== false) {
+      ctx.fillStyle = ink; ctx.textAlign = 'center';
+      ctx.font = font(700, Math.min(ri * .5, fs * 2.4)); ctx.fillText(fmtNum(vals.reduce((x, y) => x + y, 0), el), cx, cy - fs * .3);
+      ctx.fillStyle = muted; ctx.font = font(500, fs * .9); ctx.fillText(el.centerLabel || 'Total', cx, cy + Math.min(ri * .3, fs * 1.4));
+    }
+    return;
+  }
+
+  const horiz = kind === 'bar', stacked = kind === 'stacked';
+  const nL = labels.length, nS = series.length;
+  let lo = 0, hi = 0;
+  for (let i = 0; i < nL; i++) {
+    if (stacked) { let p = 0, n = 0; series.forEach(s => { const v = val(s, i); v >= 0 ? p += v : n += v; }); hi = Math.max(hi, p); lo = Math.min(lo, n); }
+    else series.forEach(s => { const v = val(s, i); hi = Math.max(hi, v); lo = Math.min(lo, v); });
+  }
+  const ticks = niceTicks(lo, hi, horiz ? Math.max(2, Math.round((x1 - x0) / (90 * k))) : Math.max(2, Math.round((y1 - y0) / (60 * k))));
+  const tMin = ticks[0], tMax = ticks[ticks.length - 1];
+  ctx.font = font(400, fs * .9);
+  const tickW = Math.max(...ticks.map(t => ctx.measureText(fmtNum(t, el)).width));
+  ctx.font = font(500, fs * .95);
+  const labW = Math.max(...labels.map(l => ctx.measureText(String(l)).width));
+  const showV = el.values != null ? el.values : nS === 1 && nL <= 12;
+  if (horiz) {
+    const px0 = x0 + Math.min(labW + 10 * k, (x1 - x0) * .4), py1 = y1 - fs * 1.6;
+    const sx = v => px0 + (v - tMin) / (tMax - tMin) * (x1 - px0 - (showV ? fs * 3 : 0));
+    ctx.lineWidth = Math.max(1, k); ctx.strokeStyle = grid; ctx.fillStyle = muted; ctx.font = font(400, fs * .9); ctx.textAlign = 'center';
+    for (const t of ticks) { const x = sx(t); if (el.grid !== false) { ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, py1); ctx.stroke(); } ctx.fillText(fmtNum(t, el), x, py1 + fs * .9); }
+    const band = (py1 - y0) / nL, gw = Math.min(band * .72, nS * 34 * k), g = 2 * k, bw = (gw - g * (nS - 1)) / nS;
+    labels.forEach((l, i) => {
+      const cy = y0 + band * (i + .5);
+      ctx.fillStyle = ink; ctx.font = font(500, fs * .95); ctx.textAlign = 'right'; ctx.fillText(fitLabel(ctx, String(l), px0 - x0 - 10 * k), px0 - 10 * k, cy);
+      series.forEach((s, j) => {
+        const v = val(s, i), a = sx(Math.min(0, v)), b = sx(Math.max(0, v)), y = cy - gw / 2 + j * (bw + g);
+        ctx.fillStyle = seriesColor(el, j); ctx.fill(barPath(a, y, b - a, bw, Math.min(4 * k, bw / 2), v >= 0 ? 'right' : 'left'));
+        if (showV) { ctx.fillStyle = ink; ctx.font = font(600, fs * .9); ctx.textAlign = v >= 0 ? 'left' : 'right'; ctx.fillText(fmtNum(v, el), v >= 0 ? b + 5 * k : a - 5 * k, y + bw / 2); }
+      });
+    });
+    ctx.strokeStyle = base; ctx.beginPath(); ctx.moveTo(sx(0), y0); ctx.lineTo(sx(0), py1); ctx.stroke();
+    return;
+  }
+  // vertical: column, stacked, line, area
+  const px0 = x0 + tickW + 10 * k;
+  const band = (x1 - px0) / nL;
+  const rotate = labW > band * .92;
+  const labH = rotate ? Math.min(labW, (y1 - y0) * .3) * .72 + fs : fs * 1.8;
+  const py1 = y1 - labH, pyTop = y0 + (showV ? fs * 1.2 : fs * .5);
+  const sy = v => py1 - (v - tMin) / (tMax - tMin) * (py1 - pyTop);
+  ctx.lineWidth = Math.max(1, k); ctx.strokeStyle = grid; ctx.fillStyle = muted; ctx.font = font(400, fs * .9); ctx.textAlign = 'right';
+  for (const t of ticks) { const y = sy(t); if (el.grid !== false) { ctx.beginPath(); ctx.moveTo(px0, y); ctx.lineTo(x1, y); ctx.stroke(); } ctx.fillText(fmtNum(t, el), px0 - 8 * k, y); }
+  ctx.font = font(500, fs * .95); ctx.fillStyle = ink;
+  labels.forEach((l, i) => {
+    const cx = px0 + band * (i + .5);
+    if (rotate) { ctx.save(); ctx.translate(cx, py1 + 8 * k); ctx.rotate(-Math.PI / 4); ctx.textAlign = 'right'; ctx.fillText(fitLabel(ctx, String(l), (labH - fs) / .72), 0, 0); ctx.restore(); }
+    else { ctx.textAlign = 'center'; ctx.fillText(String(l), cx, py1 + fs * .95); }
+  });
+  if (kind === 'column' || stacked) {
+    const g = 2 * k;
+    const gw = Math.min(band * .72, (stacked ? 1 : nS) * 40 * k), bw = stacked ? gw : (gw - g * (nS - 1)) / nS;
+    labels.forEach((_, i) => {
+      const cx = px0 + band * (i + .5);
+      if (stacked) {
+        let pos = 0, neg = 0;
+        const top = series.map((s, j) => [j, val(s, i)]).filter(([, v]) => v > 0).map(([j]) => j).pop();
+        const bot = series.map((s, j) => [j, val(s, i)]).filter(([, v]) => v < 0).map(([j]) => j).pop();
+        series.forEach((s, j) => {
+          const v = val(s, i); if (!v) return;
+          const a = v > 0 ? pos : neg, b = a + v;
+          if (v > 0) pos = b; else neg = b;
+          let ya = sy(a), yb = sy(b);
+          // 2px surface gap between stacked segments (not at the baseline)
+          if (a !== 0) { if (v > 0) ya -= g / 2; else ya += g / 2; }
+          const hgt = Math.abs(ya - yb); if (hgt < .5) return;
+          const end = (v > 0 && j === top) || (v < 0 && j === bot);
+          ctx.fillStyle = seriesColor(el, j);
+          ctx.fill(barPath(cx - bw / 2, Math.min(ya, yb), bw, hgt, end ? Math.min(4 * k, bw / 2, hgt) : 0, v > 0 ? 'top' : 'bottom'));
+        });
+        if (showV) { ctx.fillStyle = ink; ctx.font = font(600, fs * .9); ctx.textAlign = 'center'; ctx.fillText(fmtNum(pos + neg, el), cx, sy(pos) - fs * .7); }
+      } else series.forEach((s, j) => {
+        const v = val(s, i), x = cx - gw / 2 + j * (bw + g), a = sy(Math.max(0, v)), b = sy(Math.min(0, v));
+        ctx.fillStyle = seriesColor(el, j);
+        ctx.fill(barPath(x, a, bw, b - a, Math.min(4 * k, bw / 2, b - a), v >= 0 ? 'top' : 'bottom'));
+        if (showV) { ctx.fillStyle = ink; ctx.font = font(600, fs * .9); ctx.textAlign = 'center'; ctx.fillText(fmtNum(v, el), x + bw / 2, v >= 0 ? a - fs * .7 : b + fs * .7); }
+      });
+    });
+  } else {
+    const ring = surface;
+    series.forEach((s, j) => {
+      const col = seriesColor(el, j);
+      const pts = labels.map((_, i) => [px0 + band * (i + .5), sy(val(s, i))]);
+      if (kind === 'area') {
+        ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+        ctx.lineTo(pts[pts.length - 1][0], sy(Math.max(tMin, 0))); ctx.lineTo(pts[0][0], sy(Math.max(tMin, 0))); ctx.closePath();
+        ctx.fillStyle = rgba(col, .16); ctx.fill();
+      }
+      ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+      ctx.strokeStyle = col; ctx.lineWidth = Math.max(1.5, 2.5 * k); ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+      const mr = Math.max(3, 4.5 * k);
+      pts.forEach(([x, y], i) => {
+        if (nL > 16 && i !== nL - 1) return;
+        ctx.beginPath(); ctx.arc(x, y, mr + 2 * k, 0, Math.PI * 2); ctx.fillStyle = ring; ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y, mr, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+      });
+      if (showV) { const [x, y] = pts[pts.length - 1]; ctx.fillStyle = ink; ctx.font = font(700, fs * .95); ctx.textAlign = 'center'; ctx.fillText(fmtNum(val(s, nL - 1), el), x, y - mr - fs * .8); }
+    });
+  }
+  ctx.strokeStyle = base; ctx.lineWidth = Math.max(1, k); ctx.beginPath(); ctx.moveTo(px0, sy(0)); ctx.lineTo(x1, sy(0)); ctx.stroke();
+}
+function fitLabel(ctx, t, max) {
+  if (ctx.measureText(t).width <= max) return t;
+  while (t.length > 1 && ctx.measureText(t + '…').width > max) t = t.slice(0, -1);
+  return t + '…';
+}
+// A bar with rounded corners on its data end only; square at the baseline.
+function barPath(x, y, w, h, r, end) {
+  const p = new Path2D();
+  if (w <= 0 || h <= 0) return p;
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  const tl = end === 'top' || end === 'left' ? r : 0, tr = end === 'top' || end === 'right' ? r : 0;
+  const br = end === 'bottom' || end === 'right' ? r : 0, bl = end === 'bottom' || end === 'left' ? r : 0;
+  p.moveTo(x + tl, y); p.lineTo(x + w - tr, y); if (tr) p.arcTo(x + w, y, x + w, y + tr, tr);
+  p.lineTo(x + w, y + h - br); if (br) p.arcTo(x + w, y + h, x + w - br, y + h, br);
+  p.lineTo(x + bl, y + h); if (bl) p.arcTo(x, y + h, x, y + h - bl, bl);
+  p.lineTo(x, y + tl); if (tl) p.arcTo(x, y, x + tl, y, tl);
+  p.closePath();
+  return p;
+}
+
+// ---------------------------------------------------------------- tables
+const isNumeric = t => /^[\s$€£¥+\-−(]*\d[\d,.\s]*%?[)]?\s*[A-Za-z]{0,3}$/.test(String(t));
+function cellEl(el, text, head) {
+  return { type: 'text', text: String(text == null ? '' : text), font: el.font || 'Sans', weight: head ? (el.hweight || 700) : (el.weight || 400), size: el.size, lh: 1.25, ls: 0, upper: head && el.hupper, italic: false };
+}
+function tableLayout(el) {
+  const rows = el.rows && el.rows.length ? el.rows : [['']];
+  const nc = Math.max(1, ...rows.map(r => r.length));
+  const fr = el.colW && el.colW.length === nc ? el.colW : new Array(nc).fill(1);
+  const tot = fr.reduce((a, b) => a + b, 0);
+  const cw = fr.map(f => f / tot * el.w);
+  const padX = el.size * (el.pad == null ? .6 : el.pad), padY = el.size * (el.pad == null ? .6 : el.pad) * .75;
+  const rh = rows.map((r, ri) => {
+    let lines = 1;
+    for (let c = 0; c < nc; c++) { const ce = cellEl(el, r[c], ri === 0 && el.header !== false); lines = Math.max(lines, textLines(ce, Math.max(1, cw[c] - padX * 2)).length); }
+    return lines * el.size * 1.25 + padY * 2;
+  });
+  return { rows, nc, cw, rh, padX, padY, h: rh.reduce((a, b) => a + b, 0) };
+}
+function drawTable(ctx, el) {
+  const L = tableLayout(el), W = el.w, H = L.h, head = el.header !== false;
+  const R = (el.radius || 0) * el.size;
+  const clip = new Path2D(); roundRect(clip, 0, 0, W, H, R);
+  if (el.bg && el.bg !== 'none') { ctx.fillStyle = el.bg; ctx.fill(clip); }
+  ctx.shadowColor = 'transparent';
+  ctx.save(); ctx.clip(clip);
+  let y = 0;
+  L.rows.forEach((r, ri) => {
+    const h = L.rh[ri];
+    if (ri === 0 && head && el.hbg && el.hbg !== 'none') { ctx.fillStyle = el.hbg; ctx.fillRect(0, y, W, h); }
+    else if (el.band && el.band !== 'none' && (ri - (head ? 1 : 0)) % 2 === 1) { ctx.fillStyle = el.band; ctx.fillRect(0, y, W, h); }
+    let x = 0;
+    for (let c = 0; c < L.nc; c++) {
+      const isHead = ri === 0 && head, ce = cellEl(el, r[c], isHead);
+      const lines = textLines(ce, Math.max(1, L.cw[c] - L.padX * 2));
+      const al = el.align && el.align !== 'auto' ? el.align : (!isHead && isNumeric(r[c]) ? 'right' : (isHead && c > 0 && L.rows.slice(1).every(rr => rr[c] === '' || rr[c] == null || isNumeric(rr[c])) ? 'right' : 'left'));
+      ctx.font = fontCss(ce); ctx.textBaseline = 'middle';
+      ctx.fillStyle = isHead ? (el.hcolor || el.color || '#111') : (el.color || '#111');
+      lines.forEach((ln, li) => {
+        const lw = ctx.measureText(ln).width;
+        const tx = al === 'right' ? x + L.cw[c] - L.padX - lw : al === 'center' ? x + (L.cw[c] - lw) / 2 : x + L.padX;
+        ctx.fillText(ln, tx, y + L.padY + (li + .5) * el.size * 1.25);
+      });
+      x += L.cw[c];
+    }
+    y += h;
+  });
+  const lw = el.lw == null ? Math.max(1, el.size * .06) : el.lw;
+  if (el.lines !== 'none' && lw > 0) {
+    ctx.strokeStyle = el.line || '#d0d4dc'; ctx.lineWidth = lw;
+    ctx.beginPath();
+    let yy = 0;
+    L.rh.forEach((h, i) => { yy += h; if (i < L.rh.length - 1) { ctx.moveTo(0, yy); ctx.lineTo(W, yy); } });
+    if (el.lines === 'grid') { let xx = 0; L.cw.forEach((w, i) => { xx += w; if (i < L.cw.length - 1) { ctx.moveTo(xx, 0); ctx.lineTo(xx, H); } }); }
+    ctx.stroke();
+    if (el.lines === 'grid') { ctx.lineWidth = lw * 2; ctx.stroke(clip); }
+  }
+  ctx.restore();
+}
+
 // ---------------------------------------------------------------- draw
 function drawElement(ctx, el, env) {
   if (el.hidden) return;
@@ -454,6 +780,9 @@ function drawElement(ctx, el, env) {
     ctx.shadowOffsetX = (el.shadow.x || 0) * env.scale; ctx.shadowOffsetY = (el.shadow.y || 0) * env.scale;
   }
   if (el.type === 'text') drawText(ctx, el, env);
+  else if (el.type === 'qr') drawQR(ctx, el);
+  else if (el.type === 'chart') drawChart(ctx, el);
+  else if (el.type === 'table') drawTable(ctx, el);
   else if (el.type === 'shape') drawShape(ctx, el);
   else if (el.type === 'icon') drawIcon(ctx, el);
   else if (el.type === 'image') drawImage(ctx, el, env);
@@ -587,5 +916,6 @@ window.LDCore = {
   fontCss, textLines, textHeight, syncText, textWidth, fitText, measure,
   paint, fillColor, SHAPES, shapePath, isLine, ICONS, PATTERNS, MASKS,
   drawElement, drawBackground, renderPage, filteredImage,
+  CHART_KINDS, SERIES, seriesColor, tableLayout, fmtNum,
 };
 })();
