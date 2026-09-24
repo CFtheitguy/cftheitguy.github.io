@@ -822,14 +822,67 @@ function drawTable(ctx, el) {
 }
 
 // ---------------------------------------------------------------- draw
+// ---------------------------------------------------------------- animation
+// el.anim = {in, dur, delay, loop, out}. env.t is seconds into the page and
+// env.dur the page's length; without env.t everything draws in its final state
+// (so thumbnails, PNG and PDF exports are unaffected).
+const ANIMS = [['fade', 'Fade'], ['rise', 'Rise'], ['drop', 'Drop'], ['slide', 'Slide in'], ['slideR', 'Slide from right'], ['pop', 'Pop'],
+  ['zoom', 'Zoom'], ['wipe', 'Wipe'], ['spin', 'Spin'], ['bounce', 'Bounce'], ['typewriter', 'Typewriter']];
+const LOOPS = [['pulse', 'Pulse'], ['float', 'Float'], ['wiggle', 'Wiggle'], ['spin', 'Spin']];
+const easeOut = p => 1 - Math.pow(1 - p, 3);
+const backOut = p => { const c = 1.70158; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+function bounceOut(p) {
+  const n = 7.5625, d = 2.75;
+  if (p < 1 / d) return n * p * p;
+  if (p < 2 / d) return n * (p -= 1.5 / d) * p + .75;
+  if (p < 2.5 / d) return n * (p -= 2.25 / d) * p + .9375;
+  return n * (p -= 2.625 / d) * p + .984375;
+}
+function animState(el, env) {
+  const a = el.anim, t = env.t, S = env.size || 1000;
+  const st = { alpha: 1, dx: 0, dy: 0, sc: 1, rot: 0, wipe: 1, chars: null };
+  if (a.in && a.in !== 'none') {
+    const p = Math.max(0, Math.min(1, (t - (a.delay || 0)) / Math.max(.05, a.dur || .8))), e = easeOut(p);
+    switch (a.in) {
+      case 'fade': st.alpha = e; break;
+      case 'rise': st.alpha = e; st.dy = (1 - e) * S * .08; break;
+      case 'drop': st.alpha = e; st.dy = -(1 - e) * S * .08; break;
+      case 'slide': st.alpha = e; st.dx = -(1 - e) * S * .15; break;
+      case 'slideR': st.alpha = e; st.dx = (1 - e) * S * .15; break;
+      case 'pop': st.sc = Math.max(0, backOut(p)); st.alpha = Math.min(1, p * 4); break;
+      case 'zoom': st.sc = 1 + (1 - e) * .6; st.alpha = e; break;
+      case 'wipe': st.wipe = e; break;
+      case 'spin': st.rot = -(1 - e) * 180; st.sc = .4 + .6 * e; st.alpha = e; break;
+      case 'bounce': st.dy = -(1 - bounceOut(p)) * S * .25; st.alpha = Math.min(1, p * 5); break;
+      case 'typewriter':
+        if (el.type === 'text') st.chars = Math.floor(p * [...String(el.text)].length); else st.alpha = e;
+        break;
+    }
+  }
+  if (a.loop && a.loop !== 'none') {
+    const w = Math.PI * 2;
+    if (a.loop === 'pulse') st.sc *= 1 + .045 * Math.sin(w * t / 1.2);
+    if (a.loop === 'float') st.dy += Math.sin(w * t / 2.6) * S * .012;
+    if (a.loop === 'wiggle') st.rot += Math.sin(w * t / .7) * 4;
+    if (a.loop === 'spin') st.rot += t * 45;
+  }
+  if (a.out === 'fade' && env.dur) st.alpha *= Math.max(0, Math.min(1, (env.dur - t) / .5));
+  return st;
+}
 function drawElement(ctx, el, env) {
   if (el.hidden) return;
+  const A = env.t != null && el.anim ? animState(el, env) : null;
+  if (A && (A.alpha <= 0 || A.sc <= 0 || A.wipe <= 0 || A.chars === 0)) return;
+  if (A && A.chars != null) el = Object.assign({}, el, { text: [...String(el.text)].slice(0, A.chars).join('') });
   ctx.save();
-  ctx.translate(el.x + el.w / 2, el.y + el.h / 2);
-  if (el.rot) ctx.rotate(el.rot * Math.PI / 180);
+  ctx.translate(el.x + el.w / 2 + (A ? A.dx : 0), el.y + el.h / 2 + (A ? A.dy : 0));
+  const rot = (el.rot || 0) + (A ? A.rot : 0);
+  if (rot) ctx.rotate(rot * Math.PI / 180);
+  if (A && A.sc !== 1) ctx.scale(A.sc, A.sc);
   ctx.scale(el.flipX ? -1 : 1, el.flipY ? -1 : 1);
   ctx.translate(-el.w / 2, -el.h / 2);
-  ctx.globalAlpha *= el.opacity == null ? 1 : el.opacity;
+  if (A && A.wipe < 1) { ctx.beginPath(); ctx.rect(el.flipX ? el.w * (1 - A.wipe) : -el.w, -el.h, el.w * (A.wipe + (el.flipX ? 0 : 1)), el.h * 3); ctx.clip(); }
+  ctx.globalAlpha *= (el.opacity == null ? 1 : el.opacity) * (A ? A.alpha : 1);
   if (el.shadow) {
     ctx.shadowColor = rgba(el.shadow.color || '#000', el.shadow.alpha == null ? .35 : el.shadow.alpha);
     ctx.shadowBlur = (el.shadow.blur || 0) * env.scale;
@@ -1000,7 +1053,7 @@ function drawBackground(ctx, bg, W, H, env) {
 }
 // env: {scale, images(id)->img, editor, editing, transparent, skip:Set}
 function renderPage(ctx, page, W, H, env) {
-  env = Object.assign({ scale: 1 }, env);
+  env = Object.assign({ scale: 1, size: Math.min(W, H) }, env);
   ctx.save();
   drawBackground(ctx, page.bg, W, H, env);
   for (const el of page.els) if (!(env.skip && env.skip.has(el.id))) drawElement(ctx, el, env);
@@ -1012,6 +1065,6 @@ window.LDCore = {
   fontCss, textLines, textHeight, syncText, textWidth, fitText, measure,
   paint, fillColor, SHAPES, shapePath, isLine, ICONS, PATTERNS, MASKS,
   drawElement, drawBackground, renderPage, filteredImage,
-  CHART_KINDS, SERIES, seriesColor, tableLayout, fmtNum,
+  ANIMS, LOOPS, CHART_KINDS, SERIES, seriesColor, tableLayout, fmtNum,
 };
 })();
