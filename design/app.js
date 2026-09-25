@@ -1225,6 +1225,7 @@ function imageProps(el) {
     el.src ? h('button', { class: 'pb wide', type: 'button', style: 'width:100%;margin-top:4px', onclick: () => { el.src = null; commit(); } }, 'Empty this frame') : null));
   if (!el.src) return;
   P.append(group('Magic tools', h('div', { class: 'fxgrid' },
+    h('button', { type: 'button', onclick: () => bgDialog(el) }, h('b', null, '✂'), 'Remove background'),
     h('button', { type: 'button', onclick: () => eraserDialog(el) }, h('b', null, '✦'), 'Magic eraser'),
     h('button', { type: 'button', onclick: () => blurBgDialog(el) }, h('b', null, '◐'), 'Blur background'),
     h('button', { type: 'button', onclick: () => upscaleDialog(el) }, h('b', null, '⤢'), 'Upscale'),
@@ -1516,6 +1517,7 @@ function tabText(body) {
 let replaceTarget = null;
 function tabUploads(body) {
   body.append(h('button', { class: 'bigbtn accent', type: 'button', onclick: () => $('fileImg').click() }, 'Upload photos'),
+    h('button', { class: 'bigbtn', type: 'button', style: 'margin-top:8px', onclick: removeBgFlow }, svg(ICO.wand), ' Remove a photo’s background'),
     h('p', { class: 'note', style: 'margin:0 0 12px' }, 'Or drag them onto the page, or paste a screenshot. Drag a photo onto a frame to fill it. Nothing is uploaded anywhere — photos stay on this device.'));
   if (!uploads.length) { body.append(h('p', { class: 'note' }, 'No photos yet.')); return; }
   body.append(h('div', { class: 'upgrid' }, uploads.filter(id => images.has(id)).map(id => {
@@ -1807,7 +1809,7 @@ $('fileBtn').addEventListener('click', e => {
   openMenu(r.left, r.bottom + 4, [
     ['New design…', '', goHome], ['Open design or PDF…', '', () => $('fileProject').click()], ['Save design file', 'Ctrl+S', saveProject], ['Save as a template…', '', saveAsTemplate], ['Version history…', '', historyDialog], null,
     ['Resize…', '', resizeDialog], ['Download…', '', exportDialog], ['Mockups…', '', mockupDialog], ['Present', '', present], null,
-    ['Upload photos…', '', () => $('fileImg').click()], ['Upload a font…', '', () => { fontTarget = null; $('fileFont').click(); }], null,
+    ['Upload photos…', '', () => $('fileImg').click()], ['Remove a photo’s background…', '', removeBgFlow], ['Upload a font…', '', () => { fontTarget = null; $('fileFont').click(); }], null,
     [(viewOpts.rulers ? '✓ ' : '') + 'Rulers & guides', 'Shift+R', () => toggleView('rulers')], [(viewOpts.grid ? '✓ ' : '') + 'Grid', 'Shift+G', () => toggleView('grid')], ['Grid size…', '', gridDialog], null,
     ['Keyboard shortcuts', '?', shortcutsDialog], ['Install as an app…', '', installApp],
   ]);
@@ -2813,6 +2815,7 @@ let hq = 0;
 $('hSearch').addEventListener('input', e => { clearTimeout(hq); hq = setTimeout(() => { homeState.q = e.target.value.trim(); fillHomeGrid(); }, 250); });
 $('hCustom').addEventListener('click', customSizeDialog);
 $('hOpen').addEventListener('click', () => $('fileProject').click());
+$('hBg').addEventListener('click', removeBgFlow);
 $('hCount').textContent = TP.COUNT.toLocaleString();
 async function showContinue() {
   try {
@@ -3055,6 +3058,29 @@ function qrDialog(el) {
     else addQR(t, { qrType: type, qrData: clone(f) });
   }).then(() => {});
   const d = document.querySelector('.scrim:last-child .dlg'); if (d) d.style.width = '600px';
+}
+
+// Remove-background shortcut: use the selected photo, or pick one first.
+function removeBgFlow() {
+  const cur = doc && sel.length === 1 && selEls()[0];
+  if (cur && cur.type === 'image' && cur.src && !cur.locked) return bgDialog(cur);
+  const inp = h('input', { type: 'file', accept: 'image/*', hidden: true });
+  inp.addEventListener('change', async () => {
+    const f = inp.files[0]; inp.remove(); if (!f) return;
+    try {
+      const src = await readImageFile(f), id = addImage(src); uploads.unshift(id);
+      const im = images.get(id).img;
+      await new Promise((r, j) => { if (im.complete && im.naturalWidth) r(); else { im.addEventListener('load', r, { once: true }); im.addEventListener('error', j, { once: true }); } });
+      if (!doc || !$('home').hidden) {   // from the home screen: a page the size of the photo
+        newDoc(im.naturalWidth, im.naturalHeight, { name: f.name.replace(/\.[^.]+$/, '') + ' (no background)' });
+        page().bg.fill = '#ffffff';
+        addPhotoEl(id); const el = selEls()[0]; el.x = 0; el.y = 0; el.w = doc.w; el.h = doc.h;
+      } else addPhotoEl(id);
+      commit();
+      bgDialog(selEls()[0]);
+    } catch { toast(/hei[cf]/i.test(f.name) ? 'This browser can’t read HEIC photos — export it as JPEG first.' : 'That photo couldn’t be opened.', true); }
+  });
+  document.body.append(inp); inp.click();
 }
 
 // ---- background remover
