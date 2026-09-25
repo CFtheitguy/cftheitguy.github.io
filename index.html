@@ -902,5 +902,15 @@ document.addEventListener('click', e => {
 document.getElementById("year").textContent = new Date().getFullYear();
 </script>
 
+<!-- Sukkos closed popup -->
+<div id="yt-popup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;color:#222;max-width:420px;width:100%;border-radius:12px;padding:28px 24px;text-align:center;font-family:inherit;box-shadow:0 10px 40px rgba(0,0,0,.3);position:relative">
+    <button onclick="document.getElementById('yt-popup').style.display='none'" aria-label="Close" style="position:absolute;top:8px;right:12px;border:0;background:none;font-size:26px;cursor:pointer;color:#666">&times;</button>
+    <h2 style="margin:0 0 12px">Closed for Yom Tov</h2>
+    <p style="margin:0 0 16px;line-height:1.5">We are closed for the Yom Tov of Sukkos. If you need immediate help, please call me at <a href="tel:+18456041462" style="font-weight:bold">(845) 604-1462</a>.</p>
+    <p style="margin:0">Thanks and have a wonderful day!</p>
+  </div>
+</div>
+<script>setTimeout(function(){document.getElementById('yt-popup').style.display='flex';},5000);</script>
 </body>
 </html>
