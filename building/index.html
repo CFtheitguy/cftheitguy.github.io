@@ -23,7 +23,7 @@ button.on{background:var(--accent);color:#000;border-color:var(--accent)}
 .layer{display:flex;gap:4px;align-items:center;padding:3px;border-radius:4px;cursor:pointer}
 .layer.cur{background:#344050}
 #side .layer input{width:auto}#side .layer input[type=color]{width:22px;height:20px;padding:0;border:none}
-#wrap{position:relative;overflow:hidden}
+#wrap{position:relative;overflow:hidden;display:flex}#v2{position:relative;flex:1;min-width:0}#v3{flex:1;min-width:0;display:none;position:relative;border-left:2px solid var(--line)}#v3 canvas{cursor:grab}#v3bar{position:absolute;top:6px;left:6px;display:flex;gap:4px;flex-wrap:wrap;z-index:2}#v3bar button{padding:3px 7px;font-size:12px}
 canvas{display:block;cursor:crosshair}
 footer{grid-column:1/4;display:flex;gap:18px;padding:4px 10px;background:var(--panel);border-top:1px solid var(--line);color:var(--muted)}
 #cmd{position:absolute;left:10px;bottom:10px;display:none;gap:6px;background:var(--panel);padding:6px;border-radius:6px;border:1px solid var(--line)}
@@ -37,22 +37,27 @@ footer{grid-column:1/4;display:flex;gap:18px;padding:4px 10px;background:var(--p
   <button id="undo" title="Ctrl+Z">↶ Undo</button><button id="redo" title="Ctrl+Y">↷ Redo</button>
   <button id="snapB" class="on">Snap</button><button id="orthoB">Ortho (F8)</button><button id="gridB" class="on">Grid</button>
   <select id="units"><option value="ft">Feet-Inches</option><option value="m">Meters</option></select>
-  <button id="fit">Zoom Fit</button>
+  <select id="mode"><option value="2d">2D Plan</option><option value="split">2D + 3D</option><option value="3d">3D Only</option></select><button id="fit">Zoom Fit</button>
   <button id="newB">New</button><button id="saveB">Save</button><button id="openB">Open</button>
   <button id="svgB">Export SVG</button><button id="pngB">Export PNG</button><button id="printB">Print</button>
   <input type="file" id="file" accept=".json" hidden>
 </header>
 <div id="tools"></div>
-<div id="wrap"><canvas id="c"></canvas>
-  <div id="cmd"><span id="cmdLabel">Length:</span><input id="cmdIn" size="10" placeholder="e.g. 12'6&quot;"></div>
+<div id="wrap"><div id="v2"><canvas id="c"></canvas>
+  <div id="cmd"><span id="cmdLabel">Length:</span><input id="cmdIn" size="10" placeholder="e.g. 12'6&quot;"></div></div>
+<div id="v3"><div id="v3bar"><button data-v="iso">Iso</button><button data-v="top">Top</button><button data-v="front">Front</button><button data-v="right">Right</button><button data-v="back">Back</button><button id="wireB">Wireframe</button><button id="roofB">Hide slabs</button><button id="stlB">STL</button><button id="objB">OBJ</button><button id="glbB">GLB</button></div></div>
 </div>
 <div id="side">
   <h3>Layers</h3><div id="layers"></div><button id="addLayer">+ Layer</button>
   <h3>Settings</h3>
   <label>Grid <input id="gridSize" value="1'"></label>
   <label>Wall thick <input id="wallT" value="6&quot;"></label>
+  <label>Wall height <input id="wallH" value="8'"></label>
+  <label>Door height <input id="doorH" value="6'8&quot;"></label>
+  <label>Win sill / head <input id="winS" value="3'" style="width:52px"><input id="winH" value="7'" style="width:52px"></label>
   <label>Text size <input id="textS" value="9&quot;"></label>
   <h3>Selection</h3><div id="props" style="color:var(--muted)">Nothing selected</div>
+  <h3>3D</h3><div style="color:var(--muted);line-height:1.5">Walls rise to wall height with door &amp; window openings cut out. Select any rectangle, circle, closed polyline or area and give it a <b>Height</b> to extrude it (boxes, columns, slabs, roofs). Use <b>Base elev</b> to stack floors. Switch the view with the 2D / 3D menu.</div>
   <h3>Help</h3>
   <div style="color:var(--muted);line-height:1.5">Click to place points. Type a length while drawing and press Enter for exact size. Esc cancels. Right-drag / middle-drag / Space+drag pans, wheel zooms. Del removes selection. Shift = ortho.</div>
 </div>
@@ -81,7 +86,7 @@ function parseLen(s){s=s.trim();if(!s)return NaN;
 const gridSize=()=>parseLen($('gridSize').value)||12, wallT=()=>parseLen($('wallT').value)||6, textS=()=>parseLen($('textS').value)||9;
 
 // ---- view ----
-function resize(){const r=$('wrap').getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;cv.style.width=r.width+'px';cv.style.height=r.height+'px';draw()}
+function resize(){const r=$('v2').getBoundingClientRect();cv.width=r.width*devicePixelRatio;cv.height=r.height*devicePixelRatio;cv.style.width=r.width+'px';cv.style.height=r.height+'px';draw()}
 const W2S=p=>({x:(p.x-view.x)*view.z,y:-(p.y-view.y)*view.z});
 const S2W=(x,y)=>({x:x/view.z+view.x,y:-y/view.z+view.y});
 function fit(){let b=bounds(S.ents);const w=cv.width/devicePixelRatio,h=cv.height/devicePixelRatio;
@@ -257,25 +262,29 @@ function setTool(t){tool=t;pts=[];measureMsg='';document.querySelectorAll('#tool
   info(TOOLS.find(x=>x[0]===t)[1]+': '+tips[t]);showCmd();draw()}
 function info(s){$('info').textContent=s}
 TOOLS.forEach(([t,n,k])=>{const b=document.createElement('button');b.textContent=n+' ('+k+')';b.dataset.t=t;b.onclick=()=>setTool(t);$('tools').append(b)});
-function refresh(){renderLayers();renderProps();$('count').textContent=S.ents.length+' objects';save();draw()}
+function refresh(){window.update3D?.();renderLayers();renderProps();$('count').textContent=S.ents.length+' objects';save();draw()}
 function renderLayers(){const L=$('layers');L.innerHTML='';S.layers.forEach((l,i)=>{const d=document.createElement('div');d.className='layer'+(i===S.cur?' cur':'');
   d.innerHTML=`<input type=checkbox ${l.vis?'checked':''}><input type=color value="${l.color}"><span style="flex:1">${l.name.replace(/</g,'&lt;')}</span>`;
   d.onclick=ev=>{if(ev.target.tagName==='INPUT')return;S.cur=i;refresh()};d.ondblclick=()=>{const n=prompt('Layer name',l.name);if(n){l.name=n;refresh()}};
   d.children[0].onchange=ev=>{l.vis=ev.target.checked;refresh()};d.children[1].oninput=ev=>{l.color=ev.target.value;draw()};d.children[1].onchange=save;L.append(d)})}
 function renderProps(){const P=$('props');if(!sel.size){P.textContent='Nothing selected';return}
-  if(sel.size>1){P.innerHTML=`${sel.size} objects<br><label>Layer <select id=selL>${S.layers.map((l,i)=>`<option value=${i}>${l.name}</option>`).join('')}</select></label>`;$('selL').value=S.ents[[...sel][0]].l;$('selL').onchange=ev=>{commit();sel.forEach(i=>S.ents[i].l=+ev.target.value);refresh()};return}
+  if(sel.size>1){P.innerHTML=`${sel.size} objects<br><label>Layer <select id=selL>${S.layers.map((l,i)=>`<option value=${i}>${l.name}</option>`).join('')}</select></label>`;P.innerHTML+=`<label>Height <input id=selH placeholder="set all"></label><label>Base elev <input id=selZ placeholder="set all"></label>`;$('selH').onchange=ev=>{commit();const v=parseLen(ev.target.value);sel.forEach(i=>{if(isNaN(v))delete S.ents[i].h3;else S.ents[i].h3=v});refresh()};$('selZ').onchange=ev=>{commit();const v=parseLen(ev.target.value)||0;sel.forEach(i=>S.ents[i].z=v);refresh()};$('selL').value=S.ents[[...sel][0]].l;$('selL').onchange=ev=>{commit();sel.forEach(i=>S.ents[i].l=+ev.target.value);refresh()};return}
   const i=[...sel][0],e=S.ents[i];let h=`<b>${e.t}</b><br>`;
   if(e.a&&e.b)h+=`Length: ${fmt(dist(e.a,e.b))}<br>`;if(e.t==='rect')h+=`Size: ${fmt(e.b.x-e.a.x)} × ${fmt(e.b.y-e.a.y)}<br>Area: ${areaFmt(Math.abs((e.b.x-e.a.x)*(e.b.y-e.a.y)))}<br>`;
   if(e.t==='circle')h+=`Radius: ${fmt(e.r)}<br>Area: ${areaFmt(Math.PI*e.r*e.r)}<br>`;if(e.t==='wall')h+=`Thickness: ${fmt(e.th)}<br>`;if(e.t==='area')h+=`Area: ${areaFmt(polyArea(e.pts))}<br>`;
   if(e.t==='text')h+=`<label>Text <input id=selT value="${e.s.replace(/"/g,'&quot;')}"></label>`;
+  if(['wall','rect','circle','area','pline','line','arc'].includes(e.t)){const dh=e.t==='wall'?'(wall height)':'0 = flat';h+=`<label>Height <input id=selH placeholder="${dh}" value="${e.h3!=null?fmt(e.h3):''}"></label><label>Base elev <input id=selZ value="${fmt(e.z||0)}"></label>`}
   h+=`<label>Layer <select id=selL>${S.layers.map((l,j)=>`<option value=${j}>${l.name}</option>`).join('')}</select></label>`;P.innerHTML=h;$('selL').value=e.l;
-  $('selL').onchange=ev=>{commit();e.l=+ev.target.value;refresh()};if($('selT'))$('selT').onchange=ev=>{commit();e.s=ev.target.value;refresh()}}
+  $('selL').onchange=ev=>{commit();e.l=+ev.target.value;refresh()};if($('selH')){$('selH').onchange=ev=>{commit();const v=parseLen(ev.target.value);if(ev.target.value.trim()===''||isNaN(v))delete e.h3;else e.h3=v;refresh()};$('selZ').onchange=ev=>{commit();e.z=parseLen(ev.target.value)||0;refresh()}}
+  if($('selT'))$('selT').onchange=ev=>{commit();e.s=ev.target.value;refresh()}}
 $('addLayer').onclick=()=>{const n=prompt('Layer name');if(n){commit();S.layers.push({name:n,color:'#cccccc',vis:true});S.cur=S.layers.length-1;refresh()}};
 $('undo').onclick=undo;$('redo').onclick=redo;$('fit').onclick=fit;
 $('snapB').onclick=()=>{snap=!snap;$('snapB').classList.toggle('on',snap)};$('orthoB').onclick=()=>{ortho=!ortho;$('orthoB').classList.toggle('on',ortho)};
 $('gridB').onclick=()=>{grid=!grid;$('gridB').classList.toggle('on',grid);draw()};
 $('units').onchange=e=>{units=e.target.value;if(units==='m'){$('gridSize').value='0.5m';$('wallT').value='0.15m';$('textS').value='0.25m'}else{$('gridSize').value="1'";$('wallT').value='6"';$('textS').value='9"'}refresh()};
 ['gridSize','wallT','textS'].forEach(id=>$(id).onchange=draw);
+['wallH','doorH','winS','winH'].forEach(id=>$(id).onchange=refresh);
+$('mode').onchange=e=>{const m=e.target.value;$('v2').style.display=m==='3d'?'none':'';$('v3').style.display=m==='2d'?'none':'block';resize();window.resize3D?.();window.update3D?.()};
 $('newB').onclick=()=>{if(confirm('Start a new drawing? Unsaved work will be lost.')){commit();S.ents=[];sel.clear();refresh();fit()}};
 function saveFile(){dl(new Blob([JSON.stringify(S)],{type:'application/json'}),'drawing.json')}
 $('saveB').onclick=saveFile;$('openB').onclick=()=>$('file').click();
@@ -300,6 +309,77 @@ $('svgB').onclick=()=>{const b=bounds(visEnts());if(!b)return alert('Nothing to 
 
 try{const d=JSON.parse(localStorage.getItem('buildingcad'));if(d&&d.ents)S=d}catch(e){}
 addEventListener('resize',resize);resize();setTool('select');refresh();fit();
+</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {STLExporter} from 'three/addons/exporters/STLExporter.js';
+import {OBJExporter} from 'three/addons/exporters/OBJExporter.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+const host=$('v3');
+const ren=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});ren.setPixelRatio(devicePixelRatio);host.append(ren.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#1b2129');
+// CAD Z-up: plan X/Y -> world X/-Z, height -> Y
+const cam=new THREE.PerspectiveCamera(45,1,1,1e6);cam.position.set(400,400,400);
+const ctl=new OrbitControls(cam,ren.domElement);ctl.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x445566,1.1));const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(300,800,400);scene.add(sun);
+const gridH=new THREE.GridHelper(2400,200,0x3a4450,0x262d36);scene.add(gridH);
+const model=new THREE.Group();scene.add(model);
+let wire=false,hideSlabs=false;
+const mats={};function mat(col,kind){const k=col+kind+wire;if(!mats[k]){const c=new THREE.Color(col);
+  mats[k]=kind==='glass'?new THREE.MeshStandardMaterial({color:0x7fc8ff,transparent:true,opacity:.35,roughness:.1,wireframe:wire}):
+   new THREE.MeshStandardMaterial({color:c,roughness:.8,wireframe:wire,side:THREE.DoubleSide})}return mats[k]}
+const edgeM=new THREE.LineBasicMaterial({color:0x111111});
+function addMesh(geo,m,tag){const me=new THREE.Mesh(geo,m);me.userData.tag=tag;model.add(me);if(!wire&&m.opacity!==.35){const e=new THREE.LineSegments(new THREE.EdgesGeometry(geo,20),edgeM);model.add(e)}return me}
+function box(a,b,th,z0,z1,m){// wall-aligned box from a to b (plan points)
+  const len=dist(a,b);if(len<.01||z1-z0<.01)return;const g=new THREE.BoxGeometry(len,z1-z0,th);const me=addMesh(g,m);
+  me.position.set((a.x+b.x)/2,(z0+z1)/2,-(a.y+b.y)/2);me.rotation.y=Math.atan2(b.y-a.y,b.x-a.x);
+  const e=model.children.at(-1);if(e!==me){e.position.copy(me.position);e.rotation.copy(me.rotation)}}
+function extrude(ptsP,z,h,m){if(ptsP.length<3)return;const sh=new THREE.Shape(ptsP.map(p=>new THREE.Vector2(p.x,p.y)));
+  const g=new THREE.ExtrudeGeometry(sh,{depth:Math.max(h,.5),bevelEnabled:false,curveSegments:32});g.rotateX(-Math.PI/2);g.translate(0,z,0);addMesh(g,m)}
+function circlePts(c,r,n=48){return Array.from({length:n},(_,i)=>({x:c.x+r*Math.cos(i/n*2*Math.PI),y:c.y+r*Math.sin(i/n*2*Math.PI)}))}
+function openingsOn(w,all){const d=wallDir(w),L=dist(w.a,w.b),out=[];
+  for(const o of all){if(o.t!=='door'&&o.t!=='window')continue;
+    const off=p=>Math.abs((p.x-w.a.x)*-d.y+(p.y-w.a.y)*d.x);if(off(o.a)>w.th/2+2||off(o.b)>w.th/2+2)continue;
+    let t1=(o.a.x-w.a.x)*d.x+(o.a.y-w.a.y)*d.y,t2=(o.b.x-w.a.x)*d.x+(o.b.y-w.a.y)*d.y;if(t1>t2)[t1,t2]=[t2,t1];
+    t1=Math.max(0,t1);t2=Math.min(L,t2);if(t2-t1>1)out.push({t1,t2,o})}
+  return out.sort((a,b)=>a.t1-b.t1)}
+window.update3D=()=>{if($('v3').style.display!=='block')return;
+  model.children.forEach(c=>c.geometry?.dispose());model.clear();
+  const ents=S.ents.filter(e=>S.layers[e.l]?.vis),WH=parseLen($('wallH').value)||96,DH=parseLen($('doorH').value)||80,SI=parseLen($('winS').value)||36,HD=parseLen($('winH').value)||84;
+  const P=(t,d,a)=>({x:a.x+d.x*t,y:a.y+d.y*t});
+  for(const e of ents){const col=S.layers[e.l].color,z=e.z||0,h=e.h3;const m=mat(e.t==='wall'?'#d9d4c7':col,'solid');
+    if(e.t==='wall'){const H=h??WH,d=wallDir(e),L=dist(e.a,e.b);let t=0;
+      for(const {t1,t2,o} of openingsOn(e,ents)){box(P(t,d,e.a),P(t1,d,e.a),e.th,z,z+H,m);
+        const a=P(t1,d,e.a),b=P(t2,d,e.a);
+        if(o.t==='door'){box(a,b,e.th,z+DH,z+H,m)}
+        else{box(a,b,e.th,z,z+SI,m);box(a,b,e.th,z+HD,z+H,m);box(a,b,1,z+SI,z+HD,mat('','glass'))}
+        t=Math.max(t,t2)}
+      box(P(t,d,e.a),e.b,e.th,z,z+H,m)}
+    else if(e.t==='door'){const len=dist(e.a,e.b),d=wallDir(e),n={x:-d.y,y:d.x};box(e.a,{x:e.a.x+n.x*len,y:e.a.y+n.y*len},1.5,z,z+DH,mat('#a0703c','solid'))}
+    else if(!h||hideSlabs&&e.t==='area')continue;
+    else if(e.t==='rect'){const{a,b}=e;extrude([a,{x:b.x,y:a.y},b,{x:a.x,y:b.y}],z,h,m)}
+    else if(e.t==='circle')extrude(circlePts(e.c,e.r),z,h,m)
+    else if(e.t==='area'||(e.t==='pline'&&e.closed))extrude(e.pts,z,h,m)
+    else if(e.t==='pline')for(let i=1;i<e.pts.length;i++)box(e.pts[i-1],e.pts[i],parseLen($('wallT').value)||6,z,z+h,m)
+    else if(e.t==='line')box(e.a,e.b,parseLen($('wallT').value)||6,z,z+h,m)}
+};
+function fit3D(dir){const b=new THREE.Box3().setFromObject(model);let c=new THREE.Vector3(),sz=240;if(!b.isEmpty()){b.getCenter(c);sz=b.getSize(new THREE.Vector3()).length()}
+  const D={iso:[1,.8,1],top:[0,1,.0001],front:[0,0,1],back:[0,0,-1],right:[1,0,0]}[dir]||[1,.8,1];
+  const v=new THREE.Vector3(...D).normalize().multiplyScalar(sz*1.3);cam.position.copy(c).add(v);ctl.target.copy(c);ctl.update()}
+window.resize3D=()=>{const r=host.getBoundingClientRect();if(!r.width)return;ren.setSize(r.width,r.height);cam.aspect=r.width/r.height;cam.updateProjectionMatrix()};
+addEventListener('resize',window.resize3D);
+let first=true;$('mode').addEventListener('change',()=>{if(first&&$('v3').style.display==='block'){first=false;fit3D('iso')}});
+document.querySelectorAll('#v3bar [data-v]').forEach(b=>b.onclick=()=>fit3D(b.dataset.v));
+$('wireB').onclick=()=>{wire=!wire;$('wireB').classList.toggle('on',wire);update3D()};
+$('roofB').onclick=()=>{hideSlabs=!hideSlabs;$('roofB').classList.toggle('on',hideSlabs);update3D()};
+// export in real units: inches -> Y-up meshes; STL/OBJ keep inches
+const exp=()=>{const g=new THREE.Group();model.children.forEach(c=>{if(c.isMesh)g.add(c.clone())});return g};
+$('stlB').onclick=()=>dl(new Blob([new STLExporter().parse(exp())]),'building.stl');
+$('objB').onclick=()=>dl(new Blob([new OBJExporter().parse(exp())]),'building.obj');
+$('glbB').onclick=()=>{const g=exp();g.scale.setScalar(0.0254);new GLTFExporter().parse(g,r=>dl(new Blob([r]),'building.glb'),console.error,{binary:true})};
+(function loop(){requestAnimationFrame(loop);if($('v3').style.display==='block'){ctl.update();ren.render(scene,cam)}})();
 </script>
 </body>
 </html>
