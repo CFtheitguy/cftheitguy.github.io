@@ -1,155 +1,220 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Password Generator - Linear Tech</title>
-<meta name="description" content="Generate strong, random passwords of any length right in your browser."/>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Password Generator | linear</title>
+<meta name="description" content="Generate strong, random passwords of any length right in your browser. Nothing is sent anywhere.">
+<link rel="canonical" href="https://www.linearit.co/password/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta name="theme-color" content="#050507">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-
-/* ── Dark theme (default) ── */
-:root,[data-theme="dark"]{
-  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222536;
-  --text:#eef0f6;--muted:#7c85a2;--muted2:#4e5571;
-  --accent:#4f7ef8;--accent-h:#3b6cf5;--accent-bg:rgba(79,126,248,.12);
-  --border:#2a2f45;--border2:#353b56;
-  --card:#181c2a;--card2:#1e2235;
-  --success:#4ade80;--success-bg:rgba(74,222,128,.12);
-  --shadow:0 2px 16px rgba(0,0,0,.4);
-  --input-bg:#0f1117;
+:root{
+  --peri:#6999f5;--peri-deep:#4d7fe8;--aqua:#70f2ff;--ink:#000;--paper:#fff;
+  --mono:'Space Grotesk',system-ui,sans-serif;
 }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper);color:var(--ink);font-family:var(--mono);font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
 
-/* ── Light theme ── */
-[data-theme="light"]{
-  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;
-  --text:#1a1d2e;--muted:#5a6080;--muted2:#9aa0bc;
-  --accent:#3b6cf5;--accent-h:#2955d8;--accent-bg:rgba(59,108,245,.08);
-  --border:#dde1ee;--border2:#c8cee0;
-  --card:#ffffff;--card2:#f8f9fd;
-  --success:#16a34a;--success-bg:rgba(22,163,74,.08);
-  --shadow:0 2px 16px rgba(0,0,0,.08);
-  --input-bg:#f4f6fb;
+.nav{
+  position:fixed;top:0;left:0;right:0;height:96px;z-index:1000;
+  display:flex;align-items:center;
+  background:rgba(5,5,7,.82);
+  backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);
+  border-bottom:1px solid rgba(255,255,255,.08);color:#fff;padding:0 24px;
 }
+.nav-inner{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:20px}
+.brand img{height:60px;width:auto;display:block}
+.nav-links{display:flex;gap:26px;margin-left:auto;align-items:center}
+.nav-links a{font-size:.72rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.75);transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:var(--aqua)}
+.nav-cta{background:var(--aqua);color:var(--ink) !important;padding:10px 18px;border-radius:999px;font-weight:700 !important;white-space:nowrap}
+.nav-cta:hover{background:#8ff5ff}
 
-body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;transition:background .2s,color .2s}
+.hero{
+  padding:170px 24px 150px;position:relative;overflow:hidden;
+  background:
+    radial-gradient(42% 55% at 12% 78%, rgba(105,153,245,.75) 0%, rgba(105,153,245,0) 100%),
+    radial-gradient(45% 60% at 82% 14%, rgba(112,242,255,.8) 0%, rgba(112,242,255,0) 100%),
+    linear-gradient(120deg,#fdfdfd 0%,#f4f7fb 100%);
+}
+.wrap{max-width:1200px;margin:0 auto;width:100%}
+.kicker{font-size:.72rem;font-weight:600;letter-spacing:.42em;text-transform:uppercase;color:var(--peri-deep);display:block;margin-bottom:22px}
+.hero h1{font-weight:600;font-size:clamp(1.6rem,4vw,2.6rem);letter-spacing:.14em;text-transform:uppercase;line-height:1.35;max-width:880px;margin-bottom:22px}
+.hero h1 .hl{color:var(--peri-deep)}
+.hero p{max-width:620px;color:rgba(0,0,0,.62);font-size:.95rem}
 
-/* ── Header ── */
-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:var(--shadow)}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center}
-.logo-icon svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
-.logo-text{font-size:1.05rem;font-weight:700;color:var(--text);letter-spacing:-.02em}
-.logo-text span{color:var(--accent)}
-#theme-toggle{background:var(--bg3);border:1px solid var(--border);color:var(--muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
-#theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
-
-/* ── Layout ── */
-main{max-width:640px;margin:0 auto;padding:44px 20px}
-
-/* ── Card ── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;box-shadow:var(--shadow);transition:background .2s,border-color .2s}
-.card-title{font-size:1.4rem;font-weight:700;margin-bottom:8px;color:var(--text)}
-.card-desc{font-size:.88rem;color:var(--muted);margin-bottom:26px;line-height:1.6}
-
-/* ── Output row ── */
-.output-row{display:flex;gap:10px;margin-bottom:26px}
+.section{padding:0 24px 110px;margin-top:-90px;position:relative}
+.gen{
+  max-width:720px;background:var(--ink);color:#fff;border-radius:24px;padding:36px;
+  box-shadow:0 24px 60px rgba(20,40,90,.22);
+}
+.gen-label{font-size:.7rem;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:rgba(255,255,255,.55);display:block;margin-bottom:12px}
+.out{display:flex;gap:10px;align-items:stretch;margin-bottom:14px}
 #pwOutput{
-  flex:1;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
-  padding:12px 15px;border-radius:10px;font-size:.95rem;outline:none;font-family:monospace;
-  transition:border-color .15s,box-shadow .15s
+  flex:1;min-width:0;background:#0d0f14;border:1px solid rgba(255,255,255,.14);color:#fff;
+  padding:16px 18px;border-radius:14px;font:500 1.15rem/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.04em;outline:none;
 }
-#pwOutput:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:11px 22px;
-  border-radius:10px;cursor:pointer;font-size:.92rem;font-weight:600;font-family:inherit;transition:all .15s;letter-spacing:-.01em;white-space:nowrap}
-.btn:hover{background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(79,126,248,.3)}
+#pwOutput:focus{border-color:var(--aqua);box-shadow:0 0 0 3px rgba(112,242,255,.2)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;border:0;font-family:inherit;
+  font-size:.72rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  padding:14px 22px;border-radius:999px;background:var(--aqua);color:var(--ink);transition:background .15s,transform .15s;white-space:nowrap;
+}
+.btn:hover{background:#8ff5ff;transform:translateY(-1px)}
 .btn:active{transform:none}
-.btn-full{width:100%;margin-top:6px}
+.btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3)}
+.btn.ghost:hover{border-color:var(--aqua);color:var(--aqua);background:transparent}
+.btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-#copy-msg{font-size:.8rem;color:var(--success);height:16px;margin:-18px 0 18px;font-weight:500}
+.meter{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:30px;font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.bar{flex:1 1 120px;min-width:120px;height:6px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;transition:width .25s,background .25s}
+#strength b{color:#fff;font-weight:700}
+#copy-msg{color:var(--aqua);min-width:64px;text-align:right}
 
-/* ── Length row ── */
-.field{margin-bottom:18px}
-label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;font-weight:600;letter-spacing:.01em}
-.length-row{display:flex;align-items:center;gap:14px;margin-bottom:22px}
-.length-row label{margin-bottom:0;flex-shrink:0}
-input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer}
+.row{display:flex;align-items:center;gap:16px;margin-bottom:26px}
+.row .gen-label{margin:0;flex:none}
+input[type=range]{flex:1;accent-color:var(--aqua);cursor:pointer}
 input[type=number]{
-  width:64px;background:var(--input-bg);border:1px solid var(--border2);color:var(--text);
-  padding:8px 10px;border-radius:8px;font-size:.9rem;text-align:center;outline:none;font-family:inherit
+  width:72px;background:#0d0f14;border:1px solid rgba(255,255,255,.14);color:#fff;
+  padding:9px 10px;border-radius:10px;font:600 .95rem var(--mono);text-align:center;outline:none;
 }
-input[type=number]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+input[type=number]:focus{border-color:var(--aqua)}
 
-/* ── Options ── */
-.options{margin-bottom:24px}
-.opt{display:flex;align-items:center;gap:10px;margin-bottom:12px;cursor:pointer;font-size:.9rem;color:var(--text);user-select:none}
-.opt input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:28px}
+.opt{
+  display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;
+  padding:13px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.14);font-size:.86rem;transition:border-color .15s,background .15s;
+}
+.opt:hover{border-color:rgba(112,242,255,.5)}
+.opt:has(input:checked){border-color:var(--aqua);background:rgba(112,242,255,.08)}
+.opt input{width:18px;height:18px;accent-color:var(--aqua);cursor:pointer;flex:none}
+.opt small{display:block;color:rgba(255,255,255,.5);font-size:.74rem;letter-spacing:.04em}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .btn{flex:1}
+
+.tips{max-width:720px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+.tip{border-radius:20px;padding:24px 22px;border:1px solid rgba(10,10,10,.09);background:#fff}
+.tip.aqua{background:var(--aqua);border-color:transparent}
+.tip.peri{background:var(--peri);border-color:transparent}
+.tip h2{font-size:.78rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}
+.tip p{font-size:.8rem;line-height:1.65;opacity:.8}
+
+.note{margin-top:34px;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:#777;max-width:760px;line-height:1.9}
+
+.footer{background:var(--ink);color:#fff;padding:60px 24px 36px}
+.footer-top{display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;align-items:center;margin-bottom:40px}
+.footer-top img{height:48px;width:auto}
+.footer-links{display:flex;gap:24px;flex-wrap:wrap}
+.footer-links a{font-size:.7rem;letter-spacing:.24em;text-transform:uppercase;color:rgba(255,255,255,.65)}
+.footer-links a:hover{color:var(--aqua)}
+.footer-base{border-top:1px solid rgba(255,255,255,.12);padding-top:24px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.footer-base .site{color:var(--aqua)}
+
+@media (max-width:680px){
+  .nav{height:80px}
+  .brand img{height:46px}
+  .nav-links a:not(.nav-cta){display:none}
+  .hero{padding:130px 20px 120px}
+  .section{padding:0 16px 80px}
+  .gen{padding:24px 20px;border-radius:20px}
+  .out{flex-direction:column}
+  .opts,.tips{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-<header>
-  <div class="logo">
-    <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke-linecap="round"/></svg>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="/"><img src="/zurech3/assets/logo-white.svg" alt="linear"></a>
+    <div class="nav-links">
+      <a href="/#services">Services</a>
+      <a href="/graphics/">Graphics</a>
+      <a href="/filter/">Filters</a>
+      <a href="/password/" class="active">Passwords</a>
+      <a class="nav-cta" href="/#contact">Book a consult</a>
     </div>
-    <span class="logo-text">Linear<span>Tech</span></span>
   </div>
-  <button id="theme-toggle" title="Toggle light/dark mode" onclick="toggleTheme()">
-    <svg id="icon-moon" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <svg id="icon-sun" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
-  </button>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="kicker">Tools&nbsp;&nbsp;/&nbsp;&nbsp;Password generator</span>
+    <h1>Strong passwords, <span class="hl">instantly</span></h1>
+    <p>Pick a length and the characters you want. Passwords are made right here in your browser with a secure random generator — nothing is sent anywhere or saved.</p>
+  </div>
 </header>
 
-<main>
-  <div class="card">
-    <div class="card-title">Password Generator</div>
-    <div class="card-desc">Pick a length and character types, then generate a strong password. Everything happens in your browser — nothing is sent anywhere.</div>
+<section class="section">
+  <div class="wrap">
+    <div class="gen">
+      <label class="gen-label" for="pwOutput">Your password</label>
+      <div class="out">
+        <input type="text" id="pwOutput" readonly spellcheck="false" autocomplete="off">
+        <button class="btn" id="copyBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copy</button>
+      </div>
+      <div class="meter" aria-live="polite">
+        <div class="bar"><i id="bar"></i></div>
+        <span id="strength"></span>
+        <span id="copy-msg"></span>
+      </div>
 
-    <div class="output-row">
-      <input type="text" id="pwOutput" readonly aria-label="Generated password"/>
-      <button class="btn" id="copyBtn" type="button">Copy</button>
+      <div class="row">
+        <label class="gen-label" for="pwLengthRange">Length</label>
+        <input type="range" id="pwLengthRange" min="4" max="64" value="16">
+        <input type="number" id="pwLength" min="4" max="64" value="16" aria-label="Length">
+      </div>
+
+      <div class="opts">
+        <label class="opt"><input type="checkbox" id="optUpper" checked><span>Uppercase<small>A–Z</small></span></label>
+        <label class="opt"><input type="checkbox" id="optLower" checked><span>Lowercase<small>a–z</small></span></label>
+        <label class="opt"><input type="checkbox" id="optNumbers" checked><span>Numbers<small>0–9</small></span></label>
+        <label class="opt"><input type="checkbox" id="optSymbols"><span>Symbols<small>!@#$%^&amp;*</small></span></label>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="generateBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>New password</button>
+      </div>
     </div>
-    <div id="copy-msg"></div>
 
-    <div class="length-row">
-      <label for="pwLengthRange">Length</label>
-      <input type="range" id="pwLengthRange" min="4" max="64" value="16"/>
-      <input type="number" id="pwLength" min="4" max="64" value="16"/>
+    <div class="tips">
+      <div class="tip aqua"><h2>Longer is stronger</h2><p>16 characters or more is a good minimum. Every extra character makes it far harder to guess.</p></div>
+      <div class="tip"><h2>One per account</h2><p>Never reuse a password. A password manager can remember them all for you.</p></div>
+      <div class="tip peri"><h2>Turn on MFA</h2><p>Multi-factor sign-in stops most attacks, even if a password leaks.</p></div>
     </div>
-
-    <div class="options">
-      <label class="opt"><input type="checkbox" id="optUpper" checked/> Uppercase letters (A-Z)</label>
-      <label class="opt"><input type="checkbox" id="optLower" checked/> Lowercase letters (a-z)</label>
-      <label class="opt"><input type="checkbox" id="optNumbers" checked/> Numbers (0-9)</label>
-      <label class="opt"><input type="checkbox" id="optSymbols"/> Symbols (!@#$%^&*)</label>
-    </div>
-
-    <button class="btn btn-full" id="generateBtn" type="button">Generate Password</button>
+    <p class="note">Need a password manager or MFA rolled out across your business? Call (845) 604-1462.</p>
   </div>
-</main>
+</section>
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-top">
+      <a href="/"><img src="/zurech3/assets/logo-white.svg" alt="linear"></a>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/graphics/">Graphics</a>
+        <a href="/filter/">Filters</a>
+        <a href="/#contact">Contact</a>
+        <a href="tel:+18456041462">(845) 604-1462</a>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>© <span id="year">2026</span> linear · Straightforward IT excellence · Monroe, NY</span>
+      <span class="site">linearit.co</span>
+    </div>
+  </div>
+</footer>
 
 <script>
-function toggleTheme() {
-  var t = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", t);
-  document.getElementById("icon-moon").style.display = t === "dark" ? "block" : "none";
-  document.getElementById("icon-sun").style.display = t === "light" ? "block" : "none";
-  try { localStorage.setItem("theme", t); } catch(e) {}
-}
-(function () {
-  var t;
-  try { t = localStorage.getItem("theme"); } catch(e) { t = null; }
-  t = t || "dark";
-  document.documentElement.setAttribute("data-theme", t);
-  if (t === "light") {
-    document.getElementById("icon-moon").style.display = "none";
-    document.getElementById("icon-sun").style.display = "block";
-  }
-})();
-
+document.getElementById('year').textContent = new Date().getFullYear();
 (function () {
   const lengthRange = document.getElementById('pwLengthRange');
   const lengthInput = document.getElementById('pwLength');
@@ -158,9 +223,9 @@ function toggleTheme() {
   const optNumbers = document.getElementById('optNumbers');
   const optSymbols = document.getElementById('optSymbols');
   const output = document.getElementById('pwOutput');
-  const generateBtn = document.getElementById('generateBtn');
-  const copyBtn = document.getElementById('copyBtn');
   const copiedMsg = document.getElementById('copy-msg');
+  const bar = document.getElementById('bar');
+  const strength = document.getElementById('strength');
 
   const CHARSETS = {
     upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -175,10 +240,19 @@ function toggleTheme() {
     lengthInput.value = clamped;
   }
 
+  // Unbiased random integer in [0, max): reject values from the uneven tail.
   function randomInt(max) {
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-    return array[0] % max;
+    const limit = Math.floor(0x100000000 / max) * max;
+    const a = new Uint32Array(1);
+    do crypto.getRandomValues(a); while (a[0] >= limit);
+    return a[0] % max;
+  }
+
+  function showStrength(length, poolSize) {
+    const bits = Math.round(length * Math.log2(poolSize));
+    const [label, pct, col] = bits < 45 ? ['Weak', 25, '#ff5757'] : bits < 70 ? ['Fair', 50, '#ffbd59'] : bits < 100 ? ['Strong', 78, '#70f2ff'] : ['Very strong', 100, '#7ed957'];
+    bar.style.width = pct + '%'; bar.style.background = col;
+    strength.innerHTML = '<b>' + label + '</b> · ' + bits + ' bits';
   }
 
   function generatePassword() {
@@ -187,42 +261,29 @@ function toggleTheme() {
     if (optLower.checked) pools.push(CHARSETS.lower);
     if (optNumbers.checked) pools.push(CHARSETS.numbers);
     if (optSymbols.checked) pools.push(CHARSETS.symbols);
-
-    if (pools.length === 0) {
-      optLower.checked = true;
-      pools.push(CHARSETS.lower);
-    }
+    if (pools.length === 0) { optLower.checked = true; pools.push(CHARSETS.lower); }
 
     const length = parseInt(lengthInput.value, 10) || 16;
     const allChars = pools.join('');
-    const passwordChars = [];
+    const chars = pools.map(pool => pool[randomInt(pool.length)]);   // at least one of each chosen type
+    while (chars.length < length) chars.push(allChars[randomInt(allChars.length)]);
+    for (let i = chars.length - 1; i > 0; i--) { const j = randomInt(i + 1); [chars[i], chars[j]] = [chars[j], chars[i]]; }
 
-    pools.forEach(pool => {
-      passwordChars.push(pool[randomInt(pool.length)]);
-    });
-    while (passwordChars.length < length) {
-      passwordChars.push(allChars[randomInt(allChars.length)]);
-    }
-
-    for (let i = passwordChars.length - 1; i > 0; i--) {
-      const j = randomInt(i + 1);
-      [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
-    }
-
-    output.value = passwordChars.slice(0, length).join('');
+    output.value = chars.slice(0, length).join('');
     copiedMsg.textContent = '';
+    showStrength(length, allChars.length);
   }
 
-  lengthRange.addEventListener('input', () => syncLength(lengthRange.value));
-  lengthInput.addEventListener('input', () => syncLength(lengthInput.value));
-  generateBtn.addEventListener('click', generatePassword);
+  lengthRange.addEventListener('input', () => { syncLength(lengthRange.value); generatePassword(); });
+  lengthInput.addEventListener('change', () => { syncLength(lengthInput.value); generatePassword(); });
+  [optUpper, optLower, optNumbers, optSymbols].forEach(o => o.addEventListener('change', generatePassword));
+  document.getElementById('generateBtn').addEventListener('click', generatePassword);
 
-  copyBtn.addEventListener('click', () => {
+  document.getElementById('copyBtn').addEventListener('click', () => {
     if (!output.value) return;
-    navigator.clipboard.writeText(output.value).then(() => {
-      copiedMsg.textContent = 'Copied to clipboard!';
-      setTimeout(() => { copiedMsg.textContent = ''; }, 2000);
-    });
+    const done = () => { copiedMsg.textContent = 'Copied'; setTimeout(() => { copiedMsg.textContent = ''; }, 2000); };
+    if (navigator.clipboard) navigator.clipboard.writeText(output.value).then(done, () => { output.select(); document.execCommand('copy'); done(); });
+    else { output.select(); document.execCommand('copy'); done(); }
   });
 
   generatePassword();
