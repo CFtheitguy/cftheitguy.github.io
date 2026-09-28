@@ -17,10 +17,10 @@
 (function () {
   "use strict";
 
-  var API = (location.host === "meet.linearit.co" || location.hostname === "localhost" || location.hostname === "127.0.0.1")
-    ? location.origin : "https://meet.linearit.co";
-  var WS_BASE = API.replace(/^http/, "ws");
-  var SHARE_BASE = "https://meet.linearit.co/#";
+  // The backend lives in the linear-chat Worker (chat/src/meet.js) at /meet-api/.
+  var API = (location.hostname === "localhost" || location.hostname === "127.0.0.1")
+    ? "http://localhost:8787/meet-api" : "https://chat.linearit.co/meet-api";   // local: wrangler dev
+  var SHARE_BASE = "https://www.linearit.co/meet/#";
   var REACTIONS = ["👍", "👏", "😂", "❤️", "🎉", "😮"];
   var COLORS = ["#0ea5e9", "#8b5cf6", "#ec4899", "#f97316", "#10b981", "#eab308", "#6366f1", "#14b8a6", "#ef4444", "#84cc16"];
 
@@ -41,7 +41,7 @@
   store("meet.cid", cid);
   var local = { audio: null, video: null, screen: null };  // MediaStreamTracks
   var want = { mic: store("meet.mic") !== "0", cam: store("meet.cam") !== "0" };
-  var ws = null, ticket = "", wsRetry = 0, pingTimer = null, leaving = false;
+  var ticket = "", leaving = false;
   var pc = null, sessionId = null, iceServers = [{ urls: "stun:stun.cloudflare.com:3478" }];
   var queue = Promise.resolve();
   var pub = {};           // kind -> { transceiver, trackName }
@@ -220,7 +220,7 @@
 
   async function checkService() {
     try {
-      var r = await fetch(API + "/api/status", { cache: "no-store" });
+      var r = await fetch(API + "/status", { cache: "no-store" });
       var s = await r.json();
       if (!s.configured) lobbyMsg("Meetings aren't switched on yet — the server still needs its Realtime key. You can look around, but joining won't connect.", true);
       else if (!s.ok) lobbyMsg("The call service rejected the server's key. Please let Linear IT know.", true);
@@ -229,53 +229,89 @@
     }
   }
 
-  // Open a socket without joining, just to see how many are inside.
-  var peekWs = null;
-  function peek() {
+  // Ask the room how many are inside, without joining.
+  var peekTimer = null;
+  async function peek() {
+    clearTimeout(peekTimer);
+    if (!room || !$("meeting").classList.contains("hidden") || !$("ended").classList.contains("hidden")) return;
     try {
-      if (peekWs) peekWs.close();
-      peekWs = new WebSocket(WS_BASE + "/ws?room=" + room + "&cid=" + randId(12));
-      peekWs.onmessage = function (e) {
-        var m; try { m = JSON.parse(e.data); } catch (x) { return; }
+      var r = await fetch(API + "/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ room: room, cid: cid }) });
+      var d = await r.json();
+      (d.msgs || []).forEach(function (m) {
         if (m.t === "lobby") {
           $("inside").textContent = m.locked ? "🔒 This meeting is locked." : (m.count ? m.count + (m.count === 1 ? " person is" : " people are") + " in this meeting." : "Nobody else is here yet.");
         }
-      };
+      });
     } catch (e) {}
+    peekTimer = setTimeout(peek, 5000);
   }
 
-  /* =============== join / signaling =============== */
+  /* =============== join / signaling ===============
+     Signaling is polled: about once a second we POST /sync with anything we
+     have to say (hello, our state, chat, host actions) and get back whatever
+     happened since our cursor, as the same messages onMsg() handles. */
+  var link = { cursor: 0, rosterTag: "", hello: null, state: null, out: [], timer: null, busy: false, fails: 0, active: false };
+
   function join() {
     var name = $("name").value.trim();
     if (!name) { $("name").focus(); lobbyMsg("Please enter your name.", false); return; }
     store("meet.name", name);
     if (!room) { room = newRoomName(); history.replaceState(null, "", "#" + room); }
-    if (peekWs) { try { peekWs.close(); } catch (e) {} peekWs = null; }
+    clearTimeout(peekTimer);
     if (meterStop) { meterStop(); meterStop = null; }
     $("joinBtn").disabled = true;
     leaving = false;
-    connect();
+    link = { cursor: 0, rosterTag: "", hello: null, state: null, out: [], timer: null, busy: false, fails: 0, active: true };
+    send({ t: "hello", name: name, muted: !isMicOn(), camOff: !isCamOn() });
   }
 
-  function connect() {
-    ws = new WebSocket(WS_BASE + "/ws?room=" + room + "&cid=" + cid);
-    ws.onopen = function () {
-      wsRetry = 0;
-      send({ t: "hello", name: store("meet.name"), muted: !isMicOn(), camOff: !isCamOn() });
-      clearInterval(pingTimer);
-      pingTimer = setInterval(function () { send({ t: "ping" }); }, 25000);
-    };
-    ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (x) { return; } onMsg(m); };
-    ws.onclose = function (e) {
-      clearInterval(pingTimer);
-      if (leaving || e.code === 4000 || e.code === 4001) return;
-      if ($("meeting").classList.contains("hidden") && !sessionId) { $("joinBtn").disabled = false; lobbyMsg("Couldn't connect to the meeting. Try again.", true); return; }
-      var wait = Math.min(10000, 500 * Math.pow(2, wsRetry++));
-      toast("Connection lost — reconnecting…");
-      setTimeout(function () { if (!leaving) connect(); }, wait);
-    };
+  function send(m) {
+    if (!link.active) return;
+    if (m.t === "hello") link.hello = { name: m.name, muted: m.muted, camOff: m.camOff };
+    else if (m.t === "state") { delete m.t; link.state = Object.assign(link.state || {}, m); }
+    else link.out.push(m);
+    schedule(120);
   }
-  function send(m) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); }
+  function schedule(ms) { clearTimeout(link.timer); link.timer = setTimeout(poll, ms); }
+
+  async function poll() {
+    if (!link.active || leaving) return;
+    if (link.busy) { schedule(200); return; }
+    link.busy = true;
+    var body = { room: room, cid: cid, ticket: ticket, cursor: link.cursor, rosterTag: link.rosterTag };
+    if (link.hello) body.hello = link.hello;
+    if (link.state) body.state = link.state;
+    if (link.out.length) body.out = link.out.splice(0, 10);
+    var sentHello = link.hello, sentState = link.state;
+    link.hello = null; link.state = null;
+    var ok = false, d = null;
+    try {
+      var r = await fetch(API + "/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      d = await r.json();
+      ok = r.ok;
+    } catch (e) {}
+    link.busy = false;
+    if (!ok) {
+      // Put back what didn't get through and try again, backing off.
+      if (sentHello && !link.hello) link.hello = sentHello;
+      if (sentState) link.state = Object.assign({}, sentState, link.state || {});
+      if (body.out) link.out = body.out.concat(link.out);
+      if (++link.fails === 3) toast("Connection trouble — retrying…");
+      if (!sessionId && $("meeting").classList.contains("hidden") && link.fails >= 3) {
+        link.active = false; $("joinBtn").disabled = false;
+        lobbyMsg((d && d.error) || "Couldn't connect to the meeting. Try again.", true);
+        return;
+      }
+      schedule(Math.min(8000, 1000 * link.fails));
+      return;
+    }
+    if (link.fails >= 3) toast("Reconnected");
+    link.fails = 0;
+    if (d.cursor != null) link.cursor = d.cursor;
+    if (d.rosterTag) link.rosterTag = d.rosterTag;
+    for (var i = 0; i < (d.msgs || []).length; i++) await onMsg(d.msgs[i]);
+    if (link.active && !leaving) schedule(link.out.length || link.state ? 120 : 1000);
+  }
 
   async function onMsg(m) {
     switch (m.t) {
@@ -285,7 +321,7 @@
         else sendState();
         break;
       case "denied":
-        leaving = true; try { ws.close(); } catch (e) {}
+        link.active = false;
         $("joinBtn").disabled = false;
         lobbyMsg(m.reason === "locked" ? "The host has locked this meeting." : "This meeting is full.", true);
         break;
@@ -311,7 +347,7 @@
 
   /* =============== SFU =============== */
   async function sfu(path, body, method) {
-    var r = await fetch(API + "/api/sfu" + path, {
+    var r = await fetch(API + "/sfu" + path, {
       method: method || "POST",
       headers: { "Content-Type": "application/json", "X-Meet-Ticket": ticket },
       body: JSON.stringify(body || {})
@@ -324,7 +360,7 @@
 
   async function startMedia() {
     try {
-      var r = await fetch(API + "/api/ice", { headers: { "X-Meet-Ticket": ticket } });
+      var r = await fetch(API + "/ice", { headers: { "X-Meet-Ticket": ticket } });
       var d = await r.json(); if (d.iceServers) iceServers = d.iceServers;
     } catch (e) {}
     pc = new RTCPeerConnection({ iceServers: iceServers, bundlePolicy: "max-bundle" });
@@ -702,8 +738,11 @@
   }
 
   function teardown() {
-    clearInterval(pingTimer);
-    if (ws) { try { ws.close(1000); } catch (e) {} ws = null; }
+    if (link.active && ticket) {
+      var bye = JSON.stringify({ room: room, cid: cid, ticket: ticket, leave: true });
+      try { fetch(API + "/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: bye, keepalive: true }); } catch (e) {}
+    }
+    link.active = false; clearTimeout(link.timer);
     if (pc) { try { pc.close(); } catch (e) {} pc = null; }
     ["audio", "video", "screen"].forEach(function (k) { if (local[k]) { local[k].stop(); local[k] = null; } });
     Object.keys(tiles).forEach(removeTile);
@@ -778,7 +817,11 @@
   window.addEventListener("hashchange", function () {
     if ($("meeting").classList.contains("hidden")) setupLobby();
   });
-  window.addEventListener("pagehide", function () { if (ws) { leaving = true; try { ws.close(1000); } catch (e) {} } });
+  window.addEventListener("pagehide", function () {
+    if (link.active && ticket) {
+      try { navigator.sendBeacon(API + "/sync", new Blob([JSON.stringify({ room: room, cid: cid, ticket: ticket, leave: true })], { type: "text/plain" })); } catch (e) {}
+    }
+  });
   if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener("devicechange", fillDevices);
 
   setupLobby();
