@@ -1,0 +1,37 @@
+# Cloudflare Worker config for Linear Meet (video/voice meetings) — meet.linearit.co
+# -----------------------------------------------------------------------------
+# A separate Worker from linear-chat, board-worker and the rest: its own folder,
+# its own config, no shared bindings. See README.md for setup.
+#
+# ONE-TIME SETUP (from this folder):
+#   npm install
+#   npx wrangler login
+#   npx wrangler secret put REALTIME_APP_SECRET   # same value linear-chat uses
+#   npx wrangler deploy
+#
+# Durable Objects need the paid Workers plan ($5/month), which board-worker
+# already uses. Realtime SFU traffic is billed separately by Cloudflare
+# (first 1,000 GB a month free at the time of writing).
+
+name = "meet-worker"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+routes = [
+  { pattern = "meet.linearit.co", custom_domain = true }
+]
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "MeetRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MeetRoom"]
+
+[vars]
+# Cloudflare Realtime SFU App ID — the same app linear-chat uses. Not a secret;
+# it is useless without REALTIME_APP_SECRET, which stays an encrypted Secret.
+REALTIME_APP_ID = "bc7326338ec634e31886f09f9892feef"
+APP_ORIGIN = "https://www.linearit.co"
+APP_PATH = "/meet/"
