@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Building CAD</title>
+<title>Linear Building</title>
 <style>
 :root{--bg:#1b1f24;--panel:#252b33;--line:#39424e;--text:#e6e9ee;--muted:#9aa4b2;--accent:#3ea6ff;--sel:#ffb020}
 *{box-sizing:border-box}
@@ -33,7 +33,7 @@ footer{grid-column:1/4;display:flex;gap:18px;padding:4px 10px;background:var(--p
 <body>
 <div id="app">
 <header>
-  <h1>🏗️ Building CAD</h1>
+  <h1>🏗️ Linear Building</h1>
   <button id="undo" title="Ctrl+Z">↶ Undo</button><button id="redo" title="Ctrl+Y">↷ Redo</button>
   <button id="snapB" class="on">Snap</button><button id="orthoB">Ortho (F8)</button><button id="gridB" class="on">Grid</button>
   <select id="units"><option value="ft">Feet-Inches</option><option value="m">Meters</option></select>
@@ -129,7 +129,7 @@ const visEnts=()=>S.ents.filter(e=>S.layers[e.l]?.vis);
 function commit(){undoS.push(JSON.stringify(S));if(undoS.length>200)undoS.shift();redoS=[];save()}
 function undo(){if(!undoS.length)return;redoS.push(JSON.stringify(S));S=JSON.parse(undoS.pop());sel.clear();refresh()}
 function redo(){if(!redoS.length)return;undoS.push(JSON.stringify(S));S=JSON.parse(redoS.pop());sel.clear();refresh()}
-function save(){try{localStorage.setItem('buildingcad',JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem('linearbuilding',JSON.stringify(S))}catch(e){}}
 function add(e){commit();e.l=layerFor[e.t]??S.cur;if(e.t==='line'||e.t==='rect'||e.t==='circle'||e.t==='arc'||e.t==='pline'||e.t==='area')e.l=S.cur;S.ents.push(e);refresh()}
 
 // ---- drawing ----
@@ -307,7 +307,7 @@ $('svgB').onclick=()=>{const b=bounds(visEnts());if(!b)return alert('Nothing to 
     else for(const[a,c]of segs(e))o.push(`<line x1="${X(a.x)}" y1="${Y(a.y)}" x2="${X(c.x)}" y2="${Y(c.y)}" ${s}/>`)}
   const w=b.x2-b.x1+2*pad,h=b.y2-b.y1+2*pad;dl(new Blob([`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}in" height="${h}in"><rect width="100%" height="100%" fill="#fff"/>${o.join('')}</svg>`],{type:'image/svg+xml'}),'drawing.svg')};
 
-try{const d=JSON.parse(localStorage.getItem('buildingcad'));if(d&&d.ents)S=d}catch(e){}
+try{const d=JSON.parse((localStorage.getItem('linearbuilding')||localStorage.getItem('buildingcad')));if(d&&d.ents)S=d}catch(e){}
 addEventListener('resize',resize);resize();setTool('select');refresh();fit();
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
@@ -320,7 +320,7 @@ import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
 const host=$('v3');
 const ren=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});ren.setPixelRatio(devicePixelRatio);host.append(ren.domElement);
 const scene=new THREE.Scene();scene.background=new THREE.Color('#1b2129');
-// CAD Z-up: plan X/Y -> world X/-Z, height -> Y
+// Z-up: plan X/Y -> world X/-Z, height -> Y
 const cam=new THREE.PerspectiveCamera(45,1,1,1e6);cam.position.set(400,400,400);
 const ctl=new OrbitControls(cam,ren.domElement);ctl.enableDamping=true;
 scene.add(new THREE.HemisphereLight(0xffffff,0x445566,1.1));const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(300,800,400);scene.add(sun);
