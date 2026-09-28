@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Linear Twin</title>
+<meta name="description" content="Scan a room with your phone camera and get a measured 3D model, floor plan and material estimates.">
+<style>
+:root{--bg:#1b1f24;--panel:#252b33;--line:#39424e;--text:#e6e9ee;--muted:#9aa4b2;--accent:#3ea6ff;--ok:#4fd18b;--warn:#ffb020}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px system-ui,sans-serif}
+#app{display:grid;grid-template-columns:340px 1fr;grid-template-rows:auto 1fr;height:100%}
+header{grid-column:1/3;display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:16px;margin:0 10px 0 0}
+button,select,input{background:#2f3742;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font:inherit}
+button{cursor:pointer}button:hover{border-color:var(--accent)}
+button.pri{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+#side{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:12px}
+#side h3{margin:16px 0 6px;font-size:12px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em}
+.row{display:flex;gap:6px;align-items:center;margin:5px 0;flex-wrap:wrap}
+.row input{width:80px}
+.tabs{display:flex;gap:4px}.tabs button.on{background:var(--accent);color:#000}
+.card{background:#1f252c;border:1px solid var(--line);border-radius:8px;padding:8px;margin:6px 0}
+.card.cur{border-color:var(--accent)}
+.muted{color:var(--muted);font-size:12.5px;line-height:1.5}
+table{width:100%;border-collapse:collapse;font-size:13px}td{padding:3px 2px;border-bottom:1px solid #2c333c}td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+#views{display:grid;grid-template-rows:1fr 1fr;min-height:0}
+#plan,#v3{position:relative;min-height:0;overflow:hidden}#v3{border-top:1px solid var(--line)}
+#plan canvas{display:block;width:100%;height:100%}
+.lbl{position:absolute;top:6px;left:8px;color:var(--muted);font-size:12px;z-index:2;pointer-events:none}
+#ar{position:fixed;inset:0;display:none;pointer-events:none;z-index:10}
+#ar>*{pointer-events:auto}
+#arTop{position:absolute;top:env(safe-area-inset-top,0);left:0;right:0;padding:12px;text-align:center;background:linear-gradient(#000a,#0000);font-size:15px}
+#arBar{position:absolute;bottom:calc(16px + env(safe-area-inset-bottom,0));left:0;right:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:0 10px}
+#arBar button{padding:12px 14px;font-size:15px;background:#000b}
+#arBar button.pri{background:var(--accent)}
+@media(max-width:760px){#app{grid-template-columns:1fr;grid-template-rows:auto auto 70vh}#side{border-right:none;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <h1>📐 Linear Twin</h1>
+  <select id="units"><option value="ft">Feet-Inches</option><option value="m">Meters</option></select>
+  <button id="toCad" class="pri">Open in Linear Building →</button>
+  <button id="saveB">Save</button><button id="openB">Open</button>
+  <button id="glbB">GLB</button><button id="objB">OBJ</button><button id="pngB">Plan PNG</button>
+  <button id="newB">New</button>
+  <input type="file" id="file" accept=".json" hidden>
+</header>
+<div id="side">
+  <div class="tabs"><button data-t="scan" class="on">📷 Scan</button><button data-t="tape">📏 Tape</button><button data-t="quick">▭ Quick</button></div>
+
+  <div id="t-scan">
+    <p class="muted">Point your phone at the floor and walk the room. Tap each <b>corner</b> where a wall meets the floor, then <b>Close room</b>. Mark doors and windows by tapping both ends along a wall. Works in Chrome on Android (ARCore). On other devices, use <b>Tape</b> mode.</p>
+    <button id="arStart" class="pri">Start AR scan</button>
+    <div id="arMsg" class="muted"></div>
+  </div>
+  <div id="t-tape" hidden>
+    <p class="muted">Walk the room with a tape measure. Enter each wall's length, then turn. The room closes itself back to the start.</p>
+    <div class="row">Length <input id="tLen" placeholder="12'6&quot;"> Turn <select id="tTurn"><option value="90">Left 90°</option><option value="-90">Right 90°</option><option value="45">Left 45°</option><option value="-45">Right 45°</option><option value="0">Straight</option><option value="c">Custom…</option></select></div>
+    <div class="row"><button id="tAdd" class="pri">Add wall</button><button id="tUndo">Undo</button><button id="tClose">Close room</button></div>
+    <div id="tInfo" class="muted"></div>
+  </div>
+  <div id="t-quick" hidden>
+    <p class="muted">Rectangular room from two measurements.</p>
+    <div class="row">W <input id="qW" value="12'"> L <input id="qL" value="14'"></div>
+    <div class="row"><button id="qAdd" class="pri">Add room</button></div>
+  </div>
+
+  <h3>Rooms</h3><div id="rooms" class="muted">No rooms yet.</div>
+  <h3>Selected room</h3><div id="roomEd" class="muted">Select a room on the plan.</div>
+  <h3>Estimates (all rooms)</h3>
+  <div class="row muted">Coats <input id="coats" value="2" style="width:44px"> Waste % <input id="waste" value="10" style="width:44px"></div>
+  <table id="est"></table>
+</div>
+<div id="views">
+  <div id="plan"><span class="lbl">Plan · drag to pan · wheel to zoom · click a room</span><canvas id="pc"></canvas></div>
+  <div id="v3"><span class="lbl">3D · drag to orbit</span></div>
+</div>
+</div>
+<div id="ar"><div id="arTop">Move your phone slowly to find the floor…</div>
+  <div id="arBar"><button id="arTap" class="pri">＋ Corner</button><button id="arMode">Mode: Corners</button><button id="arUndo">Undo</button><button id="arCloseRoom">Close room</button><button id="arDone">Done</button></div></div>
+
+<script>
+// ---------- model (inches; plan x right, y down) ----------
+let P={rooms:[],wallH:96,wallT:6};let cur=-1,units='ft';
+const IN_M=39.3701;
+function fmt(v){if(units==='m')return(v/IN_M).toFixed(2)+' m';const s=v<0?'-':'';v=Math.abs(v);let f=Math.floor(v/12),i=Math.round(v-f*12);if(i===12){f++;i=0}return`${s}${f}'${i?i+'"':''}`}
+function parseLen(s){s=(s||'').trim();if(!s)return NaN;if(/m$/i.test(s)&&!/'/.test(s))return parseFloat(s)*IN_M;
+  const m=s.match(/^(-?\d+(?:\.\d+)?)\s*'?\s*(?:(\d+(?:\.\d+)?)\s*"?)?$/);if(!m)return NaN;
+  if(!/'/.test(s)&&/"/.test(s))return parseFloat(m[1]);if(units==='m'&&!/['"]/.test(s))return parseFloat(s)*IN_M;return parseFloat(m[1])*12+(m[2]?parseFloat(m[2]):0)}
+const area=ps=>{let a=0;ps.forEach((p,i)=>{const q=ps[(i+1)%ps.length];a+=p.x*q.y-q.x*p.y});return a/2};
+const per=ps=>ps.reduce((s,p,i)=>s+Math.hypot(ps[(i+1)%ps.length].x-p.x,ps[(i+1)%ps.length].y-p.y),0);
+const sqft=a=>Math.abs(a)/144;
+function roomStats(r){const A=sqft(area(r.pts)),Pm=per(r.pts)/12,H=(r.h||P.wallH)/12;let open=0;r.ops.forEach(o=>open+=o.w/12*((o.t==='door'?80:(o.head-o.sill))/12));
+  return{A,P:Pm,H,wall:Pm*H-open,vol:A*H}}
+function save(){try{localStorage.setItem('lineartwin',JSON.stringify(P))}catch(e){}}
+function changed(){save();draw();renderSide();window.build3D?.()}
+function addRoom(pts,name){if(area(pts)<0)pts.reverse();P.rooms.push({name:name||'Room '+(P.rooms.length+1),pts,ops:[],h:P.wallH});cur=P.rooms.length-1;changed();fit()}
+
+// ---------- side panel ----------
+const $=id=>document.getElementById(id);
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));['scan','tape','quick'].forEach(t=>$('t-'+t).hidden=t!==b.dataset.t)});
+function renderSide(){
+  const R=$('rooms');R.innerHTML=P.rooms.length?'':'No rooms yet.';
+  P.rooms.forEach((r,i)=>{const s=roomStats(r),d=document.createElement('div');d.className='card'+(i===cur?' cur':'');d.style.cursor='pointer';
+    d.innerHTML=`<b>${esc(r.name)}</b><div class="muted">${s.A.toFixed(1)} sq ft · ${r.pts.length} walls · ${r.ops.length} openings</div>`;d.onclick=()=>{cur=i;changed()};R.appendChild(d)});
+  const E=$('roomEd'),r=P.rooms[cur];
+  if(!r){E.innerHTML='Select a room on the plan.';E.className='muted'}else{E.className='';const s=roomStats(r);
+    E.innerHTML=`<div class="row">Name <input id="rn" value="${esc(r.name)}" style="width:150px"></div>
+    <div class="row">Ceiling <input id="rh" value="${fmt(r.h)}"> <button id="rdel">Delete room</button></div>
+    <table><tr><td>Floor area</td><td>${units==='m'?(s.A*.092903).toFixed(2)+' m²':s.A.toFixed(1)+' sq ft'}</td></tr><tr><td>Perimeter</td><td>${fmt(s.P*12)}</td></tr><tr><td>Wall area (net)</td><td>${s.wall.toFixed(0)} sq ft</td></tr><tr><td>Volume</td><td>${s.vol.toFixed(0)} cu ft</td></tr></table>
+    <h3>Walls</h3><div class="muted">${r.pts.map((p,k)=>{const q=r.pts[(k+1)%r.pts.length];return`#${k+1}: ${fmt(Math.hypot(q.x-p.x,q.y-p.y))}`}).join(' · ')}</div>
+    <h3>Openings</h3><div id="opl"></div>
+    <div class="row"><select id="ot"><option value="door">Door</option><option value="window">Window</option></select> wall #<input id="ow" value="1" style="width:40px"></div>
+    <div class="row">from start <input id="oo" value="1'"> width <input id="owd" value="3'"></div>
+    <div class="row"><button id="oadd">Add opening</button></div>`;
+    $('rn').onchange=e=>{r.name=e.target.value;changed()};
+    $('rh').onchange=e=>{const v=parseLen(e.target.value);if(v>0)r.h=v;changed()};
+    $('rdel').onclick=()=>{if(confirm('Delete '+r.name+'?')){P.rooms.splice(cur,1);cur=-1;changed()}};
+    const L=$('opl');r.ops.forEach((o,k)=>{const d=document.createElement('div');d.className='row muted';d.innerHTML=`${o.t==='door'?'🚪':'🪟'} wall #${o.wall+1}, at ${fmt(o.off)}, ${fmt(o.w)} wide <button>✕</button>`;d.querySelector('button').onclick=()=>{r.ops.splice(k,1);changed()};L.appendChild(d)});
+    $('oadd').onclick=()=>{const wi=parseInt($('ow').value)-1,off=parseLen($('oo').value),w=parseLen($('owd').value);
+      if(!(wi>=0&&wi<r.pts.length)||!(off>=0)||!(w>0))return alert('Check the wall number and sizes');
+      const p=r.pts[wi],q=r.pts[(wi+1)%r.pts.length];if(off+w>Math.hypot(q.x-p.x,q.y-p.y)+.5)return alert('Opening runs past the end of that wall');
+      const t=$('ot').value;r.ops.push({t,wall:wi,off,w,sill:36,head:84});changed()}}
+  estimates()}
+function estimates(){let A=0,W=0,Pm=0,V=0;P.rooms.forEach(r=>{const s=roomStats(r);A+=s.A;W+=s.wall;Pm+=s.P;V+=s.vol});
+  const coats=+$('coats').value||1,waste=1+(+$('waste').value||0)/100;
+  const rows=[['Rooms',P.rooms.length],['Total floor area',A.toFixed(1)+' sq ft'],['Flooring to order (+waste)',(A*waste).toFixed(0)+' sq ft'],['Net wall area',W.toFixed(0)+' sq ft'],
+   ['Wall paint ('+coats+' coats, 350 sf/gal)',Math.ceil(W*coats/350)+' gal'],['Ceiling paint',Math.ceil(A*coats/350)+' gal'],['Baseboard / trim',Math.ceil(Pm*waste)+' ft'],['Drywall sheets 4×8 (walls+ceiling)',Math.ceil((W+A)*waste/32)],['Air volume',V.toFixed(0)+' cu ft'],['AC size (rough, 20 BTU/sf)',Math.round(A*20).toLocaleString()+' BTU']];
+  $('est').innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+$('coats').oninput=$('waste').oninput=estimates;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('units').onchange=e=>{units=e.target.value;changed()};
+
+// ---------- tape mode ----------
+let tape=null;
+function tapeInfo(){$('tInfo').textContent=tape?`${tape.pts.length-1} wall(s) entered, heading ${Math.round(tape.dir)}°`:'';draw()}
+$('tAdd').onclick=()=>{const L=parseLen($('tLen').value);if(!(L>0))return alert('Enter a length like 12\'6"');
+  if(!tape)tape={pts:[{x:0,y:0}],dir:0};const p=tape.pts.at(-1),a=tape.dir*Math.PI/180;tape.pts.push({x:p.x+L*Math.cos(a),y:p.y-L*Math.sin(a)});
+  let t=$('tTurn').value;if(t==='c'){t=prompt('Turn angle in degrees (left positive)','90');if(t===null)t=0}tape.dir+= +t;$('tLen').value='';$('tLen').focus();tapeInfo()};
+$('tLen').onkeydown=e=>{if(e.key==='Enter')$('tAdd').click()};
+$('tUndo').onclick=()=>{if(tape&&tape.pts.length>1){tape.pts.pop();if(tape.pts.length===1)tape=null}tapeInfo()};
+$('tClose').onclick=()=>{if(!tape||tape.pts.length<3)return alert('Enter at least 2 walls first');let ps=tape.pts.slice();
+  if(Math.hypot(ps.at(-1).x-ps[0].x,ps.at(-1).y-ps[0].y)<1)ps.pop();tape=null;addRoom(ps);tapeInfo()};
+$('qAdd').onclick=()=>{const w=parseLen($('qW').value),l=parseLen($('qL').value);if(!(w>0&&l>0))return alert('Enter both sizes');
+  let ox=0;P.rooms.forEach(r=>r.pts.forEach(p=>ox=Math.max(ox,p.x+24)));addRoom([{x:ox,y:0},{x:ox+w,y:0},{x:ox+w,y:l},{x:ox,y:l}])};
+
+// ---------- plan view ----------
+const pc=$('pc'),ctx=pc.getContext('2d');let view={x:0,y:0,z:2};
+const T=p=>({x:(p.x-view.x)*view.z,y:(p.y-view.y)*view.z});
+function resize(){const r=pc.parentElement.getBoundingClientRect(),d=devicePixelRatio;pc.width=r.width*d;pc.height=r.height*d;draw()}
+function fit(){const ps=P.rooms.flatMap(r=>r.pts);if(!ps.length)return draw();const r=pc.getBoundingClientRect();
+  let x1=Math.min(...ps.map(p=>p.x)),x2=Math.max(...ps.map(p=>p.x)),y1=Math.min(...ps.map(p=>p.y)),y2=Math.max(...ps.map(p=>p.y));
+  view.z=Math.min(r.width/(x2-x1+60),r.height/(y2-y1+60));view.x=(x1+x2)/2-r.width/2/view.z;view.y=(y1+y2)/2-r.height/2/view.z;draw()}
+function opSeg(r,o){const p=r.pts[o.wall],q=r.pts[(o.wall+1)%r.pts.length],L=Math.hypot(q.x-p.x,q.y-p.y),ux=(q.x-p.x)/L,uy=(q.y-p.y)/L;
+  return[{x:p.x+ux*o.off,y:p.y+uy*o.off},{x:p.x+ux*(o.off+o.w),y:p.y+uy*(o.off+o.w)}]}
+function draw(){const d=devicePixelRatio,c=ctx;c.setTransform(d,0,0,d,0,0);const W=pc.width/d,H=pc.height/d;c.fillStyle='#1b1f24';c.fillRect(0,0,W,H);
+  const g=12*view.z;if(g>6){c.strokeStyle='#232931';c.lineWidth=1;c.beginPath();for(let x=(-view.x*view.z)%g;x<W;x+=g){c.moveTo(x,0);c.lineTo(x,H)}for(let y=(-view.y*view.z)%g;y<H;y+=g){c.moveTo(0,y);c.lineTo(W,y)}c.stroke()}
+  P.rooms.forEach((r,i)=>{const ps=r.pts.map(T);c.beginPath();ps.forEach((p,k)=>k?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.closePath();
+    c.fillStyle=i===cur?'#3ea6ff22':'#ffffff0d';c.fill();c.strokeStyle=i===cur?'#3ea6ff':'#e6e9ee';c.lineWidth=Math.max(2,P.wallT*view.z);c.lineJoin='miter';c.stroke();
+    r.ops.forEach(o=>{const[a,b]=opSeg(r,o).map(T);c.strokeStyle=o.t==='door'?'#c08a4f':'#7fd3ff';c.lineWidth=Math.max(3,P.wallT*view.z+1);c.beginPath();c.moveTo(a.x,a.y);c.lineTo(b.x,b.y);c.stroke()});
+    c.font='12px system-ui';c.textAlign='center';c.fillStyle='#9aa4b2';
+    r.pts.forEach((p,k)=>{const q=r.pts[(k+1)%r.pts.length],L=Math.hypot(q.x-p.x,q.y-p.y);if(L*view.z<40)return;const m=T({x:(p.x+q.x)/2,y:(p.y+q.y)/2}),nx=(q.y-p.y)/L,ny=-(q.x-p.x)/L;c.fillText(`#${k+1} ${fmt(L)}`,m.x+nx*16,m.y+ny*16+4)});
+    const cx=ps.reduce((s,p)=>s+p.x,0)/ps.length,cy=ps.reduce((s,p)=>s+p.y,0)/ps.length;c.fillStyle='#e6e9ee';c.font='600 13px system-ui';c.fillText(r.name,cx,cy);c.font='12px system-ui';c.fillStyle='#9aa4b2';c.fillText(sqft(area(r.pts)).toFixed(0)+' sq ft',cx,cy+16)});
+  if(tape){const ps=tape.pts.map(T);c.strokeStyle='#ffb020';c.lineWidth=2;c.setLineDash([6,4]);c.beginPath();ps.forEach((p,k)=>k?c.lineTo(p.x,p.y):c.moveTo(p.x,p.y));c.stroke();c.setLineDash([]);
+    const e=ps.at(-1),a=tape.dir*Math.PI/180;c.beginPath();c.moveTo(e.x,e.y);c.lineTo(e.x+30*Math.cos(a),e.y-30*Math.sin(a));c.stroke();c.fillStyle='#ffb020';c.beginPath();c.arc(e.x,e.y,4,0,7);c.fill()}
+  if(!P.rooms.length&&!tape){c.fillStyle='#9aa4b2';c.textAlign='center';c.font='14px system-ui';c.fillText('Scan, tape, or add a quick room to begin',W/2,H/2)}}
+const inside=(p,ps)=>{let o=false;for(let i=0,j=ps.length-1;i<ps.length;j=i++){const a=ps[i],b=ps[j];if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)o=!o}return o};
+let drag=null;
+pc.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y,moved:false};pc.setPointerCapture(e.pointerId)};
+pc.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;view.x=drag.vx-dx/view.z;view.y=drag.vy-dy/view.z;draw()};
+pc.onpointerup=e=>{if(drag&&!drag.moved){const r=pc.getBoundingClientRect(),p={x:(e.clientX-r.left)/view.z+view.x,y:(e.clientY-r.top)/view.z+view.y};cur=P.rooms.findIndex(rm=>inside(p,rm.pts));changed()}drag=null};
+pc.onwheel=e=>{e.preventDefault();const r=pc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,wx=mx/view.z+view.x,wy=my/view.z+view.y;view.z*=e.deltaY<0?1.15:1/1.15;view.x=wx-mx/view.z;view.y=wy-my/view.z;draw()};
+
+// ---------- file / export ----------
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+$('saveB').onclick=()=>dl(new Blob([JSON.stringify(P)],{type:'application/json'}),'twin-scan.json');
+$('openB').onclick=()=>$('file').click();
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.rooms))throw 0;P=d;cur=-1;changed();fit()}catch{alert('Not a Linear Twin file')}e.target.value=''};
+$('newB').onclick=()=>{if(P.rooms.length&&!confirm('Clear all rooms?'))return;P.rooms=[];cur=-1;tape=null;changed()};
+$('pngB').onclick=()=>pc.toBlob(b=>dl(b,'floor-plan.png'));
+$('toCad').onclick=()=>{if(!P.rooms.length)return alert('Add a room first');
+  const F=p=>({x:p.x,y:-p.y}),ents=[],key=p=>Math.round(p.x)+','+Math.round(p.y),seen=new Set();
+  P.rooms.forEach(r=>{r.pts.forEach((p,k)=>{const q=r.pts[(k+1)%r.pts.length],id=[key(p),key(q)].sort().join('|');if(seen.has(id))return;seen.add(id);ents.push({t:'wall',a:F(p),b:F(q),th:P.wallT,l:1})});
+    r.ops.forEach(o=>{const[a,b]=opSeg(r,o).map(F);ents.push(o.t==='door'?{t:'door',a,b,l:2}:{t:'window',a,b,th:P.wallT,l:2})});
+    const cx=r.pts.reduce((s,p)=>s+p.x,0)/r.pts.length,cy=r.pts.reduce((s,p)=>s+p.y,0)/r.pts.length;ents.push({t:'text',p:{x:cx-r.name.length*3,y:-cy},s:r.name,h:9,l:4})});
+  let old=null;try{old=JSON.parse(localStorage.getItem('linearbuilding'))}catch(e){}
+  if(old&&old.ents&&old.ents.length&&!confirm('This replaces the drawing currently open in Linear Building. Continue?'))return;
+  const S={ents,layers:[{name:'0',color:'#e6e9ee',vis:true},{name:'Walls',color:'#ffffff',vis:true},{name:'Doors/Win',color:'#4fd18b',vis:true},{name:'Dims',color:'#3ea6ff',vis:true},{name:'Text',color:'#ffb020',vis:true}],cur:0};
+  try{localStorage.setItem('linearbuilding',JSON.stringify(S))}catch(e){return alert('Could not hand off: storage is blocked in this browser. Use Save instead.')}
+  location.href='/building/'};
+
+try{const d=JSON.parse(localStorage.getItem('lineartwin'));if(d&&Array.isArray(d.rooms))P=d}catch(e){}
+addEventListener('resize',resize);
+</script>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {OBJExporter} from 'three/addons/exporters/OBJExporter.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+const $=id=>document.getElementById(id);
+// ---------- 3D view (meters, y up; plan y -> z) ----------
+const host=$('v3'),renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(devicePixelRatio);host.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#1b1f24');
+const cam=new THREE.PerspectiveCamera(50,1,.05,500);cam.position.set(6,7,9);
+const orbit=new OrbitControls(cam,renderer.domElement);orbit.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x334455,1.1));const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(5,10,4);scene.add(sun);
+let model=new THREE.Group();scene.add(model);
+const m=v=>v/39.3701;
+const wallM=new THREE.MeshStandardMaterial({color:'#e8e4dc',roughness:.9}),floorM=new THREE.MeshStandardMaterial({color:'#8a6a4a',roughness:.8,side:THREE.DoubleSide}),
+  doorM=new THREE.MeshStandardMaterial({color:'#a0703c'}),glassM=new THREE.MeshStandardMaterial({color:'#7fd3ff',transparent:true,opacity:.35});
+function box(p,q,th,z0,z1,mat){const L=Math.hypot(q.x-p.x,q.y-p.y);if(L<.5||z1<=z0)return;const g=new THREE.BoxGeometry(m(L),m(z1-z0),m(th)),me=new THREE.Mesh(g,mat);
+  me.position.set(m((p.x+q.x)/2),m((z0+z1)/2),m((p.y+q.y)/2));me.rotation.y=-Math.atan2(q.y-p.y,q.x-p.x);model.add(me)}
+function build3D(){const P=window.twin();scene.remove(model);model.traverse(o=>o.geometry?.dispose());model=new THREE.Group();scene.add(model);
+  const b=new THREE.Box3();
+  P.rooms.forEach(r=>{const H=r.h||P.wallH,sh=new THREE.Shape(r.pts.map(p=>new THREE.Vector2(m(p.x),-m(p.y))));const fl=new THREE.Mesh(new THREE.ShapeGeometry(sh),floorM);fl.rotation.x=-Math.PI/2;model.add(fl);
+    r.pts.forEach((p,k)=>{const q=r.pts[(k+1)%r.pts.length],L=Math.hypot(q.x-p.x,q.y-p.y),ux=(q.x-p.x)/L,uy=(q.y-p.y)/L,at=d=>({x:p.x+ux*d,y:p.y+uy*d});
+      const ops=r.ops.filter(o=>o.wall===k).sort((a,c)=>a.off-c.off);let s=0;
+      ops.forEach(o=>{box(at(s),at(o.off),P.wallT,0,H,wallM);const a=at(o.off),c=at(o.off+o.w);
+        if(o.t==='door'){box(a,c,P.wallT,80,H,wallM);box(a,c,1.5,0,80,doorM)}else{box(a,c,P.wallT,0,o.sill,wallM);box(a,c,P.wallT,o.head,H,wallM);box(a,c,1,o.sill,o.head,glassM)}s=o.off+o.w});
+      box(at(s),q,P.wallT,0,H,wallM)})});
+  b.setFromObject(model);if(!b.isEmpty()){const c=b.getCenter(new THREE.Vector3()),sz=b.getSize(new THREE.Vector3()).length();orbit.target.copy(c);if(!build3D.did){cam.position.copy(c).add(new THREE.Vector3(sz*.6,sz*.7,sz*.8));build3D.did=1}}}
+window.build3D=build3D;
+function rs(){const r=host.getBoundingClientRect();renderer.setSize(r.width,r.height);cam.aspect=r.width/Math.max(1,r.height);cam.updateProjectionMatrix()}
+new ResizeObserver(rs).observe(host);
+renderer.setAnimationLoop(()=>{if(!renderer.xr.isPresenting){orbit.update();renderer.render(scene,cam)}});
+const dl=(blob,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=n;a.click()};
+$('objB').onclick=()=>dl(new Blob([new OBJExporter().parse(model)]),'room.obj');
+$('glbB').onclick=()=>new GLTFExporter().parse(model,g=>dl(new Blob([g]),'room.glb'),e=>alert(e),{binary:true});
+
+// ---------- AR scan (WebXR hit-test) ----------
+const arUI=$('ar'),arTop=$('arTop');let xr=null,hitSrc=null,refSpace=null,reticle,hitPose=null,arMode='corner',pts=[],pendingOp=null,floorY=null,ceilY=null,arScene,arCam,markers;
+async function checkAR(){if(!navigator.xr||!(await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false))){$('arMsg').innerHTML='AR is not available on this device or browser. Open this page in <b>Chrome on an ARCore Android phone</b>, or use <b>Tape</b> mode.';$('arStart').disabled=true}}
+checkAR();
+$('arStart').onclick=async()=>{try{xr=await navigator.xr.requestSession('immersive-ar',{requiredFeatures:['hit-test'],optionalFeatures:['dom-overlay'],domOverlay:{root:arUI}})}catch(e){$('arMsg').textContent='Could not start AR: '+e.message;return}
+  arScene=new THREE.Scene();arScene.add(new THREE.HemisphereLight(0xffffff,0x444444,2));arCam=new THREE.PerspectiveCamera();markers=new THREE.Group();arScene.add(markers);
+  reticle=new THREE.Mesh(new THREE.RingGeometry(.05,.07,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x3ea6ff}));reticle.matrixAutoUpdate=false;reticle.visible=false;arScene.add(reticle);
+  renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local');await renderer.xr.setSession(xr);arUI.style.display='block';
+  refSpace=await xr.requestReferenceSpace('local');hitSrc=await xr.requestHitTestSource({space:await xr.requestReferenceSpace('viewer')});
+  pts=[];floorY=null;ceilY=null;setMode('corner');
+  xr.addEventListener('end',()=>{renderer.xr.enabled=false;arUI.style.display='none';hitSrc=null;xr=null;rs()});
+  renderer.setAnimationLoop((t,frame)=>{if(frame&&hitSrc){const h=frame.getHitTestResults(hitSrc);if(h.length){hitPose=h[0].getPose(refSpace);reticle.visible=true;reticle.matrix.fromArray(hitPose.transform.matrix);
+      if(arMode==='corner'&&pts.length){const d=Math.hypot(hitPose.transform.position.x-pts.at(-1).x,hitPose.transform.position.z-pts.at(-1).z);arTop.textContent=`Corner ${pts.length+1} · this wall ${window.fmtLen(d*39.3701)}`}}else{reticle.visible=false;hitPose=null}}
+    if(renderer.xr.isPresenting)renderer.render(arScene,arCam);else{orbit.update();renderer.render(scene,cam)}})};
+function setMode(md){arMode=md;pendingOp=null;$('arMode').textContent='Mode: '+{corner:'Corners',door:'Door',window:'Window',ceiling:'Ceiling'}[md];
+  arTop.textContent={corner:'Tap each floor corner in order',door:'Tap both sides of a door at the floor',window:'Tap both sides of a window (along the wall)',ceiling:'Aim at the ceiling and tap once to set height'}[md]}
+$('arMode').onclick=()=>{const order=['corner','door','window','ceiling'];setMode(order[(order.indexOf(arMode)+1)%4])};
+function dot(p,col){const s=new THREE.Mesh(new THREE.SphereGeometry(.03),new THREE.MeshBasicMaterial({color:col}));s.position.set(p.x,p.y,p.z);markers.add(s);
+  const prev=markers.userData.prev;if(prev&&col===0x3ea6ff){markers.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([prev,s.position.clone()]),new THREE.LineBasicMaterial({color:col})))}if(col===0x3ea6ff)markers.userData.prev=s.position.clone()}
+function onTap(){if(!hitPose){arTop.textContent='No surface yet. Move the phone slowly.';return}const p=hitPose.transform.position,v={x:p.x,y:p.y,z:p.z};navigator.vibrate?.(20);
+  if(arMode==='ceiling'){ceilY=v.y;arTop.textContent='Ceiling set: '+(floorY!=null?window.fmtLen((ceilY-floorY)*39.3701):'tap corners too');dot(v,0xffb020);return}
+  if(arMode==='corner'){if(floorY==null)floorY=v.y;pts.push(v);dot(v,0x3ea6ff);return}
+  if(!pendingOp){pendingOp=v;dot(v,arMode==='door'?0xc08a4f:0x7fd3ff);arTop.textContent='Now tap the other side';return}
+  (window.arOps||(window.arOps=[])).push({t:arMode,a:pendingOp,b:v});dot(v,arMode==='door'?0xc08a4f:0x7fd3ff);pendingOp=null;arTop.textContent=arMode+' added. Tap for another, or change mode.'}
+$('arTap').onclick=onTap;
+$('arUndo').onclick=()=>{if(arMode==='corner'&&pts.length){pts.pop();const c=markers.children;markers.remove(c.at(-1));if(c.length&&c.at(-1).isLine)markers.remove(c.at(-1));markers.userData.prev=pts.length?new THREE.Vector3(pts.at(-1).x,pts.at(-1).y,pts.at(-1).z):null}};
+$('arCloseRoom').onclick=()=>{if(pts.length<3){arTop.textContent='Tap at least 3 corners';return}
+  const H=ceilY!=null&&floorY!=null&&ceilY-floorY>1.5?(ceilY-floorY)*39.3701:null;
+  const plan=pts.map(p=>({x:p.x*39.3701,y:p.z*39.3701}));window.twinAddScanned(plan,H,(window.arOps||[]).map(o=>({t:o.t,a:{x:o.a.x*39.3701,y:o.a.z*39.3701},b:{x:o.b.x*39.3701,y:o.b.z*39.3701}})));
+  window.arOps=[];pts=[];markers.userData.prev=null;arTop.textContent='Room saved ✓ Walk to the next room and tap its corners, or press Done.'};
+$('arDone').onclick=()=>xr?.end();
+</script>
+<script>
+window.twin=()=>P;window.fmtLen=fmt;
+// Snap each AR opening onto the nearest wall of the new room
+window.twinAddScanned=(pts,H,ops)=>{if(area(pts)<0)pts.reverse();const r={name:'Room '+(P.rooms.length+1),pts,ops:[],h:H||P.wallH};
+  ops.forEach(o=>{let best=null;r.pts.forEach((p,k)=>{const q=r.pts[(k+1)%r.pts.length],L=Math.hypot(q.x-p.x,q.y-p.y),ux=(q.x-p.x)/L,uy=(q.y-p.y)/L;
+      const pr=v=>({t:(v.x-p.x)*ux+(v.y-p.y)*uy,d:Math.abs((v.x-p.x)*uy-(v.y-p.y)*ux)}),A=pr(o.a),B=pr(o.b),d=A.d+B.d;
+      if(!best||d<best.d){const s=Math.max(0,Math.min(A.t,B.t)),e=Math.min(L,Math.max(A.t,B.t));best={d,wall:k,off:s,w:e-s}}});
+    if(best&&best.w>6)r.ops.push({t:o.t,wall:best.wall,off:best.off,w:best.w,sill:36,head:84})});
+  P.rooms.push(r);cur=P.rooms.length-1;changed();fit()};
+resize();renderSide();setTimeout(()=>{window.build3D?.();fit()},300);
+</script>
+</body>
+</html>
