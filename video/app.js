@@ -859,6 +859,22 @@ function renderBin() {
     add.onclick = e => { e.stopPropagation(); addFromBin(m); };
     it.ondblclick = () => addFromBin(m);
     it.append(th, nm, meta, add);
+    if (m.type !== 'image' && m.hasAudio !== false) {
+      const sv = h('button', 'add save');
+      sv.type = 'button';
+      sv.title = 'Save the sound as MP3 or WAV';
+      sv.setAttribute('aria-label', `Save the sound from ${m.name}`);
+      sv.innerHTML = '<svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
+      sv.onclick = e => {
+        e.stopPropagation();
+        menu(sv, [
+          { sub: 'Save the sound' },
+          { label: 'MP3', note: 'Plays everywhere · 192 kbps', fn: () => saveMediaAudio(m, 'mp3') },
+          { label: 'WAV', note: 'Uncompressed · large', fn: () => saveMediaAudio(m, 'wav') },
+        ]);
+      };
+      it.append(sv);
+    }
     it.addEventListener('pointerdown', e => binDrag(e, m));
     box.append(it);
   }
@@ -1511,20 +1527,19 @@ function dialog(title) {
   document.body.append(scrim);
   return { scrim, body, foot, close: () => scrim.remove() };
 }
+const AUDIO_OUT = [
+  { kind: 'mp3', ext: 'mp3', label: 'MP3 — sound only' },
+  { kind: 'wav', ext: 'wav', label: 'WAV — sound only' },
+];
 function openExport() {
   if (exporting) return;
   if (!P.clips.length) { toast('Add something to the timeline first.'); return; }
   pause();
-  const fmts = outFormats();
-  const canvasOk = !!view.captureStream;
-  const d = dialog('Export video');
-  if (!fmts.length || !canvasOk) {
-    d.body.append(h('p', 'note', 'This browser can’t record video from a web page. Export works in current Chrome, Edge, Firefox and Safari — please open this page in one of those.'));
-    const b = h('button', null, 'Close'); b.onclick = d.close; d.foot.append(b);
-    return;
-  }
+  const vid = view.captureStream ? outFormats() : [];
+  const all = [...vid, ...AUDIO_OUT];
+  const d = dialog('Export');
   const f = h('select');
-  fmts.forEach((x, i) => { const o = h('option', null, x.label); o.value = i; f.append(o); });
+  all.forEach((x, i) => { const o = h('option', null, x.label); o.value = i; f.append(o); });
   const r = h('select');
   const short_ = Math.min(P.w, P.h);
   const res = [[1, `Full — ${P.w}×${P.h}`]];
@@ -1533,15 +1548,210 @@ function openExport() {
   res.forEach(([v, t]) => { const o = h('option', null, t); o.value = v; r.append(o); });
   const q = h('select');
   [['8', 'Standard'], ['16', 'High — bigger file'], ['4', 'Small — for email']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; q.append(o); });
+  const br = h('select');
+  [['192', '192 kbps — standard'], ['320', '320 kbps — best'], ['128', '128 kbps — smaller']].forEach(([v, t]) => { const o = h('option', null, t); o.value = v; br.append(o); });
   const len = projectEnd();
-  const rows = [['Format', f], ['Size', r], ['Quality', q]];
-  for (const [l, e] of rows) { const x = h('label', 'row'); x.append(h('span', null, l), e); d.body.append(x); }
-  d.body.append(h('p', 'note', `Your ${short(len)} video is recorded by playing it through once, so export takes ${short(len)}. Keep this tab open and in front until it finishes — switching away stops it. Speakers are muted while it records.`));
-  if (!fmts.some(x => x.ext === 'mp4')) d.body.append(h('p', 'note', 'This browser can only make WebM files. They play in Chrome, Firefox, VLC and on YouTube; for an MP4, export from Chrome, Edge or Safari.'));
+  const mk = (l, e) => { const x = h('label', 'row'); x.append(h('span', null, l), e); d.body.append(x); return x; };
+  mk('Format', f);
+  const vRows = [mk('Size', r), mk('Quality', q)];
+  const aRows = [mk('Quality', br)];
+  const vNote = h('p', 'note', `Your ${short(len)} video is recorded by playing it through once, so export takes ${short(len)}. Keep this tab open and in front until it finishes — switching away stops it. Speakers are muted while it records.`);
+  const noVid = h('p', 'note', 'This browser can’t record video from a web page, so only the sound can be exported here. For video, use current Chrome, Edge, Firefox or Safari.');
+  const webmOnly = h('p', 'note', 'This browser can only make WebM video. It plays in Chrome, Firefox, VLC and on YouTube; for an MP4, export from Chrome, Edge or Safari.');
+  const aNote = h('p', 'note', `Saves the finished soundtrack — every clip’s sound mixed with your volume, fades, mutes and trims — as a ${short(len)} audio file. It’s worked out directly rather than played through, so it only takes a few seconds.`);
+  const pitch = h('p', 'note', 'Clips you’ve sped up or slowed down will also sound higher or lower in the audio file.');
+  d.body.append(vNote, webmOnly, noVid, aNote, pitch);
+  const sync = () => {
+    const x = all[+f.value];
+    const audioOnly = !!x.kind;
+    vRows.forEach(e => { e.hidden = audioOnly; });
+    aRows.forEach(e => { e.hidden = !audioOnly || x.kind !== 'mp3'; });
+    vNote.hidden = audioOnly;
+    webmOnly.hidden = audioOnly || !vid.length || vid.some(v => v.ext === 'mp4');
+    noVid.hidden = !!vid.length;
+    aNote.hidden = pitch.hidden = !audioOnly;
+    if (audioOnly) pitch.hidden = !P.clips.some(c => hasSource(c) && c.speed !== 1);
+  };
+  f.onchange = sync;
+  sync();
   const cancel = h('button', null, 'Cancel'); cancel.type = 'button'; cancel.onclick = d.close;
   const go = h('button', 'ok', 'Export'); go.type = 'button';
-  go.onclick = () => { d.close(); runExport(fmts[+f.value], +r.value, +q.value); };
+  go.onclick = () => {
+    const x = all[+f.value];
+    d.close();
+    if (x.kind) exportAudio(x.kind, +br.value);
+    else runExport(x, +r.value, +q.value);
+  };
   d.foot.append(cancel, go);
+}
+
+// ---------------------------------------------------------------- sound-only export
+// Audio is rendered offline rather than recorded: every clip's decoded sound
+// is scheduled into an OfflineAudioContext with its volume and fades, which
+// renders a ten-minute mix in seconds. MP3 encoding uses LAME (lamejs,
+// vendored in video/vendor/ so nothing is fetched from elsewhere), loaded
+// only the first time someone asks for an MP3.
+const MIX_RATE = 44100;
+let lameP = null;
+function loadLame() {
+  if (window.lamejs && window.lamejs.Mp3Encoder) return Promise.resolve();
+  if (!lameP) {
+    lameP = new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = '/video/vendor/lame.min.js';
+      sc.onload = () => (window.lamejs && window.lamejs.Mp3Encoder ? res() : rej(new Error('encoder missing')));
+      sc.onerror = () => { lameP = null; rej(new Error('The MP3 encoder didn’t load — check your connection and try again.')); };
+      document.head.append(sc);
+    });
+  }
+  return lameP;
+}
+async function decodeFile(file) {
+  const ac = audio();
+  if (!ac) throw new Error('This browser has no Web Audio.');
+  const buf = await file.arrayBuffer();
+  return new Promise((res, rej) => {
+    const p = ac.decodeAudioData(buf, res, () => rej(new Error('no sound')));
+    if (p && p.then) p.then(res, () => rej(new Error('no sound')));
+  });
+}
+async function mixdown(onStep) {
+  const len = projectEnd();
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oc = new OAC(2, Math.max(1, Math.ceil(len * MIX_RATE)), MIX_RATE);
+  const clips = P.clips.filter(c => {
+    const tr = trackById(c.track), m = media.get(c.mediaId);
+    return hasSource(c) && m && m.hasAudio !== false && !c.mute && !(tr && tr.muted) && c.volume > 0;
+  });
+  const ids = [...new Set(clips.map(c => c.mediaId))];
+  const bufs = new Map();
+  for (let i = 0; i < ids.length; i++) {
+    onStep(`Reading ${media.get(ids[i]).name}…`, i / (ids.length + 1));
+    try { bufs.set(ids[i], await decodeFile(media.get(ids[i]).file)); } catch (err) { /* no usable sound in this file */ }
+  }
+  for (const c of clips) {
+    const ab = bufs.get(c.mediaId);
+    if (!ab) continue;
+    const src = oc.createBufferSource();
+    src.buffer = ab;
+    src.playbackRate.value = c.speed;
+    const g = oc.createGain();
+    const t0 = c.start, t1 = endOf(c);
+    g.gain.setValueAtTime(c.fadeIn > 0 ? 0 : c.volume, t0);
+    if (c.fadeIn > 0) g.gain.linearRampToValueAtTime(c.volume, t0 + c.fadeIn);
+    if (c.fadeOut > 0) { g.gain.setValueAtTime(c.volume, t1 - c.fadeOut); g.gain.linearRampToValueAtTime(0, t1); }
+    src.connect(g).connect(oc.destination);
+    src.start(t0, c.in, c.dur * c.speed);
+  }
+  onStep('Mixing…', ids.length / (ids.length + 1));
+  return new Promise((res, rej) => {
+    oc.oncomplete = e => res(e.renderedBuffer);
+    const p = oc.startRendering();
+    if (p && p.then) p.then(res, rej);
+  });
+}
+function toI16(f) {
+  const o = new Int16Array(f.length);
+  for (let i = 0; i < f.length; i++) { const v = f[i] < -1 ? -1 : f[i] > 1 ? 1 : f[i]; o[i] = v < 0 ? v * 0x8000 : v * 0x7fff; }
+  return o;
+}
+function toWav(ab) {
+  const ch = Math.min(2, ab.numberOfChannels), n = ab.length, sr = ab.sampleRate;
+  const data = [];
+  for (let c = 0; c < ch; c++) data.push(ab.getChannelData(c));
+  const buf = new ArrayBuffer(44 + n * ch * 2);
+  const v = new DataView(buf);
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + n * ch * 2, true); str(8, 'WAVE');
+  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+  str(36, 'data'); v.setUint32(40, n * ch * 2, true);
+  let o = 44;
+  for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) {
+    const s = Math.max(-1, Math.min(1, data[c][i]));
+    v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    o += 2;
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+async function toMp3(ab, kbps, onStep, isCancelled) {
+  await loadLame();
+  const ch = Math.min(2, ab.numberOfChannels);
+  // LAME takes 32, 44.1 and 48 kHz (and lower rates); anything else is
+  // resampled to 44.1 kHz first.
+  if (![32000, 44100, 48000, 22050, 24000, 16000].includes(ab.sampleRate)) {
+    const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const oc = new OAC(ch, Math.ceil(ab.duration * MIX_RATE), MIX_RATE);
+    const s = oc.createBufferSource(); s.buffer = ab; s.connect(oc.destination); s.start();
+    ab = await new Promise((res, rej) => { oc.oncomplete = e => res(e.renderedBuffer); const p = oc.startRendering(); if (p && p.then) p.then(res, rej); });
+  }
+  const enc = new window.lamejs.Mp3Encoder(ch, ab.sampleRate, kbps);
+  const L = toI16(ab.getChannelData(0)), R = ch > 1 ? toI16(ab.getChannelData(1)) : null;
+  const out = [];
+  const block = 1152 * 32;
+  let lastYield = performance.now();
+  for (let i = 0; i < L.length; i += block) {
+    const d = R ? enc.encodeBuffer(L.subarray(i, i + block), R.subarray(i, i + block)) : enc.encodeBuffer(L.subarray(i, i + block));
+    if (d.length) out.push(d);
+    if (performance.now() - lastYield > 60) {
+      onStep(`Encoding MP3… ${Math.round(i / L.length * 100)}%`, i / L.length);
+      await sleep(0);
+      if (isCancelled()) return null;
+      lastYield = performance.now();
+    }
+  }
+  const tail = enc.flush();
+  if (tail.length) out.push(tail);
+  return new Blob(out, { type: 'audio/mpeg' });
+}
+function progressDialog(title) {
+  const d = dialog(title);
+  const bar = h('div', 'bar'); const fill = h('i'); bar.append(fill);
+  const info = h('p', 'note', 'Getting ready…');
+  d.body.append(bar, info);
+  const st = { cancelled: false };
+  const stop = h('button', null, 'Cancel'); stop.type = 'button';
+  stop.onclick = () => { st.cancelled = true; d.close(); };
+  d.foot.append(stop);
+  st.step = (text, k) => { info.textContent = text; fill.style.width = (clamp(k, 0, 1) * 100).toFixed(1) + '%'; };
+  st.close = d.close;
+  return st;
+}
+async function encodeAudio(ab, kind, kbps, pd) {
+  if (kind === 'wav') { pd.step('Writing WAV…', 0.95); await sleep(0); return toWav(ab); }
+  return toMp3(ab, kbps, (t, k) => pd.step(t, 0.3 + k * 0.7), () => pd.cancelled);
+}
+async function exportAudio(kind, kbps) {
+  const pd = progressDialog(kind === 'mp3' ? 'Making MP3…' : 'Making WAV…');
+  const t0 = performance.now();
+  try {
+    const ab = await mixdown((t, k) => pd.step(t, k * 0.3));
+    if (pd.cancelled) return;
+    const blob = await encodeAudio(ab, kind, kbps, pd);
+    if (!blob || pd.cancelled) return;
+    pd.close();
+    done(blob, { ext: kind, label: kind === 'mp3' ? `MP3 · ${kbps} kbps` : 'WAV · 16-bit' }, performance.now() - t0, `${fileBase()}.${kind}`, 'Your audio is ready');
+  } catch (err) {
+    pd.close();
+    toast('Couldn’t make the audio file: ' + err.message, true);
+  }
+}
+async function saveMediaAudio(m, kind) {
+  const pd = progressDialog(`Saving sound from ${m.name}`);
+  const t0 = performance.now();
+  try {
+    pd.step(`Reading ${m.name}…`, 0.1);
+    const ab = await decodeFile(m.file);
+    if (pd.cancelled) return;
+    const blob = await encodeAudio(ab, kind, 192, pd);
+    if (!blob || pd.cancelled) return;
+    pd.close();
+    const base = m.name.replace(/\.[^.]+$/, '') || 'sound';
+    done(blob, { ext: kind, label: kind === 'mp3' ? 'MP3 · 192 kbps' : 'WAV · 16-bit' }, performance.now() - t0, `${base}.${kind}`, 'Your audio is ready');
+  } catch (err) {
+    pd.close();
+    toast(err.message === 'no sound' ? `${m.name} has no sound this browser can read.` : 'Couldn’t save the sound: ' + err.message, true);
+  }
 }
 
 async function waitReady(ms) {
@@ -1646,9 +1856,8 @@ function finishExport() {
   updatePlayBtn();
   if (ex.finish) ex.finish();
 }
-function done(blob, fmt, ms) {
-  const d = dialog('Your video is ready');
-  const name = `${fileBase()}.${fmt.ext}`;
+function done(blob, fmt, ms, name = `${fileBase()}.${fmt.ext}`, title = 'Your video is ready') {
+  const d = dialog(title);
   const a = h('a', 'dl', `Download ${name}`);
   const url = URL.createObjectURL(blob);
   a.href = url;
