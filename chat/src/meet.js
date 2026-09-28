@@ -31,7 +31,8 @@ const MAX_PEOPLE = 16;
 const MAX_CHAT_LEN = 1000;
 const MAX_NAME_LEN = 40;
 const MAX_TRACKS = 4;
-const MAX_OUT = 10;                       // queued messages accepted per sync
+const MAX_OUT = 30;                       // queued messages accepted per sync
+const MAX_SIGNAL = 24000;                 // one SDP offer/answer or ICE candidate
 const GONE_MS = 20000;                    // no sync for this long = left
 const TICKET_TTL_MS = 12 * 60 * 60 * 1000;
 const EVENT_KEEP_MS = 60 * 60 * 1000;
@@ -264,6 +265,14 @@ async function sync(request, env) {
       if (text) await addEvent(env, room, "chat", cid, me.name, null, { text });
     } else if (o.t === "react") {
       if (REACTIONS.includes(o.emoji)) await addEvent(env, room, "react", cid, me.name, null, { emoji: o.emoji });
+    } else if (o.t === "signal") {
+      // Peer-to-peer mode: pass an offer/answer/ICE candidate to one person.
+      const data = JSON.stringify(o.data || null);
+      if (typeof o.target === "string" && CID_RE.test(o.target) && data.length <= MAX_SIGNAL
+        && await db.prepare("SELECT 1 FROM meet_people WHERE room=? AND cid=? AND removed=0").bind(room, o.target).first()) {
+        await db.prepare("INSERT INTO meet_events (room, ts, kind, from_cid, name, target, data) VALUES (?,?,?,?,?,?,?)")
+          .bind(room, now, "signal", cid, me.name, o.target, data).run();
+      }
     } else if (o.t === "host") {
       if (host !== cid) { msgs.push({ t: "notice", text: "Only the host can do that." }); continue; }
       await hostAction(env, room, me, o);
@@ -280,6 +289,7 @@ async function sync(request, env) {
     if (e.kind === "notice") { if (e.from_cid !== cid) msgs.push({ t: "notice", text: d.text }); }
     else if (e.kind === "chat") msgs.push({ t: "chat", from: e.from_cid, name: e.name, text: d.text, ts: e.ts });
     else if (e.kind === "react") msgs.push({ t: "react", from: e.from_cid, name: e.name, emoji: d.emoji });
+    else if (e.kind === "signal") msgs.push({ t: "signal", from: e.from_cid, data: safeParse(e.data, null) });
     else if (e.kind === "force-mute") msgs.push({ t: "force-mute", by: e.name });
   }
 

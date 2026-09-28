@@ -54,6 +54,14 @@
   var shareN = 0;
   var unread = 0;
   var audioCtx = null;
+  // "sfu": media relayed by Cloudflare Realtime (needs the server's key).
+  // "p2p": browsers connect directly to each other, one link per pair of
+  //        people — used when the Realtime key isn't set. Fine for small
+  //        meetings; the room signals offers/answers/ICE between them.
+  var mode = "p2p";
+  var peers = {};         // p2p: cid -> peer record
+  var meshTracks = {};    // p2p: kind -> local MediaStreamTrack being sent
+  var mainStream = new MediaStream(), screenStream = null;
 
   function randId(n) {
     var a = new Uint8Array(n), s = "", c = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -222,10 +230,9 @@
     try {
       var r = await fetch(API + "/status", { cache: "no-store" });
       var s = await r.json();
-      if (!s.configured) lobbyMsg("Meetings aren't switched on yet — the server still needs its Realtime key. You can look around, but joining won't connect.", true);
-      else if (!s.ok) lobbyMsg("The call service rejected the server's key. Please let Linear IT know.", true);
+      mode = (s.configured && s.ok) ? "sfu" : "p2p";
     } catch (e) {
-      lobbyMsg("Can't reach meet.linearit.co right now. Check your connection and try again.", true);
+      lobbyMsg("Can't reach the meeting service right now. Check your connection and try again.", true);
     }
   }
 
@@ -281,7 +288,7 @@
     var body = { room: room, cid: cid, ticket: ticket, cursor: link.cursor, rosterTag: link.rosterTag };
     if (link.hello) body.hello = link.hello;
     if (link.state) body.state = link.state;
-    if (link.out.length) body.out = link.out.splice(0, 10);
+    if (link.out.length) body.out = link.out.splice(0, 30);
     var sentHello = link.hello, sentState = link.state;
     link.hello = null; link.state = null;
     var ok = false, d = null;
@@ -329,6 +336,7 @@
       case "chat": addChat(m); break;
       case "notice": toast(m.text); sysChat(m.text); break;
       case "react": showReaction(m.from, m.emoji); break;
+      case "signal": onSignal(m.from, m.data); break;
       case "force-mute":
         if (isMicOn()) { setMic(false); toast(m.by + " muted you"); }
         break;
@@ -359,6 +367,7 @@
   function negotiate(fn) { var p = queue.then(fn); queue = p.catch(function (e) { console.warn("[meet]", e); }); return p; }
 
   async function startMedia() {
+    if (mode === "p2p") return startMesh();
     try {
       var r = await fetch(API + "/ice", { headers: { "X-Meet-Ticket": ticket } });
       var d = await r.json(); if (d.iceServers) iceServers = d.iceServers;
@@ -379,6 +388,7 @@
   }
 
   function publish(list) {
+    if (mode === "p2p") return meshPublish(list);
     return negotiate(async function () {
       var items = list.map(function (x) {
         var tr = pc.addTransceiver(x.track, { direction: "sendonly" });
@@ -398,6 +408,7 @@
   function unpublish(kind) {
     var p = pub[kind]; if (!p) return Promise.resolve();
     delete pub[kind];
+    if (mode === "p2p") return meshUnpublish(kind);
     return negotiate(async function () {
       var mid = p.transceiver.mid;
       try { p.transceiver.sender.replaceTrack(null); } catch (e) {}
@@ -460,6 +471,134 @@
     if (e.track.kind === "video") { t.hasVideo = true; paintTile(own.cid); }
   }
 
+  /* =============== p2p mesh (no Realtime key) ===============
+     One RTCPeerConnection per other person, using the "perfect negotiation"
+     pattern so either side may (re)offer: the person with the larger id is
+     "polite" and backs down on an offer collision. Signals go through the
+     room as {t:'signal', target, data}. */
+  async function startMesh() {
+    try {
+      var r = await fetch(API + "/ice", { headers: { "X-Meet-Ticket": ticket } });
+      var d = await r.json(); if (d.iceServers) iceServers = d.iceServers;
+    } catch (e) {}
+    pc = { mesh: true, close: function () {} };   // marks "media started"
+    var list = [];
+    if (local.audio) list.push({ track: local.audio, kind: "mic" });
+    if (local.video) list.push({ track: local.video, kind: "cam" });
+    if (list.length) await meshPublish(list);
+    sendState();
+    onRoster(people, locked);
+  }
+
+  function meshSender(kind) {
+    return { replaceTrack: async function (t) {
+      meshTracks[kind] = t;
+      if (t) { var st = meshStreamFor(kind); st.getTracks().filter(function (x) { return x.kind === t.kind; }).forEach(function (x) { st.removeTrack(x); }); st.addTrack(t); }
+      for (var c in peers) {
+        var s = peers[c].senders[kind];
+        if (s) { try { await s.replaceTrack(t); } catch (e) {} }
+        else if (t) addToPeer(peers[c], kind);
+      }
+    } };
+  }
+  function meshStreamFor(kind) {
+    if (kind === "screen") { screenStream = screenStream || new MediaStream(); return screenStream; }
+    return mainStream;
+  }
+  function meshPublish(list) {
+    list.forEach(function (x) {
+      meshTracks[x.kind] = x.track;
+      var st = meshStreamFor(x.kind);
+      st.getTracks().filter(function (t) { return t.kind === x.track.kind; }).forEach(function (t) { st.removeTrack(t); });
+      st.addTrack(x.track);
+      pub[x.kind] = { transceiver: { sender: meshSender(x.kind) }, trackName: x.kind };
+      for (var c in peers) addToPeer(peers[c], x.kind);
+    });
+    return Promise.resolve();
+  }
+  function meshUnpublish(kind) {
+    delete meshTracks[kind];
+    if (kind === "screen") screenStream = null;
+    for (var c in peers) {
+      var p = peers[c], s = p.senders[kind];
+      if (s) { try { p.pc.removeTrack(s); } catch (e) {} delete p.senders[kind]; }
+    }
+    return Promise.resolve();
+  }
+  function addToPeer(p, kind) {
+    var t = meshTracks[kind]; if (!t || p.senders[kind]) return;
+    p.senders[kind] = p.pc.addTrack(t, meshStreamFor(kind));
+  }
+
+  function makePeer(other) {
+    if (peers[other]) return peers[other];
+    var p = { cid: other, polite: cid > other, makingOffer: false, ignoreOffer: false, senders: {}, screenId: null,
+      pc: new RTCPeerConnection({ iceServers: iceServers }) };
+    peers[other] = p;
+    p.pc.onicecandidate = function (e) { if (e.candidate) signal(other, { cand: e.candidate.toJSON() }); };
+    p.pc.onnegotiationneeded = async function () {
+      try {
+        p.makingOffer = true;
+        await p.pc.setLocalDescription();
+        signal(other, { desc: p.pc.localDescription.toJSON(), screenId: screenStream ? screenStream.id : null });
+      } catch (e) { console.warn("[meet]", e); }
+      finally { p.makingOffer = false; }
+    };
+    p.pc.ontrack = function (e) {
+      var st = e.streams && e.streams[0];
+      var isScreen = st && p.screenId && st.id === p.screenId;
+      var t = isScreen ? screenTile(other) : tileFor(other);
+      t.stream.getTracks().filter(function (x) { return x.kind === e.track.kind; }).forEach(function (x) { t.stream.removeTrack(x); });
+      t.stream.addTrack(e.track);
+      t.video.srcObject = t.stream; t.video.play().catch(function () {});
+      if (e.track.kind === "audio") watchSpeaking(t, e.track);
+      if (e.track.kind === "video") { t.hasVideo = true; paintTile(other); }
+      if (isScreen) layout();
+    };
+    p.pc.onconnectionstatechange = function () {
+      if (p.pc.connectionState === "failed") { try { p.pc.restartIce(); } catch (e) {} }
+    };
+    ["mic", "cam", "screen"].forEach(function (k) { addToPeer(p, k); });
+    return p;
+  }
+  function closePeer(c) {
+    var p = peers[c]; if (!p) return;
+    try { p.pc.close(); } catch (e) {}
+    delete peers[c];
+  }
+  function signal(to, data) { send({ t: "signal", target: to, data: data }); }
+
+  async function onSignal(from, data) {
+    if (mode !== "p2p" || !pc || !data || from === cid) return;
+    var p = makePeer(from);
+    try {
+      if (data.desc) {
+        if (data.screenId !== undefined) p.screenId = data.screenId;
+        var collision = data.desc.type === "offer" && (p.makingOffer || p.pc.signalingState !== "stable");
+        p.ignoreOffer = !p.polite && collision;
+        if (p.ignoreOffer) return;
+        await p.pc.setRemoteDescription(data.desc);
+        if (data.desc.type === "offer") {
+          await p.pc.setLocalDescription();
+          signal(from, { desc: p.pc.localDescription.toJSON(), screenId: screenStream ? screenStream.id : null });
+        }
+      } else if (data.cand) {
+        try { await p.pc.addIceCandidate(data.cand); } catch (e) { if (!p.ignoreOffer) throw e; }
+      }
+    } catch (e) { console.warn("[meet] signal", e); }
+  }
+
+  function meshRoster(list, present) {
+    list.forEach(function (x) {
+      if (x.cid === cid) return;
+      makePeer(x.cid);
+      var sharing = (x.tracks || []).some(function (t) { return t.kind === "screen"; });
+      if (!sharing && tiles[x.cid + ":screen"]) removeTile(x.cid + ":screen");
+    });
+    Object.keys(peers).forEach(function (c) { if (!present[c]) closePeer(c); });
+    layout();
+  }
+
   /* =============== roster =============== */
   function onRoster(list, isLocked) {
     people = list; locked = isLocked;
@@ -496,6 +635,7 @@
       if (c !== cid && !present[c]) removeTile(k);
     });
     if (toClose.length) unsubscribe(toClose);
+    if (mode === "p2p" && pc) meshRoster(list, present);
     list.forEach(function (p) { paintTile(p.cid); });
     $("count").textContent = list.length;
     renderPeople();
@@ -744,6 +884,8 @@
     }
     link.active = false; clearTimeout(link.timer);
     if (pc) { try { pc.close(); } catch (e) {} pc = null; }
+    Object.keys(peers).forEach(closePeer);
+    meshTracks = {}; screenStream = null; mainStream = new MediaStream();
     ["audio", "video", "screen"].forEach(function (k) { if (local[k]) { local[k].stop(); local[k] = null; } });
     Object.keys(tiles).forEach(removeTile);
     sessionId = null; ticket = ""; pub = {}; subs = {}; midOwner = {}; people = []; queue = Promise.resolve();
