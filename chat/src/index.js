@@ -35,6 +35,8 @@
  *   ALLOW_ORIGIN       CORS origin for the API (default "*")
  */
 
+import { handleMeet } from "./meet.js";
+
 const MAX_EMOJI = ["👍", "❤️", "😂", "🎉", "✅", "👀", "🙏", "🔥"];
 
 export default {
@@ -43,6 +45,8 @@ export default {
     const p = url.pathname;
     const method = request.method;
 
+    // Linear Meet (see meet.js) has its own CORS, so it goes before the chat preflight.
+    if (p.startsWith("/meet-api/")) return handleMeet(request, env, url);
     if (method === "OPTIONS") return cors(env, new Response(null, { status: 204 }));
 
     try {
