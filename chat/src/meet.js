@@ -96,7 +96,8 @@ export function withRealtime(env) {
     const k = Object.keys(env).find((x) => x.trim().toUpperCase() === name);
     return k && typeof env[k] === "string" ? env[k].trim() : "";
   };
-  return Object.assign({}, env, { REALTIME_APP_ID: find("REALTIME_APP_ID"), REALTIME_APP_SECRET: find("REALTIME_APP_SECRET"), _realtimeNames: Object.keys(env).filter((k) => /realtime/i.test(k)) });
+  return Object.assign({}, env, { REALTIME_APP_ID: find("REALTIME_APP_ID"), REALTIME_APP_SECRET: find("REALTIME_APP_SECRET"),
+    TURN_KEY_ID: find("TURN_KEY_ID"), TURN_KEY_API_TOKEN: find("TURN_KEY_API_TOKEN"), _realtimeNames: Object.keys(env).filter((k) => /realtime/i.test(k)) });
 }
 
 function configured(env) { return !!(env.REALTIME_APP_ID && env.REALTIME_APP_SECRET); }
@@ -136,7 +137,7 @@ async function status(env) {
   } catch (_) { return json({ configured: true, ok: false, turn, error: "unreachable" }); }
 }
 
-async function ice(env) {
+export async function ice(env) {
   if (env.TURN_KEY_ID && env.TURN_KEY_API_TOKEN) {
     try {
       const res = await fetch("https://rtc.live.cloudflare.com/v1/turn/keys/" + env.TURN_KEY_ID + "/credentials/generate-ice-servers", {
