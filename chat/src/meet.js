@@ -109,7 +109,9 @@ async function sfu(request, env, path) {
     res = await fetch(SFU_BASE + env.REALTIME_APP_ID + path, {
       method: request.method,
       headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET, "Content-Type": "application/json" },
-      body: body || "{}",
+      // The SFU rejects an empty "{}" (it validates the fields as present), so
+      // a request with nothing to say is sent with no body at all.
+      body: body && body.trim() !== "{}" ? body : undefined,
     });
   } catch (_) { return json({ error: "The call service is unreachable." }, 502); }
   return new Response(res.body, { status: res.status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
@@ -125,7 +127,6 @@ async function status(env) {
     const res = await fetch(SFU_BASE + env.REALTIME_APP_ID + "/sessions/new", {
       method: "POST",
       headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET, "Content-Type": "application/json" },
-      body: "{}",
     });
     // Cloudflare's own error text (it never echoes the secret) makes a bad
     // App ID / secret pair diagnosable without dashboard access.
