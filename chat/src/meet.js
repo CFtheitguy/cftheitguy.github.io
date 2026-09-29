@@ -105,7 +105,8 @@ async function sfu(request, env, path) {
 
 async function status(env) {
   const turn = !!(env.TURN_KEY_ID && env.TURN_KEY_API_TOKEN);
-  if (!configured(env)) return json({ configured: false, ok: false, turn });
+  // Say which value is missing (never the values themselves), to make setup problems obvious.
+  if (!configured(env)) return json({ configured: false, ok: false, turn, hasAppId: !!env.REALTIME_APP_ID, hasSecret: !!env.REALTIME_APP_SECRET });
   try {
     const res = await fetch(SFU_BASE + env.REALTIME_APP_ID + "/sessions/new", {
       method: "POST",
