@@ -35,7 +35,7 @@
  *   ALLOW_ORIGIN       CORS origin for the API (default "*")
  */
 
-import { handleMeet, withRealtime } from "./meet.js";
+import { handleMeet, withRealtime, ice as iceServers } from "./meet.js";
 
 const MAX_EMOJI = ["👍", "❤️", "😂", "🎉", "✅", "👀", "🙏", "🔥"];
 
@@ -103,6 +103,8 @@ async function handleApi(request, env, ctx, url, p, method) {
   { const cm = p.match(/^\/api\/calls\/sfu\/sessions\/([A-Za-z0-9._-]+)\/tracks\/close$/); if (cm && method === "PUT") return sfuProxy(request, env, "/sessions/" + cm[1] + "/tracks/close"); }
   { const cm = p.match(/^\/api\/calls\/([A-Za-z0-9_-]+)\/(join|state|leave)$/); if (cm && method === "POST") return callSignal(request, env, email, cm[1], cm[2]); }
   if (p === "/api/calls/status" && method === "GET") return callStatus(env);
+  // STUN, plus Cloudflare TURN relays when TURN_KEY_ID / TURN_KEY_API_TOKEN are set.
+  if (p === "/api/calls/ice" && method === "GET") return iceServers(env);
 
   // Presence & typing (WebSocket)
   { const m = p.match(/^\/api\/presence\/(\d+)$/); if (m && request.headers.get("upgrade") === "websocket") return presenceWS(request, env, email, Number(m[1])); }
@@ -2480,7 +2482,9 @@ const APP_HTML = `<!doctype html>
       try {
         var stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: (mode !== 'audio') });
         rtc = { room:room, gid:gid, mode:mode, pc:null, sessionId:null, localStream:stream, tiles:{}, subscribed:{}, midOwner:{}, myTracks:[], polling:null, micOn:true, camOn:(mode !== 'audio'), negChain:Promise.resolve() };
-        var pc = new RTCPeerConnection({ iceServers:[{ urls:'stun:stun.cloudflare.com:3478' }], bundlePolicy:'max-bundle' });
+        var iceList = [{ urls:'stun:stun.cloudflare.com:3478' }];
+        try { var ir = await api('/api/calls/ice'); if(ir && ir.iceServers && ir.iceServers.length){ iceList = ir.iceServers; } } catch(e){}
+        var pc = new RTCPeerConnection({ iceServers: iceList, bundlePolicy:'max-bundle' });
         rtc.pc = pc;
         pc.ontrack = onRtcTrack;
         pc.onconnectionstatechange = function(){ if(!rtc) return; if(pc.connectionState === 'connected'){ callSetStatus(''); } else if(pc.connectionState === 'failed'){ callSetStatus('Reconnecting…'); } };
