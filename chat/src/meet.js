@@ -56,6 +56,7 @@ const ALLOWED_ORIGINS = [
 let MEET_SCHEMA_READY = false;
 
 export async function handleMeet(request, env, url) {
+  env = withRealtime(env);
   if (request.method === "OPTIONS") return meetCors(request, new Response(null, { status: 204 }));
   let res;
   try { res = await route(request, env, url); }
@@ -86,6 +87,17 @@ async function route(request, env, url) {
 }
 
 /* ---------------- Realtime SFU ---------------- */
+// Dashboard-entered names/values can pick up stray spaces or a trailing
+// newline from pasting; find the Realtime settings tolerantly and trim them.
+function withRealtime(env) {
+  const find = (name) => {
+    if (typeof env[name] === "string" && env[name].trim()) return env[name].trim();
+    const k = Object.keys(env).find((x) => x.trim().toUpperCase() === name);
+    return k && typeof env[k] === "string" ? env[k].trim() : "";
+  };
+  return Object.assign({}, env, { REALTIME_APP_ID: find("REALTIME_APP_ID"), REALTIME_APP_SECRET: find("REALTIME_APP_SECRET"), _realtimeNames: Object.keys(env).filter((k) => /realtime/i.test(k)) });
+}
+
 function configured(env) { return !!(env.REALTIME_APP_ID && env.REALTIME_APP_SECRET); }
 
 async function sfu(request, env, path) {
@@ -106,7 +118,9 @@ async function sfu(request, env, path) {
 async function status(env) {
   const turn = !!(env.TURN_KEY_ID && env.TURN_KEY_API_TOKEN);
   // Say which value is missing (never the values themselves), to make setup problems obvious.
-  if (!configured(env)) return json({ configured: false, ok: false, turn, hasAppId: !!env.REALTIME_APP_ID, hasSecret: !!env.REALTIME_APP_SECRET });
+  if (!configured(env)) return json({ configured: false, ok: false, turn, hasAppId: !!env.REALTIME_APP_ID, hasSecret: !!env.REALTIME_APP_SECRET,
+    // Setting NAMES only (quoted so stray spaces show) — never values.
+    realtimeNames: env._realtimeNames.map((k) => JSON.stringify(k)) });
   try {
     const res = await fetch(SFU_BASE + env.REALTIME_APP_ID + "/sessions/new", {
       method: "POST",
