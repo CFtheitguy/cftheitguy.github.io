@@ -89,7 +89,8 @@ async function route(request, env, url) {
 /* ---------------- Realtime SFU ---------------- */
 // Dashboard-entered names/values can pick up stray spaces or a trailing
 // newline from pasting; find the Realtime settings tolerantly and trim them.
-function withRealtime(env) {
+export function withRealtime(env) {
+  if (env._realtimeNames) return env;   // already normalised
   const find = (name) => {
     if (typeof env[name] === "string" && env[name].trim()) return env[name].trim();
     const k = Object.keys(env).find((x) => x.trim().toUpperCase() === name);

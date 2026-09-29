@@ -35,12 +35,14 @@
  *   ALLOW_ORIGIN       CORS origin for the API (default "*")
  */
 
-import { handleMeet } from "./meet.js";
+import { handleMeet, withRealtime } from "./meet.js";
 
 const MAX_EMOJI = ["👍", "❤️", "😂", "🎉", "✅", "👀", "🙏", "🔥"];
 
 export default {
   async fetch(request, env, ctx) {
+    // Realtime settings entered in the dashboard can carry stray spaces; normalise once.
+    env = withRealtime(env);
     const url = new URL(request.url);
     const p = url.pathname;
     const method = request.method;
@@ -799,7 +801,7 @@ async function sfuProxy(request, env, path) {
   if (!callsConfigured(env)) return json({ error: "Calling isn't configured yet (set REALTIME_APP_ID and REALTIME_APP_SECRET)." }, 503);
   const url = "https://rtc.live.cloudflare.com/v1/apps/" + env.REALTIME_APP_ID + path;
   const init = { method: request.method, headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET } };
-  if (request.method !== "GET" && request.method !== "HEAD") { init.body = await request.text(); init.headers["Content-Type"] = "application/json"; }
+  if (request.method !== "GET" && request.method !== "HEAD") { const b = await request.text(); if (b && b.trim() !== "{}") init.body = b; init.headers["Content-Type"] = "application/json"; }  // the SFU rejects an empty "{}"
   let res;
   try { res = await fetch(url, init); }
   catch (_) { return json({ error: "Call service unreachable." }, 502); }
@@ -815,7 +817,7 @@ async function callStatus(env) {
   if (!callsConfigured(env)) return json({ configured: false, ok: false });
   try {
     const res = await fetch("https://rtc.live.cloudflare.com/v1/apps/" + env.REALTIME_APP_ID + "/sessions/new", {
-      method: "POST", headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET, "Content-Type": "application/json" }, body: "{}",
+      method: "POST", headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET, "Content-Type": "application/json" },
     });
     if (res.ok) return json({ configured: true, ok: true });
     const detail = (await res.text()).slice(0, 200);
