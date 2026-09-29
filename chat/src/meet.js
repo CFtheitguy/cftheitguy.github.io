@@ -127,7 +127,10 @@ async function status(env) {
       headers: { Authorization: "Bearer " + env.REALTIME_APP_SECRET, "Content-Type": "application/json" },
       body: "{}",
     });
-    return json({ configured: true, ok: res.ok, turn, status: res.status });
+    // Cloudflare's own error text (it never echoes the secret) makes a bad
+    // App ID / secret pair diagnosable without dashboard access.
+    const detail = res.ok ? undefined : (await res.text()).slice(0, 300);
+    return json({ configured: true, ok: res.ok, turn, status: res.status, detail, appId: env.REALTIME_APP_ID.slice(0, 8) + "…" });
   } catch (_) { return json({ configured: true, ok: false, turn, error: "unreachable" }); }
 }
 
