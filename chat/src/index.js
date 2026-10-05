@@ -859,13 +859,35 @@ async function callSignal(request, env, email, room, action) {
     ).bind(sessionId, tracks, muted, videoOff, now, room, email).run();
   }
 
+  // Captions: each speaker's browser turns their own speech into text; the
+  // lines are relayed here to the others. cc = "show captions on my screen".
+  await env.DB.prepare("UPDATE call_participants SET cc=? WHERE room=? AND email=?").bind(b.cc ? 1 : 0, room, email).run();
+  for (const c of (Array.isArray(b.caps) ? b.caps.slice(0, 20) : [])) {
+    const text = String((c && c.text) || "").slice(0, 500).trim();
+    if (!text) continue;
+    await env.DB.prepare("INSERT INTO call_captions (room,email,name,text,final,seq,ts) VALUES (?,?,?,?,?,?,?)")
+      .bind(room, email, name, text, c.final ? 1 : 0, Number(c.seq) || 0, now).run();
+  }
+  let capCursor = 0, captions = [];
+  if (b.capSince === undefined || b.capSince === null) {
+    // First poll of this call: start from now, no replay of earlier lines.
+    const top = await env.DB.prepare("SELECT MAX(id) AS id FROM call_captions WHERE room=?").bind(room).first();
+    capCursor = (top && top.id) || 0;
+  } else {
+    capCursor = Number(b.capSince) || 0;
+    const cr = (await env.DB.prepare("SELECT id,email,name,text,final,seq,ts FROM call_captions WHERE room=? AND id>? AND email<>? ORDER BY id LIMIT 200")
+      .bind(room, capCursor, email).all()).results || [];
+    for (const c of cr) { capCursor = c.id; captions.push({ email: c.email, name: c.name, text: c.text, final: !!c.final, seq: c.seq, ts: c.ts }); }
+  }
+  if (Math.random() < 0.02) await env.DB.prepare("DELETE FROM call_captions WHERE ts < ?").bind(now - 3 * 3600 * 1000).run();
+
   // GC anyone who stopped heartbeating (left / crashed), then return who's live.
   await env.DB.prepare("DELETE FROM call_participants WHERE last_seen < ?").bind(now - 30000).run();
   const rows = (await env.DB.prepare(
-    "SELECT email,name,session_id,tracks,muted,video_off FROM call_participants WHERE room=? AND last_seen >= ?"
+    "SELECT email,name,session_id,tracks,muted,video_off,cc FROM call_participants WHERE room=? AND last_seen >= ?"
   ).bind(room, now - 15000).all()).results || [];
-  const participants = rows.map((r) => ({ email: r.email, name: r.name, sessionId: r.session_id, tracks: safeJsonParse(r.tracks, []), muted: !!r.muted, videoOff: !!r.video_off, self: r.email === email }));
-  return json({ self: { email, name }, participants });
+  const participants = rows.map((r) => ({ email: r.email, name: r.name, sessionId: r.session_id, tracks: safeJsonParse(r.tracks, []), muted: !!r.muted, videoOff: !!r.video_off, cc: !!r.cc, self: r.email === email }));
+  return json({ self: { email, name }, participants, captions, capCursor });
 }
 
 /* ============================================================
@@ -1304,6 +1326,10 @@ async function ensureSchema(env) {
   const scheduled = [
     "ALTER TABLE messages ADD COLUMN scheduled_at INTEGER",
     "CREATE INDEX IF NOT EXISTS idx_messages_scheduled ON messages(group_id, scheduled_at) WHERE scheduled_at IS NOT NULL",
+    // Call captions: who wants them shown, and the caption lines relayed between people in a call.
+    "ALTER TABLE call_participants ADD COLUMN cc INTEGER NOT NULL DEFAULT 0",
+    "CREATE TABLE IF NOT EXISTS call_captions (id INTEGER PRIMARY KEY AUTOINCREMENT, room TEXT NOT NULL, email TEXT NOT NULL, name TEXT, text TEXT NOT NULL, final INTEGER NOT NULL DEFAULT 0, seq INTEGER NOT NULL DEFAULT 0, ts INTEGER NOT NULL)",
+    "CREATE INDEX IF NOT EXISTS idx_call_captions_room ON call_captions(room, id)",
   ];
   for (const s of scheduled) {
     try { await env.DB.prepare(s).run(); } catch (_) { /* already exists */ }
@@ -1891,6 +1917,9 @@ const APP_HTML = `<!doctype html>
     <!-- Cloudflare Realtime video tiles -->
     <div id="callTiles" class="hidden flex-1 min-h-0 overflow-auto p-3 grid gap-3 content-center justify-center"></div>
     <div id="callControls" class="hidden items-center justify-center gap-4 py-4 bg-black/40 shrink-0"></div>
+    <!-- Captions: shown only to people who turned CC on -->
+    <div id="callCaps" aria-live="polite" style="position:absolute;left:50%;bottom:104px;transform:translateX(-50%);width:min(860px,calc(100% - 24px));display:none;flex-direction:column;gap:4px;align-items:center;pointer-events:none;z-index:10"></div>
+    <button id="callCapDl" class="hidden" onclick="downloadCallTranscript()" title="Download the transcript so far" style="position:absolute;right:12px;top:56px;z-index:10;background:rgba(0,0,0,.7);color:#fff;font-size:12px;font-weight:600;padding:6px 10px;border-radius:8px">⬇ Transcript</button>
   </div>
 
   <script>
@@ -2432,6 +2461,10 @@ const APP_HTML = `<!doctype html>
     function endCall(){
       if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; }
       if(crec){ stopRecording(); }
+      ccStop(); ccv.roomOn = false; ccv.out = []; ccv.lines = {}; ccv.seq = 0;
+      if($('callCaps')){ $('callCaps').innerHTML = ''; $('callCaps').style.display = 'none'; $('callCapDl').classList.add('hidden'); }
+      if(rtc && ccv.transcript.length && confirm('Download the transcript of this call?')){ downloadCallTranscript(); }
+      ccv.transcript = [];
       if(rtc){
         try { if(rtc.polling){ clearInterval(rtc.polling); } } catch(e){}
         try { if(rtc.pc){ rtc.pc.close(); } } catch(e){}
@@ -2503,7 +2536,8 @@ const APP_HTML = `<!doctype html>
         if(pubRes.sessionDescription){ await pc.setRemoteDescription(pubRes.sessionDescription); }
         addTile('__self__', ((me && (me.name || me.email)) || 'You'), stream, true);
         renderCallControls();
-        var j = await api('/api/calls/' + room + '/join', { method:'POST', body: JSON.stringify({ name:((me && (me.name || me.email)) || ''), sessionId: rtc.sessionId, tracks: rtc.myTracks, muted: !rtc.micOn, videoOff: !rtc.camOn }) });
+        var j = await api('/api/calls/' + room + '/join', { method:'POST', body: JSON.stringify({ name:((me && (me.name || me.email)) || ''), sessionId: rtc.sessionId, tracks: rtc.myTracks, muted: !rtc.micOn, videoOff: !rtc.camOn, cc: ccv.on }) });
+        if(j.capCursor !== undefined){ rtc.capSince = j.capCursor; }
         applyRoster(j.participants);
         rtc.polling = setInterval(pollRoster, 1500);
       } catch(e){ alert('Could not start the call: ' + ((e && e.message) || e)); endCall(); }
@@ -2511,12 +2545,16 @@ const APP_HTML = `<!doctype html>
     async function pollRoster(){
       if(!rtc) return;
       try {
-        var r = await api('/api/calls/' + rtc.room + '/state', { method:'POST', body: JSON.stringify({ sessionId: rtc.sessionId, tracks: rtc.myTracks, muted: !rtc.micOn, videoOff: !rtc.camOn }) });
+        var out = ccv.out.splice(0, 20);
+        var r = await api('/api/calls/' + rtc.room + '/state', { method:'POST', body: JSON.stringify({ sessionId: rtc.sessionId, tracks: rtc.myTracks, muted: !rtc.micOn, videoOff: !rtc.camOn, cc: ccv.on, caps: out, capSince: rtc.capSince }) });
+        if(r.capCursor !== undefined && rtc){ rtc.capSince = r.capCursor; }
+        (r.captions || []).forEach(function(c){ showCallCap(c.email, c.name, c.text, c.final, c.seq, c.ts); });
         applyRoster(r.participants);
       } catch(e){}
     }
     function applyRoster(participants){
       if(!rtc || !participants){ return; }
+      ccSync(participants);
       var present = { '__self__': true };
       participants.forEach(function(p){
         if(p.self){ return; }
@@ -2632,6 +2670,10 @@ const APP_HTML = `<!doctype html>
         } else { recBtn.title = 'Record this call to your device'; }
         recBtn.onclick = toggleRecording; box.appendChild(recBtn);
       }
+      var cc = ctlBtn('CC', true, false); cc.title = ccv.on ? 'Hide captions (only on your screen)' : 'Show captions (only on your screen)';
+      cc.className = cc.className.replace('text-2xl', 'text-base font-extrabold');
+      if(ccv.on){ cc.className = cc.className.replace('bg-white/20', 'bg-sky-600'); }
+      cc.onclick = toggleCC; box.appendChild(cc);
       var leave = ctlBtn('📞', true, true); leave.title = 'Leave'; leave.onclick = endCall; box.appendChild(leave);
     }
     /* Screen sharing: publish the screen as an extra SFU track named screen<N>
@@ -2833,6 +2875,86 @@ const APP_HTML = `<!doctype html>
         g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x + 6, y + h - 28, lw, 22);
         g.fillStyle = '#fff'; g.fillText(label, x + 13, y + h - 17, w - 26);
       }
+    }
+    /* Call captions & transcript. Each person's browser turns their OWN speech
+       into text (Web Speech API) and the lines are relayed through the call's
+       poll. Recognition runs only while someone in the call has CC on; the CC
+       button only decides whether captions appear on YOUR screen. Final lines
+       form a transcript you can download as a text file. */
+    var CallSR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var ccv = { on: false, sr: null, seq: 0, lastSent: 0, out: [], lines: {}, transcript: [], roomOn: false, warned: false, blocked: false };
+    try { ccv.on = localStorage.getItem('chat.cc') === '1'; } catch(e){}
+    function ccSync(participants){
+      if(!rtc){ return; }
+      var wanted = ccv.on || (participants || []).some(function(p){ return p.cc; });
+      if(wanted && !ccv.roomOn){ callSetStatus('Captions are on — speech is being turned into text'); setTimeout(function(){ callSetStatus(''); }, 4000); }
+      ccv.roomOn = wanted;
+      var should = wanted && !!CallSR && !ccv.blocked && rtc.micOn;
+      if(should && !ccv.sr){ ccStart(); } else if(!should && ccv.sr){ ccStop(); }
+      if(wanted && !CallSR && !ccv.warned){ ccv.warned = true; callSetStatus('This browser can not caption your voice (Chrome, Edge or Safari can)'); }
+      $('callCaps').style.display = ccv.on ? 'flex' : 'none';
+      $('callCapDl').classList.toggle('hidden', !ccv.on);
+    }
+    function ccQueue(text, fin){
+      // Keep only the newest unsent interim line for the current sentence.
+      ccv.out = ccv.out.filter(function(c){ return c.final || c.seq !== ccv.seq; });
+      ccv.out.push({ text: text, final: fin, seq: ccv.seq });
+    }
+    function ccStart(){
+      var r;
+      try { r = new CallSR(); } catch(e){ ccv.blocked = true; return; }
+      r.continuous = true; r.interimResults = true; r.lang = navigator.language || 'en-US';
+      r.onresult = function(e){
+        for(var i = e.resultIndex; i < e.results.length; i++){
+          var res = e.results[i], text = ((res[0] && res[0].transcript) || '').trim();
+          if(!text){ continue; }
+          if(res.isFinal){ ccQueue(text, true); showCallCap('__self__', 'You', text, true, ccv.seq, Date.now()); ccv.seq++; }
+          else {
+            showCallCap('__self__', 'You', text, false, ccv.seq, Date.now());
+            if(Date.now() - ccv.lastSent > 900){ ccv.lastSent = Date.now(); ccQueue(text, false); }
+          }
+        }
+      };
+      r.onerror = function(e){ if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){ ccv.blocked = true; ccv.sr = null; callSetStatus('Captioning your voice is not allowed in this browser'); } };
+      r.onend = function(){ if(ccv.sr === r){ setTimeout(function(){ if(ccv.sr === r){ try { r.start(); } catch(x){} } }, 250); } };
+      ccv.sr = r;
+      try { r.start(); } catch(e){}
+    }
+    function ccStop(){ var r = ccv.sr; ccv.sr = null; if(r){ try { r.abort(); } catch(e){} } }
+    function showCallCap(from, name, text, fin, seq, ts){
+      if(fin){ ccv.transcript.push({ ts: ts || Date.now(), name: from === '__self__' ? ((me && (me.name || me.email)) || 'Me') : (name || from), text: text }); }
+      if(!ccv.on){ return; }
+      var key = from + ':' + seq, box = $('callCaps'), l = ccv.lines[key];
+      if(!l){
+        var div = ce('div', '');
+        div.style.cssText = 'background:rgba(0,0,0,.78);color:#fff;font-size:18px;line-height:1.35;padding:6px 12px;border-radius:8px;max-width:100%;transition:opacity .4s';
+        var b = ce('b', ''); b.style.cssText = 'color:#7dd3fc;margin-right:6px'; b.textContent = name || from;
+        div.appendChild(b); div.appendChild(document.createTextNode(''));
+        box.appendChild(div);
+        l = ccv.lines[key] = { el: div, timer: null };
+        while(box.children.length > 3){ box.removeChild(box.firstChild); }
+      }
+      l.el.lastChild.textContent = text;
+      l.el.style.opacity = fin ? '1' : '.85';
+      clearTimeout(l.timer);
+      l.timer = setTimeout(function(){ l.el.style.opacity = '0'; setTimeout(function(){ if(l.el.parentNode){ l.el.parentNode.removeChild(l.el); } delete ccv.lines[key]; }, 450); }, fin ? 6000 : 9000);
+    }
+    function downloadCallTranscript(){
+      if(!ccv.transcript.length){ alert('Nothing in the transcript yet.'); return; }
+      var lines = ['Linear Chat call transcript', 'Saved ' + new Date().toLocaleString(), ''];
+      ccv.transcript.forEach(function(t){ lines.push('[' + new Date(t.ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + '] ' + t.name + ': ' + t.text); });
+      var blob = new Blob([lines.join('\\n') + '\\n'], { type: 'text/plain' });
+      var url = URL.createObjectURL(blob), a = document.createElement('a');
+      var d = new Date(), pad = function(n){ return String(n).padStart(2, '0'); };
+      a.href = url; a.download = 'Linear Chat call transcript ' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + '-' + pad(d.getMinutes()) + '.txt';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 30000);
+    }
+    function toggleCC(){
+      ccv.on = !ccv.on;
+      try { localStorage.setItem('chat.cc', ccv.on ? '1' : '0'); } catch(e){}
+      if(!ccv.on){ $('callCaps').innerHTML = ''; ccv.lines = {}; }
+      ccSync([]); renderCallControls(); pollRoster();
     }
     function toggleMic(){ if(!rtc){ return; } rtc.micOn = !rtc.micOn; rtc.localStream.getAudioTracks().forEach(function(t){ t.enabled = rtc.micOn; }); renderCallControls(); pollRoster(); }
     function toggleCam(){

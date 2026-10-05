@@ -268,6 +268,7 @@
     if (meterStop) { meterStop(); meterStop = null; }
     $("joinBtn").disabled = true;
     leaving = false;
+    cap.transcript = []; cap.seq = 0;
     link = { cursor: 0, rosterTag: "", hello: null, state: null, out: [], timer: null, busy: false, fails: 0, active: true };
     send({ t: "hello", name: name, muted: !isMicOn(), camOff: !isCamOn() });
   }
@@ -336,6 +337,7 @@
       case "chat": addChat(m); break;
       case "notice": toast(m.text); sysChat(m.text); break;
       case "react": showReaction(m.from, m.emoji); break;
+      case "cap": showCap(m.from, m.name, m.text, m.final, m.seq, m.ts); break;
       case "signal": onSignal(m.from, m.data); break;
       case "force-mute":
         if (isMicOn()) { setMic(false); toast(m.by + " muted you"); }
@@ -350,7 +352,7 @@
   function sendState() {
     var tracks = [];
     Object.keys(pub).forEach(function (k) { if (pub[k]) tracks.push({ trackName: pub[k].trackName, kind: k }); });
-    send({ t: "state", sessionId: sessionId, tracks: tracks, muted: !isMicOn(), camOff: !isCamOn(), hand: me.hand });
+    send({ t: "state", sessionId: sessionId, tracks: tracks, muted: !isMicOn(), camOff: !isCamOn(), hand: me.hand, cc: !!me.cc });
   }
 
   /* =============== SFU =============== */
@@ -640,6 +642,7 @@
     $("count").textContent = list.length;
     renderPeople();
     layout();
+    capSync();
   }
 
   /* =============== tiles =============== */
@@ -733,6 +736,7 @@
       refreshSelfTile();
     }
     if (local.audio) local.audio.enabled = on;
+    capSync();
     paintBar(); sendState();
   }
 
@@ -867,7 +871,7 @@
   /* =============== enter / leave =============== */
   function enterMeeting() {
     show("meeting");
-    $("roomLabel").textContent = "meet.linearit.co/#" + room;
+    $("roomLabel").textContent = "linearit.co/meet/#" + room;
     document.title = "Linear Meet · " + room;
     if (local.audio) local.audio.enabled = want.mic;
     refreshSelfTile(); paintBar(); layout();
@@ -879,6 +883,7 @@
 
   function teardown() {
     if (rec) stopRecording();
+    capStop(); cap.roomOn = false; cap.lines = {}; $("caps").innerHTML = "";
     if (link.active && ticket) {
       var bye = JSON.stringify({ room: room, cid: cid, ticket: ticket, leave: true });
       try { fetch(API + "/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: bye, keepalive: true }); } catch (e) {}
@@ -890,13 +895,17 @@
     ["audio", "video", "screen"].forEach(function (k) { if (local[k]) { local[k].stop(); local[k] = null; } });
     Object.keys(tiles).forEach(removeTile);
     sessionId = null; ticket = ""; pub = {}; subs = {}; midOwner = {}; people = []; queue = Promise.resolve();
-    me = { host: false, hand: false }; unread = 0; paintUnread();
+    me = { host: false, hand: false, cc: store("meet.cc") === "1" }; unread = 0; paintUnread();
     $("msgs").innerHTML = ""; $("panel").classList.add("hidden");
     $("joinBtn").disabled = false;
     document.title = "Linear Meet";
   }
   function leave() { leaving = true; teardown(); ended("You left the meeting", "Thanks for joining."); }
-  function ended(title, sub) { $("endTitle").textContent = title; $("endSub").textContent = sub; show("ended"); }
+  function ended(title, sub) {
+    $("endTitle").textContent = title; $("endSub").textContent = sub;
+    $("endDl").classList.toggle("hidden", !cap.transcript.length);   // keep the transcript downloadable after leaving
+    show("ended");
+  }
 
   function copyLink() {
     var link = SHARE_BASE + room;
@@ -1079,6 +1088,105 @@
     }
   }
 
+  /* =============== captions & transcript ===============
+     Speech-to-text runs in each speaker's own browser (Web Speech API) on
+     their own microphone, and the text is shared through the room. It runs
+     only while at least one person has CC on; each person's CC button only
+     decides whether captions appear on *their* screen. Final lines are kept
+     as a transcript that can be downloaded as a text file. Chrome/Edge do the
+     recognition on Google/Microsoft servers; Safari on the device; Firefox
+     can't caption its own user's voice (but still shows everyone else's). */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var cap = { rec: null, seq: 0, lastSent: 0, lines: {}, transcript: [], roomOn: false, warned: false, blocked: false };
+  me.cc = store("meet.cc") === "1";
+
+  function captionsWanted() { return people.some(function (p) { return p.cc; }); }
+
+  function capSync() {
+    var wanted = link.active && captionsWanted();
+    if (wanted && !cap.roomOn) { toast("Captions are on — speech is being turned into text"); }
+    cap.roomOn = wanted;
+    var should = wanted && !!SR && !cap.blocked && isMicOn();
+    if (should && !cap.rec) capStart();
+    else if (!should && cap.rec) capStop();
+    if (wanted && !SR && !cap.warned) { cap.warned = true; toast("This browser can't caption your voice — others won't see captions of you. Chrome, Edge or Safari can."); }
+    $("caps").classList.toggle("hidden", !me.cc);
+    $("capbar").classList.toggle("hidden", !me.cc);
+    $("bCC").classList.toggle("on", !!me.cc);
+  }
+
+  function capStart() {
+    var r;
+    try { r = new SR(); } catch (e) { cap.blocked = true; return; }
+    r.continuous = true; r.interimResults = true; r.lang = navigator.language || "en-US";
+    r.onresult = function (e) {
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        var res = e.results[i], text = (res[0] && res[0].transcript || "").trim();
+        if (!text) continue;
+        var myName = store("meet.name") || "You";
+        if (res.isFinal) {
+          send({ t: "cap", text: text, final: true, seq: cap.seq });
+          showCap(cid, myName, text, true, cap.seq, Date.now());
+          cap.seq++;
+        } else {
+          showCap(cid, myName, text, false, cap.seq, Date.now());
+          if (Date.now() - cap.lastSent > 700) { cap.lastSent = Date.now(); send({ t: "cap", text: text, final: false, seq: cap.seq }); }
+        }
+      }
+    };
+    r.onerror = function (e) {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        cap.blocked = true; cap.rec = null;
+        toast("Captioning your voice isn't allowed in this browser.");
+      }
+    };
+    // Recognition stops on its own after silence; keep it going while wanted.
+    r.onend = function () { if (cap.rec === r) setTimeout(function () { if (cap.rec === r) { try { r.start(); } catch (x) {} } }, 250); };
+    cap.rec = r;
+    try { r.start(); } catch (e) {}
+  }
+  function capStop() { var r = cap.rec; cap.rec = null; if (r) { try { r.abort(); } catch (e) {} } }
+
+  function showCap(from, name, text, final, seq, ts) {
+    if (final) cap.transcript.push({ ts: ts || Date.now(), name: from === cid ? (store("meet.name") || "You") : name, text: text });
+    if (!me.cc) return;
+    var key = from + ":" + seq, box = $("caps"), l = cap.lines[key];
+    if (!l) {
+      l = cap.lines[key] = { el: el("div", "cl"), timer: null };
+      var b = el("b", null, from === cid ? "You" : name); l.el.appendChild(b); l.el.appendChild(document.createTextNode(""));
+      box.appendChild(l.el);
+      while (box.children.length > 3) { var first = box.firstChild; first.remove(); }
+    }
+    l.el.lastChild.textContent = text;
+    l.el.classList.toggle("interim", !final);
+    clearTimeout(l.timer);
+    l.timer = setTimeout(function () {
+      l.el.classList.add("old");
+      setTimeout(function () { l.el.remove(); delete cap.lines[key]; }, 450);
+    }, final ? 6000 : 9000);
+  }
+
+  function downloadTranscript() {
+    if (!cap.transcript.length) { toast("Nothing in the transcript yet."); return; }
+    var lines = ["Linear Meet — " + room, "Transcript saved " + new Date().toLocaleString(), ""];
+    cap.transcript.forEach(function (t) {
+      lines.push("[" + new Date(t.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + "] " + t.name + ": " + t.text);
+    });
+    var blob = new Blob([lines.join("\n") + "\n"], { type: "text/plain" });
+    var url = URL.createObjectURL(blob), a = document.createElement("a");
+    var d = new Date(), p = function (n) { return String(n).padStart(2, "0"); };
+    a.href = url; a.download = "Linear Meet " + room + " transcript " + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + ".txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+  }
+
+  function toggleCC() {
+    me.cc = !me.cc; store("meet.cc", me.cc ? "1" : "0");
+    if (!me.cc) { $("caps").innerHTML = ""; cap.lines = {}; }
+    sendState(); capSync();
+    toast(me.cc ? "Captions on — only on your screen" : "Captions off");
+  }
+
   /* =============== wire up =============== */
   $("lMic").onclick = function () { lobbyToggle("mic"); };
   $("lCam").onclick = function () { lobbyToggle("cam"); };
@@ -1108,6 +1216,9 @@
   $("chatSend").onclick = sendChat;
   $("chatIn").onkeydown = function (e) { if (e.key === "Enter") sendChat(); };
   $("bLink").onclick = copyLink;
+  $("bCC").onclick = toggleCC;
+  $("capDl").onclick = downloadTranscript;
+  $("endDl").onclick = downloadTranscript;
   $("bRec").onclick = function () { if (rec) stopRecording(); else startRecording(); };
   if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) $("bRec").classList.add("hidden");
   $("bLeave").onclick = leave;
