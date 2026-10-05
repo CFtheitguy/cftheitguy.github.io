@@ -878,6 +878,7 @@
   }
 
   function teardown() {
+    if (rec) stopRecording();
     if (link.active && ticket) {
       var bye = JSON.stringify({ room: room, cid: cid, ticket: ticket, leave: true });
       try { fetch(API + "/sync", { method: "POST", headers: { "Content-Type": "application/json" }, body: bye, keepalive: true }); } catch (e) {}
@@ -906,6 +907,176 @@
     (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(
       function () { toast("Invite link copied"); },
       function () { modal("Invite link", link, [{ label: "Done", primary: true }]); });
+  }
+
+  /* =============== local recording ===============
+     Everything is recorded on this device and saved here; nothing is uploaded.
+     The meeting is redrawn onto a canvas (presenter view when someone shares,
+     otherwise the grid), all voices are mixed with Web Audio, and the result
+     goes through MediaRecorder. Where the browser can write straight to a file
+     (Chrome/Edge desktop) the recording streams to disk as it goes, so long
+     meetings don't fill memory; elsewhere it's kept in memory and downloaded
+     when you stop. The room only announces start/stop to everyone. */
+  var rec = null;
+
+  function recMime() {
+    var list = ["video/mp4;codecs=avc1,mp4a", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+    for (var i = 0; i < list.length; i++) if (window.MediaRecorder && MediaRecorder.isTypeSupported(list[i])) return list[i];
+    return "";
+  }
+  function recFileName(ext) {
+    var d = new Date(), p = function (n) { return String(n).padStart(2, "0"); };
+    return "Linear Meet " + room + " " + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + "-" + p(d.getMinutes()) + "." + ext;
+  }
+
+  async function startRecording() {
+    if (rec) return;
+    var mime = recMime();
+    if (!mime || !HTMLCanvasElement.prototype.captureStream) { toast("This browser can't record. Try Chrome, Edge or Safari on a computer."); return; }
+    var ext = mime.indexOf("mp4") >= 0 ? "mp4" : "webm";
+    var name = recFileName(ext);
+
+    // Stream to a file when the browser allows it (asks where to save, once).
+    var writable = null;
+    if (window.showSaveFilePicker) {
+      try {
+        var handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: "Video", accept: ext === "mp4" ? { "video/mp4": [".mp4"] } : { "video/webm": [".webm"] } }] });
+        writable = await handle.createWritable();
+      } catch (e) { if (e && e.name === "AbortError") return; writable = null; }
+    }
+
+    var W = 1280, H = 720;
+    var canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
+    var g = canvas.getContext("2d");
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") { try { await audioCtx.resume(); } catch (e) {} }
+    var dest = audioCtx.createMediaStreamDestination();
+    var out = new MediaStream(canvas.captureStream(30).getVideoTracks().concat(dest.stream.getAudioTracks()));
+    var mr;
+    try { mr = new MediaRecorder(out, { mimeType: mime, videoBitsPerSecond: 1500000, audioBitsPerSecond: 96000 }); }
+    catch (e) { toast("Couldn't start recording."); if (writable) writable.abort().catch(function () {}); return; }
+
+    rec = { mr: mr, canvas: canvas, g: g, dest: dest, sources: {}, chunks: [], writable: writable, writing: Promise.resolve(),
+            name: name, mime: mime, started: Date.now(), timer: null, clock: null };
+    mr.ondataavailable = function (e) {
+      if (!e.data || !e.data.size) return;
+      if (rec && rec.writable) { var w = rec.writable, d = e.data; rec.writing = rec.writing.then(function () { return w.write(d); }); }
+      else if (rec) rec.chunks.push(e.data);
+    };
+    mr.onstop = finishRecording;
+    recMixAudio();
+    recDraw();
+    rec.timer = setInterval(function () { recDraw(); recMixAudio(); }, 1000 / 30);
+    rec.clock = setInterval(paintRec, 1000);
+    mr.start(1000);
+    send({ t: "rec", on: true });
+    toast(writable ? "Recording — saving to the file you chose" : "Recording — it will download when you stop");
+    paintRec();
+  }
+
+  function stopRecording() {
+    if (!rec || rec.mr.state === "inactive") return;
+    try { rec.mr.stop(); } catch (e) { finishRecording(); }
+    send({ t: "rec", on: false });
+  }
+
+  async function finishRecording() {
+    var r = rec; if (!r) return;
+    rec = null;
+    clearInterval(r.timer); clearInterval(r.clock);
+    Object.keys(r.sources).forEach(function (k) { try { r.sources[k].disconnect(); } catch (e) {} });
+    paintRec();
+    if (r.writable) {
+      try { await r.writing; await r.writable.close(); toast("Recording saved"); }
+      catch (e) { toast("Couldn't finish saving the recording."); }
+      return;
+    }
+    var blob = new Blob(r.chunks, { type: r.mime.split(";")[0] });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a"); a.href = url; a.download = r.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    toast("Recording saved to your downloads");
+  }
+
+  function paintRec() {
+    var b = $("bRec"), t = $("recTime");
+    b.classList.toggle("rec", !!rec);
+    b.title = rec ? "Stop recording" : "Record to this device";
+    t.classList.toggle("hidden", !rec);
+    if (rec) {
+      var s = Math.floor((Date.now() - rec.started) / 1000);
+      t.textContent = Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    }
+  }
+
+  // Feed every voice into the recording: ours, plus each tile's audio (people
+  // can join or unmute mid-recording, so this re-checks on every tick).
+  function recMixAudio() {
+    if (!rec) return;
+    var tracks = [];
+    if (local.audio && local.audio.readyState === "live") tracks.push(local.audio);
+    Object.keys(tiles).forEach(function (k) {
+      if (k === cid || k.indexOf(cid + ":") === 0) return;
+      tiles[k].stream.getAudioTracks().forEach(function (t) { tracks.push(t); });
+    });
+    var live = {};
+    tracks.forEach(function (t) {
+      live[t.id] = true;
+      if (rec.sources[t.id]) return;
+      try { var src = audioCtx.createMediaStreamSource(new MediaStream([t])); src.connect(rec.dest); rec.sources[t.id] = src; } catch (e) {}
+    });
+    Object.keys(rec.sources).forEach(function (id) { if (!live[id]) { try { rec.sources[id].disconnect(); } catch (e) {} delete rec.sources[id]; } });
+  }
+
+  function recDraw() {
+    if (!rec) return;
+    var g = rec.g, W = rec.canvas.width, H = rec.canvas.height;
+    g.fillStyle = "#0b0d13"; g.fillRect(0, 0, W, H);
+    var screens = Object.keys(tiles).filter(function (k) { return tiles[k].isScreen; });
+    var faces = Array.prototype.map.call($("grid").children, function (el) {
+      for (var k in tiles) if (tiles[k].el === el) return tiles[k];
+      return null;
+    }).filter(Boolean);
+    if (screens.length) {
+      var side = faces.length ? 240 : 0;
+      recTile(g, tiles[screens[0]], 0, 0, W - side, H, true);
+      var h = Math.min(135, H / Math.max(1, faces.length));
+      faces.forEach(function (t, i) { recTile(g, t, W - side + 8, 8 + i * (h + 6), side - 16, h - 6, false); });
+    } else {
+      var n = Math.max(1, faces.length), cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols);
+      var tw = (W - 8 * (cols + 1)) / cols, th = (H - 8 * (rows + 1)) / rows;
+      faces.forEach(function (t, i) { recTile(g, t, 8 + (i % cols) * (tw + 8), 8 + Math.floor(i / cols) * (th + 8), tw, th, false); });
+    }
+    // A small red dot in the corner of the file itself.
+    g.fillStyle = "#ef4444"; g.beginPath(); g.arc(W - 22, 22, 7, 0, 7); g.fill();
+  }
+
+  function recTile(g, t, x, y, w, h, contain) {
+    g.save();
+    g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, 10); else g.rect(x, y, w, h); g.clip();
+    g.fillStyle = "#161a26"; g.fillRect(x, y, w, h);
+    var v = t.video, showVideo = v.videoWidth > 0 && (t.isScreen || !t.av || t.av.style.display === "none");
+    if (showVideo) {
+      var vr = v.videoWidth / v.videoHeight, r = w / h, dw, dh;
+      if (contain ? vr > r : vr < r) { dw = w; dh = w / vr; } else { dh = h; dw = h * vr; }
+      // Drawn unmirrored, even your own camera: the file shows everyone the way others see them.
+      g.drawImage(v, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    } else if (t.avB) {
+      var rad = Math.min(w, h) * 0.18;
+      g.fillStyle = t.avB.style.background || "#0ea5e9";
+      g.beginPath(); g.arc(x + w / 2, y + h / 2, rad, 0, 7); g.fill();
+      g.fillStyle = "#fff"; g.font = "700 " + Math.round(rad * 0.8) + "px system-ui, sans-serif";
+      g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(t.avB.textContent || "", x + w / 2, y + h / 2);
+    }
+    g.restore();
+    var label = t.nm ? t.nm.textContent : "";
+    if (label) {
+      g.font = "600 " + (contain ? 16 : 13) + "px system-ui, sans-serif"; g.textAlign = "left"; g.textBaseline = "middle";
+      var lw = Math.min(g.measureText(label).width + 14, w - 12);
+      g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(x + 6, y + h - 28, lw, 22);
+      g.fillStyle = "#fff"; g.fillText(label, x + 13, y + h - 17, w - 26);
+    }
   }
 
   /* =============== wire up =============== */
@@ -937,6 +1108,8 @@
   $("chatSend").onclick = sendChat;
   $("chatIn").onkeydown = function (e) { if (e.key === "Enter") sendChat(); };
   $("bLink").onclick = copyLink;
+  $("bRec").onclick = function () { if (rec) stopRecording(); else startRecording(); };
+  if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) $("bRec").classList.add("hidden");
   $("bLeave").onclick = leave;
   $("muteAll").onclick = function () { send({ t: "host", action: "mute-all" }); };
   $("lockBtn").onclick = function () { send({ t: "host", action: locked ? "unlock" : "lock" }); };
