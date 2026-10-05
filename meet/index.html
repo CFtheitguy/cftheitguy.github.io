@@ -106,6 +106,9 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .cb.off{background:var(--danger)}
 .cb.off:hover{background:var(--danger-h)}
 .cb.on{background:var(--accent)}
+.cb.rec{background:var(--danger);width:auto;padding:0 14px;border-radius:24px;gap:6px;animation:recpulse 1.6s ease-in-out infinite}
+.cb .rec-time{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+@keyframes recpulse{50%{box-shadow:0 0 0 6px rgba(239,68,68,.25)}}
 .cb.leave{width:64px;border-radius:24px;background:var(--danger)}
 .cb.leave:hover{background:var(--danger-h)}
 .cb svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -229,6 +232,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
       <span style="position:relative"><button class="cb" id="bReact" title="Send a reaction"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg></button><div class="pop-menu hidden" id="reactMenu"></div></span>
       <button class="cb" id="bChat" title="Chat"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="dot hidden" id="unread"></span></button>
       <button class="cb" id="bPeople" title="People"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6.5 6.5 0 0 1 3.5 6"/></svg><span class="dot" id="count">1</span></button>
+      <button class="cb" id="bRec" title="Record to this device"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5" fill="#fff" stroke="none"/></svg><span class="rec-time hidden" id="recTime"></span></button>
       <button class="cb" id="bLink" title="Copy invite link"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></button>
       <button class="cb leave" id="bLeave" title="Leave"><svg viewBox="0 0 24 24"><path d="M3 15.5c5-5 13-5 18 0l-2.5 2.5-3-1.5v-3a11 11 0 0 0-7 0v3l-3 1.5z" fill="#fff" stroke="none"/></svg></button>
     </div>

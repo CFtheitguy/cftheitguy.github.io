@@ -284,6 +284,10 @@ async function sync(request, env) {
     if (o.t === "chat") {
       const text = String(o.text || "").slice(0, MAX_CHAT_LEN).trim();
       if (text) await addEvent(env, room, "chat", cid, me.name, null, { text });
+    } else if (o.t === "rec") {
+      // Recording happens on the recorder's own device; the room only announces it.
+      await addEvent(env, room, "notice", cid, me.name, null,
+        { text: o.on ? "🔴 " + me.name + " started recording this meeting" : me.name + " stopped recording" });
     } else if (o.t === "react") {
       if (REACTIONS.includes(o.emoji)) await addEvent(env, room, "react", cid, me.name, null, { emoji: o.emoji });
     } else if (o.t === "signal") {
