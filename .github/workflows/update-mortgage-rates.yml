@@ -1,0 +1,23 @@
+name: Update mortgage rates
+
+on:
+  schedule:
+    - cron: '17 12 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-rates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch latest rates
+        run: python mortgage/update_rates.py
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add mortgage/rates.json
+          git diff --cached --quiet || { git commit -m "Update mortgage rates" && git push; }

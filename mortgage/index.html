@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NY Mortgage Calculator — linear</title>
+<meta name="description" content="New York mortgage calculator with current 30-year and 15-year rates updated daily, NY property tax and mortgage recording tax estimates.">
+<link rel="canonical" href="https://www.linearit.co/mortgage/">
+<link rel="icon" type="image/png" href="/zurech3/assets/favicon.png">
+<meta name="theme-color" content="#050507">
+<style>
+:root{--bg:#050507;--card:#101016;--line:#23232d;--text:#ececf1;--muted:#9a9aa8;--accent:#5e6ad2;--accent2:#8b93ff;--good:#3fb37f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:32px 16px 64px}
+a{color:var(--accent2)}
+header a.brand{color:var(--text);text-decoration:none;font-weight:700;letter-spacing:-.02em;font-size:20px}
+h1{font-size:clamp(28px,5vw,40px);letter-spacing:-.03em;margin:24px 0 6px}
+.sub{color:var(--muted);margin:0 0 24px}
+.rates{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.rate{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.rate .k{color:var(--muted);font-size:13px}
+.rate .v{font-size:30px;font-weight:700;letter-spacing:-.02em}
+.rate .d{font-size:13px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+input,select{width:100%;padding:10px 12px;background:#0a0a0f;border:1px solid var(--line);border-radius:8px;color:var(--text);font:inherit}
+input:focus,select:focus{outline:2px solid var(--accent);border-color:transparent}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{font-size:44px;font-weight:700;letter-spacing:-.03em;margin:4px 0}
+.line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+.line:last-child{border:0}
+.line span:first-child{color:var(--muted)}
+.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:12px 0 4px;background:var(--line)}
+.note{color:var(--muted);font-size:12px;margin-top:20px}
+svg{width:100%;height:auto;display:block}
+h2{font-size:16px;margin:0 0 8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><a class="brand" href="/">linear</a></header>
+<h1>New York Mortgage Calculator</h1>
+<p class="sub">Rates refresh automatically every day. Property tax and NY mortgage recording tax included.</p>
+
+<div class="rates">
+  <div class="rate"><div class="k">30-year fixed</div><div class="v" id="r30">—</div><div class="d" id="c30"></div></div>
+  <div class="rate"><div class="k">15-year fixed</div><div class="v" id="r15">—</div><div class="d" id="c15"></div></div>
+  <div class="rate"><div class="k">Rates as of</div><div class="v" id="asof" style="font-size:22px;padding:6px 0">—</div><div class="d" id="checked"></div></div>
+</div>
+
+<div class="grid">
+<div class="card">
+  <label for="price">Home price ($)</label><input id="price" type="number" value="550000" min="0" step="1000">
+  <div class="row">
+    <div><label for="downPct">Down payment (%)</label><input id="downPct" type="number" value="20" min="0" max="100" step="0.5"></div>
+    <div><label for="downAmt">Down payment ($)</label><input id="downAmt" type="number" min="0" step="1000"></div>
+  </div>
+  <div class="row">
+    <div><label for="term">Loan term</label><select id="term"><option value="30">30-year fixed</option><option value="15">15-year fixed</option></select></div>
+    <div><label for="rate">Interest rate (%)</label><input id="rate" type="number" step="0.01" min="0"></div>
+  </div>
+  <label for="county">County</label>
+  <select id="county"></select>
+  <div class="row">
+    <div><label for="taxRate">Property tax (%/yr)</label><input id="taxRate" type="number" step="0.01" min="0"></div>
+    <div><label for="ins">Home insurance ($/yr)</label><input id="ins" type="number" value="1800" step="50" min="0"></div>
+  </div>
+  <div class="row">
+    <div><label for="hoa">HOA / common charges ($/mo)</label><input id="hoa" type="number" value="0" step="10" min="0"></div>
+    <div><label for="pmiRate">PMI (%/yr, if &lt;20% down)</label><input id="pmiRate" type="number" value="0.5" step="0.05" min="0"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="k" style="color:var(--muted);font-size:13px">Estimated monthly payment</div>
+  <div class="big" id="total">$0</div>
+  <div class="bar" id="bar"></div>
+  <div class="line"><span>Principal &amp; interest</span><span id="pi"></span></div>
+  <div class="line"><span>Property tax</span><span id="tax"></span></div>
+  <div class="line"><span>Home insurance</span><span id="insm"></span></div>
+  <div class="line"><span>PMI</span><span id="pmi"></span></div>
+  <div class="line"><span>HOA</span><span id="hoam"></span></div>
+  <h2 style="margin-top:20px">Loan summary</h2>
+  <div class="line"><span>Loan amount</span><span id="loan"></span></div>
+  <div class="line"><span>Total interest</span><span id="interest"></span></div>
+  <div class="line"><span>NY mortgage recording tax (est.)</span><span id="mrt"></span></div>
+  <div class="line"><span>Cash to close (down + MRT)</span><span id="cash"></span></div>
+</div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h2>30-year rate, past 12 months</h2>
+  <div id="chart"></div>
+</div>
+
+<p class="note">Rates are the weekly national averages from the Freddie Mac Primary Mortgage Market Survey (via FRED), checked daily; New York lenders typically quote close to these averages, but your rate depends on credit, points and lender. Property tax and recording tax figures are county-level estimates — edit them to match your property. This calculator is for estimates only and is not a loan offer.</p>
+</div>
+
+<script>
+// County presets: average effective property tax rate (%) and borrower-paid mortgage recording tax rate (%)
+const COUNTIES = {
+  "Orange":[2.6,0.8],"Rockland":[2.2,0.8],"Westchester":[2.3,0.8],"Putnam":[2.3,0.8],"Dutchess":[2.1,0.8],
+  "Sullivan":[2.6,0.75],"Ulster":[2.2,0.75],"Nassau":[1.9,0.8],"Suffolk":[2.0,0.8],
+  "New York City (loan < $500k)":[0.9,1.8],"New York City (loan ≥ $500k)":[0.9,1.925],
+  "Albany":[2.0,0.75],"Erie":[2.4,0.75],"Monroe":[2.6,0.75],"Onondaga":[2.4,0.75],"Other NY county":[2.0,0.75]
+};
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
+let RATES = null, rateTouched = false, lastSrc = "pct";
+
+const sel = $("county");
+for (const c of Object.keys(COUNTIES)) sel.add(new Option(c, c));
+sel.value = "Orange";
+$("taxRate").value = COUNTIES.Orange[0];
+
+function calc(){
+  const price = +$("price").value || 0;
+  if (lastSrc === "pct") $("downAmt").value = Math.round(price * (+$("downPct").value || 0) / 100);
+  else $("downPct").value = price ? +((+$("downAmt").value || 0) / price * 100).toFixed(2) : 0;
+  const down = +$("downAmt").value || 0, loan = Math.max(price - down, 0);
+  const years = +$("term").value, n = years * 12, r = (+$("rate").value || 0) / 1200;
+  const pi = loan ? (r ? loan * r / (1 - Math.pow(1 + r, -n)) : loan / n) : 0;
+  const tax = price * (+$("taxRate").value || 0) / 100 / 12;
+  const ins = (+$("ins").value || 0) / 12;
+  const pmi = price && down / price < 0.2 ? loan * (+$("pmiRate").value || 0) / 100 / 12 : 0;
+  const hoa = +$("hoa").value || 0;
+  const total = pi + tax + ins + pmi + hoa;
+  let mrtRate = COUNTIES[sel.value][1];
+  if (sel.value.startsWith("New York City")) mrtRate = loan < 500000 ? 1.8 : 1.925;
+  const mrt = loan * mrtRate / 100;
+  $("total").textContent = fmt(total);
+  $("pi").textContent = fmt(pi); $("tax").textContent = fmt(tax); $("insm").textContent = fmt(ins);
+  $("pmi").textContent = fmt(pmi); $("hoam").textContent = fmt(hoa);
+  $("loan").textContent = fmt(loan); $("interest").textContent = fmt(pi * n - loan);
+  $("mrt").textContent = fmt(mrt) + " (" + mrtRate + "%)"; $("cash").textContent = fmt(down + mrt);
+  const parts = [[pi,"#5e6ad2"],[tax,"#8b93ff"],[ins,"#3fb37f"],[pmi,"#d29b5e"],[hoa,"#b05ed2"]];
+  $("bar").innerHTML = parts.filter(p => p[0] > 0).map(p => `<div style="width:${p[0]/total*100}%;background:${p[1]}"></div>`).join("");
+}
+
+function setRateFromTerm(){
+  if (RATES && !rateTouched) $("rate").value = $("term").value === "15" ? RATES.rate15 : RATES.rate30;
+}
+
+["price","downPct","downAmt","rate","taxRate","ins","hoa","pmiRate"].forEach(id => $(id).addEventListener("input", () => {
+  if (id === "downPct") lastSrc = "pct"; if (id === "downAmt") lastSrc = "amt"; if (id === "rate") rateTouched = true; calc();
+}));
+$("term").addEventListener("change", () => { rateTouched = false; setRateFromTerm(); calc(); });
+sel.addEventListener("change", () => { $("taxRate").value = COUNTIES[sel.value][0]; calc(); });
+
+function chart(h){
+  const W = 800, H = 220, P = 34, vals = h.map(x => x.rate30);
+  const lo = Math.floor(Math.min(...vals) * 4) / 4 - .25, hi = Math.ceil(Math.max(...vals) * 4) / 4 + .25;
+  const x = i => P + i * (W - P - 10) / (h.length - 1), y = v => 10 + (hi - v) / (hi - lo) * (H - 40);
+  const pts = h.map((d, i) => `${x(i).toFixed(1)},${y(d.rate30).toFixed(1)}`).join(" ");
+  let grid = "";
+  for (let v = Math.ceil(lo * 2) / 2; v <= hi; v += .5) grid += `<line x1="${P}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}" stroke="#23232d"/><text x="${P-6}" y="${y(v)+4}" fill="#9a9aa8" font-size="11" text-anchor="end">${v.toFixed(1)}%</text>`;
+  const lbl = i => `<text x="${x(i)}" y="${H-6}" fill="#9a9aa8" font-size="11" text-anchor="${i?"end":"start"}">${h[i].date}</text>`;
+  $("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="30-year mortgage rate over the past year">${grid}<polyline points="${pts}" fill="none" stroke="#8b93ff" stroke-width="2.5"/>${lbl(0)}${lbl(h.length-1)}</svg>`;
+}
+
+function change(el, now, prev){
+  if (prev == null) return;
+  const d = +(now - prev).toFixed(2);
+  el.textContent = (d > 0 ? "▲ +" : d < 0 ? "▼ " : "") + d.toFixed(2) + " vs. prior week";
+}
+
+fetch("rates.json?d=" + new Date().toISOString().slice(0,10)).then(r => r.json()).then(d => {
+  RATES = d;
+  const prev = d.history.length > 1 ? d.history[d.history.length - 2] : {};
+  $("r30").textContent = d.rate30.toFixed(2) + "%"; $("r15").textContent = d.rate15.toFixed(2) + "%";
+  change($("c30"), d.rate30, prev.rate30); change($("c15"), d.rate15, prev.rate15);
+  $("asof").textContent = new Date(d.asOf + "T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  $("checked").textContent = "Last checked " + new Date(d.checked).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"});
+  setRateFromTerm(); chart(d.history); calc();
+}).catch(() => { $("rate").value = 7; calc(); });
+calc();
+</script>
+</body>
+</html>

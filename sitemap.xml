@@ -132,4 +132,8 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://www.linearit.co/mortgage/</loc>
+    <changefreq>daily</changefreq>
+  </url>
 </urlset>
