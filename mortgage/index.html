@@ -43,7 +43,7 @@ h2{font-size:16px;margin:0 0 8px}
 <div class="wrap">
 <header><a class="brand" href="/">linear</a></header>
 <h1>New York Mortgage Calculator</h1>
-<p class="sub">Rates refresh automatically every day. Property tax and NY mortgage recording tax included.</p>
+<p class="sub">Rates refresh automatically every day, or enter your own. Property tax and mortgage recording tax for New York and every other state.</p>
 
 <div class="rates">
   <div class="rate"><div class="k">30-year fixed</div><div class="v" id="r30">—</div><div class="d" id="c30"></div></div>
@@ -62,8 +62,10 @@ h2{font-size:16px;margin:0 0 8px}
     <div><label for="term">Loan term</label><select id="term"><option value="30">30-year fixed</option><option value="15">15-year fixed</option></select></div>
     <div><label for="rate">Interest rate (%)</label><input id="rate" type="number" step="0.01" min="0"></div>
   </div>
-  <label for="county">County</label>
-  <select id="county"></select>
+  <div class="row">
+    <div><label for="state">State</label><select id="state"></select></div>
+    <div><label for="county">County</label><select id="county"></select></div>
+  </div>
   <div class="row">
     <div><label for="taxRate">Property tax (%/yr)</label><input id="taxRate" type="number" step="0.01" min="0"></div>
     <div><label for="ins">Home insurance ($/yr)</label><input id="ins" type="number" value="1800" step="50" min="0"></div>
@@ -71,6 +73,14 @@ h2{font-size:16px;margin:0 0 8px}
   <div class="row">
     <div><label for="hoa">HOA / common charges ($/mo)</label><input id="hoa" type="number" value="0" step="10" min="0"></div>
     <div><label for="pmiRate">PMI (%/yr, if &lt;20% down)</label><input id="pmiRate" type="number" value="0.5" step="0.05" min="0"></div>
+  </div>
+  <label for="mrtRate">Mortgage / recording tax (% of loan, paid at closing)</label><input id="mrtRate" type="number" step="0.01" min="0">
+  <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+    <label style="display:flex;gap:8px;align-items:center;color:var(--text);margin:0"><input id="useMine" type="checkbox" style="width:auto"> Use my own rates</label>
+    <div class="row" id="mineRow" style="display:none">
+      <div><label for="my30">My 30-year rate (%)</label><input id="my30" type="number" step="0.01" min="0"></div>
+      <div><label for="my15">My 15-year rate (%)</label><input id="my15" type="number" step="0.01" min="0"></div>
+    </div>
   </div>
 </div>
 
@@ -96,25 +106,85 @@ h2{font-size:16px;margin:0 0 8px}
   <div id="chart"></div>
 </div>
 
-<p class="note">Rates are the weekly national averages from the Freddie Mac Primary Mortgage Market Survey (via FRED), checked daily; New York lenders typically quote close to these averages, but your rate depends on credit, points and lender. Property tax and recording tax figures are county-level estimates — edit them to match your property. This calculator is for estimates only and is not a loan offer.</p>
+<p class="note">Rates are the weekly national averages from the Freddie Mac Primary Mortgage Market Survey (via FRED), checked daily; New York lenders typically quote close to these averages, but your rate depends on credit, points and lender. Property tax and recording tax figures are rough state and county estimates — edit them to match your property. This calculator is for estimates only and is not a loan offer.</p>
 </div>
 
 <script>
-// County presets: average effective property tax rate (%) and borrower-paid mortgage recording tax rate (%)
-const COUNTIES = {
-  "Orange":[2.6,0.8],"Rockland":[2.2,0.8],"Westchester":[2.3,0.8],"Putnam":[2.3,0.8],"Dutchess":[2.1,0.8],
-  "Sullivan":[2.6,0.75],"Ulster":[2.2,0.75],"Nassau":[1.9,0.8],"Suffolk":[2.0,0.8],
-  "New York City (loan < $500k)":[0.9,1.8],"New York City (loan ≥ $500k)":[0.9,1.925],
-  "Albany":[2.0,0.75],"Erie":[2.4,0.75],"Monroe":[2.6,0.75],"Onondaga":[2.4,0.75],"Other NY county":[2.0,0.75]
+/* ================================================================
+   MANUAL RATES — edit these to set your own rates.
+   Set USE_MANUAL_RATES to true to always use them (great when you
+   open this file from your computer). When false, the page uses the
+   daily rates.json and only falls back to these if it can't load it.
+   ================================================================ */
+const USE_MANUAL_RATES = false;
+const MANUAL_RATES = { rate30: 7.28, rate15: 6.60, asOf: "2026-10-01" };
+
+// Defaults shown when the page first opens
+const DEFAULT_STATE = "New York", DEFAULT_COUNTY = "Orange";
+
+/* State data: [average effective property tax %, mortgage/recording tax % paid by borrower]
+   Counties: { name: [property tax %, mortgage tax % (optional, defaults to state's)] } */
+const STATES = {
+  "Alabama":[0.40,0.15],"Alaska":[1.0,0],"Arizona":[0.60,0],"Arkansas":[0.60,0],
+  "California":[0.75,0,{"Los Angeles":[0.75],"Orange":[0.70],"San Diego":[0.75],"Riverside":[1.0],"San Bernardino":[0.90],"Santa Clara":[0.70],"Alameda":[0.80],"Sacramento":[0.85],"San Francisco":[0.60],"Contra Costa":[0.80],"Fresno":[0.85],"Ventura":[0.80]}],
+  "Colorado":[0.55,0],
+  "Connecticut":[1.80,0,{"Fairfield":[1.60],"Hartford":[2.10],"New Haven":[2.0],"Litchfield":[1.50],"Middlesex":[1.80],"New London":[1.70],"Tolland":[2.0],"Windham":[1.90]}],
+  "Delaware":[0.55,0],"District of Columbia":[0.60,0],
+  "Florida":[0.85,0.55,{"Miami-Dade":[0.95],"Broward":[1.05],"Palm Beach":[1.0],"Hillsborough":[0.90],"Orange":[0.85],"Duval":[0.85],"Pinellas":[0.85],"Lee":[0.80],"Collier":[0.60],"Sarasota":[0.80]}],
+  "Georgia":[0.85,0.30],"Hawaii":[0.30,0],"Idaho":[0.60,0],
+  "Illinois":[2.10,0,{"Cook":[2.0],"DuPage":[1.90],"Lake":[2.50],"Will":[2.30],"Kane":[2.50],"McHenry":[2.50],"Winnebago":[2.70],"Sangamon":[1.80]}],
+  "Indiana":[0.80,0],"Iowa":[1.50,0],"Kansas":[1.35,0],"Kentucky":[0.80,0],"Louisiana":[0.55,0],"Maine":[1.10,0],
+  "Maryland":[1.0,0.50,{"Montgomery":[0.95],"Prince George's":[1.30],"Baltimore County":[1.10],"Baltimore City":[2.0],"Anne Arundel":[0.90],"Howard":[1.10],"Frederick":[1.0]}],
+  "Massachusetts":[1.10,0,{"Middlesex":[1.0],"Suffolk (Boston)":[0.65],"Norfolk":[1.10],"Worcester":[1.30],"Essex":[1.10],"Plymouth":[1.20],"Bristol":[1.0],"Hampden":[1.60],"Barnstable":[0.60]}],
+  "Michigan":[1.30,0],"Minnesota":[1.0,0.24],"Mississippi":[0.70,0],"Missouri":[0.90,0],"Montana":[0.75,0],"Nebraska":[1.60,0],"Nevada":[0.55,0],
+  "New Hampshire":[1.80,0],
+  "New Jersey":[2.20,0,{"Bergen":[2.0],"Essex":[2.40],"Hudson":[1.60],"Middlesex":[2.40],"Monmouth":[1.80],"Morris":[2.10],"Ocean":[1.80],"Passaic":[2.50],"Somerset":[2.10],"Union":[2.40],"Camden":[3.0],"Mercer":[2.60],"Sussex":[2.70],"Burlington":[2.40]}],
+  "New Mexico":[0.70,0],
+  "New York":[1.60,0.80,{
+    "Albany":[2.0,0.75],"Bronx (NYC)":[0.90,"NYC"],"Brooklyn / Kings (NYC)":[0.70,"NYC"],"Broome":[2.70,0.75],"Chautauqua":[2.60,0.75],
+    "Columbia":[1.80,0.75],"Dutchess":[2.10,0.80],"Erie":[2.40,0.75],"Greene":[2.0,0.75],"Manhattan / New York (NYC)":[0.90,"NYC"],
+    "Monroe":[2.60,0.75],"Nassau":[1.90,0.80],"Niagara":[2.60,0.75],"Oneida":[2.30,0.75],"Onondaga":[2.40,0.75],"Orange":[2.60,0.80],
+    "Putnam":[2.30,0.80],"Queens (NYC)":[0.90,"NYC"],"Rensselaer":[2.30,0.75],"Rockland":[2.20,0.80],"Saratoga":[1.60,0.75],
+    "Schenectady":[2.60,0.75],"Staten Island / Richmond (NYC)":[0.90,"NYC"],"Suffolk":[2.0,0.80],"Sullivan":[2.60,0.75],
+    "Tompkins":[2.30,0.75],"Ulster":[2.20,0.75],"Warren":[1.40,0.75],"Westchester":[2.30,0.80]}],
+  "North Carolina":[0.70,0],"North Dakota":[1.0,0],"Ohio":[1.40,0],"Oklahoma":[0.85,0.10],"Oregon":[0.85,0],
+  "Pennsylvania":[1.40,0,{"Philadelphia":[1.0],"Allegheny":[1.90],"Montgomery":[1.50],"Bucks":[1.40],"Delaware":[2.0],"Chester":[1.30],"Lancaster":[1.40],"Lehigh":[1.70],"Pike":[1.40],"Monroe":[1.90]}],
+  "Rhode Island":[1.30,0],"South Carolina":[0.55,0],"South Dakota":[1.15,0],"Tennessee":[0.60,0.115],
+  "Texas":[1.60,0,{"Harris":[2.0],"Dallas":[1.80],"Tarrant":[1.90],"Bexar":[1.90],"Travis":[1.60],"Collin":[1.70],"Denton":[1.70],"Fort Bend":[2.10],"El Paso":[2.20],"Williamson":[1.80]}],
+  "Utah":[0.55,0],"Vermont":[1.80,0],"Virginia":[0.80,0.33],"Washington":[0.85,0],"West Virginia":[0.55,0],"Wisconsin":[1.60,0],"Wyoming":[0.55,0]
 };
+const STATEWIDE = "Statewide average";
+
 const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e) { return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch(e) {} } };
 let RATES = null, rateTouched = false, lastSrc = "pct";
 
-const sel = $("county");
-for (const c of Object.keys(COUNTIES)) sel.add(new Option(c, c));
-sel.value = "Orange";
-$("taxRate").value = COUNTIES.Orange[0];
+const stSel = $("state"), coSel = $("county");
+for (const s of Object.keys(STATES)) stSel.add(new Option(s, s));
+
+function countyInfo(){
+  const st = STATES[stSel.value], c = st[2] && st[2][coSel.value];
+  return { tax: c ? c[0] : st[0], mrt: c && c[1] != null ? c[1] : st[1] };
+}
+function nycMrt(loan){ return loan < 500000 ? 1.80 : 1.925; }
+function fillCounties(pick){
+  coSel.innerHTML = ""; coSel.add(new Option(STATEWIDE, STATEWIDE));
+  const list = STATES[stSel.value][2];
+  if (list) for (const c of Object.keys(list)) coSel.add(new Option(c, c));
+  coSel.value = list && pick && list[pick] ? pick : STATEWIDE;
+  applyArea();
+}
+function applyArea(){
+  const i = countyInfo();
+  $("taxRate").value = i.tax;
+  $("mrtRate").value = i.mrt === "NYC" ? nycMrt(currentLoan()) : i.mrt;
+  store.set("mc-area", JSON.stringify([stSel.value, coSel.value]));
+}
+function currentLoan(){
+  const price = +$("price").value || 0;
+  return Math.max(price - price * (+$("downPct").value || 0) / 100, 0);
+}
 
 function calc(){
   const price = +$("price").value || 0;
@@ -128,27 +198,52 @@ function calc(){
   const pmi = price && down / price < 0.2 ? loan * (+$("pmiRate").value || 0) / 100 / 12 : 0;
   const hoa = +$("hoa").value || 0;
   const total = pi + tax + ins + pmi + hoa;
-  let mrtRate = COUNTIES[sel.value][1];
-  if (sel.value.startsWith("New York City")) mrtRate = loan < 500000 ? 1.8 : 1.925;
-  const mrt = loan * mrtRate / 100;
+  const mrtRate = +$("mrtRate").value || 0, mrt = loan * mrtRate / 100;
   $("total").textContent = fmt(total);
   $("pi").textContent = fmt(pi); $("tax").textContent = fmt(tax); $("insm").textContent = fmt(ins);
   $("pmi").textContent = fmt(pmi); $("hoam").textContent = fmt(hoa);
   $("loan").textContent = fmt(loan); $("interest").textContent = fmt(pi * n - loan);
   $("mrt").textContent = fmt(mrt) + " (" + mrtRate + "%)"; $("cash").textContent = fmt(down + mrt);
   const parts = [[pi,"#5e6ad2"],[tax,"#8b93ff"],[ins,"#3fb37f"],[pmi,"#d29b5e"],[hoa,"#b05ed2"]];
-  $("bar").innerHTML = parts.filter(p => p[0] > 0).map(p => `<div style="width:${p[0]/total*100}%;background:${p[1]}"></div>`).join("");
+  $("bar").innerHTML = total ? parts.filter(p => p[0] > 0).map(p => `<div style="width:${p[0]/total*100}%;background:${p[1]}"></div>`).join("") : "";
 }
 
-function setRateFromTerm(){
-  if (RATES && !rateTouched) $("rate").value = $("term").value === "15" ? RATES.rate15 : RATES.rate30;
+// Active rates: your own (checkbox or USE_MANUAL_RATES) or the daily feed
+function active(){
+  if ($("useMine").checked) return { rate30: +$("my30").value || 0, rate15: +$("my15").value || 0, mine: true };
+  return RATES || MANUAL_RATES;
+}
+function showRates(){
+  const a = active();
+  $("r30").textContent = a.rate30.toFixed(2) + "%"; $("r15").textContent = a.rate15.toFixed(2) + "%";
+  if (a.mine) { $("c30").textContent = $("c15").textContent = "Your rate"; $("asof").textContent = "Your rates"; $("checked").textContent = "Entered manually"; }
+  else if (RATES && RATES.history) {
+    const prev = RATES.history.length > 1 ? RATES.history[RATES.history.length - 2] : {};
+    change($("c30"), RATES.rate30, prev.rate30); change($("c15"), RATES.rate15, prev.rate15);
+    $("asof").textContent = new Date(RATES.asOf + "T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+    $("checked").textContent = RATES.checked ? "Last checked " + new Date(RATES.checked).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"}) : "";
+  } else {
+    $("c30").textContent = $("c15").textContent = "";
+    $("asof").textContent = new Date((a.asOf || "") + "T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+    $("checked").textContent = "Rates set in the page file";
+  }
+  if (!rateTouched) $("rate").value = $("term").value === "15" ? a.rate15 : a.rate30;
 }
 
-["price","downPct","downAmt","rate","taxRate","ins","hoa","pmiRate"].forEach(id => $(id).addEventListener("input", () => {
+["price","downPct","downAmt","rate","taxRate","ins","hoa","pmiRate","mrtRate"].forEach(id => $(id).addEventListener("input", () => {
   if (id === "downPct") lastSrc = "pct"; if (id === "downAmt") lastSrc = "amt"; if (id === "rate") rateTouched = true; calc();
 }));
-$("term").addEventListener("change", () => { rateTouched = false; setRateFromTerm(); calc(); });
-sel.addEventListener("change", () => { $("taxRate").value = COUNTIES[sel.value][0]; calc(); });
+$("term").addEventListener("change", () => { rateTouched = false; showRates(); calc(); });
+stSel.addEventListener("change", () => { fillCounties(); calc(); });
+coSel.addEventListener("change", () => { applyArea(); calc(); });
+$("useMine").addEventListener("change", () => {
+  $("mineRow").style.display = $("useMine").checked ? "" : "none";
+  store.set("mc-mine", $("useMine").checked ? "1" : "");
+  rateTouched = false; showRates(); calc();
+});
+["my30","my15"].forEach(id => $(id).addEventListener("input", () => {
+  store.set("mc-" + id, $(id).value); rateTouched = false; showRates(); calc();
+}));
 
 function chart(h){
   const W = 800, H = 220, P = 34, vals = h.map(x => x.rate30);
@@ -160,23 +255,25 @@ function chart(h){
   const lbl = i => `<text x="${x(i)}" y="${H-6}" fill="#9a9aa8" font-size="11" text-anchor="${i?"end":"start"}">${h[i].date}</text>`;
   $("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="30-year mortgage rate over the past year">${grid}<polyline points="${pts}" fill="none" stroke="#8b93ff" stroke-width="2.5"/>${lbl(0)}${lbl(h.length-1)}</svg>`;
 }
-
 function change(el, now, prev){
-  if (prev == null) return;
+  if (prev == null) { el.textContent = ""; return; }
   const d = +(now - prev).toFixed(2);
   el.textContent = (d > 0 ? "▲ +" : d < 0 ? "▼ " : "") + d.toFixed(2) + " vs. prior week";
 }
 
-fetch("rates.json?d=" + new Date().toISOString().slice(0,10)).then(r => r.json()).then(d => {
-  RATES = d;
-  const prev = d.history.length > 1 ? d.history[d.history.length - 2] : {};
-  $("r30").textContent = d.rate30.toFixed(2) + "%"; $("r15").textContent = d.rate15.toFixed(2) + "%";
-  change($("c30"), d.rate30, prev.rate30); change($("c15"), d.rate15, prev.rate15);
-  $("asof").textContent = new Date(d.asOf + "T12:00:00").toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
-  $("checked").textContent = "Last checked " + new Date(d.checked).toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"});
-  setRateFromTerm(); chart(d.history); calc();
-}).catch(() => { $("rate").value = 7; calc(); });
-calc();
+// Init: restore saved area and own rates
+let saved = null; try { saved = JSON.parse(store.get("mc-area")); } catch(e) {}
+stSel.value = saved && STATES[saved[0]] ? saved[0] : DEFAULT_STATE;
+fillCounties(saved && STATES[saved[0]] ? saved[1] : DEFAULT_COUNTY);
+$("my30").value = store.get("mc-my30") || MANUAL_RATES.rate30;
+$("my15").value = store.get("mc-my15") || MANUAL_RATES.rate15;
+if (store.get("mc-mine")) { $("useMine").checked = true; $("mineRow").style.display = ""; }
+showRates(); calc();
+
+if (USE_MANUAL_RATES) $("chart").parentElement.style.display = "none";
+else fetch("rates.json?d=" + new Date().toISOString().slice(0,10)).then(r => r.json()).then(d => {
+  RATES = d; showRates(); chart(d.history); calc();
+}).catch(() => { $("chart").parentElement.style.display = "none"; });
 </script>
 </body>
 </html>
