@@ -2431,6 +2431,7 @@ const APP_HTML = `<!doctype html>
     }
     function endCall(){
       if(jitsiApi){ try { jitsiApi.dispose(); } catch(e){} jitsiApi = null; }
+      if(crec){ stopRecording(); }
       if(rtc){
         try { if(rtc.polling){ clearInterval(rtc.polling); } } catch(e){}
         try { if(rtc.pc){ rtc.pc.close(); } } catch(e){}
@@ -2621,6 +2622,16 @@ const APP_HTML = `<!doctype html>
         if(rtc.screenTrack){ scr.className = scr.className.replace('bg-white/20', 'bg-blue-600'); }
         scr.onclick = toggleScreen; box.appendChild(scr);
       }
+      if(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream && rtc.sessionId){
+        var recBtn = ctlBtn('⏺', true, false);
+        if(crec){
+          var secs = Math.floor((Date.now() - crec.started) / 1000);
+          recBtn.textContent = '⏺ ' + Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+          recBtn.className = recBtn.className.replace('bg-white/20', 'bg-red-600').replace('w-14', 'px-4 w-auto').replace('text-2xl', 'text-base font-bold');
+          recBtn.title = 'Stop recording';
+        } else { recBtn.title = 'Record this call to your device'; }
+        recBtn.onclick = toggleRecording; box.appendChild(recBtn);
+      }
       var leave = ctlBtn('📞', true, true); leave.title = 'Leave'; leave.onclick = endCall; box.appendChild(leave);
     }
     /* Screen sharing: publish the screen as an extra SFU track named screen<N>
@@ -2683,6 +2694,145 @@ const APP_HTML = `<!doctype html>
           await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/renegotiate', { sessionDescription:{ type:'answer', sdp: rtc.pc.localDescription.sdp } }, 'PUT');
         }
       }).catch(function(){});
+    }
+    /* Call recording, saved on this device only (nothing is uploaded).
+       The call is redrawn onto a canvas (presenter view while someone shares,
+       otherwise a grid), every voice is mixed with Web Audio, and MediaRecorder
+       writes MP4 where supported, else WebM. Chrome/Edge stream into a file the
+       user picks; other browsers download it on stop. The group is told when
+       recording starts and stops. */
+    var crec = null;
+    function crecMime(){
+      var list = ['video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+      for(var i = 0; i < list.length; i++){ if(window.MediaRecorder && MediaRecorder.isTypeSupported(list[i])){ return list[i]; } }
+      return '';
+    }
+    function crecNotice(text){
+      if(!rtc || !rtc.gid){ return; }
+      api('/api/groups/' + rtc.gid + '/messages', { method:'POST', body: JSON.stringify({ body: text }) }).catch(function(){});
+    }
+    async function toggleRecording(){ if(!rtc){ return; } if(crec){ return stopRecording(); } return startRecording(); }
+    async function startRecording(){
+      if(crec || !rtc){ return; }
+      var mime = crecMime();
+      if(!mime || !HTMLCanvasElement.prototype.captureStream){ alert('This browser can not record. Try Chrome, Edge or Safari on a computer.'); return; }
+      var ext = mime.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
+      var d = new Date(), pad = function(n){ return String(n).padStart(2, '0'); };
+      var name = 'Linear Chat call ' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + '-' + pad(d.getMinutes()) + '.' + ext;
+      var writable = null;
+      if(window.showSaveFilePicker){
+        try {
+          var accept = {}; accept[ext === 'mp4' ? 'video/mp4' : 'video/webm'] = ['.' + ext];
+          var handle = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Video', accept: accept }] });
+          writable = await handle.createWritable();
+        } catch(e){ if(e && e.name === 'AbortError'){ return; } writable = null; }
+      }
+      if(!rtc){ if(writable){ writable.abort().catch(function(){}); } return; }
+      var canvas = document.createElement('canvas'); canvas.width = 1280; canvas.height = 720;
+      var actx = new (window.AudioContext || window.webkitAudioContext)();
+      try { await actx.resume(); } catch(e){}
+      var dest = actx.createMediaStreamDestination();
+      var out = new MediaStream(canvas.captureStream(30).getVideoTracks().concat(dest.stream.getAudioTracks()));
+      var mr;
+      try { mr = new MediaRecorder(out, { mimeType: mime, videoBitsPerSecond: 1500000, audioBitsPerSecond: 96000 }); }
+      catch(e){ alert('Could not start recording.'); if(writable){ writable.abort().catch(function(){}); } actx.close(); return; }
+      crec = { mr: mr, canvas: canvas, g: canvas.getContext('2d'), actx: actx, dest: dest, sources: {}, chunks: [], writable: writable, writing: Promise.resolve(), name: name, mime: mime, started: Date.now(), timer: null };
+      mr.ondataavailable = function(e){
+        if(!e.data || !e.data.size || !crec){ return; }
+        if(crec.writable){ var w = crec.writable, chunk = e.data; crec.writing = crec.writing.then(function(){ return w.write(chunk); }); }
+        else { crec.chunks.push(e.data); }
+      };
+      mr.onstop = finishRecording;
+      crecMix(); crecDraw();
+      crec.timer = setInterval(function(){ crecDraw(); crecMix(); }, 1000 / 30);
+      crec.clock = setInterval(renderCallControls, 1000);
+      mr.start(1000);
+      crecNotice('🔴 ' + ((me && (me.name || me.email)) || 'Someone') + ' started recording this call');
+      callSetStatus(writable ? 'Recording — saving to the file you chose' : 'Recording — it will download when you stop');
+      setTimeout(function(){ callSetStatus(''); }, 4000);
+      renderCallControls();
+    }
+    function stopRecording(){
+      if(!crec || crec.mr.state === 'inactive'){ return; }
+      try { crec.mr.stop(); } catch(e){ finishRecording(); }
+      crecNotice(((me && (me.name || me.email)) || 'Someone') + ' stopped recording');
+    }
+    async function finishRecording(){
+      var r = crec; if(!r){ return; }
+      crec = null;
+      clearInterval(r.timer); clearInterval(r.clock);
+      Object.keys(r.sources).forEach(function(k){ try { r.sources[k].disconnect(); } catch(e){} });
+      try { r.actx.close(); } catch(e){}
+      renderCallControls();
+      if(r.writable){
+        try { await r.writing; await r.writable.close(); } catch(e){ alert('Could not finish saving the recording.'); }
+        return;
+      }
+      var blob = new Blob(r.chunks, { type: r.mime.split(';')[0] });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = r.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+    }
+    function crecMix(){
+      if(!crec || !rtc){ return; }
+      var tracks = [];
+      if(rtc.localStream){ rtc.localStream.getAudioTracks().forEach(function(t){ if(t.readyState === 'live'){ tracks.push(t); } }); }
+      Object.keys(rtc.tiles).forEach(function(k){
+        if(k === '__self__' || k === '__screen__'){ return; }
+        rtc.tiles[k].stream.getAudioTracks().forEach(function(t){ tracks.push(t); });
+      });
+      var live = {};
+      tracks.forEach(function(t){
+        live[t.id] = true;
+        if(crec.sources[t.id]){ return; }
+        try { var src = crec.actx.createMediaStreamSource(new MediaStream([t])); src.connect(crec.dest); crec.sources[t.id] = src; } catch(e){}
+      });
+      Object.keys(crec.sources).forEach(function(id){ if(!live[id]){ try { crec.sources[id].disconnect(); } catch(e){} delete crec.sources[id]; } });
+    }
+    function crecDraw(){
+      if(!crec || !rtc){ return; }
+      var g = crec.g, W = 1280, H = 720;
+      g.fillStyle = '#0b0d13'; g.fillRect(0, 0, W, H);
+      var keys = Object.keys(rtc.tiles);
+      var screens = keys.filter(function(k){ return k === '__screen__' || /:screen$/.test(k); });
+      var faces = keys.filter(function(k){ return screens.indexOf(k) < 0; }).map(function(k){ return rtc.tiles[k]; });
+      if(screens.length){
+        var side = faces.length ? 240 : 0;
+        crecTile(g, rtc.tiles[screens[0]], 0, 0, W - side, H, true);
+        var h = Math.min(135, H / Math.max(1, faces.length));
+        faces.forEach(function(t, i){ crecTile(g, t, W - side + 8, 8 + i * (h + 6), side - 16, h - 6, false); });
+      } else {
+        var n = Math.max(1, faces.length), cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols);
+        var tw = (W - 8 * (cols + 1)) / cols, th = (H - 8 * (rows + 1)) / rows;
+        faces.forEach(function(t, i){ crecTile(g, t, 8 + (i % cols) * (tw + 8), 8 + Math.floor(i / cols) * (th + 8), tw, th, false); });
+      }
+      g.fillStyle = '#ef4444'; g.beginPath(); g.arc(W - 22, 22, 7, 0, 7); g.fill();
+    }
+    function crecTile(g, t, x, y, w, h, contain){
+      g.save();
+      g.beginPath(); if(g.roundRect){ g.roundRect(x, y, w, h, 10); } else { g.rect(x, y, w, h); } g.clip();
+      g.fillStyle = '#161a26'; g.fillRect(x, y, w, h);
+      var v = t.video;
+      var showVideo = v.videoWidth > 0 && t.avatar.style.display === 'none';
+      if(showVideo){
+        var vr = v.videoWidth / v.videoHeight, r = w / h, dw, dh;
+        if(contain ? vr > r : vr < r){ dw = w; dh = w / vr; } else { dh = h; dw = h * vr; }
+        g.drawImage(v, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      } else {
+        var rad = Math.min(w, h) * 0.18, nm = String(t.name || '?').trim();
+        g.fillStyle = '#4b5563'; g.beginPath(); g.arc(x + w / 2, y + h / 2, rad, 0, 7); g.fill();
+        g.fillStyle = '#fff'; g.font = '700 ' + Math.round(rad * 0.8) + 'px system-ui, sans-serif';
+        g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(nm.charAt(0).toUpperCase(), x + w / 2, y + h / 2);
+      }
+      g.restore();
+      var label = t.label ? t.label.textContent : '';
+      if(label){
+        g.font = '600 ' + (contain ? 16 : 13) + 'px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle';
+        var lw = Math.min(g.measureText(label).width + 14, w - 12);
+        g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(x + 6, y + h - 28, lw, 22);
+        g.fillStyle = '#fff'; g.fillText(label, x + 13, y + h - 17, w - 26);
+      }
     }
     function toggleMic(){ if(!rtc){ return; } rtc.micOn = !rtc.micOn; rtc.localStream.getAudioTracks().forEach(function(t){ t.enabled = rtc.micOn; }); renderCallControls(); pollRoster(); }
     function toggleCam(){
