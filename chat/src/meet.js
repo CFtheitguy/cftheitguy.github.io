@@ -32,7 +32,8 @@ const MAX_CHAT_LEN = 1000;
 const MAX_NAME_LEN = 40;
 const MAX_TRACKS = 4;
 const MAX_OUT = 30;                       // queued messages accepted per sync
-const MAX_SIGNAL = 24000;                 // one SDP offer/answer or ICE candidate
+const MAX_SIGNAL = 24000;
+const MAX_CAPTION = 500;                  // characters in one caption line                 // one SDP offer/answer or ICE candidate
 const GONE_MS = 20000;                    // no sync for this long = left
 const TICKET_TTL_MS = 12 * 60 * 60 * 1000;
 const EVENT_KEEP_MS = 60 * 60 * 1000;
@@ -190,6 +191,8 @@ async function ensureMeetSchema(env) {
     "CREATE INDEX IF NOT EXISTS idx_meet_events_room ON meet_events(room, id)",
   ];
   for (const s of stmts) await env.DB.prepare(s).run();
+  // Added later: does this person want captions shown? (any "yes" turns captioning on for the room)
+  try { await env.DB.prepare("ALTER TABLE meet_people ADD COLUMN cc INTEGER NOT NULL DEFAULT 0").run(); } catch (_) { /* already there */ }
   MEET_SCHEMA_READY = true;
 }
 
@@ -274,6 +277,7 @@ async function sync(request, env) {
   if (typeof s.muted === "boolean") upd.muted = s.muted ? 1 : 0;
   if (typeof s.camOff === "boolean") upd.cam_off = s.camOff ? 1 : 0;
   if (typeof s.hand === "boolean") upd.hand = s.hand ? 1 : 0;
+  if (typeof s.cc === "boolean") upd.cc = s.cc ? 1 : 0;
   const cols = Object.keys(upd);
   await db.prepare("UPDATE meet_people SET " + cols.map((c) => c + "=?").join(",") + " WHERE room=? AND cid=?")
     .bind(...cols.map((c) => upd[c]), room, cid).run();
@@ -284,6 +288,10 @@ async function sync(request, env) {
     if (o.t === "chat") {
       const text = String(o.text || "").slice(0, MAX_CHAT_LEN).trim();
       if (text) await addEvent(env, room, "chat", cid, me.name, null, { text });
+    } else if (o.t === "cap") {
+      // A caption line made on the speaker's own device (speech-to-text in their browser).
+      const text = String(o.text || "").slice(0, MAX_CAPTION).trim();
+      if (text) await addEvent(env, room, "cap", cid, me.name, null, { text, final: !!o.final, seq: Number(o.seq) || 0 });
     } else if (o.t === "rec") {
       // Recording happens on the recorder's own device; the room only announces it.
       await addEvent(env, room, "notice", cid, me.name, null,
@@ -313,6 +321,7 @@ async function sync(request, env) {
     const d = safeParse(e.data);
     if (e.kind === "notice") { if (e.from_cid !== cid) msgs.push({ t: "notice", text: d.text }); }
     else if (e.kind === "chat") msgs.push({ t: "chat", from: e.from_cid, name: e.name, text: d.text, ts: e.ts });
+    else if (e.kind === "cap") { if (e.from_cid !== cid) msgs.push({ t: "cap", from: e.from_cid, name: e.name, text: d.text, final: !!d.final, seq: d.seq, ts: e.ts }); }
     else if (e.kind === "react") msgs.push({ t: "react", from: e.from_cid, name: e.name, emoji: d.emoji });
     else if (e.kind === "signal") msgs.push({ t: "signal", from: e.from_cid, data: safeParse(e.data, null) });
     else if (e.kind === "force-mute") msgs.push({ t: "force-mute", by: e.name });
@@ -324,7 +333,7 @@ async function sync(request, env) {
   const lockedNow = !!((await db.prepare("SELECT locked FROM meet_rooms WHERE room=?").bind(room).first()) || {}).locked;
   const people = rows.map((r) => ({
     cid: r.cid, name: r.name, sessionId: r.session_id, tracks: safeParse(r.tracks, []),
-    muted: !!r.muted, camOff: !!r.cam_off, hand: !!r.hand, host: r.cid === hostNow,
+    muted: !!r.muted, camOff: !!r.cam_off, hand: !!r.hand, cc: !!r.cc, host: r.cid === hostNow,
   }));
   const rosterTag = await tag(JSON.stringify([people, lockedNow]));
   if (rosterTag !== b.rosterTag || b.hello) msgs.push({ t: "roster", people, locked: lockedNow });
