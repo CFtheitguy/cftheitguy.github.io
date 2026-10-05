@@ -231,7 +231,9 @@ function showRates(){
 }
 
 ["price","downPct","downAmt","rate","taxRate","ins","hoa","pmiRate","mrtRate"].forEach(id => $(id).addEventListener("input", () => {
-  if (id === "downPct") lastSrc = "pct"; if (id === "downAmt") lastSrc = "amt"; if (id === "rate") rateTouched = true; calc();
+  if (id === "downPct") lastSrc = "pct"; if (id === "downAmt") lastSrc = "amt"; if (id === "rate") rateTouched = true;
+  if (["price","downPct","downAmt"].includes(id) && countyInfo().mrt === "NYC") $("mrtRate").value = nycMrt(currentLoan());
+  calc();
 }));
 $("term").addEventListener("change", () => { rateTouched = false; showRates(); calc(); });
 stSel.addEventListener("change", () => { fillCounties(); calc(); });
