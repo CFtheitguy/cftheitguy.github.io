@@ -926,6 +926,8 @@
   $("bMic").onclick = function () { setMic(!isMicOn()); };
   $("bCam").onclick = function () { setCam(!isCamOn()); };
   $("bShare").onclick = toggleShare;
+  // Phones/tablets that can't capture the screen (iOS) don't get a button that can't work.
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) $("bShare").classList.add("hidden");
   $("bHand").onclick = toggleHand;
   $("bChat").onclick = function () { openPanel("chat"); };
   $("bPeople").onclick = function () { openPanel("people"); };

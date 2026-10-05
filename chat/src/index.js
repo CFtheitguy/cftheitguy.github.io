@@ -2435,6 +2435,7 @@ const APP_HTML = `<!doctype html>
         try { if(rtc.polling){ clearInterval(rtc.polling); } } catch(e){}
         try { if(rtc.pc){ rtc.pc.close(); } } catch(e){}
         try { if(rtc.localStream){ rtc.localStream.getTracks().forEach(function(t){ t.stop(); }); } } catch(e){}
+        try { if(rtc.screenTrack){ rtc.screenTrack.onended = null; rtc.screenTrack.stop(); } } catch(e){}
         try { Object.keys(rtc.tiles).forEach(function(k){ var st=rtc.tiles[k].stream; if(st){ st.getTracks().forEach(function(x){ try{ x.stop(); }catch(e){} }); } }); } catch(e){}
         try { api('/api/calls/' + rtc.room + '/leave', { method:'POST', body: '{}' }).catch(function(){}); } catch(e){}
         rtc = null;
@@ -2521,21 +2522,33 @@ const APP_HTML = `<!doctype html>
         present[p.email] = true;
         if(!rtc.tiles[p.email]){ addTile(p.email, p.name, null, false); }
         updateTileState(p);
-        if(!rtc.subscribed[p.email] && p.sessionId && p.tracks && p.tracks.length){
-          rtc.subscribed[p.email] = true;
-          var pp = p;
-          rtc.negChain = rtc.negChain.then(function(){ return subscribeTo(pp); }).catch(function(){});
+        // Subscribe per track, so a screen share started mid-call is picked up too.
+        var fresh = (p.tracks || []).filter(function(t){ return p.sessionId && !rtc.subscribed[p.email + '|' + t.trackName]; });
+        if(fresh.length){
+          fresh.forEach(function(t){ rtc.subscribed[p.email + '|' + t.trackName] = true; });
+          var pp = p, ff = fresh;
+          rtc.negChain = rtc.negChain.then(function(){ return subscribeTo(pp, ff); }).catch(function(){ ff.forEach(function(t){ delete rtc.subscribed[pp.email + '|' + t.trackName]; }); });
+        }
+        // They stopped sharing: drop the screen tile and its subscription.
+        Object.keys(rtc.subscribed).forEach(function(k){
+          if(k.indexOf(p.email + '|screen') !== 0){ return; }
+          var name = k.slice(p.email.length + 1);
+          if(!(p.tracks || []).some(function(t){ return t.trackName === name; })){ delete rtc.subscribed[k]; removeTile(p.email + ':screen'); closeRemote(p.email, name); }
+        });
+      });
+      Object.keys(rtc.tiles).forEach(function(key){
+        var email = key.replace(/:screen$/, '');
+        if(key !== '__self__' && key !== '__screen__' && !present[email]){
+          removeTile(key);
+          Object.keys(rtc.subscribed).forEach(function(k){ if(k.indexOf(email + '|') === 0){ delete rtc.subscribed[k]; } });
         }
       });
-      Object.keys(rtc.tiles).forEach(function(email){
-        if(email !== '__self__' && !present[email]){ removeTile(email); delete rtc.subscribed[email]; }
-      });
     }
-    async function subscribeTo(p){
+    async function subscribeTo(p, list){
       if(!rtc){ return; }
-      var tracks = p.tracks.map(function(t){ return { location:'remote', sessionId: p.sessionId, trackName: t.trackName }; });
+      var tracks = (list || p.tracks).map(function(t){ return { location:'remote', sessionId: p.sessionId, trackName: t.trackName }; });
       var res = await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/tracks/new', { tracks: tracks });
-      if(res.tracks){ res.tracks.forEach(function(rt){ if(rt.mid){ rtc.midOwner[rt.mid] = { email: p.email, name: p.name }; } }); }
+      if(res.tracks){ res.tracks.forEach(function(rt){ if(rt.mid){ rtc.midOwner[rt.mid] = { email: p.email, name: p.name, trackName: rt.trackName }; } }); }
       if(res.requiresImmediateRenegotiation && res.sessionDescription){
         await rtc.pc.setRemoteDescription(res.sessionDescription);
         await rtc.pc.setLocalDescription(await rtc.pc.createAnswer());
@@ -2547,21 +2560,30 @@ const APP_HTML = `<!doctype html>
       var mid = e.transceiver && e.transceiver.mid;
       var owner = mid && rtc.midOwner[mid] ? rtc.midOwner[mid] : null;
       if(!owner){ return; }
+      if((owner.trackName || '').indexOf('screen') === 0){
+        var sk = owner.email + ':screen';
+        var st = rtc.tiles[sk] || addTile(sk, (owner.name || owner.email) + ' is presenting', null, false, true);
+        st.stream.getVideoTracks().forEach(function(x){ st.stream.removeTrack(x); });
+        st.stream.addTrack(e.track); st.video.srcObject = st.stream; st.avatar.style.display = 'none';
+        st.video.play().catch(function(){});
+        return;
+      }
       var t = rtc.tiles[owner.email] || addTile(owner.email, owner.name, null, false);
       try { t.stream.addTrack(e.track); } catch(err){}
       t.video.srcObject = t.stream;
       if(e.track.kind === 'video'){ t.hasVideo = true; t.avatar.style.display = 'none'; }
       t.video.play().catch(function(){});
     }
-    function addTile(key, name, stream, isSelf){
+    function addTile(key, name, stream, isSelf, isScreen){
       if(rtc.tiles[key]){ return rtc.tiles[key]; }
       var tile = ce('div','relative bg-black rounded-xl overflow-hidden');
-      tile.style.aspectRatio = '4 / 3'; tile.style.minWidth = '160px'; tile.style.maxWidth = '520px'; tile.style.width = '100%';
-      var video = ce('video','w-full h-full object-cover bg-black'); video.autoplay = true; video.playsInline = true; video.setAttribute('playsinline',''); video.muted = !!isSelf;
+      tile.style.aspectRatio = isScreen ? '16 / 9' : '4 / 3'; tile.style.minWidth = '160px'; tile.style.maxWidth = isScreen ? 'none' : '520px'; tile.style.width = '100%';
+      if(isScreen){ tile.style.gridColumn = '1 / -1'; }
+      var video = ce('video','w-full h-full bg-black ' + (isScreen ? 'object-contain' : 'object-cover')); video.autoplay = true; video.playsInline = true; video.setAttribute('playsinline',''); video.muted = !!isSelf;
       var ms = stream || new MediaStream(); video.srcObject = ms; tile.appendChild(video);
-      var av = ce('div','absolute inset-0 flex items-center justify-center bg-gray-800'); av.appendChild(avatarEl(name || key, null, 'w-24 h-24 text-2xl')); av.style.display = isSelf ? 'none' : 'flex'; tile.appendChild(av);
-      var label = ce('div','absolute bottom-1 left-1 text-xs text-white bg-black/50 rounded px-1.5 py-0.5 max-w-[85%] truncate'); label.textContent = (name || key) + (isSelf ? ' (you)' : ''); tile.appendChild(label);
-      $('callTiles').appendChild(tile);
+      var av = ce('div','absolute inset-0 flex items-center justify-center bg-gray-800'); av.appendChild(avatarEl(name || key, null, 'w-24 h-24 text-2xl')); av.style.display = (isSelf || isScreen) ? 'none' : 'flex'; tile.appendChild(av);
+      var label = ce('div','absolute bottom-1 left-1 text-xs text-white bg-black/50 rounded px-1.5 py-0.5 max-w-[85%] truncate'); label.textContent = (name || key) + (isSelf && !isScreen ? ' (you)' : ''); tile.appendChild(label);
+      if(isScreen){ $('callTiles').insertBefore(tile, $('callTiles').firstChild); } else { $('callTiles').appendChild(tile); }
       rtc.tiles[key] = { el:tile, video:video, stream:ms, avatar:av, label:label, name:name, hasVideo:!!isSelf };
       layoutTiles();
       video.play().catch(function(){});
@@ -2594,7 +2616,73 @@ const APP_HTML = `<!doctype html>
       if(rtc.mode !== 'audio'){
         var cam = ctlBtn(rtc.camOn ? '🎥' : '📷', rtc.camOn, false); cam.title = rtc.camOn ? 'Turn camera off' : 'Turn camera on'; cam.onclick = toggleCam; box.appendChild(cam);
       }
+      if(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && rtc.sessionId){
+        var scr = ctlBtn('🖥️', true, false); scr.title = rtc.screenTrack ? 'Stop sharing' : 'Share your screen';
+        if(rtc.screenTrack){ scr.className = scr.className.replace('bg-white/20', 'bg-blue-600'); }
+        scr.onclick = toggleScreen; box.appendChild(scr);
+      }
       var leave = ctlBtn('📞', true, true); leave.title = 'Leave'; leave.onclick = endCall; box.appendChild(leave);
+    }
+    /* Screen sharing: publish the screen as an extra SFU track named screen<N>
+       (a fresh name each time, since a closed name can't be reused in a session).
+       Others see it in roster.tracks, subscribe, and show it as a wide tile. */
+    async function toggleScreen(){ if(!rtc){ return; } if(rtc.screenTrack){ return stopScreen(); } return startScreen(); }
+    async function startScreen(){
+      var s;
+      try { s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: false }); }
+      catch(e){ return; }
+      if(!rtc){ s.getTracks().forEach(function(x){ x.stop(); }); return; }
+      var track = s.getVideoTracks()[0];
+      try { track.contentHint = 'detail'; } catch(e){}
+      rtc.screenTrack = track; rtc.screenN = (rtc.screenN || 0) + 1;
+      var name = 'screen' + rtc.screenN;
+      track.onended = stopScreen;
+      addTile('__screen__', 'Your screen', new MediaStream([track]), true, true);
+      renderCallControls();
+      try {
+        await (rtc.negChain = rtc.negChain.then(async function(){
+          var tr = rtc.pc.addTransceiver(track, { direction:'sendonly' });
+          rtc.screenTr = tr;
+          await rtc.pc.setLocalDescription(await rtc.pc.createOffer());
+          var res = await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/tracks/new', { sessionDescription:{ type:'offer', sdp: rtc.pc.localDescription.sdp }, tracks:[{ location:'local', mid: tr.mid, trackName: name }] });
+          if(res.sessionDescription){ await rtc.pc.setRemoteDescription(res.sessionDescription); }
+          rtc.myTracks.push({ trackName: name, kind: 'video' });
+        }));
+        pollRoster();
+      } catch(e){ alert('Could not share your screen: ' + ((e && e.message) || e)); stopScreen(); }
+    }
+    async function stopScreen(){
+      if(!rtc || !rtc.screenTrack){ return; }
+      var track = rtc.screenTrack, tr = rtc.screenTr;
+      rtc.screenTrack = null; rtc.screenTr = null;
+      track.onended = null; try { track.stop(); } catch(e){}
+      removeTile('__screen__');
+      rtc.myTracks = rtc.myTracks.filter(function(t){ return (t.trackName || '').indexOf('screen') !== 0; });
+      renderCallControls(); pollRoster();
+      if(!tr){ return; }
+      rtc.negChain = rtc.negChain.then(async function(){
+        if(!rtc){ return; }
+        try { await tr.sender.replaceTrack(null); } catch(e){}
+        tr.direction = 'inactive';
+        await rtc.pc.setLocalDescription(await rtc.pc.createOffer());
+        var res = await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/tracks/close', { tracks:[{ mid: tr.mid }], sessionDescription:{ type:'offer', sdp: rtc.pc.localDescription.sdp }, force:false }, 'PUT');
+        if(res.sessionDescription){ await rtc.pc.setRemoteDescription(res.sessionDescription); }
+      }).catch(function(){});
+    }
+    // Stop receiving a track someone else no longer publishes.
+    function closeRemote(email, trackName){
+      var mid = Object.keys(rtc.midOwner).filter(function(m){ var o = rtc.midOwner[m]; return o.email === email && o.trackName === trackName; })[0];
+      if(!mid){ return; }
+      delete rtc.midOwner[mid];
+      rtc.negChain = rtc.negChain.then(async function(){
+        if(!rtc){ return; }
+        var res = await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/tracks/close', { tracks:[{ mid: mid }], force:true }, 'PUT');
+        if(res.requiresImmediateRenegotiation && res.sessionDescription){
+          await rtc.pc.setRemoteDescription(res.sessionDescription);
+          await rtc.pc.setLocalDescription(await rtc.pc.createAnswer());
+          await sfuPost('/api/calls/sfu/sessions/' + rtc.sessionId + '/renegotiate', { sessionDescription:{ type:'answer', sdp: rtc.pc.localDescription.sdp } }, 'PUT');
+        }
+      }).catch(function(){});
     }
     function toggleMic(){ if(!rtc){ return; } rtc.micOn = !rtc.micOn; rtc.localStream.getAudioTracks().forEach(function(t){ t.enabled = rtc.micOn; }); renderCallControls(); pollRoster(); }
     function toggleCam(){
