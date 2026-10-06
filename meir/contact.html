@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contact | Evict Point</title><meta name="description" content="Eviction services for landlords across New York.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head><body>
+<header class="site"><div class="wrap">
+<a class="logo" href="index.html"><svg width="58" height="44" viewBox="0 0 58 44" aria-hidden="true"><path d="M4 22 L24 4 L44 22" fill="none" stroke="#0b1a33" stroke-width="5" stroke-linejoin="round"/><rect x="34" y="6" width="6" height="10" fill="#0b1a33"/><path d="M12 20 v14 h24 v-14" fill="none" stroke="#0b1a33" stroke-width="4"/><text x="17" y="31" font-size="9" font-weight="800" fill="#0b1a33" font-family="Arial">EP</text><path d="M2 36 Q28 48 56 30" fill="none" stroke="#f58220" stroke-width="3"/></svg><div><b>Evict <span>Point</span></b><small>— LANDLORD &amp; TENANT SOLUTIONS —</small></div></a>
+<nav class="main" id="nav"><a href="index.html">Home</a><a href="services.html">Services</a><a href="about.html">About Us</a><a href="service-areas.html">Service Areas</a><a href="resources.html">Resources</a><a href="contact.html" class=on>Contact</a></nav>
+<a class="callbtn" href="tel:+18451234567">&#9742;<div><b>(845) 123-4567</b><small>CALL OR TEXT</small></div></a>
+<button class="burger" aria-label="Menu" onclick="document.getElementById('nav').classList.toggle('open')">&#9776;</button>
+</div></header>
+<section class="hero small" style="padding:0"><div class="wrap"><div><h1>Contact <span style="color:var(--orange)">Us</span></h1><p>Questions? Call, text or send us a message.</p></div></div></section>
+<section><div class="wrap flow">
+<div class="panel"><h2>Send Us a Message</h2><p class="sub">We&rsquo;ll get back to you as soon as possible.</p>
+<form id="cform" class="grid2"><div><label>Name <i>*</i></label><input type="text" name="name" required></div>
+<div><label>Phone</label><input type="tel" name="phone"></div><div class="full"><label>Email <i>*</i></label><input type="email" name="email" required></div>
+<div class="full"><label>Message <i>*</i></label><textarea name="message" required></textarea></div>
+<div class="full"><button class="btn" type="submit">Send Message &rarr;</button></div></form></div>
+<aside><div class="box"><div class="ico">&#9742;</div><div><b>Call or Text</b><p><a href="tel:+18451234567">(845) 123-4567</a></p></div></div>
+<div class="box"><div class="ico">&#9993;</div><div><b>Email</b><p><a href="mailto:info@evictpoint.com">info@evictpoint.com</a></p></div></div>
+<div class="box"><div class="ico">&#9906;</div><div><b>Mail</b><p>P.O. Box 242<br>Central Valley, NY 10917</p></div></div></aside>
+</div></section>
+<script>document.getElementById('cform').addEventListener('submit',function(e){e.preventDefault();var f=new FormData(this);
+location.href='mailto:info@evictpoint.com?subject='+encodeURIComponent('Website message from '+f.get('name'))+'&body='+encodeURIComponent(f.get('message')+'\n\n'+f.get('name')+'\n'+f.get('email')+'\n'+(f.get('phone')||''));});</script>
+<footer class="site"><div class="wrap"><div class="grid">
+<div><a class="logo" href="index.html"><svg width="58" height="44" viewBox="0 0 58 44" aria-hidden="true"><path d="M4 22 L24 4 L44 22" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><rect x="34" y="6" width="6" height="10" fill="#fff"/><path d="M12 20 v14 h24 v-14" fill="none" stroke="#fff" stroke-width="4"/><text x="17" y="31" font-size="9" font-weight="800" fill="#fff" font-family="Arial">EP</text><path d="M2 36 Q28 48 56 30" fill="none" stroke="#f58220" stroke-width="3"/></svg><div><b>Evict <span>Point</span></b><small>— LANDLORD &amp; TENANT SOLUTIONS —</small></div></a>
+<p>Professional eviction services for landlords in New York. We handle the paperwork, court filings, and process from start to finish.</p></div>
+<div><h4>Quick Links</h4><ul><li><a href="index.html">Home</a></li><li><a href="services.html">Services</a></li><li><a href="about.html">About Us</a></li><li><a href="service-areas.html">Service Areas</a></li><li><a href="resources.html">Resources</a></li><li><a href="contact.html">Contact</a></li><li><a href="start.html">Start Your Eviction</a></li></ul></div>
+<div><h4>Contact Us</h4><ul><li><a href="tel:+18451234567">&#9742; (845) 123-4567 &nbsp;<span style="color:var(--orange)">CALL OR TEXT</span></a></li><li><a href="mailto:info@evictpoint.com">&#9993; info@evictpoint.com</a></li><li>&#9906; P.O. Box 242, Central Valley, NY 10917</li></ul></div>
+<div><h4>Hours</h4><p>Mon–Thu 9am–6pm<br>Fri 9am–1pm</p></div>
+</div><div class="disc">&copy; <span id="yr"></span> Evict Point. Evict Point is not a law firm and does not provide legal advice. For legal advice, consult a licensed New York attorney.</div></div></footer>
+<script>document.getElementById('yr').textContent=new Date().getFullYear()</script>
+</body></html>
