@@ -91,8 +91,8 @@ var DRAFT_KEY = 'evictpoint-draft';
     ul.innerHTML = '';
     files[key].forEach(function (f, i) {
       var li = document.createElement('li');
-      li.innerHTML = '<span></span><button type="button" title="Remove">&times;</button>';
-      li.firstChild.textContent = '📎 ' + f.name + ' (' + Math.ceil(f.size / 1024) + ' KB)';
+      li.innerHTML = '<span><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg><b></b></span><button type="button" title="Remove">&times;</button>';
+      li.querySelector('b').textContent = f.name + ' (' + Math.ceil(f.size / 1024) + ' KB)';
       li.lastChild.onclick = function () { files[key].splice(i, 1); renderFiles(key); };
       ul.appendChild(li);
     });
@@ -145,7 +145,7 @@ var DRAFT_KEY = 'evictpoint-draft';
     sections().forEach(function (s) {
       var div = document.createElement('div');
       div.className = 'rev';
-      div.innerHTML = '<div class="rh"><span></span><button type="button" class="link">&#9998; Edit</button></div><dl></dl>';
+      div.innerHTML = '<div class="rh"><span></span><button type="button" class="link"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Edit</button></div><dl></dl>';
       div.querySelector('span').textContent = s[0];
       div.querySelector('.link').onclick = function () { go(s[1]); };
       var dl = div.querySelector('dl');

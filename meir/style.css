@@ -115,3 +115,11 @@ aside .box b{display:block;font-size:.95rem}aside .box p{margin:2px 0 0;font-siz
 @media(max-width:520px){.cols4,.steps4,.strip .wrap,footer .grid{grid-template-columns:1fr}.callbtn b{font-size:.95rem}.logo b{font-size:1.3rem}}
 .logo img{display:block;height:auto}header.site .logo img{width:215px}
 @media(max-width:520px){header.site .logo img{width:130px}.callbtn{padding:8px 10px}.callbtn b{white-space:nowrap;font-size:.85rem}}
+.i{width:1em;height:1em;vertical-align:-.125em;flex:none}
+.ico .i{width:26px;height:26px}aside .box .ico .i{width:20px;height:20px}.cols4.why .ico .i{width:34px;height:34px}
+.callbtn>.i{width:22px;height:22px;color:var(--goldl)}
+footer .i,.areas .i{color:var(--goldl)}.areas .i{color:var(--gold2)}
+.drop .i{width:20px;height:20px;display:block;margin:0 auto 4px;color:var(--gold2)}
+.badges i{display:flex}.badges i .i{width:22px;height:22px}
+.ok .tick .i{width:34px;height:34px;stroke-width:3}
+.files .i{color:var(--gold2);margin-right:4px}.files b{font-weight:500}
