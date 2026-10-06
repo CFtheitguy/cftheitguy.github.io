@@ -113,3 +113,5 @@ aside .box b{display:block;font-size:.95rem}aside .box p{margin:2px 0 0;font-siz
  .grid3,.docs{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}.stepper button span{display:none}.rev dl{grid-template-columns:1fr}
 }
 @media(max-width:520px){.cols4,.steps4,.strip .wrap,footer .grid{grid-template-columns:1fr}.callbtn b{font-size:.95rem}.logo b{font-size:1.3rem}}
+.logo img{display:block;height:auto}header.site .logo img{width:215px}
+@media(max-width:520px){header.site .logo img{width:130px}.callbtn{padding:8px 10px}.callbtn b{white-space:nowrap;font-size:.85rem}}
