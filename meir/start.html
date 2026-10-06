@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Start Your Eviction | Evict Point</title><meta name="description" content="Eviction services for landlords across New York.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"></head><body>
+<header class="site"><div class="wrap">
+<a class="logo" href="index.html"><svg width="58" height="44" viewBox="0 0 58 44" aria-hidden="true"><path d="M4 22 L24 4 L44 22" fill="none" stroke="#0b1a33" stroke-width="5" stroke-linejoin="round"/><rect x="34" y="6" width="6" height="10" fill="#0b1a33"/><path d="M12 20 v14 h24 v-14" fill="none" stroke="#0b1a33" stroke-width="4"/><text x="17" y="31" font-size="9" font-weight="800" fill="#0b1a33" font-family="Arial">EP</text><path d="M2 36 Q28 48 56 30" fill="none" stroke="#f58220" stroke-width="3"/></svg><div><b>Evict <span>Point</span></b><small>— LANDLORD &amp; TENANT SOLUTIONS —</small></div></a>
+<nav class="main" id="nav"><a href="index.html">Home</a><a href="services.html">Services</a><a href="about.html">About Us</a><a href="service-areas.html">Service Areas</a><a href="resources.html">Resources</a><a href="contact.html">Contact</a></nav>
+<a class="callbtn" href="tel:+18451234567">&#9742;<div><b>(845) 123-4567</b><small>CALL OR TEXT</small></div></a>
+<button class="burger" aria-label="Menu" onclick="document.getElementById('nav').classList.toggle('open')">&#9776;</button>
+</div></header>
+
+<section class="hero small" style="padding:0"><div class="wrap"><div><h1>Start Your <span style="color:var(--orange)">Eviction</span></h1><p>Let&rsquo;s get started. Provide the information you have below.</p></div></div></section>
+<div class="wrap flow"><div class="panel">
+<div class="stepper" id="stepper"></div>
+<form id="ev" novalidate>
+<div class="step" data-title="Property">
+<div class="eyebrow">Step 1 of 6</div><h2>Property Information</h2><p class="sub">Please provide the address of the rental property.</p>
+<div class="grid3"><div class="full"><label>Street Address <i>*</i></label><input type="text" name="p_street" required ><div class="errmsg">This field is required.</div></div><div class=""><label>Unit / Apt #</label><input type="text" name="p_unit" ><div class="errmsg">This field is required.</div></div><div class=""><label>City <i>*</i></label><input type="text" name="p_city" required ><div class="errmsg">This field is required.</div></div><div><label>State <i>*</i></label><select name="p_state"><option selected>New York</option><option>New Jersey</option><option>Connecticut</option><option>Pennsylvania</option><option>Other</option></select></div><div class=""><label>ZIP Code <i>*</i></label><input type="text" name="p_zip" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5"><div class="errmsg">This field is required.</div></div>
+<div><label>County</label><select name="p_county"><option value="">Select…</option><option>Orange</option><option>Rockland</option><option>Sullivan</option><option>Ulster</option><option>Dutchess</option><option>Putnam</option><option>Westchester</option><option>Bronx</option><option>Kings (Brooklyn)</option><option>New York (Manhattan)</option><option>Queens</option><option>Richmond (Staten Island)</option><option>Nassau</option><option>Suffolk</option><option>Other</option></select></div>
+<div><label>Property Type</label><select name="p_type"><option value="">Select…</option><option>Single-family house</option><option>2–4 family</option><option>Apartment building (5+)</option><option>Commercial</option><option>Other</option></select></div></div></div>
+
+<div class="step" data-title="Landlord">
+<div class="eyebrow">Step 2 of 6</div><h2>Landlord Information</h2><p class="sub">Please provide your contact information.</p>
+<div class="grid2"><div class=""><label>Full Name <i>*</i></label><input type="text" name="l_name" required ><div class="errmsg">This field is required.</div></div><div class=""><label>Phone Number <i>*</i></label><input type="tel" name="l_phone" required ><div class="errmsg">This field is required.</div></div><div class="full"><label>Email Address <i>*</i></label><input type="email" name="l_email" required ><div class="errmsg">This field is required.</div></div><div class="full"><label>Company / LLC Name (if any)</label><input type="text" name="l_company" ><div class="errmsg">This field is required.</div></div><div class="full"><label>Mailing Address <i>*</i></label><input type="text" name="l_street" required ><div class="errmsg">This field is required.</div></div></div>
+<div class="grid3" style="margin-top:14px"><div class=""><label>City <i>*</i></label><input type="text" name="l_city" required ><div class="errmsg">This field is required.</div></div><div><label>State <i>*</i></label><select name="l_state"><option selected>New York</option><option>New Jersey</option><option>Connecticut</option><option>Pennsylvania</option><option>Other</option></select></div><div class=""><label>ZIP Code <i>*</i></label><input type="text" name="l_zip" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5"><div class="errmsg">This field is required.</div></div></div></div>
+
+<div class="step" data-title="Tenant">
+<div class="eyebrow">Step 3 of 6</div><h2>Tenant Information</h2><p class="sub">Please provide the tenant&rsquo;s information.</p>
+<div class="grid2"><div class="full"><label>Full Name of Tenant <i>*</i></label><input type="text" name="t_name" required ><div class="errmsg">This field is required.</div></div><div class=""><label>Phone Number</label><input type="tel" name="t_phone" ><div class="errmsg">This field is required.</div></div><div class=""><label>Email Address</label><input type="email" name="t_email" ><div class="errmsg">This field is required.</div></div></div>
+<label style="margin-top:18px">Additional Tenants (if any)</label><div id="extraTenants"></div>
+<button type="button" class="btn ghost sm" id="addTenant">+ Add Another Tenant</button></div>
+
+<div class="step" data-title="Eviction">
+<div class="eyebrow">Step 4 of 6</div><h2>Eviction Information</h2><p class="sub">Please tell us more about the eviction.</p>
+<label>Reason for Eviction <i>*</i></label><div class="radios" id="reasons">
+<label><input type="radio" name="e_reason" value="Nonpayment of Rent" checked> Nonpayment of Rent</label>
+<label><input type="radio" name="e_reason" value="Holdover (Tenant Refuses to Leave)"> Holdover (Tenant Refuses to Leave)</label>
+<label><input type="radio" name="e_reason" value="Other"> Other</label></div>
+<div class="sect" data-for="Nonpayment of Rent"><h3>Nonpayment of Rent Information</h3><div class="grid3">
+<div class=""><label>Monthly Rent ($) <i>*</i></label><input type="number" name="e_rent" required min="0" step="0.01"><div class="errmsg">This field is required.</div></div><div class=""><label>Amount Currently Owed ($) <i>*</i></label><input type="number" name="e_owed" required min="0" step="0.01"><div class="errmsg">This field is required.</div></div><div class=""><label>Date Rent Became Due <i>*</i></label><input type="date" name="e_due" required ><div class="errmsg">This field is required.</div></div>
+<div class=""><label>Last Date Rent Was Paid</label><input type="date" name="e_lastpaid" ><div class="errmsg">This field is required.</div></div><div class=""><label>Amount of Last Payment ($)</label><input type="number" name="e_lastamt" min="0" step="0.01"><div class="errmsg">This field is required.</div></div></div></div>
+<div class="sect hide" data-for="Holdover (Tenant Refuses to Leave)"><h3>Holdover Information</h3><div class="grid2">
+<div><label>Is there a written lease?</label><select name="h_lease"><option value="">Select…</option><option>Yes</option><option>No (month-to-month)</option></select></div>
+<div class=""><label>Lease End / Termination Date</label><input type="date" name="h_end" ><div class="errmsg">This field is required.</div></div>
+<div><label>Has a termination notice been served?</label><select name="h_notice"><option value="">Select…</option><option>Yes</option><option>No</option><option>Not sure</option></select></div>
+<div><label>How long has the tenant lived there?</label><select name="h_length"><option value="">Select…</option><option>Less than 1 year</option><option>1–2 years</option><option>More than 2 years</option></select></div></div></div>
+<div style="margin-top:14px"><label>Please Tell Us What Happened <i>*</i></label><textarea name="e_details" required placeholder="Please provide any additional details about the situation."></textarea><div class="errmsg">This field is required.</div></div></div>
+
+<div class="step" data-title="Documents">
+<div class="eyebrow">Step 5 of 6</div><h2>Documents</h2><p class="sub">Upload any documents you have. You can upload photos or PDF files. These documents will help us process your eviction. (Optional)</p>
+<div class="docs"><div class="doc"><h4>Lease / Rental Agreement</h4><p>Upload a copy of the lease or rental agreement.</p><label class="drop" data-key="lease">&#8682; Click to upload or drag and drop<small>PDF, JPG or PNG (Max 10 MB)</small><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label><ul class="files" data-list="lease"></ul></div><div class="doc"><h4>Rent Ledger</h4><p>Upload a rent ledger or payment history.</p><label class="drop" data-key="ledger">&#8682; Click to upload or drag and drop<small>PDF, JPG or PNG (Max 10 MB)</small><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label><ul class="files" data-list="ledger"></ul></div><div class="doc"><h4>Notices</h4><p>Upload any notices that have been served.</p><label class="drop" data-key="notices">&#8682; Click to upload or drag and drop<small>PDF, JPG or PNG (Max 10 MB)</small><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label><ul class="files" data-list="notices"></ul></div></div>
+<div class="docs" style="grid-template-columns:2fr 1fr;margin-top:14px"><div class="doc"><h4>Other Documents</h4><p>Upload any other documents related to the case.</p><label class="drop" data-key="other">&#8682; Click to upload or drag and drop<small>PDF, JPG or PNG (Max 10 MB)</small><input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label><ul class="files" data-list="other"></ul></div>
+<div class="doc" style="display:grid;place-items:center;text-align:center;background:var(--cream)"><div><b>Tip</b><p style="margin-top:4px">You can select multiple files at once in any box.</p></div></div></div></div>
+
+<div class="step" data-title="Review &amp; Submit">
+<div class="eyebrow">Step 6 of 6</div><h2>Review &amp; Submit</h2><p class="sub">Please review all the information below. If everything looks correct, click Submit.</p>
+<div id="review"></div>
+<label class="consent"><input type="checkbox" name="consent" id="consent"> I confirm the information provided is accurate to the best of my knowledge, and I understand Evict Point is not a law firm and does not provide legal advice.</label><div class="errmsg" id="consentErr">Please confirm to continue.</div></div>
+
+<div class="actions"><button type="button" class="btn ghost sm" id="back">&larr; Back</button><button type="button" class="btn sm" id="next">Continue &rarr;</button></div>
+</form>
+
+<div id="done" class="ok hide"><div class="tick">&#10003;</div><h2>Your Eviction Request Has Been Submitted!</h2>
+<p>Thank you, <b id="doneName"></b>. Your reference number is <b id="doneRef"></b>.<br>One of our team members will contact you shortly to discuss the next steps.</p>
+<p id="doneMail" class="note hide" style="text-align:left;max-width:560px;margin:14px auto">Your email app should open with your request filled in &mdash; please press <b>Send</b>. If it didn&rsquo;t open, <a href="#" id="mailAgain" style="color:var(--orange2);font-weight:700">click here</a>. If you selected documents, please attach them to that email.</p>
+<div class="next"><b>What Happens Next?</b><ol><li><span>1</span>Our team will review your information and documents.</li><li><span>2</span>If we need any additional information, we will contact you.</li><li><span>3</span>Once everything is reviewed, we will reach out with the next steps.</li></ol></div>
+<a class="btn" href="index.html">Return to Home Page &rarr;</a></div>
+</div><aside><div class="box"><div class="ico">&#128462;</div><div><b>Need Help?</b><p>If you have any questions or need assistance, please contact us. Our team is here to help.</p></div></div>
+<div class="box"><div class="ico">&#9742;</div><div><b>Questions?</b><p>Call or text us:<br><a href="tel:+18451234567"><b>(845) 123-4567</b></a></p></div></div>
+<div class="box"><div class="ico">&#128737;</div><div><b>Your Information Is Secure</b><p>Your information is kept confidential and used only for your eviction request.</p></div></div></aside></div>
+<script src="start.js"></script>
+<footer class="site"><div class="wrap"><div class="grid">
+<div><a class="logo" href="index.html"><svg width="58" height="44" viewBox="0 0 58 44" aria-hidden="true"><path d="M4 22 L24 4 L44 22" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/><rect x="34" y="6" width="6" height="10" fill="#fff"/><path d="M12 20 v14 h24 v-14" fill="none" stroke="#fff" stroke-width="4"/><text x="17" y="31" font-size="9" font-weight="800" fill="#fff" font-family="Arial">EP</text><path d="M2 36 Q28 48 56 30" fill="none" stroke="#f58220" stroke-width="3"/></svg><div><b>Evict <span>Point</span></b><small>— LANDLORD &amp; TENANT SOLUTIONS —</small></div></a>
+<p>Professional eviction services for landlords in New York. We handle the paperwork, court filings, and process from start to finish.</p></div>
+<div><h4>Quick Links</h4><ul><li><a href="index.html">Home</a></li><li><a href="services.html">Services</a></li><li><a href="about.html">About Us</a></li><li><a href="service-areas.html">Service Areas</a></li><li><a href="resources.html">Resources</a></li><li><a href="contact.html">Contact</a></li><li><a href="start.html">Start Your Eviction</a></li></ul></div>
+<div><h4>Contact Us</h4><ul><li><a href="tel:+18451234567">&#9742; (845) 123-4567 &nbsp;<span style="color:var(--orange)">CALL OR TEXT</span></a></li><li><a href="mailto:info@evictpoint.com">&#9993; info@evictpoint.com</a></li><li>&#9906; P.O. Box 242, Central Valley, NY 10917</li></ul></div>
+<div><h4>Hours</h4><p>Mon–Thu 9am–6pm<br>Fri 9am–1pm</p></div>
+</div><div class="disc">&copy; <span id="yr"></span> Evict Point. Evict Point is not a law firm and does not provide legal advice. For legal advice, consult a licensed New York attorney.</div></div></footer>
+<script>document.getElementById('yr').textContent=new Date().getFullYear()</script>
+</body></html>
