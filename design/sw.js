@@ -6,9 +6,9 @@
  * under the same name, so they're cache-first and only downloaded once.
  */
 'use strict';
-const CACHE = 'linear-design-v4';
+const CACHE = 'linear-design-v5';
 const CORE = ['/design/', '/design/core.js', '/design/templates.js', '/design/app.js', '/design/qr.js', '/design/bgremove.js', '/design/pptx.js',
-  '/design/vendor/fonts/fonts.css', '/design/assets/icon.png?v=2', '/design/manifest.webmanifest', '/photos/assets/logo-white.png'];
+  '/design/vendor/fonts/fonts.css', '/design/assets/icon.png?v=3', '/design/manifest.webmanifest', '/photos/assets/logo-white.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
