@@ -57,10 +57,12 @@ td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-
 .cat div:first-child{display:flex;justify-content:space-between}
 .cat div:first-child span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
 .sync{font-size:.8rem;color:var(--muted);align-self:center}
-dialog{border:1px solid var(--line);border-radius:14px;padding:24px;background:var(--card);color:var(--ink);width:min(360px,calc(100% - 32px));box-shadow:0 20px 60px rgba(0,0,0,.25)}
-dialog::backdrop{background:rgba(15,23,42,.45)}
-dialog h2{font-size:1.1rem}dialog p{color:var(--muted);font-size:.88rem;margin:0 0 14px}
-dialog form{grid-template-columns:1fr}.err{color:var(--out);font-size:.85rem;min-height:1.2em}
+#gate{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:16px;z-index:10}#gate[hidden]{display:none}
+.gbox{border:1px solid var(--line);border-radius:14px;padding:24px;background:var(--card);color:var(--ink);width:min(360px,calc(100% - 32px));box-shadow:0 20px 60px rgba(0,0,0,.25)}
+body.locked header,body.locked main{display:none}
+.gbox{text-align:center}
+.gbox h2{font-size:1.2rem}.gbox p{color:var(--muted);font-size:.88rem;margin:0 0 14px}
+.gbox form{grid-template-columns:1fr}.err{color:var(--out);font-size:.85rem;min-height:1.2em}
 .linkbtn{border:0;background:none;color:var(--muted);font-weight:500;padding:8px}
 .empty{color:var(--muted);text-align:center;padding:20px;font-size:.9rem}
 .tablewrap{overflow-x:auto}
@@ -113,16 +115,16 @@ dialog form{grid-template-columns:1fr}.err{color:var(--out);font-size:.85rem;min
 <div class="tablewrap"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
 </div>
 </main>
-<dialog id="dlg">
-  <h2>Sign in</h2>
-  <p>Sign in to sync your budget across all your devices.</p>
-  <form id="lf" method="dialog">
+<div id="gate" hidden><div class="gbox">
+  <div class="logo" style="margin:0 auto 16px;width:44px;height:44px;font-size:1.3rem">$</div>
+  <h2>This page is private</h2>
+  <p>If you are the owner, please sign in.</p>
+  <form id="lf">
     <input type="password" name="pw" placeholder="Password" autocomplete="current-password" required>
     <div class="err" id="lerr"></div>
     <button id="lbtn">Sign in</button>
-    <button type="button" class="linkbtn" id="lcancel">Cancel</button>
   </form>
-</dialog>
+</div></div>
 <script>
 const API='https://money-api.linearit.co/api';
 const LOCAL_KEY='money-app-v1',CLOUD_KEY='money-cloud-v1',TOKEN_KEY='money-token';
@@ -193,15 +195,15 @@ $('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{t
 let deferred;addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').hidden=false;});
 $('install').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('install').hidden=true;};
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!navigator.standalone)$('iosTip').hidden=false;
-function acctUI(){$('acct').textContent=token?'Sign out':'Sign in';if(!token)setSync('Local only');}
-function signOut(expired){token=null;ls.del(TOKEN_KEY);ls.del(CLOUD_KEY);load();render();acctUI();if(expired)$('dlg').showModal();}
-$('acct').onclick=()=>{if(token){if(confirm('Sign out on this device? Your data stays saved in your account.'))signOut();}else{$('lerr').textContent='';$('dlg').showModal();}};
-$('lcancel').onclick=()=>$('dlg').close();
+// Private app: nothing is shown until the owner signs in.
+function acctUI(){$('acct').textContent='Sign out';$('gate').hidden=!!token;document.body.classList.toggle('locked',!token);if(!token){data={tx:[],budgets:{}};render();setTimeout(()=>$('lf').pw.focus(),0);}}
+function signOut(expired){token=null;ls.del(TOKEN_KEY);ls.del(CLOUD_KEY);acctUI();if(expired)$('lerr').textContent='Your session expired. Please sign in again.';}
+$('acct').onclick=()=>{if(confirm('Sign out on this device? Your data stays saved in your account.'))signOut();};
 $('lf').onsubmit=async e=>{
   e.preventDefault();const pw=e.target.pw.value;$('lerr').textContent='';$('lbtn').disabled=true;
   try{
     const r=await api('/login',{method:'POST',body:JSON.stringify({password:pw})});
-    token=r.token;ls.set(TOKEN_KEY,token);e.target.pw.value='';$('dlg').close();
+    token=r.token;ls.set(TOKEN_KEY,token);e.target.pw.value='';
     const server=await api('/data');
     let local;try{local=JSON.parse(ls.get(LOCAL_KEY))}catch(_){}
     if(local&&local.tx&&local.tx.length&&!server.tx.length&&confirm('Upload the '+local.tx.length+' entries saved on this device to your account?')){
@@ -212,7 +214,7 @@ $('lf').onsubmit=async e=>{
     $('lerr').textContent=err.message==='wrong_password'?'Wrong password.':err.message==='too_many_attempts'?'Too many attempts. Try again in 15 minutes.':'Could not sign in: '+err.message;
   }finally{$('lbtn').disabled=false;}
 };
-acctUI();load();render();pull();
+load();render();acctUI();pull();
 addEventListener('focus',pull);addEventListener('online',pull);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
