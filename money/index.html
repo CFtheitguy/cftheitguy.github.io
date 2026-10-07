@@ -4,84 +4,105 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2f6fed">
+<meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Money – Simple Budget</title>
 <style>
-:root{--bg:#f5f7fb;--card:#fff;--ink:#1d2433;--muted:#6b7385;--line:#e3e7ef;--accent:#2f6fed;--in:#1a9b5b;--out:#d64545}
-@media (prefers-color-scheme:dark){:root{--bg:#11151c;--card:#1a202b;--ink:#e8ecf3;--muted:#9aa3b5;--line:#2a3240;--accent:#5b8ff9;--in:#3cc47f;--out:#f06b6b}}
+:root{--bg:#f6f7f9;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e5e7eb;--soft:#f1f5f9;--accent:#0f172a;--in:#059669;--out:#dc2626;--ring:rgba(15,23,42,.12);--shadow:0 1px 2px rgba(15,23,42,.04),0 4px 16px rgba(15,23,42,.04)}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0f17;--card:#121826;--ink:#e5e9f0;--muted:#8b95a7;--line:#222b3a;--soft:#1a2232;--accent:#e5e9f0;--in:#34d399;--out:#f87171;--ring:rgba(229,233,240,.15);--shadow:none}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-main{max-width:720px;margin:0 auto;padding:24px 16px}
-h1{margin:0 0 4px;font-size:1.8rem}
-.sub{color:var(--muted);margin:0 0 20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.stat .lbl{color:var(--muted);font-size:.85rem}
-.stat .val{font-size:1.4rem;font-weight:700}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+header{background:var(--card);border-bottom:1px solid var(--line)}
+.hwrap{max-width:880px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;letter-spacing:-.01em}
+.logo{width:30px;height:30px;border-radius:8px;background:var(--ink);color:var(--card);display:grid;place-items:center;font-weight:700}
+.hact{display:flex;gap:6px;flex-wrap:wrap}
+main{max-width:880px;margin:0 auto;padding:24px 16px 48px}
+.tip{color:var(--muted);font-size:.85rem;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
+h2{font-size:.95rem;font-weight:600;margin:0 0 14px;letter-spacing:-.01em}
+.bar-top{display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--muted);font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+.stat .lbl{color:var(--muted);font-size:.78rem;font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.stat .val{font-size:1.6rem;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:4px}
 .in{color:var(--in)}.out{color:var(--out)}
-form{display:grid;grid-template-columns:2fr 1.2fr 1fr 1fr auto;gap:8px}
-.seg{display:flex;gap:8px;margin-bottom:12px}.seg button{flex:1;background:var(--line);color:var(--ink)}
-.seg button.on[data-t=out]{background:var(--out);color:#fff}.seg button.on[data-t=in]{background:var(--in);color:#fff}
-input,select,button{font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);min-width:0}
-button{background:var(--accent);color:#fff;border:0;cursor:pointer;font-weight:600}
-table{width:100%;border-collapse:collapse}
-td,th{padding:8px 4px;border-bottom:1px solid var(--line);text-align:left}
-th{color:var(--muted);font-weight:500;font-size:.85rem}
-td.amt{text-align:right;font-variant-numeric:tabular-nums}
-.del{background:none;color:var(--muted);padding:4px 8px}
-.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:4px}
-.bar span{display:block;height:100%;background:var(--out)}
-.cat{margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+form input[name=desc],form button{grid-column:1/-1}
+.seg{display:flex;background:var(--soft);padding:4px;border-radius:10px;margin-bottom:14px}
+.seg button{flex:1;background:transparent;color:var(--muted);border:0;padding:8px;box-shadow:none}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.seg button.on[data-t=out]{color:var(--out)}.seg button.on[data-t=in]{color:var(--in)}
+input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);min-width:0;width:100%;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{border-color:var(--muted);box-shadow:0 0 0 3px var(--ring)}
+button,.btn{font:inherit;font-size:.88rem;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-weight:600;transition:opacity .15s,background .15s}
+button:hover,.btn:hover{background:var(--soft)}
+form button{background:var(--accent);color:var(--card);border:0;padding:11px}
+form button:hover{opacity:.9;background:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+td,th{padding:12px 6px;border-bottom:1px solid var(--line);text-align:left}
+tr:last-child td{border-bottom:0}
+th{color:var(--muted);font-weight:500;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+td:first-child{color:var(--muted);white-space:nowrap}
+td:nth-child(3){color:var(--muted)}
+td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.del{border:0;background:none;color:var(--muted);padding:4px 8px;opacity:.5}
+.del:hover{opacity:1;color:var(--out);background:none}
+.bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:6px}
+.bar span{display:block;height:100%;background:var(--ink);border-radius:3px}
+.cat{margin-bottom:14px;font-size:.9rem}
 .cat div:first-child{display:flex;justify-content:space-between}
-.btnlike{background:var(--accent);color:#fff;padding:10px;border-radius:8px;font-weight:600;cursor:pointer}
-.empty{color:var(--muted);text-align:center;padding:12px}
-.tools{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-@media (max-width:600px){form{grid-template-columns:1fr 1fr}form input[name=desc]{grid-column:1/-1}form button{grid-column:1/-1}.stats .val{font-size:1.1rem}}
+.cat div:first-child span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
+.empty{color:var(--muted);text-align:center;padding:20px;font-size:.9rem}
+.tablewrap{overflow-x:auto}
+@media (max-width:700px){.grid2{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:12px}.stat .val{font-size:1.15rem}td:nth-child(3),th:nth-child(3){display:none}}
 </style>
 </head>
 <body>
+<header><div class="hwrap">
+  <div class="brand"><div class="logo">$</div>Money</div>
+  <div class="hact">
+    <button id="install" hidden>Install app</button>
+    <button id="exp" type="button">Export</button>
+    <label class="btn">Import<input type="file" id="imp" accept=".json,application/json" hidden></label>
+  </div>
+</div></header>
 <main>
-<h1>Money</h1>
-<p class="sub">A simple budget tracker. Your data is saved on this device only.</p>
-<div class="card tools">
-  <button id="install" hidden>Install app</button>
-  <button id="exp" type="button">Save backup file</button>
-  <label class="btnlike">Load backup file<input type="file" id="imp" accept=".json,application/json" hidden></label>
-</div>
-<p class="sub" id="iosTip" hidden>On iPhone: tap Share, then "Add to Home Screen" to install.</p>
+<p class="tip" id="iosTip" hidden>To install on iPhone: tap Share, then “Add to Home Screen”.</p>
 
-<div class="card tools">
-  <label>Month <input type="month" id="month"></label>
-  <label>Budget $ <input type="number" id="budget" min="0" step="1" style="width:120px"></label>
+<div class="bar-top">
+  <label class="field">Month<input type="month" id="month"></label>
+  <label class="field">Monthly budget<input type="number" id="budget" min="0" step="1" placeholder="Optional" style="width:160px"></label>
 </div>
 
-<div class="card stats">
+<div class="stats">
   <div class="stat"><div class="lbl">Income</div><div class="val in" id="sIn">$0</div></div>
   <div class="stat"><div class="lbl">Spent</div><div class="val out" id="sOut">$0</div></div>
-  <div class="stat"><div class="lbl">Left</div><div class="val" id="sLeft">$0</div></div>
+  <div class="stat"><div class="lbl">Remaining</div><div class="val" id="sLeft">$0</div></div>
 </div>
 
-<div class="card">
-<div class="seg" id="seg"><button type="button" data-t="out" class="on">− Add Expense</button><button type="button" data-t="in">+ Add Income</button></div>
+<div class="grid2">
+<div class="card" style="margin:0">
+<h2>New entry</h2>
+<div class="seg" id="seg"><button type="button" data-t="out" class="on">Expense</button><button type="button" data-t="in">Income</button></div>
 <form id="f">
   <input type="hidden" name="type" value="out">
   <input name="desc" placeholder="Description" required>
-  <input name="date" type="date" required>
   <input name="amount" type="number" step="0.01" min="0.01" placeholder="Amount" required>
-  <select name="cat">
-    
-  </select>
+  <input name="date" type="date" required>
+  <select name="cat" style="grid-column:1/-1"></select>
   <button>Add</button>
 </form>
 </div>
+<div class="card" style="margin:0"><h2>Spending by category</h2><div id="cats"></div></div>
+</div>
 
-<div class="card"><h3 style="margin-top:0">Spending by category</h3><div id="cats"></div></div>
-
-<div class="card">
-<h3 style="margin-top:0">Transactions</h3>
-<table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody id="list"></tbody></table>
+<div class="card" style="margin-top:16px">
+<h2>Transactions</h2>
+<div class="tablewrap"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
 </div>
 </main>
 <script>
@@ -103,7 +124,7 @@ function render(){
   $('sIn').textContent=fmt(inc);$('sOut').textContent=fmt(out);
   const left=(budget!=null&&budget!=='')?budget-out:inc-out;
   $('sLeft').textContent=fmt(left);$('sLeft').className='val '+(left<0?'out':'in');
-  $('list').innerHTML=tx.length?tx.map(t=>`<tr><td>${t.date.slice(5)}</td><td>${esc(t.desc)}</td><td>${esc(t.cat)}</td><td class="amt ${t.type}">${t.type==='out'?'-':'+'}${fmt(t.amount)}</td><td><button class="del" data-id="${t.id}" title="Delete">✕</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No transactions this month.</td></tr>';
+  $('list').innerHTML=tx.length?tx.map(t=>`<tr><td>${t.date.slice(5)}</td><td>${esc(t.desc)}</td><td>${esc(t.cat)}</td><td class="amt ${t.type}">${t.type==='out'?'-':'+'}${fmt(t.amount)}</td><td><button class="del" data-id="${t.id}" title="Delete" aria-label="Delete">✕</button></td></tr>`).join(''):'<tr><td colspan="5" class="empty">No transactions this month.</td></tr>';
   const cats={};tx.filter(t=>t.type==='out').forEach(t=>cats[t.cat]=(cats[t.cat]||0)+t.amount);
   const max=Math.max(...Object.values(cats),1);
   $('cats').innerHTML=Object.keys(cats).length?Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([c,v])=>`<div class="cat"><div><span>${esc(c)}</span><span>${fmt(v)}</span></div><div class="bar"><span style="width:${v/max*100}%"></span></div></div>`).join(''):'<div class="empty">No expenses yet.</div>';
@@ -116,7 +137,7 @@ $('f').onsubmit=e=>{
 };
 $('list').onclick=e=>{const id=e.target.dataset.id;if(id&&confirm('Delete this transaction?')){data.tx=data.tx.filter(t=>t.id!==id);save();render();}};
 const CATS={out:['Food','Housing','Transport','Bills','Shopping','Health','Fun','Other'],in:['Salary','Business','Side job','Gift','Refund','Other income']};
-function setType(t){const f=$('f');f.type.value=t;f.cat.innerHTML=CATS[t].map(c=>`<option>${c}</option>`).join('');f.desc.placeholder=t==='in'?'Income source (e.g. Paycheck)':'Description';f.querySelector('button').textContent=t==='in'?'Add income':'Add expense';f.querySelector('button').style.background=t==='in'?'var(--in)':'var(--out)';document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));}
+function setType(t){const f=$('f');f.type.value=t;f.cat.innerHTML=CATS[t].map(c=>`<option>${c}</option>`).join('');f.desc.placeholder=t==='in'?'Income source (e.g. Paycheck)':'Description';f.querySelector('button').textContent=t==='in'?'Add income':'Add expense';document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));}
 $('seg').onclick=e=>{if(e.target.dataset.t)setType(e.target.dataset.t);};
 setType('out');
 function defDate(){const m=$('month').value,t=new Date().toISOString().slice(0,10);$('f').date.value=t.startsWith(m)?t:m+'-01';}
