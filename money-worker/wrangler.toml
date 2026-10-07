@@ -1,0 +1,33 @@
+# Cloudflare Worker for the Money budgeting app — money-api.linearit.co
+# ---------------------------------------------------------------------
+# Separate, isolated Worker (shares nothing with chat / vault / device).
+# Front-end lives on GitHub Pages at https://www.linearit.co/money/.
+#
+# ---- ONE-TIME SETUP (run from this folder) ----------------------------------
+#   1. cd money-worker && npm install
+#   2. npx wrangler d1 create linear_money
+#      ...then paste the printed database_id below into `database_id`.
+#   3. Set the encrypted secrets (they survive every deploy):
+#        npx wrangler secret put APP_PASSWORD   # the password you'll log in with
+#        npx wrangler secret put AUTH_SECRET    # any long random string (>=32 chars)
+#   4. npx wrangler deploy
+#
+# Deploy also creates the money-api.linearit.co Custom Domain + DNS record.
+# Tables create themselves on first request — no schema step.
+# Secrets are intentionally NOT in this file (public repo).
+
+name = "linear-money"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+routes = [
+  { pattern = "money-api.linearit.co", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "linear_money"
+database_id = "PASTE_DATABASE_ID_HERE"
+
+[vars]
+ALLOW_ORIGIN = "https://www.linearit.co"
