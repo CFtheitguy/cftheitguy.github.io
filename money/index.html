@@ -56,6 +56,12 @@ td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-
 .cat{margin-bottom:14px;font-size:.9rem}
 .cat div:first-child{display:flex;justify-content:space-between}
 .cat div:first-child span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
+.sync{font-size:.8rem;color:var(--muted);align-self:center}
+dialog{border:1px solid var(--line);border-radius:14px;padding:24px;background:var(--card);color:var(--ink);width:min(360px,calc(100% - 32px));box-shadow:0 20px 60px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(15,23,42,.45)}
+dialog h2{font-size:1.1rem}dialog p{color:var(--muted);font-size:.88rem;margin:0 0 14px}
+dialog form{grid-template-columns:1fr}.err{color:var(--out);font-size:.85rem;min-height:1.2em}
+.linkbtn{border:0;background:none;color:var(--muted);font-weight:500;padding:8px}
 .empty{color:var(--muted);text-align:center;padding:20px;font-size:.9rem}
 .tablewrap{overflow-x:auto}
 @media (max-width:700px){.grid2{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:12px}.stat .val{font-size:1.15rem}td:nth-child(3),th:nth-child(3){display:none}}
@@ -66,6 +72,8 @@ td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-
   <div class="brand"><div class="logo">$</div>Money</div>
   <div class="hact">
     <button id="install" hidden>Install app</button>
+    <span id="sync" class="sync"></span>
+    <button id="acct" type="button">Sign in</button>
     <button id="exp" type="button">Export</button>
     <label class="btn">Import<input type="file" id="imp" accept=".json,application/json" hidden></label>
   </div>
@@ -105,11 +113,46 @@ td.amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;white-
 <div class="tablewrap"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
 </div>
 </main>
+<dialog id="dlg">
+  <h2>Sign in</h2>
+  <p>Sign in to sync your budget across all your devices.</p>
+  <form id="lf" method="dialog">
+    <input type="password" name="pw" placeholder="Password" autocomplete="current-password" required>
+    <div class="err" id="lerr"></div>
+    <button id="lbtn">Sign in</button>
+    <button type="button" class="linkbtn" id="lcancel">Cancel</button>
+  </form>
+</dialog>
 <script>
-const KEY='money-app-v1';
-let data;try{data=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){data={}}
-data.tx=data.tx||[];data.budgets=data.budgets||{};
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}};
+const API='https://money-api.linearit.co/api';
+const LOCAL_KEY='money-app-v1',CLOUD_KEY='money-cloud-v1',TOKEN_KEY='money-token';
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let token=ls.get(TOKEN_KEY);
+const KEY=()=>token?CLOUD_KEY:LOCAL_KEY;
+let data;
+function load(){try{data=JSON.parse(ls.get(KEY()))||{}}catch(e){data={}}data.tx=data.tx||[];data.budgets=data.budgets||{};}
+load();
+const save=()=>ls.set(KEY(),JSON.stringify(data));
+async function api(path,opt={}){
+  const r=await fetch(API+path,{...opt,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})}});
+  if(r.status===401&&token){signOut(true);throw new Error('Session expired, please sign in again.');}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+function setSync(t){const el=document.getElementById('sync');if(el)el.textContent=t;}
+// Push a change to the server when signed in; on failure re-pull so the screen matches the database.
+function push(path,method,body){
+  if(!token)return;
+  setSync('Saving…');
+  api(path,{method,body:body===undefined?undefined:JSON.stringify(body)}).then(()=>setSync('Synced')).catch(e=>{setSync('Not synced');alert('Could not save to your account: '+e.message);pull();});
+}
+async function pull(){
+  if(!token)return;
+  setSync('Syncing…');
+  try{const d=await api('/data');data={tx:d.tx,budgets:d.budgets};save();render();setSync('Synced');}
+  catch(e){setSync(navigator.onLine?'Not synced':'Offline');}
+}
 const $=id=>document.getElementById(id);
 const fmt=n=>(n<0?'-':'')+'$'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -132,10 +175,10 @@ function render(){
 $('f').onsubmit=e=>{
   e.preventDefault();const f=e.target;const m=$('month').value;
   const date=f.date.value;
-  data.tx.push({id:Date.now()+''+Math.random(),desc:f.desc.value.trim(),amount:parseFloat(f.amount.value),type:f.type.value,cat:f.cat.value,date});
-  save();f.desc.value='';f.amount.value='';if(date.slice(0,7)!==m){$('month').value=date.slice(0,7);}f.desc.focus();render();
+  const t={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),desc:f.desc.value.trim(),amount:parseFloat(f.amount.value),type:f.type.value,cat:f.cat.value,date};
+  data.tx.push(t);save();push('/tx/'+t.id,'PUT',t);f.desc.value='';f.amount.value='';if(date.slice(0,7)!==m){$('month').value=date.slice(0,7);}f.desc.focus();render();
 };
-$('list').onclick=e=>{const id=e.target.dataset.id;if(id&&confirm('Delete this transaction?')){data.tx=data.tx.filter(t=>t.id!==id);save();render();}};
+$('list').onclick=e=>{const id=e.target.dataset.id;if(id&&confirm('Delete this transaction?')){data.tx=data.tx.filter(t=>t.id!==id);save();push('/tx/'+encodeURIComponent(id),'DELETE');render();}};
 const CATS={out:['Food','Housing','Transport','Bills','Shopping','Health','Fun','Other'],in:['Salary','Business','Side job','Gift','Refund','Other income']};
 function setType(t){const f=$('f');f.type.value=t;f.cat.innerHTML=CATS[t].map(c=>`<option>${c}</option>`).join('');f.desc.placeholder=t==='in'?'Income source (e.g. Paycheck)':'Description';f.querySelector('button').textContent=t==='in'?'Add income':'Add expense';document.querySelectorAll('#seg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));}
 $('seg').onclick=e=>{if(e.target.dataset.t)setType(e.target.dataset.t);};
@@ -143,13 +186,34 @@ setType('out');
 function defDate(){const m=$('month').value,t=new Date().toISOString().slice(0,10);$('f').date.value=t.startsWith(m)?t:m+'-01';}
 defDate();
 $('month').onchange=()=>{defDate();render();};
-$('budget').onchange=e=>{const v=e.target.value;if(v==='')delete data.budgets[$('month').value];else data.budgets[$('month').value]=parseFloat(v);save();render();};
+$('budget').onchange=e=>{const v=e.target.value,m=$('month').value;if(v==='')delete data.budgets[m];else data.budgets[m]=parseFloat(v);save();push('/budget/'+m,'PUT',{amount:v===''?null:parseFloat(v)});render();};
 render();
 $('exp').onclick=()=>{const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='money-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
-$('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!Array.isArray(d.tx))throw 0;if(!confirm('Replace current data with this backup?'))return;data={tx:d.tx,budgets:d.budgets||{}};save();render();}catch(_){alert('That file is not a valid Money backup.');}});e.target.value='';};
+$('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!Array.isArray(d.tx))throw 0;if(!confirm('Replace current data with this backup?'))return;data={tx:d.tx,budgets:d.budgets||{}};save();push('/data','PUT',data);render();}catch(_){alert('That file is not a valid Money backup.');}});e.target.value='';};
 let deferred;addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').hidden=false;});
 $('install').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('install').hidden=true;};
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!navigator.standalone)$('iosTip').hidden=false;
+function acctUI(){$('acct').textContent=token?'Sign out':'Sign in';if(!token)setSync('Local only');}
+function signOut(expired){token=null;ls.del(TOKEN_KEY);ls.del(CLOUD_KEY);load();render();acctUI();if(expired)$('dlg').showModal();}
+$('acct').onclick=()=>{if(token){if(confirm('Sign out on this device? Your data stays saved in your account.'))signOut();}else{$('lerr').textContent='';$('dlg').showModal();}};
+$('lcancel').onclick=()=>$('dlg').close();
+$('lf').onsubmit=async e=>{
+  e.preventDefault();const pw=e.target.pw.value;$('lerr').textContent='';$('lbtn').disabled=true;
+  try{
+    const r=await api('/login',{method:'POST',body:JSON.stringify({password:pw})});
+    token=r.token;ls.set(TOKEN_KEY,token);e.target.pw.value='';$('dlg').close();
+    const server=await api('/data');
+    let local;try{local=JSON.parse(ls.get(LOCAL_KEY))}catch(_){}
+    if(local&&local.tx&&local.tx.length&&!server.tx.length&&confirm('Upload the '+local.tx.length+' entries saved on this device to your account?')){
+      await api('/data',{method:'PUT',body:JSON.stringify(local)});
+    }
+    acctUI();await pull();
+  }catch(err){
+    $('lerr').textContent=err.message==='wrong_password'?'Wrong password.':err.message==='too_many_attempts'?'Too many attempts. Try again in 15 minutes.':'Could not sign in: '+err.message;
+  }finally{$('lbtn').disabled=false;}
+};
+acctUI();load();render();pull();
+addEventListener('focus',pull);addEventListener('online',pull);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
