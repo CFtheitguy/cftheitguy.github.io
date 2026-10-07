@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6fed">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>Money – Simple Budget</title>
 <style>
 :root{--bg:#f5f7fb;--card:#fff;--ink:#1d2433;--muted:#6b7385;--line:#e3e7ef;--accent:#2f6fed;--in:#1a9b5b;--out:#d64545}
@@ -29,6 +33,7 @@ td.amt{text-align:right;font-variant-numeric:tabular-nums}
 .bar span{display:block;height:100%;background:var(--out)}
 .cat{margin-bottom:10px}
 .cat div:first-child{display:flex;justify-content:space-between}
+.btnlike{background:var(--accent);color:#fff;padding:10px;border-radius:8px;font-weight:600;cursor:pointer}
 .empty{color:var(--muted);text-align:center;padding:12px}
 .tools{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 @media (max-width:600px){form{grid-template-columns:1fr 1fr}form input[name=desc]{grid-column:1/-1}form button{grid-column:1/-1}.stats .val{font-size:1.1rem}}
@@ -37,7 +42,13 @@ td.amt{text-align:right;font-variant-numeric:tabular-nums}
 <body>
 <main>
 <h1>Money</h1>
-<p class="sub">A simple budget tracker. Data stays in your browser.</p>
+<p class="sub">A simple budget tracker. Your data is saved on this device only.</p>
+<div class="card tools">
+  <button id="install" hidden>Install app</button>
+  <button id="exp" type="button">Save backup file</button>
+  <label class="btnlike">Load backup file<input type="file" id="imp" accept=".json,application/json" hidden></label>
+</div>
+<p class="sub" id="iosTip" hidden>On iPhone: tap Share, then "Add to Home Screen" to install.</p>
 
 <div class="card tools">
   <label>Month <input type="month" id="month"></label>
@@ -104,6 +115,12 @@ $('list').onclick=e=>{const id=e.target.dataset.id;if(id&&confirm('Delete this t
 $('month').onchange=render;
 $('budget').onchange=e=>{const v=e.target.value;if(v==='')delete data.budgets[$('month').value];else data.budgets[$('month').value]=parseFloat(v);save();render();};
 render();
+$('exp').onclick=()=>{const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='money-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
+$('imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!Array.isArray(d.tx))throw 0;if(!confirm('Replace current data with this backup?'))return;data={tx:d.tx,budgets:d.budgets||{}};save();render();}catch(_){alert('That file is not a valid Money backup.');}});e.target.value='';};
+let deferred;addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('install').hidden=false;});
+$('install').onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$('install').hidden=true;};
+if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!navigator.standalone)$('iosTip').hidden=false;
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
 </html>
