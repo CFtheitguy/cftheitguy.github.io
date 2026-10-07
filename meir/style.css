@@ -123,3 +123,5 @@ footer .i,.areas .i{color:var(--goldl)}.areas .i{color:var(--gold2)}
 .badges i{display:flex}.badges i .i{width:22px;height:22px}
 .ok .tick .i{width:34px;height:34px;stroke-width:3}
 .files .i{color:var(--gold2);margin-right:4px}.files b{font-weight:500}
+nav.main a,.callbtn b{white-space:nowrap}
+@media(max-width:1100px) and (min-width:901px){nav.main{gap:14px;font-size:.84rem}header.site .logo img{width:170px}.callbtn{padding:8px 12px}.callbtn b{font-size:1rem}}
