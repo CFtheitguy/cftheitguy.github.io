@@ -2,7 +2,7 @@
 // Requests are posted to Formspree, which emails them to the address set on the
 // Formspree form. While SUBMIT_URL is empty (or if Formspree can't be reached)
 // the visitor's email app opens instead, addressed to SUBMIT_EMAIL.
-var SUBMIT_URL = '';                 // e.g. 'https://formspree.io/f/abcdwxyz'
+var SUBMIT_URL = 'https://formspree.io/f/myekwnze';
 var SUBMIT_EMAIL = 'devoriy@evictpoint.com';
 // File uploads need a paid Formspree plan. While false, document names are
 // listed in the email and the visitor is asked to email the files.
