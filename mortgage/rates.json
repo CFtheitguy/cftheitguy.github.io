@@ -1,15 +1,10 @@
 {
  "source": "Freddie Mac Primary Mortgage Market Survey (via FRED)",
- "asOf": "2026-10-01",
- "rate30": 7.28,
- "rate15": 6.6,
- "checked": "2026-10-07T18:58:31Z",
+ "asOf": "2026-10-08",
+ "rate30": 7.4,
+ "rate15": 6.73,
+ "checked": "2026-10-08T18:53:11Z",
  "history": [
-  {
-   "date": "2025-10-09",
-   "rate30": 6.3,
-   "rate15": 5.53
-  },
   {
    "date": "2025-10-16",
    "rate30": 6.27,
@@ -264,6 +259,11 @@
    "date": "2026-10-01",
    "rate30": 7.28,
    "rate15": 6.6
+  },
+  {
+   "date": "2026-10-08",
+   "rate30": 7.4,
+   "rate15": 6.73
   }
  ]
 }
