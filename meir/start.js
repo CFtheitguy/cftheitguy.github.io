@@ -4,9 +4,9 @@
 // the visitor's email app opens instead, addressed to SUBMIT_EMAIL.
 var SUBMIT_URL = 'https://formspree.io/f/myekwnze';
 var SUBMIT_EMAIL = 'devoriy@evictpoint.com';
-// File uploads need a paid Formspree plan. While false, document names are
+// File uploads need a paid Formspree plan (enabled). If set to false, document names are
 // listed in the email and the visitor is asked to email the files.
-var SEND_FILES = false;
+var SEND_FILES = true;
 var DRAFT_KEY = 'evictpoint-draft';
 
 (function () {
