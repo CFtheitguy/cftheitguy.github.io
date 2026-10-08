@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Start an eviction – Evict Point</title><meta name="description" content="Eviction services for landlords across New York State: notices, petitions, process serving and court coordination.">
+<link rel="icon" type="image/png" href="img/favicon.png"><link rel="apple-touch-icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=ebcdd4b2"></head><body id="top">
+<header class="top"><div class="wrap">
+<a class="logo" href="index.html"><img src="img/logo.png" alt="Evict Point – Landlord &amp; Tenant Solutions" width="168" height="52"></a>
+<nav id="nav"><a href="index.html#services">Services</a><a href="index.html#process">How it works</a><a href="index.html#about">About</a><a href="index.html#areas">Service areas</a><a href="index.html#faq">FAQ</a></nav>
+<a class="phone" href="tel:+18451234567">(845) 123-4567</a>
+<button class="menu" aria-label="Menu" onclick="document.getElementById('nav').classList.toggle('open')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+</div></header>
+<main>
+<div class="wrap narrow formhead">
+<div class="eyebrow">Start an eviction</div>
+<h1>Tell us about the case</h1>
+<p>Six short steps. Your answers are saved in this browser as you go, so you can come back to finish.</p>
+</div>
+<div class="wrap narrow flow">
+<div class="progress" id="stepper"><div class="ptext"><span id="pLabel"></span><span id="pCount"></span></div><div class="bar"><i id="pBar"></i></div></div>
+<form id="ev" novalidate>
+
+<div class="step" data-title="Property">
+<h2>The property</h2><p class="sub">The address of the rental unit.</p>
+<div class="fields"><div class="c4"><label>Street address</label><input type="text" name="p_street" required ><div class="errmsg">This field is required.</div></div><div class="c2"><label>Unit / apt <span class=opt>(optional)</span></label><input type="text" name="p_unit" ><div class="errmsg">This field is required.</div></div>
+<div class="c2"><label>City</label><input type="text" name="p_city" required ><div class="errmsg">This field is required.</div></div><div class="c2"><label>State</label><select name="p_state"><option selected>New York</option><option>New Jersey</option><option>Connecticut</option><option>Pennsylvania</option><option>Other</option></select></div><div class="c2"><label>ZIP code</label><input type="text" name="p_zip" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5"><div class="errmsg">This field is required.</div></div>
+<div class="c3"><label>County <span class=opt>(optional)</span></label><select name="p_county"><option value="">Select&hellip;</option><option>Orange</option><option>Rockland</option><option>Sullivan</option><option>Ulster</option><option>Dutchess</option><option>Putnam</option><option>Westchester</option><option>Bronx</option><option>Kings (Brooklyn)</option><option>New York (Manhattan)</option><option>Queens</option><option>Richmond (Staten Island)</option><option>Nassau</option><option>Suffolk</option><option>Other</option></select></div><div class="c3"><label>Property type <span class=opt>(optional)</span></label><select name="p_type"><option value="">Select&hellip;</option><option>Single-family house</option><option>2–4 family</option><option>Apartment building (5+)</option><option>Commercial</option><option>Other</option></select></div></div></div>
+
+<div class="step" data-title="Landlord">
+<h2>About you</h2><p class="sub">So we can reach you about the case.</p>
+<div class="fields"><div class="c3"><label>Full name</label><input type="text" name="l_name" required ><div class="errmsg">This field is required.</div></div><div class="c3"><label>Company or LLC <span class=opt>(optional)</span></label><input type="text" name="l_company" ><div class="errmsg">This field is required.</div></div>
+<div class="c3"><label>Phone</label><input type="tel" name="l_phone" required ><div class="errmsg">This field is required.</div></div><div class="c3"><label>Email</label><input type="email" name="l_email" required ><div class="errmsg">This field is required.</div></div>
+<div class="c6"><label>Mailing address</label><input type="text" name="l_street" required ><div class="errmsg">This field is required.</div></div><div class="c2"><label>City</label><input type="text" name="l_city" required ><div class="errmsg">This field is required.</div></div><div class="c2"><label>State</label><select name="l_state"><option selected>New York</option><option>New Jersey</option><option>Connecticut</option><option>Pennsylvania</option><option>Other</option></select></div><div class="c2"><label>ZIP code</label><input type="text" name="l_zip" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5"><div class="errmsg">This field is required.</div></div></div></div>
+
+<div class="step" data-title="Tenant">
+<h2>The tenant</h2><p class="sub">Whatever contact details you have.</p>
+<div class="fields"><div class="c6"><label>Tenant&rsquo;s full name</label><input type="text" name="t_name" required ><div class="errmsg">This field is required.</div></div><div class="c3"><label>Phone <span class=opt>(optional)</span></label><input type="tel" name="t_phone" ><div class="errmsg">This field is required.</div></div><div class="c3"><label>Email <span class=opt>(optional)</span></label><input type="email" name="t_email" ><div class="errmsg">This field is required.</div></div></div>
+<div id="extraTenants"></div>
+<button type="button" class="link" id="addTenant">+ Add another tenant</button></div>
+
+<div class="step" data-title="Eviction">
+<h2>What&rsquo;s happening</h2><p class="sub">The reason for the eviction and some background.</p>
+<div class="radios" id="reasons">
+<label><input type="radio" name="e_reason" value="Nonpayment of Rent" checked> Nonpayment of rent</label>
+<label><input type="radio" name="e_reason" value="Holdover (Tenant Refuses to Leave)"> Holdover &mdash; tenant won&rsquo;t leave after the lease ended</label>
+<label><input type="radio" name="e_reason" value="Other"> Something else</label></div>
+<div class="sect" data-for="Nonpayment of Rent"><h3>Rent</h3><div class="fields">
+<div class="c2"><label>Monthly rent ($)</label><input type="number" name="e_rent" required inputmode="decimal" min="0" step="0.01"><div class="errmsg">This field is required.</div></div><div class="c2"><label>Amount owed now ($)</label><input type="number" name="e_owed" required inputmode="decimal" min="0" step="0.01"><div class="errmsg">This field is required.</div></div><div class="c2"><label>Unpaid since</label><input type="date" name="e_due" required ><div class="errmsg">This field is required.</div></div>
+<div class="c3"><label>Last payment date <span class=opt>(optional)</span></label><input type="date" name="e_lastpaid" ><div class="errmsg">This field is required.</div></div><div class="c3"><label>Last payment amount ($) <span class=opt>(optional)</span></label><input type="number" name="e_lastamt" inputmode="decimal" min="0" step="0.01"><div class="errmsg">This field is required.</div></div></div></div>
+<div class="sect hide" data-for="Holdover (Tenant Refuses to Leave)"><h3>Lease</h3><div class="fields">
+<div class="c3"><label>Written lease? <span class=opt>(optional)</span></label><select name="h_lease"><option value="">Select&hellip;</option><option>Yes</option><option>No (month-to-month)</option></select></div><div class="c3"><label>Lease end or termination date <span class=opt>(optional)</span></label><input type="date" name="h_end" ><div class="errmsg">This field is required.</div></div>
+<div class="c3"><label>Termination notice served? <span class=opt>(optional)</span></label><select name="h_notice"><option value="">Select&hellip;</option><option>Yes</option><option>No</option><option>Not sure</option></select></div><div class="c3"><label>Tenant has lived there <span class=opt>(optional)</span></label><select name="h_length"><option value="">Select&hellip;</option><option>Less than 1 year</option><option>1–2 years</option><option>More than 2 years</option></select></div></div></div>
+<div><label>What happened?</label><textarea name="e_details" required placeholder="A few sentences is plenty."></textarea><div class="errmsg">This field is required.</div></div></div>
+
+<div class="step" data-title="Documents">
+<h2>Documents</h2><p class="sub">Optional, but they speed things up. PDF, JPG or PNG, up to 10&nbsp;MB each.</p>
+<div class="docrow"><div><h3>Lease or rental agreement</h3><p>A copy of the signed lease.</p><ul class="files" data-list="lease"></ul></div><label class="drop" data-key="lease">Choose files<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label></div><div class="docrow"><div><h3>Rent ledger</h3><p>Payment history or a list of what&rsquo;s owed.</p><ul class="files" data-list="ledger"></ul></div><label class="drop" data-key="ledger">Choose files<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label></div><div class="docrow"><div><h3>Notices already served</h3><p>Any notices you&rsquo;ve given the tenant.</p><ul class="files" data-list="notices"></ul></div><label class="drop" data-key="notices">Choose files<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label></div><div class="docrow"><div><h3>Anything else</h3><p>Other documents related to the case.</p><ul class="files" data-list="other"></ul></div><label class="drop" data-key="other">Choose files<input type="file" multiple accept=".pdf,.jpg,.jpeg,.png"></label></div></div>
+
+<div class="step" data-title="Review">
+<h2>Review and submit</h2><p class="sub">Check everything over. You can edit any section.</p>
+<div id="review"></div>
+<label class="consent"><input type="checkbox" id="consent"> The information above is accurate to the best of my knowledge. I understand Evict Point is not a law firm and does not provide legal advice.</label>
+<div class="errmsg" id="consentErr">Please check the box to continue.</div></div>
+
+<div class="actions"><button type="button" class="back" id="back">&larr; Back</button><button type="button" class="btn" id="next">Continue</button></div>
+</form>
+
+<div id="done" class="done hide">
+<div class="eyebrow">Request received</div>
+<h2>Thank you, <span id="doneName"></span>.</h2>
+<p>Your reference number is <b id="doneRef"></b>. We&rsquo;ll be in touch shortly to talk through next steps.</p>
+<p id="doneMail" class="note hide">Your email app should have opened with your request filled in &mdash; please press <b>Send</b>. If it didn&rsquo;t open, <a href="#" id="mailAgain" class="textlink">click here</a>. If you chose any documents, attach them to that email.</p>
+<ol><li>We review your information and documents.</li><li>We contact you if anything is missing.</li><li>We confirm pricing and next steps before starting.</li></ol>
+<a class="btn" href="index.html">Back to home</a>
+</div>
+<p class="help">Questions? Call or text <a class="textlink" href="tel:+18451234567">(845) 123-4567</a> or email <a class="textlink" href="mailto:info@evictpoint.com">info@evictpoint.com</a>.</p>
+</div></main>
+
+<footer><div class="wrap">
+<div class="row">
+<div class="brand"><img src="img/icon.png" alt="" width="40" height="40">Evict Point</div>
+<ul><li><a href="tel:+18451234567">(845) 123-4567</a> &middot; call or text</li><li><a href="mailto:info@evictpoint.com">info@evictpoint.com</a></li><li>P.O. Box 242, Central Valley, NY 10917</li></ul>
+<ul><li><a href="start.html">Start an eviction</a></li><li><a href="index.html#services">Services</a></li><li><a href="index.html#about">About</a></li><li><a href="index.html#faq">FAQ</a></li></ul>
+</div>
+<div class="legal">&copy; <span id="yr">2026</span> Evict Point. Evict Point is not a law firm and does not provide legal advice.</div>
+</div></footer>
+<script>document.getElementById('yr').textContent=new Date().getFullYear();
+document.querySelectorAll('#nav a').forEach(function(a){a.addEventListener('click',function(){document.getElementById('nav').classList.remove('open')})})</script>
+<script src="start.js?v=95eb856e"></script>
+</body></html>
