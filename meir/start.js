@@ -3,7 +3,7 @@
 // endpoint that accepts multipart/form-data POSTs. While it is empty, the
 // request is sent by opening the visitor's email app addressed to SUBMIT_EMAIL.
 var SUBMIT_URL = '';
-var SUBMIT_EMAIL = 'info@evictpoint.com';
+var SUBMIT_EMAIL = 'devoriy@evictpoint.com';
 var DRAFT_KEY = 'evictpoint-draft';
 
 (function () {
