@@ -1,9 +1,12 @@
 // Evict Point – "Start Your Eviction" multi-step form.
-// To receive submissions (with file uploads) on a server, set SUBMIT_URL to an
-// endpoint that accepts multipart/form-data POSTs. While it is empty, the
-// request is sent by opening the visitor's email app addressed to SUBMIT_EMAIL.
-var SUBMIT_URL = '';
+// Requests are posted to Formspree, which emails them to the address set on the
+// Formspree form. While SUBMIT_URL is empty (or if Formspree can't be reached)
+// the visitor's email app opens instead, addressed to SUBMIT_EMAIL.
+var SUBMIT_URL = '';                 // e.g. 'https://formspree.io/f/abcdwxyz'
 var SUBMIT_EMAIL = 'devoriy@evictpoint.com';
+// File uploads need a paid Formspree plan. While false, document names are
+// listed in the email and the visitor is asked to email the files.
+var SEND_FILES = false;
 var DRAFT_KEY = 'evictpoint-draft';
 
 (function () {
@@ -136,8 +139,8 @@ var DRAFT_KEY = 'evictpoint-draft';
     var ten = tenantNames().map(function (n, i) { return ['Tenant ' + (i + 1), n]; });
     var docs = Object.keys(files).map(function (k) { return [LABELS[k], files[k].map(function (f) { return f.name; }).join(', ') || 'None']; });
     return [
-      ['Property Information', 0, [['Address', [val('p_street'), val('p_unit')].filter(Boolean).join(', ')], ['City / State / ZIP', joined([val('p_city'), joined([val('p_state'), val('p_zip')], ' ')])], ['County', val('p_county')], ['Property Type', val('p_type')]]],
-      ['Landlord Information', 1, [['Name', val('l_name')], ['Company', val('l_company')], ['Phone', val('l_phone')], ['Email', val('l_email')], ['Mailing Address', joined([val('l_street'), val('l_city'), joined([val('l_state'), val('l_zip')], ' ')])]]],
+      ['Property Information', 0, [['Address', [val('p_street'), val('p_unit')].filter(Boolean).join(', ')], ['City / State / ZIP', (val('p_city') || val('p_zip')) ? joined([val('p_city'), joined([val('p_state'), val('p_zip')], ' ')]) : ''], ['County', val('p_county')], ['Property Type', val('p_type')]]],
+      ['Landlord Information', 1, [['Name', val('l_name')], ['Company', val('l_company')], ['Phone', val('l_phone')], ['Email', val('l_email')], ['Mailing Address', (val('l_street') || val('l_city') || val('l_zip')) ? joined([val('l_street'), val('l_city'), joined([val('l_state'), val('l_zip')], ' ')]) : '']]],
       ['Tenant Information', 2, ten],
       ['Eviction Information', 3, ev],
       ['Documents', 4, docs]
@@ -168,7 +171,7 @@ var DRAFT_KEY = 'evictpoint-draft';
     try {
       var d = {};
       form.querySelectorAll('input[name],select[name],textarea[name]').forEach(function (el) {
-        if (el.name === 'tenant_name' || el.type === 'file' || el.type === 'checkbox') return;
+        if (el.name === 'tenant_name' || el.name === '_gotcha' || el.type === 'file' || el.type === 'checkbox') return;
         if (el.type === 'radio') { if (el.checked) d[el.name] = el.value; } else d[el.name] = el.value;
       });
       d._tenants = tenantNames(true);
@@ -206,6 +209,25 @@ var DRAFT_KEY = 'evictpoint-draft';
     return 'mailto:' + SUBMIT_EMAIL + '?subject=' + encodeURIComponent('Eviction Request ' + ref + (val('p_street') ? ' - ' + val('p_street') : '')) +
       '&body=' + encodeURIComponent(plainText(ref));
   }
+  function hasFiles() { return Object.keys(files).some(function (k) { return files[k].length; }); }
+  // Formspree emails each field as "label: value", so send readable labels.
+  function payload(ref) {
+    var fd = new FormData();
+    fd.append('_subject', 'New eviction request ' + ref + (val('p_street') ? ' – ' + val('p_street') : ''));
+    if (val('l_email')) fd.append('email', val('l_email'));   // Formspree uses this as Reply-To
+    fd.append('Reference', ref);
+    sections().forEach(function (s) {
+      if (s[0] === 'Documents') return;
+      s[2].forEach(function (r) { if (r[1]) fd.append(s[0].replace(' Information', '') + ' – ' + r[0], r[1]); });
+    });
+    Object.keys(files).forEach(function (k) {
+      if (!files[k].length) return;
+      if (SEND_FILES) files[k].forEach(function (f) { fd.append(LABELS[k], f, f.name); });
+      else fd.append('Documents – ' + LABELS[k], files[k].map(function (f) { return f.name; }).join(', ') + ' (not attached)');
+    });
+    fd.append('_gotcha', form.querySelector('[name=_gotcha]').value);   // spam trap
+    return fd;
+  }
   function finish(ref, viaMail) {
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
     form.classList.add('hide'); stepper.classList.add('hide');
@@ -214,6 +236,11 @@ var DRAFT_KEY = 'evictpoint-draft';
     if (viaMail) {
       document.getElementById('doneMail').classList.remove('hide');
       document.getElementById('mailAgain').onclick = function (e) { e.preventDefault(); location.href = mailtoUrl(ref); };
+    } else if (hasFiles() && !SEND_FILES) {
+      var docs = document.getElementById('doneDocs');
+      docs.querySelector('a').href = 'mailto:' + SUBMIT_EMAIL + '?subject=' + encodeURIComponent('Documents for eviction request ' + ref);
+      docs.querySelector('a').textContent = SUBMIT_EMAIL;
+      docs.classList.remove('hide');
     }
     document.getElementById('done').classList.remove('hide');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -221,12 +248,8 @@ var DRAFT_KEY = 'evictpoint-draft';
   function submit() {
     var ref = 'EP-' + Date.now().toString(36).toUpperCase().slice(-6);
     if (!SUBMIT_URL) { location.href = mailtoUrl(ref); return finish(ref, true); }
-    var fd = new FormData(form);
-    fd.append('reference', ref);
-    fd.append('summary', plainText(ref));
-    Object.keys(files).forEach(function (k) { files[k].forEach(function (f) { fd.append('doc_' + k, f, f.name); }); });
     next.disabled = true; next.textContent = 'Submitting…';
-    fetch(SUBMIT_URL, { method: 'POST', body: fd }).then(function (r) {
+    fetch(SUBMIT_URL, { method: 'POST', body: payload(ref), headers: { Accept: 'application/json' } }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
       finish(ref, false);
     }).catch(function () {
