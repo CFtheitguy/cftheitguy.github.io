@@ -68,21 +68,26 @@ var DRAFT_KEY = 'evictpoint-draft';
   }
   form.querySelectorAll('[name=e_reason]').forEach(function (r) { r.addEventListener('change', syncReason); });
 
-  // ---- extra tenants ----
-  var tenantBox = document.getElementById('extraTenants'), tCount = 0;
-  function addTenant(data) {
-    tCount++;
-    var d = document.createElement('div');
-    d.className = 'tenant';
-    d.innerHTML = '<div class="hd">Additional Tenant <button type="button" class="link">Remove</button></div>' +
-      '<div class="grid3"><div><label>Full Name</label><input type="text" name="xt_name"></div>' +
-      '<div><label>Phone</label><input type="tel" name="xt_phone"></div>' +
-      '<div><label>Email</label><input type="email" name="xt_email"></div></div>';
-    d.querySelector('.link').onclick = function () { d.remove(); saveDraft(); };
-    if (data) ['name', 'phone', 'email'].forEach(function (k) { d.querySelector('[name=xt_' + k + ']').value = data[k] || ''; });
-    tenantBox.appendChild(d);
+  // ---- tenants (one card per tenant, name only) ----
+  var tenantBox = document.getElementById('tenants');
+  function renumber() {
+    [].forEach.call(tenantBox.children, function (d, i) { d.querySelector('h3').textContent = 'Tenant ' + (i + 1); });
   }
-  document.getElementById('addTenant').onclick = function () { addTenant(); };
+  function addTenant(name) {
+    var d = document.createElement('div');
+    d.className = 'tcard';
+    d.innerHTML = '<div class="hd"><h3></h3><button type="button" class="trash" title="Remove tenant" aria-label="Remove tenant"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg></button></div>' +
+      '<label>Tenant Name</label><input type="text" name="tenant_name" placeholder="Enter tenant name">';
+    d.querySelector('input').value = name || '';
+    d.querySelector('.trash').onclick = function () {
+      if (tenantBox.children.length > 1) d.remove(); else d.querySelector('input').value = '';
+      renumber(); saveDraft();
+    };
+    tenantBox.appendChild(d);
+    renumber();
+    return d;
+  }
+  document.getElementById('addTenant').onclick = function () { addTenant().querySelector('input').focus(); };
 
   // ---- uploads ----
   var MAX = 10 * 1024 * 1024;
@@ -117,23 +122,22 @@ var DRAFT_KEY = 'evictpoint-draft';
   function val(n) { var el = form.querySelector('[name=' + n + ']'); return el ? el.value.trim() : ''; }
   function money(n) { var v = val(n); return v ? '$' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2 }) : ''; }
   function date(n) { var v = val(n); return v ? new Date(v + 'T00:00').toLocaleDateString('en-US') : ''; }
-  function extraTenants() {
-    return [].map.call(tenantBox.children, function (d) {
-      return { name: d.querySelector('[name=xt_name]').value.trim(), phone: d.querySelector('[name=xt_phone]').value.trim(), email: d.querySelector('[name=xt_email]').value.trim() };
-    }).filter(function (t) { return t.name || t.phone || t.email; });
+  function tenantNames(all) {
+    var names = [].map.call(tenantBox.querySelectorAll('[name=tenant_name]'), function (el) { return el.value.trim(); });
+    return all ? names : names.filter(Boolean);
   }
+  function joined(parts, sep) { return parts.filter(Boolean).join(sep || ', '); }
   function sections() {
     var reason = form.querySelector('[name=e_reason]:checked').value;
     var ev = [['Reason', reason]];
     if (reason === 'Nonpayment of Rent') ev.push(['Monthly Rent', money('e_rent')], ['Amount Owed', money('e_owed')], ['Rent Became Due', date('e_due')], ['Last Paid', date('e_lastpaid')], ['Last Payment', money('e_lastamt')]);
     if (reason.indexOf('Holdover') === 0) ev.push(['Written Lease', val('h_lease')], ['Lease End / Termination', date('h_end')], ['Notice Served', val('h_notice')], ['Tenancy Length', val('h_length')]);
     ev.push(['What Happened', val('e_details')]);
-    var ten = [['Tenant', val('t_name')], ['Phone', val('t_phone')], ['Email', val('t_email')]];
-    extraTenants().forEach(function (t, i) { ten.push(['Additional Tenant ' + (i + 1), [t.name, t.phone, t.email].filter(Boolean).join(', ')]); });
+    var ten = tenantNames().map(function (n, i) { return ['Tenant ' + (i + 1), n]; });
     var docs = Object.keys(files).map(function (k) { return [LABELS[k], files[k].map(function (f) { return f.name; }).join(', ') || 'None']; });
     return [
-      ['Property Information', 0, [['Address', [val('p_street'), val('p_unit')].filter(Boolean).join(', ')], ['City / State / ZIP', val('p_city') + ', ' + val('p_state') + ' ' + val('p_zip')], ['County', val('p_county')], ['Property Type', val('p_type')]]],
-      ['Landlord Information', 1, [['Name', val('l_name')], ['Company', val('l_company')], ['Phone', val('l_phone')], ['Email', val('l_email')], ['Mailing Address', val('l_street') + ', ' + val('l_city') + ', ' + val('l_state') + ' ' + val('l_zip')]]],
+      ['Property Information', 0, [['Address', [val('p_street'), val('p_unit')].filter(Boolean).join(', ')], ['City / State / ZIP', joined([val('p_city'), joined([val('p_state'), val('p_zip')], ' ')])], ['County', val('p_county')], ['Property Type', val('p_type')]]],
+      ['Landlord Information', 1, [['Name', val('l_name')], ['Company', val('l_company')], ['Phone', val('l_phone')], ['Email', val('l_email')], ['Mailing Address', joined([val('l_street'), val('l_city'), joined([val('l_state'), val('l_zip')], ' ')])]]],
       ['Tenant Information', 2, ten],
       ['Eviction Information', 3, ev],
       ['Documents', 4, docs]
@@ -164,10 +168,10 @@ var DRAFT_KEY = 'evictpoint-draft';
     try {
       var d = {};
       form.querySelectorAll('input[name],select[name],textarea[name]').forEach(function (el) {
-        if (el.name.indexOf('xt_') === 0 || el.type === 'file' || el.type === 'checkbox') return;
+        if (el.name === 'tenant_name' || el.type === 'file' || el.type === 'checkbox') return;
         if (el.type === 'radio') { if (el.checked) d[el.name] = el.value; } else d[el.name] = el.value;
       });
-      d._tenants = extraTenants();
+      d._tenants = tenantNames(true);
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     } catch (e) {}
   }
@@ -177,11 +181,14 @@ var DRAFT_KEY = 'evictpoint-draft';
       if (!d) return;
       Object.keys(d).forEach(function (k) {
         if (k === '_tenants') return;
+        if (k === 'e_reason' && String(d[k]).indexOf('Holdover') === 0) d[k] = 'Holdover';
         form.querySelectorAll('[name=' + k + ']').forEach(function (el) {
           if (el.type === 'radio') el.checked = el.value === d[k]; else el.value = d[k];
         });
       });
-      (d._tenants || []).forEach(addTenant);
+      // older drafts kept the first tenant in t_name and extra tenants as objects
+      var names = (d.t_name ? [d.t_name] : []).concat((d._tenants || []).map(function (t) { return typeof t === 'string' ? t : (t && t.name) || ''; }));
+      names.forEach(function (n) { addTenant(n); });
     } catch (e) {}
   }
 
@@ -196,13 +203,13 @@ var DRAFT_KEY = 'evictpoint-draft';
     return out;
   }
   function mailtoUrl(ref) {
-    return 'mailto:' + SUBMIT_EMAIL + '?subject=' + encodeURIComponent('Eviction Request ' + ref + ' - ' + val('p_street')) +
+    return 'mailto:' + SUBMIT_EMAIL + '?subject=' + encodeURIComponent('Eviction Request ' + ref + (val('p_street') ? ' - ' + val('p_street') : '')) +
       '&body=' + encodeURIComponent(plainText(ref));
   }
   function finish(ref, viaMail) {
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
     form.classList.add('hide'); stepper.classList.add('hide');
-    document.getElementById('doneName').textContent = val('l_name');
+    document.getElementById('doneName').textContent = val('l_name') ? ', ' + val('l_name') : '';
     document.getElementById('doneRef').textContent = ref;
     if (viaMail) {
       document.getElementById('doneMail').classList.remove('hide');
@@ -212,9 +219,6 @@ var DRAFT_KEY = 'evictpoint-draft';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function submit() {
-    var consent = document.getElementById('consent');
-    document.getElementById('consentErr').style.display = consent.checked ? 'none' : 'block';
-    if (!consent.checked) return;
     var ref = 'EP-' + Date.now().toString(36).toUpperCase().slice(-6);
     if (!SUBMIT_URL) { location.href = mailtoUrl(ref); return finish(ref, true); }
     var fd = new FormData(form);
@@ -238,6 +242,8 @@ var DRAFT_KEY = 'evictpoint-draft';
   };
 
   loadDraft();
+  if (!tenantBox.children.length) addTenant();
+  if (!form.querySelector('[name=e_reason]:checked')) form.querySelector('[name=e_reason]').checked = true;
   syncReason();
   go(0);
 })();
