@@ -137,7 +137,20 @@ function plane(el,k){
  R.domElement.onmousemove=e=>{if(window.handState&&handState.hands.length)return;const r=R.domElement.getBoundingClientRect();tx=((e.clientX-r.left)/r.width*2-1)*XL;ty=YL1-(e.clientY-r.top)/r.height*(YL1-YL0)};
  const kd=e=>{K[e.key]=1;if(e.key.startsWith('Arrow')||e.key==' ')e.preventDefault()},ku=e=>K[e.key]=0;addEventListener('keydown',kd);addEventListener('keyup',ku);
  info('Steer: 1 hand = plane follows it · 2 hands = steering wheel · PINCH thumb+index to shoot · (no camera: mouse/arrows, hold click or Space to shoot)');
+ // explosions: fireball that grows + fades, plus flying sparks and debris
+ const fx=[],sg=new THREE.SphereGeometry(1,10,8),pg=new THREE.SphereGeometry(.18,5,4),dg=new THREE.BoxGeometry(.4,.15,.4);
+ function boom(pos,big){const n=big?40:24;
+  const f=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0xffaa22,transparent:true}));f.position.copy(pos);S.add(f);fx.push({m:f,life:30,max:30,fire:1,sz:big?4:2.6});
+  const light=new THREE.PointLight(0xff8833,3,30);light.position.copy(pos);S.add(light);fx.push({m:light,life:20,max:20,light:1});
+  for(let i=0;i<n;i++){const deb=i%4==0,m=new THREE.Mesh(deb?dg:pg,deb?M(0x552222):new THREE.MeshBasicMaterial({color:[0xffee55,0xff7722,0xff3311][i%3],transparent:true}));
+   m.position.copy(pos);S.add(m);const v=new THREE.Vector3(Math.random()-.5,Math.random()-.3,Math.random()-.5).normalize().multiplyScalar(.2+Math.random()*.4);
+   fx.push({m,v,life:35+Math.random()*25|0,max:60,spin:deb})}}
  const bg=new THREE.SphereGeometry(.15,6,4),bm=new THREE.MeshBasicMaterial({color:0xffee55});
+ function stepFx(){for(let i=fx.length-1;i>=0;i--){const f=fx[i],a=--f.life/f.max;
+   if(f.fire){const g=1-a;f.m.scale.setScalar(.3+g*f.sz);f.m.material.opacity=a;f.m.material.color.setHSL(.1*a,1,.5+.2*a)}
+   else if(f.light)f.m.intensity=3*a;
+   else{f.m.position.add(f.v);f.v.y-=.008;f.v.z+=.02;if(f.spin){f.m.rotation.x+=.3;f.m.rotation.y+=.2}else f.m.material.opacity=Math.min(1,a*2)}
+   if(f.life<=0){S.remove(f.m);fx.splice(i,1)}}}
  (function loop(){if(!run)return;raf=requestAnimationFrame(loop);t++;
   const hs=window.handState?handState.hands:[];let mode='🖱 Mouse / arrows';
   if(hs.length>=2){mode='🎮 Two-hand wheel';const[a,b2]=hs[0].x<hs[1].x?[hs[0],hs[1]]:[hs[1],hs[0]];tx=px+(b2.y-a.y)*25;ty=YL1-((a.y+b2.y)/2-.15)/.7*(YL1-YL0)}
@@ -158,9 +171,10 @@ function plane(el,k){
    if(r.position.z>12){S.remove(r);return false}return true});
   en=en.filter(e=>{e.position.z+=e.userData.v;e.rotation.z=Math.sin(t*.05+e.id)*.3;
    for(const m of bul)if(!m.userData.hit&&m.position.distanceTo(e.position)<1.8){m.userData.hit=1;e.userData.hp--}
-   if(e.userData.hp<=0){sc+=25;S.remove(e);return false}
-   if(!inv&&e.position.distanceTo(P.position)<2.2){lives--;inv=90;S.remove(e);if(lives<=0){run=false;best(k,sc);msg('💥 Crashed! Score '+sc)}return false}
+   if(e.userData.hp<=0){sc+=25;boom(e.position,0);S.remove(e);return false}
+   if(!inv&&e.position.distanceTo(P.position)<2.2){lives--;inv=90;boom(e.position,1);S.remove(e);if(lives<=0){run=false;best(k,sc);msg('💥 Crashed! Score '+sc);boom(P.position,1);P.visible=false;(function end(){if(fx.length){stepFx();R.render(S,cam);raf=requestAnimationFrame(end)}})()}return false}
    if(e.position.z>12){S.remove(e);return false}return true});
+  stepFx();
   hud.innerHTML=`Score ${sc} &nbsp; ${'❤️'.repeat(Math.max(0,lives))}<div style="font-size:13px;font-weight:400">${mode}</div>${firing?'<div style="color:#ffd23f">🔫 FIRING</div>':''}`;
   R.render(S,cam)})();
  stop=()=>{run=false;cancelAnimationFrame(raf);removeEventListener('keydown',kd);removeEventListener('keyup',ku);removeEventListener('mouseup',mu);R.dispose()}}
