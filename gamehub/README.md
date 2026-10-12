@@ -10,3 +10,4 @@ Click **Hand control** in the top bar and allow the camera. Open in Chrome or Ed
 
 The first time you turn it on, it needs internet to download the hand-tracking model. Video stays on your PC.
 - Two hands are tracked. In **Sky Pilot**, hold both hands up like a steering wheel: tilt to turn, raise/lower to climb/dive. One hand = the plane follows your hand.
+- In Sky Pilot, **pinch** thumb + index finger (either hand) to shoot. Without a camera: hold mouse button or Space.
