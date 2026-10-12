@@ -38,6 +38,7 @@ const games={
  g2048:{ic:'🔢',name:'2048',d:'Merge tiles to reach 2048. Arrow keys.',run:g2048},
  ttt:{ic:'❌',name:'Tic-Tac-Toe',d:'Beat the unbeatable computer.',run:ttt},
  memory:{ic:'🃏',name:'Memory',d:'Match all the pairs, fewest moves.',run:memory},
+ plane:{ic:'✈️',name:'Sky Pilot',d:'Fly a jet and blast enemies. Steer with one hand, or hold an imaginary wheel with two hands.',run:plane},
  flappy:{ic:'🐤',name:'Flappy',d:'Fly through the pipes. Space / click.',run:flappy},
 };
 function home(){stop();stop=()=>{};document.getElementById('score').textContent='';
@@ -104,6 +105,36 @@ function flappy(el,k){el.innerHTML='<canvas width=400 height=500></canvas>';cons
   c.fillStyle='#0a0d18';c.fillRect(0,0,400,500);c.fillStyle='#4cd97b';p.forEach(q=>{c.fillRect(q.x,0,60,q.g);c.fillRect(q.x,q.g+140,60,500)});
   c.fillStyle='#ffd23f';c.beginPath();c.arc(85,y,12,0,7);c.fill();raf=requestAnimationFrame(loop)})();
  stop=()=>{cancelAnimationFrame(raf);un()}}
+function plane(el,k){el.innerHTML='<canvas width=600 height=500></canvas>';const cv=el.firstChild,c=cv.getContext('2d'),W=600,H=500;
+ let px=300,py=420,tx=300,ty=420,b=[],en=[],cl=[],st=[],sc=0,lives=3,t=0,inv=0,run=true,raf,K={};
+ for(let i=0;i<6;i++)cl.push({x:Math.random()*W,y:Math.random()*H,s:.5+Math.random()});
+ cv.onmousemove=e=>{if(window.handState&&handState.hands.length)return;const r=cv.getBoundingClientRect();tx=(e.clientX-r.left)*W/r.width;ty=(e.clientY-r.top)*H/r.height};
+ const kd=e=>{K[e.key]=1;if(e.key.startsWith('Arrow'))e.preventDefault()},ku=e=>K[e.key]=0;addEventListener('keydown',kd);addEventListener('keyup',ku);
+ info('Steer: 1 hand = plane follows it · 2 hands = steering wheel (tilt to turn, raise/lower to climb) · or mouse/arrows');
+ (function loop(){if(!run)return;raf=requestAnimationFrame(loop);t++;
+  const hs=window.handState?handState.hands:[];let mode='mouse';
+  if(hs.length>=2){mode='wheel';const[a,b2]=hs[0].x<hs[1].x?[hs[0],hs[1]]:[hs[1],hs[0]];const tilt=b2.y-a.y;tx=px+tilt*60;ty=((a.y+b2.y)/2-.15)/.7*H}
+  else if(hs.length==1){mode='hand';tx=(hs[0].x-.1)/.8*W;ty=(hs[0].y-.1)/.8*H}
+  if(K.ArrowLeft)tx=px-8;if(K.ArrowRight)tx=px+8;if(K.ArrowUp)ty=py-8;if(K.ArrowDown)ty=py+8;
+  tx=Math.max(25,Math.min(W-25,tx));ty=Math.max(40,Math.min(H-30,ty));const vx=(tx-px)*.15;px+=vx;py+=(ty-py)*.15;
+  if(t%8==0)b.push({x:px-12,y:py-20},{x:px+12,y:py-20});
+  if(t%Math.max(18,50-(sc/100|0))==0)en.push({x:30+Math.random()*(W-60),y:-30,v:1.5+Math.random()*2+sc/1500,hp:2});
+  if(t%300==0)st.push({x:30+Math.random()*(W-60),y:-20});
+  c.fillStyle='#4a90d9';c.fillRect(0,0,W,H);
+  cl.forEach(q=>{q.y+=q.s*2;if(q.y>H+40){q.y=-40;q.x=Math.random()*W}c.fillStyle='rgba(255,255,255,.7)';c.beginPath();c.arc(q.x,q.y,30*q.s,0,7);c.arc(q.x+25*q.s,q.y+5,22*q.s,0,7);c.arc(q.x-25*q.s,q.y+5,22*q.s,0,7);c.fill()});
+  c.fillStyle='#ffd23f';b=b.filter(q=>(q.y-=10)>-10);b.forEach(q=>c.fillRect(q.x-2,q.y,4,12));
+  st=st.filter(q=>{q.y+=2;c.font='26px serif';c.fillText('⭐',q.x-13,q.y+9);if(Math.hypot(q.x-px,q.y-py)<30){sc+=100;lives=Math.min(5,lives+1);return false}return q.y<H+20});
+  en=en.filter(e=>{e.y+=e.v;for(const q of b)if(!q.hit&&Math.abs(q.x-e.x)<20&&Math.abs(q.y-e.y)<18){q.hit=1;e.hp--}
+   if(e.hp<=0){sc+=25;return false}
+   if(!inv&&Math.hypot(e.x-px,e.y-py)<32){lives--;inv=90;if(lives<=0){run=false;best(k,sc);msg('💥 Crashed! Score '+sc)}return false}
+   c.save();c.translate(e.x,e.y);c.fillStyle='#c0392b';c.beginPath();c.moveTo(0,22);c.lineTo(-20,-12);c.lineTo(0,-4);c.lineTo(20,-12);c.closePath();c.fill();c.restore();return e.y<H+30});
+  b=b.filter(q=>!q.hit);if(inv)inv--;
+  if(!(inv%10>5)){c.save();c.translate(px,py);c.rotate(Math.max(-.5,Math.min(.5,vx*.05)));c.fillStyle='#eef';
+   c.beginPath();c.moveTo(0,-28);c.lineTo(6,-8);c.lineTo(30,6);c.lineTo(30,12);c.lineTo(6,6);c.lineTo(4,20);c.lineTo(12,26);c.lineTo(-12,26);c.lineTo(-4,20);c.lineTo(-6,6);c.lineTo(-30,12);c.lineTo(-30,6);c.lineTo(-6,-8);c.closePath();c.fill();
+   c.fillStyle='#5b8cff';c.fillRect(-3,-18,6,10);c.fillStyle='#ff9f1c';c.fillRect(-3,26,6,4+Math.random()*8);c.restore()}
+  c.fillStyle='#fff';c.font='bold 18px system-ui';c.fillText(`Score ${sc}   ${'❤️'.repeat(Math.max(0,lives))}`,12,26);
+  c.font='13px system-ui';c.fillText({wheel:'🎮 Two-hand wheel',hand:'✋ One-hand steering',mouse:'🖱 Mouse / arrows'}[mode],12,H-12)})();
+ stop=()=>{run=false;cancelAnimationFrame(raf);removeEventListener('keydown',kd);removeEventListener('keyup',ku)}}
 home();
 </script>
 <script type="module">
@@ -113,14 +144,15 @@ const V='0.10.14',btn=document.getElementById('handBtn'),cur=document.getElement
 let on=false,lm=null,stream=null,sx=innerWidth/2,sy=innerHeight/2,pinched=false,dir=null;
 const key=(t,k)=>dispatchEvent(new KeyboardEvent(t,{key:k}));
 btn.onclick=async()=>{on=!on;btn.textContent='✋ Hand control: '+(on?'ON':'OFF');cam.style.display=cur.style.display=on?'block':'none';
- if(!on){stream&&stream.getTracks().forEach(t=>t.stop());stream=null;if(dir)key('keyup',dir);dir=null;return}
+ if(!on){window.handState=null;stream&&stream.getTracks().forEach(t=>t.stop());stream=null;if(dir)key('keyup',dir);dir=null;return}
  try{stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});vid.srcObject=stream;
   if(!lm){txt.textContent='Loading hand model…';const {FilesetResolver,HandLandmarker}=await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`);
    const fs=await FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/wasm`);
-   lm=await HandLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:1})}
+   lm=await HandLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:2})}
   txt.textContent='Show your hand';loop()}catch(e){txt.textContent='Error: '+e.message;console.error(e)}};
 function loop(){if(!on)return;requestAnimationFrame(loop);if(vid.readyState<2)return;
  const r=lm.detectForVideo(vid,performance.now()),h=r.landmarks&&r.landmarks[0];
+ window.handState={hands:(r.landmarks||[]).map(q=>({x:1-q[9].x,y:q[9].y,pinch:Math.hypot(q[8].x-q[4].x,q[8].y-q[4].y)<.06}))};
  if(!h){txt.textContent='No hand seen';if(dir){key('keyup',dir);dir=null}return}
  const tip=h[8],th=h[4],nx=1-tip.x,ny=tip.y;
  // map central 80% of camera to full screen, smoothed
@@ -132,5 +164,5 @@ function loop(){if(!on)return;requestAnimationFrame(loop);if(vid.readyState<2)re
  pinched=p;
  const dx=nx-.5,dy=ny-.5;let d=null;if(Math.max(Math.abs(dx),Math.abs(dy))>.18)d=Math.abs(dx)>Math.abs(dy)?(dx>0?'ArrowRight':'ArrowLeft'):(dy>0?'ArrowDown':'ArrowUp');
  if(d!==dir){if(dir)key('keyup',dir);if(d)key('keydown',d);dir=d}
- txt.textContent=p?'Pinch = click':d?d.replace('Arrow','➜ '):'Hand tracked';}
+ txt.textContent=handState.hands.length>1?'2 hands tracked':p?'Pinch = click':d?d.replace('Arrow','➜ '):'Hand tracked';}
 </script></body></html>
