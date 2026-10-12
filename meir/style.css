@@ -154,3 +154,8 @@ nav.main a,.callbtn b{white-space:nowrap}
  .media{grid-template-columns:1fr;gap:22px}
  .cta-band{flex-direction:column;align-items:flex-start}.cta-band .btn{margin-left:0}
 }
+/* county links */
+.areas li a{display:block;color:inherit}.areas li:has(a):hover{background:var(--cream)}
+.media.county{align-items:start}
+.cards.five{grid-template-columns:repeat(5,1fr);gap:16px}.cards.five .card{padding:20px 18px}
+@media(max-width:1000px){.cards.five{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
