@@ -20,9 +20,14 @@ canvas{background:#0a0d18;border-radius:10px;display:block;max-width:100%;border
 .mem div.up,.mem div.ok{background:var(--card)}.mem div.ok{opacity:.5}
 .g2048{display:grid;grid-template-columns:repeat(4,80px);gap:8px;background:#2a3155;padding:8px;border-radius:10px;width:max-content}
 .g2048 div{height:80px;border-radius:8px;background:#1a1f36;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700}
+#cur{position:fixed;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:3px solid #ffd23f;pointer-events:none;z-index:99;display:none;transition:background .1s}
+#cur.pinch{background:#ffd23f}
+#cam{position:fixed;right:12px;bottom:12px;width:200px;display:none;z-index:98;background:#000;border-radius:10px;overflow:hidden;border:2px solid var(--acc)}
+#cam video{width:100%;display:block;transform:scaleX(-1)}#camtxt{font-size:12px;padding:4px 8px;color:var(--mut)}
 .msg{margin-top:12px;font-size:18px;min-height:24px}
 </style></head><body>
-<header><h1 onclick="home()">🎮 Game<span>Hub</span></h1><div id="score"></div></header>
+<header><h1 onclick="home()">🎮 Game<span>Hub</span></h1><div id="score"></div><button id="handBtn">✋ Hand control: OFF</button></header>
+<div id="cur"></div><div id="cam"><video id="vid" autoplay playsinline muted></video><div id="camtxt">Loading…</div></div>
 <main id="app"></main>
 <script>
 const app=document.getElementById('app');let stop=()=>{};
@@ -100,4 +105,32 @@ function flappy(el,k){el.innerHTML='<canvas width=400 height=500></canvas>';cons
   c.fillStyle='#ffd23f';c.beginPath();c.arc(85,y,12,0,7);c.fill();raf=requestAnimationFrame(loop)})();
  stop=()=>{cancelAnimationFrame(raf);un()}}
 home();
+</script>
+<script type="module">
+// Hand control: index fingertip = cursor, pinch (thumb+index) = click,
+// move hand to the edge of the camera view = arrow key (Snake, 2048, Breakout)
+const V='0.10.14',btn=document.getElementById('handBtn'),cur=document.getElementById('cur'),cam=document.getElementById('cam'),vid=document.getElementById('vid'),txt=document.getElementById('camtxt');
+let on=false,lm=null,stream=null,sx=innerWidth/2,sy=innerHeight/2,pinched=false,dir=null;
+const key=(t,k)=>dispatchEvent(new KeyboardEvent(t,{key:k}));
+btn.onclick=async()=>{on=!on;btn.textContent='✋ Hand control: '+(on?'ON':'OFF');cam.style.display=cur.style.display=on?'block':'none';
+ if(!on){stream&&stream.getTracks().forEach(t=>t.stop());stream=null;if(dir)key('keyup',dir);dir=null;return}
+ try{stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});vid.srcObject=stream;
+  if(!lm){txt.textContent='Loading hand model…';const {FilesetResolver,HandLandmarker}=await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`);
+   const fs=await FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/wasm`);
+   lm=await HandLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numHands:1})}
+  txt.textContent='Show your hand';loop()}catch(e){txt.textContent='Error: '+e.message;console.error(e)}};
+function loop(){if(!on)return;requestAnimationFrame(loop);if(vid.readyState<2)return;
+ const r=lm.detectForVideo(vid,performance.now()),h=r.landmarks&&r.landmarks[0];
+ if(!h){txt.textContent='No hand seen';if(dir){key('keyup',dir);dir=null}return}
+ const tip=h[8],th=h[4],nx=1-tip.x,ny=tip.y;
+ // map central 80% of camera to full screen, smoothed
+ const tx=Math.min(1,Math.max(0,(nx-.1)/.8))*innerWidth,ty=Math.min(1,Math.max(0,(ny-.1)/.8))*innerHeight;
+ sx+=(tx-sx)*.4;sy+=(ty-sy)*.4;cur.style.left=sx+'px';cur.style.top=sy+'px';
+ const el=document.elementFromPoint(sx,sy);if(el)el.dispatchEvent(new MouseEvent('mousemove',{clientX:sx,clientY:sy,bubbles:true}));
+ const p=Math.hypot(tip.x-th.x,tip.y-th.y)<.06;cur.classList.toggle('pinch',p);
+ if(p&&!pinched&&el){el.dispatchEvent(new MouseEvent('mousedown',{clientX:sx,clientY:sy,bubbles:true}));el.click();key('keydown',' ')}
+ pinched=p;
+ const dx=nx-.5,dy=ny-.5;let d=null;if(Math.max(Math.abs(dx),Math.abs(dy))>.18)d=Math.abs(dx)>Math.abs(dy)?(dx>0?'ArrowRight':'ArrowLeft'):(dy>0?'ArrowDown':'ArrowUp');
+ if(d!==dir){if(dir)key('keyup',dir);if(d)key('keydown',d);dir=d}
+ txt.textContent=p?'Pinch = click':d?d.replace('Arrow','➜ '):'Hand tracked';}
 </script></body></html>
