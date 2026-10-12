@@ -159,3 +159,4 @@ nav.main a,.callbtn b{white-space:nowrap}
 .media.county{align-items:start}
 .cards.five{grid-template-columns:repeat(5,1fr);gap:16px}.cards.five .card{padding:20px 18px}
 @media(max-width:1000px){.cards.five{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
+footer .hours{line-height:1.6;padding-left:22px;text-indent:-22px}
