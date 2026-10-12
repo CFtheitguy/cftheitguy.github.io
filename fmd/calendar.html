@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendar | FMD Business Solutions</title>
+<meta name="description" content="FMD Business Solutions calendar of classes, webinars and events.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="hdr" class="solid scrolled"><div class="wrap nav">
+ <a href="index.html" class="brand"><img src="logo.svg" alt=""><span><b>FMD</b><small>Business Solutions</small></span></a>
+ <button class="burger" aria-label="Menu" onclick="document.getElementById('nav').classList.toggle('open')">☰</button>
+ <nav class="links" id="nav">
+  <a href="index.html#services">Services</a><a href="index.html#about">About</a><a href="ecommerce.html">E-Commerce</a><a href="resources.html">Resources</a><a href="shortcuts.html">Shortcuts</a><a href="calendar.html" class="on">Calendar</a>
+  <a href="index.html#contact" class="btn btn-gold">Free Consultation</a>
+ </nav>
+</div></header>
+<section class="pagehero"><div class="wrap"><div class="eyebrow">Calendar</div><h1>Upcoming classes &amp; events</h1><p>Webinars, training sessions and important dates from FMD Business Solutions.</p></div></section>
+<main class="page"><div class="wrap">
+<iframe class="cal" src="https://calendar.google.com/calendar/embed?src=oh3478rur08i2io30grk1il9m4%40group.calendar.google.com&amp;ctz=America%2FNew_York" title="FMD Business Solutions calendar" loading="lazy"></iframe>
+</div></main>
+<div class="band"><div class="wrap">
+ <h2>Need a hand with your books?</h2>
+ <p>Talk to FMD Business Solutions today. The first conversation is free.</p>
+ <div class="cta" style="justify-content:center"><a href="tel:+18453161100" class="btn btn-gold">Call (845) 316-1100</a><a href="index.html#contact" class="btn btn-ghost">Send a message</a></div>
+</div></div>
+<footer><div class="wrap">
+ <div class="fgrid">
+  <div><a href="index.html" class="brand"><img src="logo.svg" alt="" width="40"><span><b>FMD</b><small>Business Solutions</small></span></a><p style="margin-top:16px;max-width:340px">Bookkeeping, payroll and QuickBooks solutions for the growth and prosperity of your business.</p></div>
+  <div><h4>Explore</h4><ul><li><a href="index.html#services">Services</a></li><li><a href="index.html#quickbooks">Purchase QuickBooks</a></li><li><a href="ecommerce.html">E-Commerce Tools</a></li><li><a href="resources.html">Resources &amp; Tax Forms</a></li><li><a href="shortcuts.html">Keyboard Shortcuts</a></li><li><a href="calendar.html">Calendar</a></li></ul></div>
+  <div><h4>Contact</h4><ul><li><a href="tel:+18453161100">(845) 316-1100</a></li><li><a href="mailto:info@fmdbusiness.com">info@fmdbusiness.com</a></li><li><a href="https://www.facebook.com/fmdbusiness/" target="_blank" rel="noopener">Facebook</a></li><li><a href="https://www.linkedin.com/in/mayerdrummer/" target="_blank" rel="noopener">LinkedIn</a></li><li><a href="https://twitter.com/fmdbusiness" target="_blank" rel="noopener">Twitter / X</a></li><li><a href="https://www.yelp.com/biz/fmd-business-solutions-monroe-3" target="_blank" rel="noopener">Yelp</a></li><li><a href="https://www.yellowpages.com/monroe-ny/mip/fmd-business-solutions-470492327" target="_blank" rel="noopener">Yellow Pages</a></li><li>6 Leipnik Way, Monroe, NY 10950</li><li>Mon–Thu, 9 AM – 6 PM</li></ul></div>
+ </div>
+ <div class="copy">© 2010–<span id="y"></span> FMD Business Solutions Inc. All rights reserved.</div>
+</div></footer>
+<script>
+document.getElementById('y').textContent=new Date().getFullYear();
+const h=document.getElementById('hdr');addEventListener('scroll',()=>h.classList.toggle('scrolled',scrollY>30));
+document.querySelectorAll('#nav a').forEach(a=>a.onclick=()=>document.getElementById('nav').classList.remove('open'));
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+function sendMail(ev){ev.preventDefault();const v=id=>document.getElementById(id).value;
+const body=`Name: ${v('n')}\nCompany: ${v('c')}\nEmail: ${v('e')}\nPhone: ${v('p')}\nInterested in: ${v('s')}\n\n${v('m')}`;
+location.href='mailto:info@fmdbusiness.com?subject='+encodeURIComponent('Website inquiry: '+v('s'))+'&body='+encodeURIComponent(body);return false}
+</script>
+</body>
+</html>
