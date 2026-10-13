@@ -106,11 +106,35 @@ function flappy(el,k){el.innerHTML='<canvas width=400 height=500></canvas>';cons
   c.fillStyle='#0a0d18';c.fillRect(0,0,400,500);c.fillStyle='#4cd97b';p.forEach(q=>{c.fillRect(q.x,0,60,q.g);c.fillRect(q.x,q.g+140,60,500)});
   c.fillStyle='#ffd23f';c.beginPath();c.arc(85,y,12,0,7);c.fill();raf=requestAnimationFrame(loop)})();
  stop=()=>{cancelAnimationFrame(raf);un()}}
+// --- sound effects (synthesized with Web Audio, no files needed) ---
+let AC=null,sfxMuted=localStorage.getItem('gh_mute')=='1';
+function getAC(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume()}catch(e){}return AC}
+function noiseBuf(){const a=getAC(),b=a.createBuffer(1,a.sampleRate,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b}
+const sfx={
+ tone(f1,f2,dur,type='square',vol=.15,delay=0){const a=getAC();if(!a||sfxMuted)return;const t=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur)},
+ noise(dur,vol,f1,f2){const a=getAC();if(!a||sfxMuted)return;const t=a.currentTime,src=a.createBufferSource(),fl=a.createBiquadFilter(),g=a.createGain();
+  src.buffer=sfx._nb||(sfx._nb=noiseBuf());fl.type='lowpass';fl.frequency.setValueAtTime(f1,t);fl.frequency.exponentialRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);src.connect(fl).connect(g).connect(a.destination);src.start(t);src.stop(t+dur)},
+ shoot(){sfx.tone(900,300,.08,'square',.05)},
+ boom(big){sfx.noise(big?1.4:.7,big?.9:.5,big?1800:2500,60);sfx.tone(big?120:160,30,big?1:.5,'sine',big?.6:.4)},
+ ring(){[660,880,1320].forEach((f,i)=>sfx.tone(f,f,.15,'triangle',.15,i*.08))},
+ hurt(){sfx.tone(400,80,.4,'sawtooth',.2)},
+ over(){[440,330,220,110].forEach((f,i)=>sfx.tone(f,f*.95,.3,'triangle',.2,i*.25))},
+ engine(){const a=getAC();if(!a)return null;const o=a.createOscillator(),o2=a.createOscillator(),fl=a.createBiquadFilter(),g=a.createGain();
+  o.type='sawtooth';o2.type='sawtooth';o.frequency.value=70;o2.frequency.value=71.5;fl.type='lowpass';fl.frequency.value=400;g.gain.value=sfxMuted?0:.06;
+  o.connect(fl);o2.connect(fl);fl.connect(g).connect(a.destination);o.start();o2.start();
+  return{set(sp,climb){o.frequency.value=60+sp*30+climb*15;o2.frequency.value=o.frequency.value*1.02;fl.frequency.value=300+sp*200;g.gain.value=sfxMuted?0:.06},stop(){try{g.gain.value=0;o.stop();o2.stop()}catch(e){}}}}
+};
 function plane(el,k){
  if(!window.THREE){el.innerHTML='<p>3D needs internet the first time (to load the 3D engine). Connect and press Restart.</p>';return}
  const W=Math.min(900,innerWidth-40),H=Math.round(W*.6);
  el.innerHTML=`<div style="position:relative;width:${W}px;max-width:100%"><div id="hud" style="position:absolute;left:12px;top:8px;color:#fff;font:bold 18px system-ui;text-shadow:0 1px 3px #000;pointer-events:none"></div></div>`;
  const box=el.firstChild,hud=box.querySelector('#hud');
+ box.insertAdjacentHTML('beforeend','<button id="mute" style="position:absolute;right:10px;top:8px;padding:6px 10px"></button>');
+ const mb=box.querySelector('#mute'),setMb=()=>mb.textContent=sfxMuted?'🔇 Sound off':'🔊 Sound on';setMb();
+ const toggleMute=()=>{sfxMuted=!sfxMuted;localStorage.setItem('gh_mute',sfxMuted?'1':'0');setMb();getAC()};mb.onclick=toggleMute;
+ const eng=sfx.engine();
  const R=new THREE.WebGLRenderer({antialias:true});R.setSize(W,H);R.domElement.style.cssText='border-radius:10px;display:block;max-width:100%';box.prepend(R.domElement);
  const S=new THREE.Scene();S.background=new THREE.Color(0x87c5ff);S.fog=new THREE.Fog(0x87c5ff,40,140);
  const cam=new THREE.PerspectiveCamera(65,W/H,.1,300);
@@ -135,11 +159,11 @@ function plane(el,k){
  const XL=12,YL0=0,YL1=10;
  let mdown=false;R.domElement.onmousedown=()=>mdown=true;addEventListener('mouseup',mu);function mu(){mdown=false}
  R.domElement.onmousemove=e=>{if(window.handState&&handState.hands.length)return;const r=R.domElement.getBoundingClientRect();tx=((e.clientX-r.left)/r.width*2-1)*XL;ty=YL1-(e.clientY-r.top)/r.height*(YL1-YL0)};
- const kd=e=>{K[e.key]=1;if(e.key.startsWith('Arrow')||e.key==' ')e.preventDefault()},ku=e=>K[e.key]=0;addEventListener('keydown',kd);addEventListener('keyup',ku);
- info('Steer: 1 hand = plane follows it · 2 hands = steering wheel · PINCH thumb+index to shoot · (no camera: mouse/arrows, hold click or Space to shoot)');
+ const kd=e=>{K[e.key]=1;if(e.key=='m'||e.key=='M')toggleMute();if(e.key.startsWith('Arrow')||e.key==' ')e.preventDefault()},ku=e=>K[e.key]=0;addEventListener('keydown',kd);addEventListener('keyup',ku);
+ info('Steer: 1 hand = plane follows it · 2 hands = steering wheel · PINCH thumb+index to shoot · M = mute · (no camera: mouse/arrows, hold click or Space to shoot)');
  // explosions: fireball that grows + fades, plus flying sparks and debris
  const fx=[],sg=new THREE.SphereGeometry(1,10,8),pg=new THREE.SphereGeometry(.18,5,4),dg=new THREE.BoxGeometry(.4,.15,.4);
- function boom(pos,big){const n=big?40:24;
+ function boom(pos,big){sfx.boom(big);const n=big?40:24;
   const f=new THREE.Mesh(sg,new THREE.MeshBasicMaterial({color:0xffaa22,transparent:true}));f.position.copy(pos);S.add(f);fx.push({m:f,life:30,max:30,fire:1,sz:big?4:2.6});
   const light=new THREE.PointLight(0xff8833,3,30);light.position.copy(pos);S.add(light);fx.push({m:light,life:20,max:20,light:1});
   for(let i=0;i<n;i++){const deb=i%4==0,m=new THREE.Mesh(deb?dg:pg,deb?M(0x552222):new THREE.MeshBasicMaterial({color:[0xffee55,0xff7722,0xff3311][i%3],transparent:true}));
@@ -162,22 +186,22 @@ function plane(el,k){
   cam.position.set(px*.6,py+2.5,9);cam.lookAt(px*.8,py+.5,-10);
   const sp=.6+sc/4000;scen.forEach(g=>{g.position.z+=sp;if(g.position.z>12)g.position.z-=150});
   const firing=hs.length?hs.some(h=>h.pinch):(K[' ']||mdown);
-  if(firing&&t%7==0)for(const o of[-1.6,1.6]){const m=new THREE.Mesh(bg,bm);m.position.set(px+o,py,-1);S.add(m);bul.push(m)}
+  if(firing&&t%7==0){sfx.shoot()}for(const o of[-1.6,1.6]){const m=new THREE.Mesh(bg,bm);m.position.set(px+o,py,-1);S.add(m);bul.push(m)}
   if(t%Math.max(20,55-(sc/100|0))==0){const e=jet(0xc0392b,0x7b1f16);e.rotation.y=Math.PI;e.position.set((Math.random()*2-1)*XL,YL0+Math.random()*(YL1-YL0),-130);e.userData={hp:2,v:sp+.4+Math.random()*.4};S.add(e);en.push(e)}
   if(t%280==0){const r=new THREE.Mesh(new THREE.TorusGeometry(1.2,.25,8,20),new THREE.MeshLambertMaterial({color:0xffd23f,emissive:0x664400}));r.position.set((Math.random()*2-1)*XL,YL0+Math.random()*(YL1-YL0),-130);S.add(r);st.push(r)}
   bul=bul.filter(m=>{m.position.z-=2.5;if(m.position.z<-140||m.userData.hit){S.remove(m);return false}return true});
   st=st.filter(r=>{r.position.z+=sp;r.rotation.y+=.05;
-   if(r.position.distanceTo(P.position)<2){sc+=100;lives=Math.min(5,lives+1);S.remove(r);return false}
+   if(r.position.distanceTo(P.position)<2){sc+=100;lives=Math.min(5,lives+1);sfx.ring();S.remove(r);return false}
    if(r.position.z>12){S.remove(r);return false}return true});
   en=en.filter(e=>{e.position.z+=e.userData.v;e.rotation.z=Math.sin(t*.05+e.id)*.3;
    for(const m of bul)if(!m.userData.hit&&m.position.distanceTo(e.position)<1.8){m.userData.hit=1;e.userData.hp--}
    if(e.userData.hp<=0){sc+=25;boom(e.position,0);S.remove(e);return false}
-   if(!inv&&e.position.distanceTo(P.position)<2.2){lives--;inv=90;boom(e.position,1);S.remove(e);if(lives<=0){run=false;best(k,sc);msg('💥 Crashed! Score '+sc);boom(P.position,1);P.visible=false;(function end(){if(fx.length){stepFx();R.render(S,cam);raf=requestAnimationFrame(end)}})()}return false}
+   if(!inv&&e.position.distanceTo(P.position)<2.2){lives--;inv=90;sfx.hurt();boom(e.position,1);S.remove(e);if(lives<=0){run=false;eng&&eng.stop();setTimeout(sfx.over,600);best(k,sc);msg('💥 Crashed! Score '+sc);boom(P.position,1);P.visible=false;(function end(){if(fx.length){stepFx();R.render(S,cam);raf=requestAnimationFrame(end)}})()}return false}
    if(e.position.z>12){S.remove(e);return false}return true});
-  stepFx();
+  stepFx();eng&&eng.set(sp,Math.abs(vy));
   hud.innerHTML=`Score ${sc} &nbsp; ${'❤️'.repeat(Math.max(0,lives))}<div style="font-size:13px;font-weight:400">${mode}</div>${firing?'<div style="color:#ffd23f">🔫 FIRING</div>':''}`;
   R.render(S,cam)})();
- stop=()=>{run=false;cancelAnimationFrame(raf);removeEventListener('keydown',kd);removeEventListener('keyup',ku);removeEventListener('mouseup',mu);R.dispose()}}
+ stop=()=>{run=false;cancelAnimationFrame(raf);removeEventListener('keydown',kd);removeEventListener('keyup',ku);removeEventListener('mouseup',mu);eng&&eng.stop();R.dispose()}}
 home();
 </script>
 <script type="module">
@@ -186,7 +210,7 @@ home();
 const V='0.10.14',btn=document.getElementById('handBtn'),cur=document.getElementById('cur'),cam=document.getElementById('cam'),vid=document.getElementById('vid'),txt=document.getElementById('camtxt');
 let on=false,lm=null,stream=null,sx=innerWidth/2,sy=innerHeight/2,pinched=false,dir=null;
 const key=(t,k)=>dispatchEvent(new KeyboardEvent(t,{key:k}));
-btn.onclick=async()=>{on=!on;btn.textContent='✋ Hand control: '+(on?'ON':'OFF');cam.style.display=cur.style.display=on?'block':'none';
+btn.onclick=async()=>{window.getAC&&getAC();on=!on;btn.textContent='✋ Hand control: '+(on?'ON':'OFF');cam.style.display=cur.style.display=on?'block':'none';
  if(!on){window.handState=null;stream&&stream.getTracks().forEach(t=>t.stop());stream=null;if(dir)key('keyup',dir);dir=null;return}
  try{stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});vid.srcObject=stream;
   if(!lm){txt.textContent='Loading hand model…';const {FilesetResolver,HandLandmarker}=await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${V}/vision_bundle.mjs`);
