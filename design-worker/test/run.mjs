@@ -10,6 +10,10 @@ globalThis.fetch = async (input, init = {}) => {
   const url = typeof input === 'string' ? input : input.url;
   const headers = new Headers(init.headers || (typeof input === 'object' ? input.headers : {}));
   calls.push({ url, auth: headers.get('authorization'), key: headers.get('x-api-key'), body: init.body });
+  if (url.startsWith('https://api.pexels.com/videos/')) {
+    return new Response(JSON.stringify({ page: 1, videos: [{ id: 9, width: 3840, height: 2160, duration: 12, image: 'https://images.pexels.com/v9.jpg', url: 'https://www.pexels.com/video/9/', user: { name: 'Bo', url: 'https://www.pexels.com/@bo' }, video_files: [{ file_type: 'video/mp4', width: 3840, height: 2160, link: 'https://videos.pexels.com/4k.mp4' }, { file_type: 'video/mp4', width: 1920, height: 1080, link: 'https://videos.pexels.com/hd.mp4' }] }] }), { headers: { 'Content-Type': 'application/json' } });
+  }
+  if (url.startsWith('https://videos.pexels.com/')) return new Response(new Uint8Array([0, 0, 0]), { status: headers.get('range') ? 206 : 200, headers: { 'Content-Type': 'video/mp4', 'Content-Length': '3' } });
   if (url.startsWith('https://api.pexels.com/')) {
     return new Response(JSON.stringify({ page: 1, next_page: 'x', photos: [{ id: 1, width: 4000, height: 3000, alt: 'Coffee', avg_color: '#8a6', photographer: 'Ana', photographer_url: 'https://www.pexels.com/@ana', url: 'https://www.pexels.com/photo/1/', src: { medium: 'https://images.pexels.com/1-m.jpg', large2x: 'https://images.pexels.com/1-l.jpg' } }] }), { headers: { 'Content-Type': 'application/json' } });
   }
@@ -46,4 +50,9 @@ r = await worker.fetch(req('/write', { init: { method: 'POST', body: '{}' } }), 
 // rate limit binding honoured
 const deny = { limit: async () => ({ success: false }) };
 r = await worker.fetch(req('/photos/search?q=x'), Object.assign({}, env, { PHOTO_LIMIT: deny }), ctx); assert.equal(r.status, 429); console.log('ok rate limited → 429');
+// video search + file proxy
+r = await worker.fetch(req('/videos/search?q=ocean'), env, ctx); d = await r.json();
+assert.equal(r.status, 200); assert.equal(d.videos[0].file, 'https://videos.pexels.com/hd.mp4'); assert.equal(d.videos[0].by, 'Bo'); assert.match(calls.at(-1).url, /videos\/search\?query=ocean/); console.log('ok video search');
+r = await worker.fetch(req('/videos/file?u=' + encodeURIComponent('https://videos.pexels.com/hd.mp4'), { headers: { Range: 'bytes=0-' } }), env, ctx); assert.equal(r.status, 206); assert.equal(r.headers.get('Access-Control-Allow-Origin'), O); console.log('ok video proxy with range');
+r = await worker.fetch(req('/videos/file?u=' + encodeURIComponent('https://example.com/x.mp4')), env, ctx); assert.equal(r.status, 400); console.log('ok video proxy refuses other hosts');
 console.log('\nall worker tests passed');
