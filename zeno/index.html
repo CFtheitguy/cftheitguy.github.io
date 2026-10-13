@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05070d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zeno">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Zeno's Pinch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+JP:wght@300;500;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+/* Golden-ratio system: every spacing / type step is the previous × φ (≈ Fibonacci px) */
+:root{
+  --phi:1.618;
+  --s1:5px; --s2:8px; --s3:13px; --s4:21px; --s5:34px; --s6:55px; --s7:89px;
+  --t1:11px; --t2:13px; --t3:21px; --t4:34px;
+  --bg:#05070d; --ink:#e8f4ff; --dim:#7d8ca3; --line:rgba(140,190,255,.16);
+  --a:#6ff3ff; --b:#ffb86b; --glass:rgba(10,16,28,.62);
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
+  --font:"Space Grotesk","Noto Sans JP",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+:lang(ja){--font:"Noto Sans JP","Space Grotesk",system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--font);
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+/* φ-grid backdrop: lines at 38.2% / 61.8% */
+.phi-grid{position:fixed;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,transparent calc(38.2% - .5px),var(--line) 38.2%,transparent calc(38.2% + .5px),transparent calc(61.8% - .5px),var(--line) 61.8%,transparent calc(61.8% + .5px)),
+    linear-gradient(0deg,transparent calc(38.2% - .5px),var(--line) 38.2%,transparent calc(38.2% + .5px),transparent calc(61.8% - .5px),var(--line) 61.8%,transparent calc(61.8% + .5px));
+  opacity:.5;mask-image:radial-gradient(circle at 50% 50%,#000 0,transparent 75%);-webkit-mask-image:radial-gradient(circle at 50% 50%,#000 0,transparent 75%)}
+.hud{position:fixed;inset:0;pointer-events:none;display:grid;
+  grid-template-rows:auto 1fr auto;
+  padding:calc(var(--s4) + var(--safe-t)) calc(var(--s4) + var(--safe-r)) calc(var(--s4) + var(--safe-b)) calc(var(--s4) + var(--safe-l));
+  gap:var(--s4)}
+.hud>*{pointer-events:auto}
+/* top row: 1 : φ columns */
+.top{display:grid;grid-template-columns:1.618fr 1fr;gap:var(--s4);align-items:start}
+.brand{font-size:var(--t1);letter-spacing:.32em;text-transform:uppercase;color:var(--dim);display:flex;gap:var(--s2);align-items:center}
+.brand i{width:var(--s3);height:1px;background:var(--a);display:inline-block}
+.stage{margin-top:var(--s2);font-size:var(--t4);font-weight:700;line-height:1.05;letter-spacing:-.01em;min-height:1.1em}
+.stage .w{white-space:nowrap;font-weight:inherit}
+.stage span{display:inline-block;opacity:0;transform:translateY(.6em);filter:blur(6px);animation:rise .55s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none;filter:none}}
+.caption{margin-top:var(--s2);font-size:var(--t2);color:var(--dim);max-width:34ch;line-height:1.618;transition:opacity .4s}
+.right{justify-self:end;display:flex;flex-direction:column;align-items:end;gap:var(--s3)}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--glass);backdrop-filter:blur(13px);-webkit-backdrop-filter:blur(13px)}
+.lang button{all:unset;cursor:pointer;font:600 var(--t1)/1 var(--mono);padding:var(--s2) var(--s3);color:var(--dim);transition:.3s}
+.lang button[aria-pressed=true]{background:var(--a);color:#001318}
+.ring{position:relative;width:var(--s7);height:var(--s7)}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .n{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font:600 var(--t3)/1 var(--mono)}
+.ring .n small{display:block;font-size:9px;color:var(--dim);letter-spacing:.2em;margin-top:3px}
+/* readout */
+.mid{display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+.ticks{display:flex;flex-direction:column;gap:var(--s3);font:500 var(--t1)/1 var(--mono);color:var(--dim)}
+.ticks div{display:flex;gap:var(--s2);align-items:center;transition:color .4s}
+.ticks div b{width:var(--s3);height:1px;background:currentColor;transition:width .4s}
+.ticks div.on{color:var(--a)}
+.ticks div.on b{width:var(--s5)}
+/* bottom panel: width 610 = 377·φ */
+.panel{justify-self:center;width:min(100%,610px);background:var(--glass);border:1px solid var(--line);border-radius:var(--s4);
+  padding:var(--s4);backdrop-filter:blur(21px);-webkit-backdrop-filter:blur(21px);display:grid;gap:var(--s3);
+  box-shadow:0 var(--s4) var(--s6) rgba(0,0,0,.5);animation:panelIn .9s .2s cubic-bezier(.2,.8,.2,1) both}
+@keyframes panelIn{from{opacity:0;transform:translateY(var(--s5))}}
+.read{display:grid;grid-template-columns:1.618fr 1fr;align-items:end;gap:var(--s3)}
+.gap-v{font:600 var(--t4)/1 var(--mono);letter-spacing:-.02em;white-space:nowrap}
+.gap-v u{text-decoration:none;color:var(--a);font-size:var(--t3);margin-left:var(--s1)}
+.lbl{font-size:var(--t1);letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:var(--s1)}
+.frac{justify-self:end;text-align:right;font:500 var(--t3)/1 var(--mono);color:var(--b)}
+.bar{position:relative;height:var(--s1);border-radius:9px;background:rgba(255,255,255,.06);overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--a),var(--b));border-radius:9px;width:0}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:var(--s5);background:transparent;cursor:pointer;touch-action:pan-x}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--a) var(--p,0%),var(--line) var(--p,0%))}
+input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+input[type=range]::-moz-range-progress{height:2px;background:var(--a)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:var(--s4);height:var(--s4);margin-top:-10px;border-radius:50%;background:var(--bg);border:2px solid var(--a);box-shadow:0 0 var(--s3) var(--a)}
+input[type=range]::-moz-range-thumb{width:var(--s4);height:var(--s4);border-radius:50%;background:var(--bg);border:2px solid var(--a);box-shadow:0 0 var(--s3) var(--a)}
+/* buttons: 1 : φ : 1 */
+.btns{display:grid;grid-template-columns:1fr 1.618fr 1fr;gap:var(--s2)}
+.btns button{all:unset;cursor:pointer;text-align:center;height:var(--s6);border-radius:var(--s3);border:1px solid var(--line);
+  font:600 var(--t2)/1 var(--font);display:grid;place-items:center;gap:2px;transition:transform .15s,background .3s,border-color .3s;position:relative;overflow:hidden}
+.btns button small{font:400 var(--t1)/1 var(--mono);color:var(--dim)}
+.btns button:active{transform:scale(.96)}
+.btns button:hover{border-color:var(--a)}
+.btns .halve{background:linear-gradient(135deg,rgba(111,243,255,.18),rgba(111,243,255,.04));border-color:rgba(111,243,255,.5)}
+.btns button:disabled{opacity:.35;pointer-events:none}
+.btns button .rip{position:absolute;border-radius:50%;background:rgba(111,243,255,.4);transform:scale(0);animation:rip .6s ease-out forwards;pointer-events:none}
+@keyframes rip{to{transform:scale(4);opacity:0}}
+.hint{font-size:var(--t1);color:var(--dim);text-align:center;letter-spacing:.06em}
+.toast{position:fixed;left:50%;top:38.2%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;font-size:var(--t3);
+  font-weight:300;max-width:min(89vw,610px);line-height:1.5;opacity:0;transition:opacity .6s,transform .6s}
+.toast.show{opacity:1;transform:translate(-50%,-62%)}
+.toast em{display:block;font-style:normal;font:500 var(--t1)/1 var(--mono);letter-spacing:.3em;color:var(--b);margin-bottom:var(--s3)}
+.flash{position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(111,243,255,.18),transparent 61.8%);opacity:0}
+.flash.go{animation:fl .5s ease-out}
+@keyframes fl{0%{opacity:1}100%{opacity:0}}
+@media (max-width:560px){
+  :root{--t4:26px;--t3:17px}
+  .ticks{display:none}
+  .top{grid-template-columns:1fr auto}
+  .caption{max-width:26ch}
+  .ring{width:var(--s6);height:var(--s6)}
+  .ring .n{font-size:var(--t2)}
+}
+@media (max-height:560px) and (orientation:landscape){
+  .hud{grid-template-columns:1fr 1.618fr;grid-template-rows:1fr auto}
+  .top{grid-column:1/-1}.mid{display:none}.panel{grid-column:1/-1}
+  .caption{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="3D fingertips"></canvas>
+<div class="phi-grid"></div>
+<div class="flash" id="flash"></div>
+<div class="hud">
+  <header class="top">
+    <div>
+      <div class="brand"><i></i><span data-i="brand"></span></div>
+      <h1 class="stage" id="stage"></h1>
+      <p class="caption" id="caption"></p>
+    </div>
+    <div class="right">
+      <div class="lang" role="group" aria-label="Language">
+        <button data-lang="en" aria-pressed="true">EN</button>
+        <button data-lang="ja" aria-pressed="false">日本語</button>
+      </div>
+      <div class="ring">
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="none" stroke="rgba(140,190,255,.16)" stroke-width="2"/>
+          <circle id="ringArc" cx="50" cy="50" r="44" fill="none" stroke="url(#rg)" stroke-width="4" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
+          <defs><linearGradient id="rg"><stop offset="0" stop-color="#6ff3ff"/><stop offset="1" stop-color="#ffb86b"/></linearGradient></defs>
+          <g id="ringTicks"></g></svg>
+        <div class="n"><div><span id="nVal">0</span><small data-i="halvings"></small></div></div>
+      </div>
+    </div>
+  </header>
+  <div class="mid"><nav class="ticks" id="ticks"></nav><div></div></div>
+  <section class="panel">
+    <div class="read">
+      <div><div class="lbl" data-i="gap"></div><div class="gap-v" id="gapV">2.00<u>cm</u></div></div>
+      <div class="frac" id="frac">1</div>
+    </div>
+    <input type="range" id="slider" min="0" max="27" step="0.001" value="0" aria-label="gap">
+    <div class="btns">
+      <button id="bOut"><span data-i="widen"></span><small>×2</small></button>
+      <button id="bHalf" class="halve"><span data-i="halve"></span><small>÷2</small></button>
+      <button id="bReset"><span data-i="reset"></span><small>↺</small></button>
+    </div>
+    <div class="hint" data-i="hint"></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+  en:{brand:"Zeno's Pinch",gap:"Gap between fingertips",halvings:"HALVINGS",halve:"Halve",widen:"Widen",reset:"Reset",
+      hint:"Pinch in / out · tap to halve · drag the slider",
+      stages:["Fingertips","Fingerprint ridges","Skin cells","Keratin molecules","A single atom"],
+      caps:["Before the thumb meets the finger, it must cover half the distance — then half of what remains…",
+            "Closer still, the outline gives way to ridges: the loops and whorls of a fingerprint.",
+            "Each ridge is a landscape of flattened keratinocytes — the dead cells of your outer skin.",
+            "Inside the cells: coiled keratin chains, atoms bonded in long helices.",
+            "One atom, held between two surfaces. The halving could go on forever — you never truly touch."],
+      end:["ZENO","You are holding a single atom. The gap is ~1.5 Å — electron clouds repel long before anything touches."],
+      intro:["ZENO OF ELEA · c. 450 BC","To close any gap, you must first close half of it. Infinitely many halves — yet fingers meet."]},
+  ja:{brand:"ゼノンのつまみ",gap:"指先のすき間",halvings:"半分の回数",halve:"半分に",widen:"広げる",reset:"リセット",
+      hint:"ピンチイン／アウト · タップで半分 · スライダーで操作",
+      stages:["指先","指紋の隆線","皮膚細胞","ケラチン分子","ひとつの原子"],
+      caps:["親指が人差し指に届くには、まず距離の半分を進まねばならない。そして残りの半分を…",
+            "さらに近づくと、輪郭は隆線へ——指紋の渦と輪が現れる。",
+            "隆線の一つひとつは、平たくなった角質細胞の地形。",
+            "細胞の中には、らせん状に巻いたケラチンの鎖。原子が結合して連なる。",
+            "二つの面にはさまれた、ひとつの原子。半分は永遠に続く——本当に触れることはない。"],
+      end:["ゼノン","いま、ひとつの原子をつまんでいます。すき間は約1.5Å——何かが触れる前に電子雲が反発します。"],
+      intro:["エレアのゼノン · 紀元前450年頃","すき間を閉じるには、まずその半分を閉じなければならない。無限の半分——それでも指は出会う。"]}
+};
+let lang = 'en';
+try{ lang = localStorage.getItem('zeno-lang') || ((navigator.language||'').toLowerCase().startsWith('ja')?'ja':'en'); }catch(e){ lang=(navigator.language||'').toLowerCase().startsWith('ja')?'ja':'en'; }
+const T = () => I18N[lang];
+
+/* ---------------- constants ---------------- */
+const MAXL = 27;                 // 2 cm / 2^27 ≈ 1.49 Å
+const GAP0 = 0.02;               // metres
+const LAYERS = [                 // [start, end] in halving-level L
+  {s:-2,e:5}, {s:4,e:10}, {s:9,e:16}, {s:15,e:23}, {s:22,e:30}
+];
+const STAGE_AT = [4.5, 9.5, 15.5, 22.5];
+const CYAN = new THREE.Color('#6ff3ff'), AMBER = new THREE.Color('#ffb86b');
+
+/* ---------------- renderer ---------------- */
+const canvas = document.getElementById('gl');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x05070d, 1);
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05070d, 0.012);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 500);
+camera.position.set(0, 0, 30);
+scene.add(new THREE.AmbientLight(0x8899bb, 0.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(5, 8, 10); scene.add(key);
+const rim = new THREE.PointLight(0x6ff3ff, 40, 60); rim.position.set(-8, 0, 6); scene.add(rim);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.85, 0.5, 0.15);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+/* ---------------- helpers ---------------- */
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const noise = (x, y) => Math.sin(x*1.7+y*.3)*.5 + Math.sin(x*.37-y*1.1+1.3)*.35 + Math.sin(x*3.1+y*2.3)*.15;
+
+function makeLayer(){
+  const g = new THREE.Group(); const top = new THREE.Group(); const bot = new THREE.Group();
+  bot.scale.y = -1; g.add(top, bot); scene.add(g);
+  return {g, top, bot, mats:[], add(mat, op=1){ mat.transparent = true; mat.userData.op = op; this.mats.push(mat); return mat; }};
+}
+const lineMat = (L, color, op=1) => L.add(new THREE.LineBasicMaterial({color, depthWrite:false}), op);
+function polyline(pts, mat){ return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat); }
+function segs(arr, mat){ const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); return new THREE.LineSegments(geo, mat); }
+/* both sides get the same content; bottom is mirrored (thumb) and tinted amber */
+function bothSides(L, build){ build(L.top, CYAN, 0); build(L.bot, AMBER, 1); }
+
+/* ---------------- Layer 0 : vector fingers ---------------- */
+function fingerOutline(w, len, n=64){
+  const p = [];
+  p.push(new THREE.Vector2(-w, len));
+  for(let i=0;i<=n;i++){ const a = Math.PI + Math.PI*i/n; p.push(new THREE.Vector2(Math.cos(a)*w, w + Math.sin(a)*w*1.05)); }
+  p.push(new THREE.Vector2(w, len));
+  return p;
+}
+const L0 = makeLayer();
+bothSides(L0, (side, col, isThumb) => {
+  const w = isThumb ? 3.5 : 2.9, len = 40;
+  const outline = fingerOutline(w, len);
+  const shape = new THREE.Shape(outline);
+  const fill = new THREE.Mesh(new THREE.ShapeGeometry(shape, 48),
+    L0.add(new THREE.MeshBasicMaterial({color:0x0b1626, side:THREE.DoubleSide, depthWrite:false}), .85));
+  fill.position.z = -.05; side.add(fill);
+  side.add(polyline(outline.map(v=>new THREE.Vector3(v.x, v.y, 0)), lineMat(L0, col)));
+  // depth echo for a 3D feel
+  const echo = polyline(outline.map(v=>new THREE.Vector3(v.x*0.94, v.y+0.2, -1.2)), lineMat(L0, col, .25)); side.add(echo);
+  // nail
+  const nail = []; const nw = w*0.62;
+  for(let i=0;i<=40;i++){ const a = Math.PI + Math.PI*i/40; nail.push(new THREE.Vector3(Math.cos(a)*nw, w*0.9 + Math.sin(a)*nw*0.7 + 0.7, .1)); }
+  nail.push(new THREE.Vector3(nw, w*0.9+4.5, .1), new THREE.Vector3(-nw, w*0.9+4.5, .1), nail[0].clone());
+  side.add(polyline(nail, lineMat(L0, col, .55)));
+  // knuckle creases
+  for(const y of [11, 11.8, 12.5, 24, 24.7]){
+    const c=[]; for(let i=0;i<=20;i++){ const x=-w*.7+w*1.4*i/20; c.push(new THREE.Vector3(x, y+Math.sin(i/20*Math.PI)*.35, .1)); }
+    side.add(polyline(c, lineMat(L0, col, .35)));
+  }
+  // faint fingerprint hint near the tip (revealed as you zoom)
+  for(let k=1;k<9;k++){
+    const r = w - k*0.3, pts=[]; if(r<=0.2) break;
+    for(let i=0;i<=48;i++){ const a = Math.PI*1.08 + Math.PI*0.84*i/48; pts.push(new THREE.Vector3(Math.cos(a)*r, w + Math.sin(a)*r*1.05, .05)); }
+    const m = lineMat(L0, col, 0); m.userData.hint = k; side.add(polyline(pts, m));
+  }
+});
+
+/* ---------------- Layer 1 : fingerprint ridges ---------------- */
+const L1 = makeLayer();
+bothSides(L1, (side, col, isThumb) => {
+  seed = 11 + isThumb*31;
+  const R = 16, step = 0.62, cy = R + 0.2, mat = lineMat(L1, col), poreMat = [];
+  const pores = [];
+  for(let k=0; k<24; k++){
+    const r = R - k*step; if(r < 1) break;
+    let pts = [];
+    const N = 220;
+    for(let i=0;i<=N;i++){
+      const a = Math.PI*1.02 + Math.PI*0.96*i/N;
+      const rr = r + noise(a*3+k, k*.5)*0.18;
+      const p = new THREE.Vector3(Math.cos(a)*rr*(1+.18*(k/24)), cy + Math.sin(a)*rr, noise(a*5, k)*0.25);
+      // minutiae: ridge endings / bifurcation gaps
+      if(rnd() < 0.006 && pts.length > 8){ side.add(polyline(pts, mat)); pts = []; i += 4; continue; }
+      pts.push(p);
+      if(i % 9 === 0 && rnd() < .5) pores.push(p.x, p.y, p.z+.02);
+    }
+    if(pts.length > 1) side.add(polyline(pts, mat));
+  }
+  const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pores, 3));
+  side.add(new THREE.Points(pg, L1.add(new THREE.PointsMaterial({color:0xffffff, size:.09, depthWrite:false}), .7)));
+  // skin surface glow
+  const fill = new THREE.Mesh(new THREE.CircleGeometry(R+1, 96), L1.add(new THREE.MeshBasicMaterial({color:0x0a1422, side:THREE.DoubleSide, depthWrite:false}), .9));
+  fill.position.set(0, cy, -.3); side.add(fill);
+});
+
+/* ---------------- Layer 2 : skin cells ---------------- */
+const L2 = makeLayer();
+bothSides(L2, (side, col, isThumb) => {
+  seed = 23 + isThumb*7;
+  const arr = [], nuclei = [], r = 1.25;
+  for(let row=0; row<22; row++){
+    for(let c=-16; c<=16; c++){
+      const flat = Math.min(1, 0.45 + row*0.05);         // flattened corneocytes near the surface
+      const cx = (c + (row%2)*0.5) * r*1.75 + (rnd()-.5)*.25;
+      const cy = 0.5 + row * r*1.5*flat + (rnd()-.5)*.15;
+      const z = (rnd()-.5)*.6;
+      const pts = [];
+      for(let i=0;i<6;i++){ const a = Math.PI/6 + i*Math.PI/3; const j = .85+rnd()*.15; pts.push([cx+Math.cos(a)*r*j, cy+Math.sin(a)*r*j*flat, z]); }
+      for(let i=0;i<6;i++){ const p=pts[i], q=pts[(i+1)%6]; arr.push(...p, ...q); }
+      if(row > 2) nuclei.push(cx+(rnd()-.5)*.3, cy+(rnd()-.5)*.2*flat, z+.05, flat);
+    }
+  }
+  side.add(segs(arr, lineMat(L2, col, .9)));
+  const geo = new THREE.SphereGeometry(.32, 14, 10);
+  const im = new THREE.InstancedMesh(geo, L2.add(new THREE.MeshStandardMaterial({color:col, emissive:col, emissiveIntensity:.5, roughness:.4}), .9), nuclei.length/4);
+  const m4 = new THREE.Matrix4();
+  for(let i=0;i<nuclei.length/4;i++){ const f=nuclei[i*4+3]; m4.compose(new THREE.Vector3(nuclei[i*4],nuclei[i*4+1],nuclei[i*4+2]), new THREE.Quaternion(), new THREE.Vector3(1,.7*f+.2,.6)); im.setMatrixAt(i, m4); }
+  side.add(im);
+});
+
+/* ---------------- Layer 3 : keratin molecules ---------------- */
+const L3 = makeLayer();
+const ELEM = [new THREE.Color('#9aa7b8'), new THREE.Color('#ff5a6a'), new THREE.Color('#5aa0ff'), new THREE.Color('#ffe066'), new THREE.Color('#ffffff')];
+bothSides(L3, (side, col, isThumb) => {
+  seed = 41 + isThumb*5;
+  const pos = [], cols = [], bonds = [];
+  for(let ch=0; ch<9; ch++){
+    const y0 = 0.9 + ch*1.9, phase = rnd()*6;
+    let prev = null;
+    for(let i=0;i<90;i++){
+      const x = -26 + i*0.58;
+      const t = i*0.55 + phase;                  // alpha-helix coil
+      const p = new THREE.Vector3(x, y0 + Math.sin(t)*0.42, Math.cos(t)*0.42);
+      pos.push(p); cols.push(i%7===3 ? ELEM[3] : ELEM[[0,0,1,2,0,4][i%6]]);
+      if(prev) bonds.push(prev.x,prev.y,prev.z,p.x,p.y,p.z);
+      if(i%4===0 && ch>0){ bonds.push(p.x,p.y,p.z,p.x+.1,p.y-1.9+.9,p.z*.3); } // H-bond hints
+      prev = p;
+    }
+  }
+  side.add(segs(bonds, lineMat(L3, col, .55)));
+  const im = new THREE.InstancedMesh(new THREE.SphereGeometry(.24, 16, 12),
+    L3.add(new THREE.MeshStandardMaterial({roughness:.3, metalness:.1, emissive:0x111a22}), 1), pos.length);
+  const m4 = new THREE.Matrix4();
+  pos.forEach((p,i)=>{ m4.makeTranslation(p.x,p.y,p.z); im.setMatrixAt(i, m4); im.setColorAt(i, cols[i]); });
+  side.add(im);
+});
+
+/* ---------------- Layer 4 : the atom ---------------- */
+const L4 = makeLayer();
+const ATOM_R = 1.6;
+bothSides(L4, (side, col, isThumb) => {
+  // surface lattice of atoms (electron-cloud spheres)
+  const mat = L4.add(new THREE.MeshStandardMaterial({color:col, emissive:col, emissiveIntensity:.08, roughness:.7}), .35);
+  const geo = new THREE.SphereGeometry(1, 32, 20);
+  for(let row=0; row<3; row++) for(let i=-7;i<=7;i++){
+    const s = new THREE.Mesh(geo, mat);
+    s.position.set(i*2.05 + (row%2)*1.02, 1 + row*1.78, -row*.4); s.scale.setScalar(.98); side.add(s);
+  }
+});
+// the grasped atom (centre, not mirrored)
+const atom = new THREE.Group(); L4.g.add(atom);
+{
+  const nm = [L4.add(new THREE.MeshStandardMaterial({color:0xff6b6b, emissive:0x661010, roughness:.3}),1),
+              L4.add(new THREE.MeshStandardMaterial({color:0xdde6f0, emissive:0x222833, roughness:.3}),1)];
+  const ng = new THREE.SphereGeometry(.12, 16, 12);
+  seed = 99;
+  for(let i=0;i<12;i++){ const v = new THREE.Vector3(rnd()-.5,rnd()-.5,rnd()-.5).normalize().multiplyScalar(rnd()*.2); const m = new THREE.Mesh(ng, nm[i%2]); m.position.copy(v); atom.add(m); }
+  // probability cloud
+  const cp = []; for(let i=0;i<2600;i++){ const r = ATOM_R*Math.pow(rnd(), .6); const u=rnd()*2-1, t=rnd()*Math.PI*2, s=Math.sqrt(1-u*u); cp.push(r*s*Math.cos(t), r*s*Math.sin(t), r*u); }
+  const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(cp,3));
+  atom.add(new THREE.Points(cg, L4.add(new THREE.PointsMaterial({color:0x6ff3ff, size:.035, blending:THREE.AdditiveBlending, depthWrite:false}), .5)));
+  // orbitals + electrons
+  atom.userData.e = [];
+  for(let k=0;k<3;k++){
+    const ring = []; for(let i=0;i<=96;i++){ const a=i/96*Math.PI*2; ring.push(new THREE.Vector3(Math.cos(a)*ATOM_R, Math.sin(a)*ATOM_R*.38, 0)); }
+    const o = new THREE.Group(); o.rotation.set(k*1.05, k*.6, k*1.2);
+    o.add(polyline(ring, lineMat(L4, 0xffffff, .5)));
+    const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 12, 8), L4.add(new THREE.MeshBasicMaterial({color:0x6ff3ff}),1));
+    o.add(e); atom.add(o); atom.userData.e.push({e, o, k});
+  }
+}
+const LAYER_OBJS = [L0, L1, L2, L3, L4];
+
+/* ---------------- state ---------------- */
+let L = 0, Lt = 0;
+const fmtGap = m => {
+  const u = [[1e-2,'cm',1e2],[1e-3,'mm',1e3],[1e-6,'µm',1e6],[1e-9,'nm',1e9],[1e-12,'pm',1e12]];
+  for(const [t,s,k] of u){ if(m >= t*0.999){ const v=m*k; return [v>=100?v.toFixed(1):v>=10?v.toFixed(2):v.toFixed(3), s]; } }
+  return [(m*1e12).toFixed(2),'pm'];
+};
+const SUP = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const sup = n => String(n).split('').map(d=>SUP[+d]).join('');
+const clampL = v => Math.max(0, Math.min(MAXL, v));
+
+/* ---------------- UI wiring ---------------- */
+const $ = id => document.getElementById(id);
+const slider = $('slider'), stageEl = $('stage'), capEl = $('caption');
+let curStage = -1;
+function stageOf(l){ let s=0; for(const t of STAGE_AT) if(l>=t) s++; return s; }
+function setStageTitle(i){
+  const txt = T().stages[i];
+  stageEl.innerHTML = '';
+  [...txt].forEach((ch, j) => { const s = document.createElement('span'); s.textContent = ch === ' ' ? ' ' : ch; s.style.animationDelay = (j*0.034)+'s'; stageEl.appendChild(s); });
+  capEl.style.opacity = 0; setTimeout(()=>{ capEl.textContent = T().caps[i]; capEl.style.opacity = 1; }, 200);
+  [...$('ticks').children].forEach((d,k)=>d.classList.toggle('on', k===i));
+}
+function applyLang(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i]').forEach(el => el.textContent = T()[el.dataset.i]);
+  document.querySelectorAll('.lang button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang===lang));
+  $('ticks').innerHTML = T().stages.map(s=>`<div><b></b>${s}</div>`).join('');
+  document.title = T().brand;
+  curStage = stageOf(L); setStageTitle(curStage);
+}
+document.querySelectorAll('.lang button').forEach(b => b.onclick = () => { lang = b.dataset.lang; try{localStorage.setItem('zeno-lang', lang);}catch(e){} applyLang(); });
+
+// ring ticks at stage boundaries (golden: every tick is a gate)
+$('ringTicks').innerHTML = STAGE_AT.map(t=>{ const a = t/MAXL*Math.PI*2; return `<line x1="${50+40*Math.cos(a)}" y1="${50+40*Math.sin(a)}" x2="${50+48*Math.cos(a)}" y2="${50+48*Math.sin(a)}" stroke="#7d8ca3" stroke-width="1.5"/>`; }).join('');
+
+const toastEl = $('toast'); let toastT;
+function toast([h, b], ms=4200){ toastEl.innerHTML = `<em>${h}</em>${b}`; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(()=>toastEl.classList.remove('show'), ms); }
+function buzz(ms=12){ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
+function flash(){ const f=$('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); }
+function ripple(btn, e){ const r = btn.getBoundingClientRect(), s = document.createElement('i'); s.className='rip'; const d=Math.max(r.width,r.height)/2; s.style.width=s.style.height=d+'px'; s.style.left=((e.clientX||r.left+r.width/2)-r.left-d/2)+'px'; s.style.top=((e.clientY||r.top+r.height/2)-r.top-d/2)+'px'; btn.appendChild(s); setTimeout(()=>s.remove(),600); }
+
+let endShown = false;
+function halve(){ const n = Math.floor(Lt + 1e-6) + 1; if(n > MAXL){ toast(T().end); buzz([20,40,20]); return; } Lt = n; buzz(); flash(); }
+function widen(){ Lt = clampL(Math.ceil(Lt - 1e-6) - 1); buzz(8); }
+$('bHalf').addEventListener('click', e => { ripple(e.currentTarget, e); halve(); });
+$('bOut').addEventListener('click', e => { ripple(e.currentTarget, e); widen(); });
+$('bReset').addEventListener('click', e => { ripple(e.currentTarget, e); Lt = 0; endShown = false; });
+slider.addEventListener('input', () => { Lt = +slider.value; });
+
+/* gestures: pinch (analog), tap (digital halve), wheel (desktop) */
+const ptrs = new Map(); let pinch0 = null, tap = null;
+const dist = () => { const [a,b] = [...ptrs.values()]; return Math.hypot(a.x-b.x, a.y-b.y); };
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(ptrs.size === 1) tap = {x:e.clientX, y:e.clientY, t:performance.now()};
+  if(ptrs.size === 2){ pinch0 = {d:dist(), L:Lt}; tap = null; }
+});
+canvas.addEventListener('pointermove', e => {
+  if(!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(ptrs.size === 2 && pinch0){ Lt = clampL(pinch0.L + Math.log2(pinch0.d / Math.max(10, dist())) * 3); }
+  if(tap && Math.hypot(e.clientX-tap.x, e.clientY-tap.y) > 12) tap = null;
+});
+const up = e => {
+  if(tap && ptrs.size === 1 && performance.now() - tap.t < 300) halve();
+  ptrs.delete(e.pointerId); tap = null;
+  if(ptrs.size < 2) pinch0 = null;
+};
+canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+canvas.addEventListener('wheel', e => { e.preventDefault(); Lt = clampL(Lt + (e.ctrlKey ? -e.deltaY*0.03 : -e.deltaY*0.004)); }, {passive:false});
+// iOS Safari: stop native page zoom
+['gesturestart','gesturechange','gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), {passive:false}));
+document.addEventListener('dblclick', e => e.preventDefault());
+addEventListener('keydown', e => { if(e.key==='ArrowDown'||e.key===' ') halve(); if(e.key==='ArrowUp') widen(); });
+
+/* tilt parallax from pointer / device */
+let tiltX = 0, tiltY = 0;
+addEventListener('pointermove', e => { tiltX = (e.clientX/innerWidth - .5); tiltY = (e.clientY/innerHeight - .5); });
+addEventListener('deviceorientation', e => { if(e.gamma!=null){ tiltX = Math.max(-.5,Math.min(.5,e.gamma/60)); tiltY = Math.max(-.5,Math.min(.5,(e.beta-45)/60)); } });
+
+/* ---------------- resize ---------------- */
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); composer.setSize(w, h); bloom.setSize(w, h);
+  camera.aspect = w/h;
+  camera.position.z = w < h ? 30 * Math.min(1.7, (h/w)*0.85) : 30; // fit fingers on portrait phones
+  camera.position.y = w < h ? -3 : 0;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+/* ---------------- animation ---------------- */
+const smooth = x => x<=0?0:x>=1?1:x*x*(3-2*x);
+const clock = new THREE.Clock();
+function frame(){
+  const dt = Math.min(.05, clock.getDelta()), time = clock.elapsedTime;
+  L += (Lt - L) * (1 - Math.exp(-dt*7));
+  if(Math.abs(Lt-L) < 1e-4) L = Lt;
+
+  LAYER_OBJS.forEach((Lo, i) => {
+    const {s, e} = LAYERS[i], d = L - s;
+    const a = smooth((L - s)/1.2) * (1 - smooth((L - (e-1.2))/1.2));
+    const alpha = i===0 ? 1 - smooth((L - (e-1.2))/1.2) : i===4 ? smooth((L-s)/1.2) : a;
+    Lo.g.visible = alpha > .002;
+    if(!Lo.g.visible) return;
+    for(const m of Lo.mats){
+      let op = m.userData.op;
+      if(m.userData.hint) op = .5 * smooth((L - 1.5 - m.userData.hint*.15)/2);
+      m.opacity = op * alpha;
+    }
+    // visual zoom grows by √2 per halving, while the local gap halves → on-screen gap shrinks by √2
+    const zoom = Math.pow(2, 0.5*d) * (i===4 ? Math.pow(2,-0.15*d) : 1);
+    let gapLocal = 4 * Math.pow(2, -d);
+    if(i===4) gapLocal = 2*ATOM_R*1.02 + 9*(Math.pow(2,-Math.max(0,d)) - Math.pow(2,-(MAXL-s)));
+    Lo.g.scale.setScalar(zoom);
+    Lo.top.position.y = gapLocal/2;
+    Lo.bot.position.y = -gapLocal/2;
+    Lo.g.rotation.x = -0.18 + tiltY*.25 + Math.sin(time*.3+i)*.03;
+    Lo.g.rotation.y = tiltX*.35 + Math.sin(time*.23+i)*.05;
+  });
+  atom.rotation.y = time*.4;
+  atom.userData.e.forEach(({e, k}) => { const a = time*(2.2+k*.6)+k*2; e.position.set(Math.cos(a)*ATOM_R, Math.sin(a)*ATOM_R*.38, 0); });
+  rim.intensity = 30 + Math.sin(time*1.3)*10;
+
+  // HUD
+  const gap = GAP0 * Math.pow(2, -L);
+  const [v, unit] = fmtGap(gap);
+  $('gapV').innerHTML = `${v}<u>${unit}</u>`;
+  const n = Math.round(L*100)/100, ni = Math.round(L);
+  $('nVal').textContent = Math.abs(L-ni) < .01 ? ni : n.toFixed(1);
+  $('frac').textContent = ni === 0 ? '1' : `1/2${sup(ni)}`;
+  $('ringArc').setAttribute('stroke-dashoffset', 276.46 * (1 - L/MAXL));
+  if(document.activeElement !== slider) slider.value = L;
+  slider.style.setProperty('--p', (slider.value/MAXL*100)+'%');
+  $('bHalf').classList.toggle('max', L >= MAXL - .01);
+  $('bOut').disabled = Lt <= 0;
+  const st = stageOf(L);
+  if(st !== curStage){ curStage = st; setStageTitle(st); buzz(25); }
+  if(L > MAXL - .05 && !endShown){ endShown = true; toast(T().end, 6000); }
+  if(L < MAXL - 1) endShown = false;
+
+  composer.render();
+  requestAnimationFrame(frame);
+}
+applyLang();
+setTimeout(()=>toast(T().intro, 5200), 600);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
