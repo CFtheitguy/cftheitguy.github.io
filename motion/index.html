@@ -38,6 +38,11 @@ canvas#c{background:#000;box-shadow:0 10px 40px #0008;display:block;touch-action
 .scene canvas{max-width:100%;max-height:90px;margin:0 auto 3px;border-radius:4px;display:block;margin-bottom:3px}
 .muted{color:var(--muted);font-size:12px}
 #status{font-size:12px;color:var(--accent2)}
+#lib{position:fixed;inset:0;background:#000b;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}#lib[hidden]{display:none}
+.libBox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(1100px,100%);height:min(90vh,900px);display:flex;flex-direction:column;gap:10px;padding:14px}
+#libGrid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;align-content:start}
+.libItem{cursor:pointer;background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:6px;font-size:11px;text-align:center}.libItem:hover{border-color:var(--accent)}
+.libItem canvas{max-width:100%;max-height:200px;border-radius:6px;display:block;margin:0 auto 4px}
 @media(max-width:900px){.main{flex-direction:column;overflow:auto}aside{width:100%;border:0}.stage{order:-1;height:65vh;flex:none}body{overflow:auto;height:auto}}
 </style>
 </head>
@@ -58,6 +63,7 @@ canvas#c{background:#000;box-shadow:0 10px 40px #0008;display:block;touch-action
 <div class="main">
 <aside>
   <h3>Templates</h3>
+  <div class="row"><button class="primary" id="openLib">Browse templates</button></div>
   <div class="tpl" id="tpls"></div>
   <h3>Add</h3>
   <div class="row"><button data-add="heading">Heading</button><button data-add="text">Text</button></div>
@@ -105,6 +111,11 @@ canvas#c{background:#000;box-shadow:0 10px 40px #0008;display:block;touch-action
 </aside>
 </div>
 <div class="scenes" id="scenes"></div>
+<div id="lib" hidden><div class="libBox">
+  <div class="row" style="flex:none"><input id="libQ" placeholder="Search templates: sale, birthday, hiring…" style="flex:3"><select id="libCat"></select><button id="libRand">🎲 Surprise me</button><button id="libClose">✕</button></div>
+  <div id="libGrid"></div>
+  <div class="row" style="flex:none;align-items:center"><button id="libPrev">← Prev</button><span class="muted" id="libInfo" style="text-align:center"></span><button id="libNext">Next →</button></div>
+</div></div>
 <input type="file" id="file" hidden>
 
 <script>
@@ -140,6 +151,91 @@ const TPL={
   'Blank':()=>[scene('#1e2232','#1e2232')]
 };
 $('tpls').innerHTML=Object.keys(TPL).map(k=>`<button data-t="${k}" style="background:linear-gradient(135deg,#7c5cff55,#00d4c855)">${k}</button>`).join('');
+/* ---------- template library (generated) ---------- */
+const PAL=[['#ff4f8b','#ffb547','#fff','#111'],['#7c5cff','#00d4c8','#fff','#0b0d14'],['#0b0d14','#1d1640','#fff','#ffb547'],['#14213d','#000','#fff','#fca311'],['#ff6b6b','#c44569','#fff','#2d132c'],['#00b894','#0984e3','#fff','#002'],['#fdcb6e','#e17055','#2d3436','#fff'],['#2d3436','#636e72','#fff','#00cec9'],['#f8f9fa','#dee2e6','#212529','#e63946'],['#e63946','#1d3557','#fff','#f1faee'],['#264653','#2a9d8f','#fff','#e9c46a'],['#f4a261','#e76f51','#fff','#264653'],['#6a0572','#ab83a1','#fff','#ffd166'],['#118ab2','#06d6a0','#fff','#073b4c'],['#ef476f','#ffd166','#073b4c','#fff'],['#000','#434343','#fff','#ff0054'],['#3a0ca3','#f72585','#fff','#4cc9f0'],['#fefae0','#e9edc9','#283618','#bc6c25'],['#606c38','#283618','#fefae0','#dda15e'],['#03045e','#0077b6','#fff','#90e0ef'],['#ffafcc','#bde0fe','#22223b','#fff'],['#ff9f1c','#ffbf69','#1b1b1b','#fff'],['#5f0f40','#9a031e','#fff','#fb8b24'],['#1a1a2e','#16213e','#fff','#e94560'],['#d8f3dc','#95d5b2','#081c15','#2d6a4f'],['#ffffff','#f1f1f1','#111','#7c5cff'],['#22223b','#4a4e69','#f2e9e4','#c9ada7'],['#ff006e','#8338ec','#fff','#ffbe0b'],['#0f2027','#2c5364','#fff','#a8ff78'],['#c9184a','#ff4d6d','#fff','#590d22']];
+const CATS={
+ 'Sale':['🛍️',[['FLASH SALE','Up to 50% off everything','Shop now'],['BLACK FRIDAY','Our biggest deals of the year','Get the deal'],['CLEARANCE','Last chance — while supplies last','Shop the sale'],['BUY 1 GET 1','This weekend only','Order today']]],
+ 'Grand opening':['🎉',[['GRAND OPENING','Join us for our first day','Visit us'],['NOW OPEN','Come see what is new','Stop by'],['WE MOVED!','Same great service, new address','Find us'],['OPENING SOON','Something exciting is coming','Stay tuned']]],
+ 'Restaurant':['🍕',[['TODAY’S SPECIAL','Fresh, hot and made to order','Order now'],['NEW MENU','Taste what is new this season','See menu'],['HAPPY HOUR','Every weekday 4–7 PM','Join us'],['FREE DELIVERY','On all orders this week','Order online']]],
+ 'Coffee':['☕',[['COFFEE TIME','Start your morning right','Visit us'],['NEW LATTE','Try our seasonal flavor','Order now'],['MORNING DEAL','Coffee + pastry special','Grab yours'],['FRESH ROAST','Beans roasted daily','Taste it']]],
+ 'Real estate':['🏡',[['JUST LISTED','3 bed · 2 bath · Beautiful yard','Book a tour'],['OPEN HOUSE','Sunday 1–4 PM','Visit'],['SOLD!','Another happy homeowner','Work with us'],['DREAM HOME','Your next chapter starts here','Call today']]],
+ 'Fitness':['💪',[['NEW YOU','Join our 30-day challenge','Sign up'],['FREE CLASS','Bring a friend this week','Book now'],['GET STRONG','Personal training available','Start today'],['NO EXCUSES','Open 24/7','Join now']]],
+ 'Beauty':['💅',[['GLOW UP','New treatments available','Book now'],['SPA DAY','Relax and recharge','Reserve'],['NEW LOOK','Walk-ins welcome','Visit us'],['SELF CARE','Treat yourself today','Book']]],
+ 'Tech':['💻',[['IT SUPPORT','Fast, friendly, local','Call us'],['NEW LAUNCH','Meet our latest product','Learn more'],['STAY SECURE','Protect your business today','Get a quote'],['UPGRADE NOW','Faster. Smarter. Better.','Try it']]],
+ 'Event':['📅',[['SAVE THE DATE','You are invited','RSVP'],['LIVE TONIGHT','Doors open at 7 PM','Get tickets'],['COMMUNITY NIGHT','Food, music and fun','Join us'],['WORKSHOP','Learn something new','Register']]],
+ 'Birthday':['🎂',[['HAPPY BIRTHDAY','Wishing you an amazing year','🎈'],['IT’S PARTY TIME','Let’s celebrate together','RSVP'],['CHEERS TO YOU','Another trip around the sun','🎁'],['YOU’RE INVITED','Birthday bash this Saturday','Come']]],
+ 'Wedding & family':['💍',[['MAZAL TOV','Celebrating with joy','🎉'],['SAVE THE DATE','A celebration is coming','Details'],['WELCOME BABY','A new blessing has arrived','👶'],['THANK YOU','For celebrating with us','❤️']]],
+ 'Holiday':['🎆',[['HAPPY HOLIDAYS','Warm wishes to you and yours','✨'],['HAPPY NEW YEAR','Here’s to a great year','🥂'],['SEASON’S GREETINGS','From our family to yours','❤️'],['HOLIDAY HOURS','Check our special schedule','See hours']]],
+ 'Quote':['💬',[['DREAM BIG','Start where you are','—'],['KEEP GOING','Every step counts','—'],['BE KIND','It costs nothing','—'],['STAY HUMBLE','Work hard, stay focused','—']]],
+ 'Motivation':['🚀',[['YOU GOT THIS','Believe in yourself','Let’s go'],['MONDAY MOTIVATION','Make this week count','Go'],['NEVER GIVE UP','Great things take time','Keep going'],['LEVEL UP','Small wins every day','Start']]],
+ 'Hiring':['📢',[['WE’RE HIRING','Join our growing team','Apply now'],['JOIN US','Full-time and part-time roles','Apply'],['NOW HIRING','Drivers · Sales · Support','Send resume'],['CAREERS','Build your future with us','Learn more']]],
+ 'Education':['📚',[['ENROLL NOW','Classes start next month','Sign up'],['BACK TO SCHOOL','Get ready for a great year','Shop'],['FREE WEBINAR','Learn from the experts','Register'],['STUDY TIPS','5 ways to learn faster','Watch']]],
+ 'Travel':['✈️',[['ADVENTURE AWAITS','Book your next trip','Explore'],['SUMMER GETAWAY','Sun, sand and relaxation','Book now'],['TRAVEL DEAL','Save 30% on flights','Get deal'],['WANDERLUST','See the world','Discover']]],
+ 'Music':['🎵',[['NEW RELEASE','Out now everywhere','Listen'],['LIVE CONCERT','One night only','Tickets'],['PLAYLIST','Songs for your weekend','Play'],['ON TOUR','Coming to your city','See dates']]],
+ 'Gaming':['🎮',[['GAME NIGHT','Bring your A-game','Join'],['NEW LEVEL','Unlocked','Play now'],['TOURNAMENT','Prizes for the winners','Sign up'],['LIVE STREAM','Watch tonight at 8','Tune in']]],
+ 'Podcast':['🎙️',[['NEW EPISODE','Listen now','Play'],['THIS WEEK','A special guest joins us','Tune in'],['PODCAST','Stories worth hearing','Subscribe'],['ON AIR','Live every Tuesday','Listen']]],
+ 'YouTube':['▶️',[['SUBSCRIBE','New videos every week','Subscribe'],['NEW VIDEO','Link in bio','Watch'],['DON’T MISS IT','Premiering tonight','Watch now'],['THANK YOU','For 10K subscribers','🎉']]],
+ 'Tips':['💡',[['QUICK TIP','Save time every day','Learn more'],['DID YOU KNOW?','A fact worth sharing','Follow'],['3 SIMPLE STEPS','Easier than you think','Try it'],['HOW TO','A quick guide','Watch']]],
+ 'Thank you':['🙏',[['THANK YOU','We appreciate you','❤️'],['THANKS FOR 1K','You made it happen','🎉'],['GRATEFUL','For our amazing customers','❤️'],['YOU ROCK','Thanks for your support','⭐']]],
+ 'Review':['⭐',[['5 STARS','“Best service in town!”','Read more'],['HAPPY CLIENT','“Fast and professional”','Reviews'],['TESTIMONIAL','“Highly recommend!”','See more'],['CUSTOMER LOVE','Thank you for the kind words','❤️']]],
+ 'Fashion':['👗',[['NEW ARRIVALS','Fresh styles just landed','Shop'],['LOOKBOOK','This season’s favorites','Browse'],['STYLE DROP','Limited edition','Get yours'],['TRENDING','What everyone is wearing','Shop now']]],
+ 'Pets':['🐶',[['ADOPT ME','Give a pet a home','Learn more'],['PET GROOMING','Pamper your best friend','Book'],['NEW PUPPIES','Meet our new friends','Visit'],['PET SALE','Toys and treats 20% off','Shop']]],
+ 'Health':['🩺',[['BOOK A CHECKUP','Your health comes first','Book'],['STAY HEALTHY','Tips for a better you','Learn'],['FLU SHOTS','Available now','Walk in'],['NEW CLINIC','Now accepting patients','Call']]],
+ 'Auto':['🚗',[['CAR SALE','Low prices on all models','Test drive'],['OIL CHANGE','Quick service, great price','Book'],['DETAILING','Make it shine','Book now'],['NEW ARRIVAL','Just hit the lot','See it']]],
+ 'Charity':['❤️',[['DONATE TODAY','Every bit helps','Give'],['VOLUNTEER','Make a difference','Join'],['FUNDRAISER','Help us reach our goal','Donate'],['THANK YOU','Together we did it','❤️']]],
+ 'Countdown':['⏰',[['3 DAYS LEFT','Don’t miss out','Hurry'],['LAST CHANCE','Ends tonight','Go'],['COMING SOON','Launching this week','Stay tuned'],['TOMORROW','Get ready','Set reminder']]],
+ 'Solar & home':['☀️',[['GO SOLAR','Save on energy bills','Free quote'],['HOME UPGRADE','Renovations done right','Call'],['CLEAN WATER','Filtration for your home','Learn more'],['FREE ESTIMATE','No obligation','Book']]]
+};
+const LAYOUTS=[
+ // centered stack
+ (t,p)=>{const s=scene(p[0],p[1]);s.els=[el('emoji',{text:t.e,y:H*.25}),el('heading',{text:t.h,y:H*.45,color:p[2]}),el('text',{text:t.s,y:H*.57,color:p[2]}),el('rect',{y:H*.72,w:W*.55,h:W*.13,color:p[3],opacity:.95,radius:80,start:.8}),el('text',{text:t.c,y:H*.72,weight:700,color:p[0],start:1})];return[s]},
+ // big banner box
+ (t,p)=>{const s=scene(p[0],p[1]);s.els=[el('rect',{y:H*.48,w:W*.9,h:H*.32,color:p[3],opacity:.9,radius:30,anim:'left'}),el('heading',{text:t.h,y:H*.44,color:p[0],anim:'right',start:.3}),el('text',{text:t.s,y:H*.55,color:p[0],start:.7}),el('emoji',{text:t.e,y:H*.2,loop:'float'})];return[s]},
+ // two-scene reveal
+ (t,p)=>{const a=scene(p[1],p[0]),b=scene(p[0],p[1]);a.dur=2;a.els=[el('heading',{text:t.e,size:W*.3,h:W*.4,y:H/2,anim:'spin'})];b.els=[el('heading',{text:t.h,y:H*.45,color:p[2],anim:'pop'}),el('text',{text:t.s,y:H*.56,color:p[2]}),el('text',{text:t.c,y:H*.68,color:p[3],weight:900,start:1,loop:'pulse'})];return[a,b]},
+ // typewriter
+ (t,p)=>{const s=scene(p[3],p[3]);s.bg1=p[1];s.els=[el('heading',{text:t.h,y:H*.45,color:p[2],anim:'type',adur:1.2}),el('rect',{y:H*.53,w:W*.3,h:W*.015,color:p[0],anim:'left',start:1.2}),el('text',{text:t.s,y:H*.6,color:p[2],start:1.5})];return[s]},
+ // circles
+ (t,p)=>{const s=scene(p[0],p[1]);s.els=[el('circle',{x:W*.15,y:H*.15,w:W*.6,h:W*.6,color:p[3],opacity:.25,loop:'float'}),el('circle',{x:W*.9,y:H*.85,w:W*.7,h:W*.7,color:p[2],opacity:.2,loop:'pulse'}),el('heading',{text:t.h,y:H*.46,color:p[2],anim:'drop'}),el('text',{text:t.s,y:H*.57,color:p[2]}),el('emoji',{text:t.e,y:H*.3,start:.6})];return[s]},
+ // left aligned
+ (t,p)=>{const s=scene(p[1],p[0]);const x=W*.5;s.els=[el('rect',{x:W*.06,y:H*.5,w:W*.02,h:H*.3,color:p[3],anim:'drop'}),el('heading',{text:t.h,x,y:H*.44,align:'left',color:p[2],anim:'left'}),el('text',{text:t.s,x,y:H*.55,align:'left',color:p[2],start:.5,anim:'left'}),el('text',{text:t.c+' →',x,y:H*.63,align:'left',weight:700,color:p[3],start:.9})];return[s]},
+ // countdown style
+ (t,p)=>{const r=['3','2','1'].map(n=>{const s=scene(p[0],p[1]);s.dur=.8;s.trans='zoom';s.els=[el('heading',{text:n,size:W*.4,h:W*.5,y:H/2,color:p[2],anim:'pop',adur:.3})];return s});const f=scene(p[1],p[0]);f.trans='zoom';f.els=[el('heading',{text:t.h,y:H*.45,color:p[2],anim:'zoom'}),el('text',{text:t.s,y:H*.56,color:p[2]}),el('emoji',{text:t.e,y:H*.72,loop:'wiggle'})];return[...r,f]},
+ // frame
+ (t,p)=>{const s=scene(p[0],p[0]);s.els=[el('rect',{w:W*.86,h:H*.86,color:p[2],opacity:.12,radius:40,anim:'zoom'}),el('rect',{w:W*.8,h:H*.8,color:p[0],opacity:1,radius:30,anim:'zoom'}),el('text',{text:t.e+'  '+t.c.toUpperCase(),y:H*.3,color:p[3],weight:700}),el('heading',{text:t.h,y:H*.47,color:p[2],anim:'rise'}),el('text',{text:t.s,y:H*.6,color:p[2],start:.6})];return[s]},
+ // word by word scenes
+ (t,p)=>{const w=t.h.split(' ');const ss=w.map((x,i)=>{const s=scene(i%2?p[1]:p[0],i%2?p[0]:p[1]);s.dur=.9;s.trans='slide';s.els=[el('heading',{text:x,size:W*.16,y:H/2,color:p[2],anim:'pop',adur:.35})];return s});const f=scene(p[3],p[3]);f.trans='fade';f.els=[el('emoji',{text:t.e,y:H*.38,anim:'spin'}),el('text',{text:t.s,y:H*.52,color:p[0],weight:700}),el('text',{text:t.c,y:H*.62,color:p[0],start:.6,loop:'pulse'})];return[...ss,f]},
+ // bottom bar
+ (t,p)=>{const s=scene(p[0],p[1]);s.els=[el('emoji',{text:t.e,size:W*.35,w:W*.45,h:W*.45,y:H*.33,loop:'kenburns'}),el('rect',{y:H*.78,w:W,h:H*.3,color:p[3],opacity:.92,radius:0,anim:'rise'}),el('heading',{text:t.h,y:H*.73,color:p[0],size:W*.08,start:.4}),el('text',{text:t.s,y:H*.81,color:p[0],start:.7})];return[s]},
+ // diagonal stripes
+ (t,p)=>{const s=scene(p[1],p[0]);s.els=[0,1,2].map(i=>el('rect',{x:W*(.2+.3*i),y:H*.5,w:W*.12,h:H*1.2,color:p[3],opacity:.12,anim:'drop',start:i*.15,loop:'float'})).concat([el('heading',{text:t.h,y:H*.45,color:p[2],anim:'zoom',start:.4}),el('text',{text:t.s,y:H*.56,color:p[2],start:.8}),el('emoji',{text:t.e,y:H*.7,start:1})]);return[s]},
+ // badge
+ (t,p)=>{const s=scene(p[0],p[1]);s.els=[el('circle',{y:H*.42,w:W*.75,h:W*.75,color:p[3],anim:'spin'}),el('emoji',{text:t.e,y:H*.33,start:.5}),el('heading',{text:t.h,y:H*.44,w:W*.6,size:W*.075,color:p[0],start:.6}),el('text',{text:t.s,y:H*.68,color:p[2],start:.9}),el('text',{text:t.c,y:H*.76,color:p[2],weight:900,start:1.1,loop:'pulse'})];return[s]}
+];
+const LNAMES=['Classic','Banner','Reveal','Typewriter','Bubbles','Editorial','Countdown','Framed','Word pop','Spotlight','Stripes','Badge'];
+const CK=Object.keys(CATS);
+const PER_CAT=4*LAYOUTS.length*PAL.length, TOTAL=CK.length*PER_CAT;
+function tplInfo(i){const ci=Math.floor(i/PER_CAT),r=i%PER_CAT,ti=r%4,li=Math.floor(r/4)%LAYOUTS.length,pi=Math.floor(r/4/LAYOUTS.length);const c=CATS[CK[ci]],x=c[1][ti];
+  return{cat:CK[ci],name:x[0]+' · '+LNAMES[li],t:{e:c[0],h:x[0],s:x[1],c:x[2]},li,pi}}
+function tplBuild(i){const f=tplInfo(i);return LAYOUTS[f.li](f.t,PAL[f.pi])}
+let libList=[],libPage=0;const LP=24;
+function libFilter(){const q=$('libQ').value.toLowerCase().trim(),c=$('libCat').value;libList=[];
+  for(let ci=0;ci<CK.length;ci++){if(c&&CK[ci]!==c)continue;for(let r=0;r<PER_CAT;r++){const i=ci*PER_CAT+r;if(q){const f=tplInfo(i);if(!(f.cat+' '+f.name+' '+f.t.s).toLowerCase().includes(q))continue}libList.push(i)}}
+  // shuffle-ish ordering so first page shows variety
+  libList.sort((a,b)=>((a*2654435761)%TOTAL)-((b*2654435761)%TOTAL));libPage=0;libRender()}
+function libRender(){const g=$('libGrid');g.innerHTML='';const items=libList.slice(libPage*LP,libPage*LP+LP);
+  for(const i of items){const f=tplInfo(i);const d=document.createElement('div');d.className='libItem';const cvs=document.createElement('canvas');cvs.width=W/5;cvs.height=H/5;const tc=cvs.getContext('2d');tc.scale(.2,.2);
+    const sc=tplBuild(i);ctx=tc;try{drawScene(sc[sc.length-1],0,true)}finally{ctx=mainCtx}d.append(cvs);const n=document.createElement('div');n.textContent=f.name;d.append(n);
+    d.onclick=()=>{if(P.scenes.length&&!confirm('Replace current project with this template?'))return;P.scenes=tplBuild(i);cur=0;selId=null;$('lib').hidden=true;refresh()};g.append(d)}
+  $('libInfo').textContent=`${libList.length.toLocaleString()} templates · page ${libPage+1} of ${Math.max(1,Math.ceil(libList.length/LP))}`}
+$('libCat').innerHTML='<option value="">All categories</option>'+CK.map(c=>`<option>${c}</option>`).join('');
+$('openLib').textContent=`Browse ${TOTAL.toLocaleString()} templates`;
+$('openLib').onclick=()=>{$('lib').hidden=false;if(!libList.length)libFilter();else libRender()};
+$('libClose').onclick=()=>$('lib').hidden=true;
+$('libQ').oninput=()=>{clearTimeout(window._lq);window._lq=setTimeout(libFilter,250)};$('libCat').onchange=libFilter;
+$('libPrev').onclick=()=>{if(libPage>0){libPage--;libRender()}};$('libNext').onclick=()=>{if((libPage+1)*LP<libList.length){libPage++;libRender()}};
+$('libRand').onclick=()=>{libPage=Math.floor(Math.random()*Math.ceil(libList.length/LP));libRender()};
+
 $('tpls').onclick=e=>{const k=e.target.dataset.t;if(!k)return;if(P.scenes.length&&!confirm('Replace current project with this template?'))return;P.scenes=TPL[k]();cur=0;selId=null;refresh()};
 
 /* ---------- drawing ---------- */
