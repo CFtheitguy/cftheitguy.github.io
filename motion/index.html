@@ -38,7 +38,8 @@ canvas#c{background:#000;box-shadow:0 10px 40px #0008;display:block;touch-action
 .scene canvas{max-width:100%;max-height:90px;margin:0 auto 3px;border-radius:4px;display:block;margin-bottom:3px}
 .muted{color:var(--muted);font-size:12px}
 #status{font-size:12px;color:var(--accent2)}
-#lib{position:fixed;inset:0;background:#000b;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}#lib[hidden]{display:none}
+#stock,#lib{position:fixed;inset:0;background:#000b;z-index:10;display:flex;align-items:center;justify-content:center;padding:16px}#lib[hidden],#stock[hidden]{display:none}#stGrid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;align-content:start}
+.stItem{position:relative;cursor:pointer;border:2px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel2);aspect-ratio:16/10}.stItem:hover{border-color:var(--accent)}.stItem img,.stItem video{width:100%;height:100%;object-fit:cover;display:block}.stItem span{position:absolute;left:6px;bottom:6px;background:#000a;padding:1px 6px;border-radius:6px;font-size:11px}
 .libBox{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(1100px,100%);height:min(90vh,900px);display:flex;flex-direction:column;gap:10px;padding:14px}
 #libGrid{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;align-content:start}
 .libItem{cursor:pointer;background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:6px;font-size:11px;text-align:center}.libItem:hover{border-color:var(--accent)}
@@ -68,7 +69,8 @@ canvas#c{background:#000;box-shadow:0 10px 40px #0008;display:block;touch-action
   <h3>Add</h3>
   <div class="row"><button data-add="heading">Heading</button><button data-add="text">Text</button></div>
   <div class="row"><button data-add="rect">Box</button><button data-add="circle">Circle</button><button data-add="emoji">Emoji</button></div>
-  <div class="row"><button id="addMedia">Photo / video</button></div>
+  <div class="row"><button id="addMedia">Upload photo / video</button></div>
+  <div class="row"><button class="primary" id="openStock">🔍 Search stock videos &amp; photos</button></div>
   <h3>Scene background</h3>
   <div class="row"><input type="color" id="bg1"><input type="color" id="bg2"></div>
   <div class="row"><button id="bgMedia">Background photo/video</button><button id="bgClear">Clear</button></div>
@@ -115,6 +117,11 @@ canvas#c{background:#000;box-shadow:0 10px 40px #0008;display:block;touch-action
   <div class="row" style="flex:none"><input id="libQ" placeholder="Search templates: sale, birthday, hiring…" style="flex:3"><select id="libCat"></select><button id="libRand">🎲 Surprise me</button><button id="libClose">✕</button></div>
   <div id="libGrid"></div>
   <div class="row" style="flex:none;align-items:center"><button id="libPrev">← Prev</button><span class="muted" id="libInfo" style="text-align:center"></span><button id="libNext">Next →</button></div>
+</div></div>
+<div id="stock" class="modal" hidden><div class="libBox">
+  <div class="row" style="flex:none"><input id="stQ" type="search" placeholder="Type a word: ocean, city, coffee, fireworks…" style="flex:3"><select id="stKind"><option value="videos">Videos</option><option value="photos">Photos</option></select><select id="stUse"><option value="bg">Use as background</option><option value="el">Add as element</option></select><button id="stClose">✕</button></div>
+  <div id="stGrid"></div>
+  <div class="row" style="flex:none;align-items:center"><span class="muted" id="stInfo">Free stock media from <a href="https://www.pexels.com" target="_blank" rel="noopener" style="color:var(--accent2)">Pexels</a></span><button id="stMore" style="flex:none">Load more</button></div>
 </div></div>
 <input type="file" id="file" hidden>
 
@@ -235,6 +242,32 @@ $('libClose').onclick=()=>$('lib').hidden=true;
 $('libQ').oninput=()=>{clearTimeout(window._lq);window._lq=setTimeout(libFilter,250)};$('libCat').onchange=libFilter;
 $('libPrev').onclick=()=>{if(libPage>0){libPage--;libRender()}};$('libNext').onclick=()=>{if((libPage+1)*LP<libList.length){libPage++;libRender()}};
 $('libRand').onclick=()=>{libPage=Math.floor(Math.random()*Math.ceil(libList.length/LP));libRender()};
+
+/* ---------- stock search (Pexels via design-api.linearit.co) ---------- */
+const API='https://design-api.linearit.co';
+let st={q:'',kind:'videos',page:0,more:true,busy:false};
+async function stApi(p){let r;try{r=await fetch(API+p)}catch{throw new Error(navigator.onLine===false?'You’re offline — search needs the internet.':'Stock search isn’t switched on yet (the site’s design-api service needs updating).')}const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Search failed — try again.');return d}
+const orient=()=>W>H?'landscape':W<H?'portrait':'square';
+async function stSearch(reset){if(st.busy)return;if(reset){st.page=0;st.more=true;$('stGrid').innerHTML=''}if(!st.more)return;st.busy=true;$('stInfo').textContent='Searching…';
+  try{const d=await stApi(`/${st.kind}/search?q=${encodeURIComponent(st.q)}&page=${st.page+1}&orientation=${orient()}`);st.page=d.page;st.more=d.more;const list=d[st.kind]||[];
+    for(const it of list){const b=document.createElement('div');b.className='stItem';const im=document.createElement('img');im.loading='lazy';im.src=it.thumb;im.alt=it.alt||'';b.append(im);
+      if(st.kind==='videos'){const sp=document.createElement('span');sp.textContent='▶ '+Math.round(it.dur||0)+'s';b.append(sp)}
+      b.title=(it.by?'By '+it.by+' on Pexels':'Pexels');b.onclick=()=>stPick(it,st.kind);$('stGrid').append(b)}
+    $('stInfo').innerHTML=(list.length||$('stGrid').children.length?'':'No results — try another word. ')+'Free stock media from <a href="https://www.pexels.com" target="_blank" rel="noopener" style="color:var(--accent2)">Pexels</a>';
+  }catch(e){$('stInfo').textContent=e.message}finally{st.busy=false;$('stMore').hidden=!st.more}}
+function loadRemote(url,isVideo){return new Promise((res,rej)=>{const id='m'+nid();let m;
+  if(isVideo){m=document.createElement('video');m.crossOrigin='anonymous';m.muted=true;m.loop=true;m.playsInline=true;m.preload='auto';m.onloadeddata=()=>{media[id]=m;res(id)};m.onerror=()=>rej(new Error('Couldn’t load that video.'));m.src=url}
+  else{m=new Image();m.crossOrigin='anonymous';m.onload=()=>{media[id]=m;res(id)};m.onerror=()=>rej(new Error('Couldn’t load that photo.'));m.src=url}})}
+async function stPick(it,kind){$('stInfo').textContent='Loading…';try{
+  const id=await loadRemote(kind==='videos'?`${API}/videos/file?u=${encodeURIComponent(it.file)}`:`${API}/photos/image?u=${encodeURIComponent(it.large)}`,kind==='videos');
+  if($('stUse').value==='bg')S().bgMedia=id;else{const w=W*.7;const e=el('media',{src:id,w,h:w*it.h/it.w});S().els.push(e);selId=e.id}
+  $('stock').hidden=true;refresh();$('status').textContent=(kind==='videos'?'Video':'Photo')+(it.by?' by '+it.by:'')+' · Pexels'}catch(e){$('stInfo').textContent=e.message}}
+$('openStock').onclick=()=>{$('stock').hidden=false;$('stQ').focus();if(!$('stGrid').children.length)stSearch(true)};
+$('stClose').onclick=()=>$('stock').hidden=true;
+$('stQ').oninput=()=>{clearTimeout(window._sq);window._sq=setTimeout(()=>{st.q=$('stQ').value.trim();stSearch(true)},400)};
+$('stKind').onchange=()=>{st.kind=$('stKind').value;stSearch(true)};
+$('stMore').onclick=()=>stSearch(false);
+$('stGrid').onscroll=e=>{const g=e.target;if(g.scrollTop+g.clientHeight>g.scrollHeight-200)stSearch(false)};
 
 $('tpls').onclick=e=>{const k=e.target.dataset.t;if(!k)return;if(P.scenes.length&&!confirm('Replace current project with this template?'))return;P.scenes=TPL[k]();cur=0;selId=null;refresh()};
 
