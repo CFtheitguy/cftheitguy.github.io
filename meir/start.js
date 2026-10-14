@@ -211,7 +211,7 @@ var DRAFT_KEY = 'evictpoint-draft';
   }
   function hasFiles() { return Object.keys(files).some(function (k) { return files[k].length; }); }
   // Formspree emails each field as "label: value", so send readable labels.
-  function payload(ref) {
+  function payload(ref, withFiles, uploadError) {
     var fd = new FormData();
     fd.append('_subject', 'New eviction request ' + ref + (val('p_street') ? ' – ' + val('p_street') : ''));
     if (val('l_email')) fd.append('email', val('l_email'));   // Formspree uses this as Reply-To
@@ -222,9 +222,10 @@ var DRAFT_KEY = 'evictpoint-draft';
     });
     Object.keys(files).forEach(function (k) {
       if (!files[k].length) return;
-      if (SEND_FILES) files[k].forEach(function (f) { fd.append(LABELS[k], f, f.name); });
+      if (withFiles) files[k].forEach(function (f) { fd.append(LABELS[k], f, f.name); });
       else fd.append('Documents – ' + LABELS[k], files[k].map(function (f) { return f.name; }).join(', ') + ' (not attached)');
     });
+    if (uploadError) fd.append('Upload problem', uploadError);
     fd.append('_gotcha', form.querySelector('[name=_gotcha]').value);   // spam trap
     return fd;
   }
@@ -236,7 +237,7 @@ var DRAFT_KEY = 'evictpoint-draft';
     if (viaMail) {
       document.getElementById('doneMail').classList.remove('hide');
       document.getElementById('mailAgain').onclick = function (e) { e.preventDefault(); location.href = mailtoUrl(ref); };
-    } else if (hasFiles() && !SEND_FILES) {
+    } else if (hasFiles() && !filesSent) {
       var docs = document.getElementById('doneDocs');
       docs.querySelector('a').href = 'mailto:' + SUBMIT_EMAIL + '?subject=' + encodeURIComponent('Documents for eviction request ' + ref);
       docs.querySelector('a').textContent = SUBMIT_EMAIL;
@@ -245,15 +246,34 @@ var DRAFT_KEY = 'evictpoint-draft';
     document.getElementById('done').classList.remove('hide');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  // Send to Formspree. If the documents can't be uploaded, send the request again
+  // without them (so it still arrives) and ask the visitor to email the files.
+  var filesSent = false;
+  function post(fd) {
+    return fetch(SUBMIT_URL, { method: 'POST', body: fd, headers: { Accept: 'application/json' } }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (r.ok && j.ok !== false) return;
+        var why = (j.errors || []).map(function (e) { return e.message || e.code; }).join('; ') || j.error || ('HTTP ' + r.status);
+        throw new Error(why);
+      });
+    });
+  }
   function submit() {
     var ref = 'EP-' + Date.now().toString(36).toUpperCase().slice(-6);
     if (!SUBMIT_URL) { location.href = mailtoUrl(ref); return finish(ref, true); }
     next.disabled = true; next.textContent = 'Submitting…';
-    fetch(SUBMIT_URL, { method: 'POST', body: payload(ref), headers: { Accept: 'application/json' } }).then(function (r) {
-      if (!r.ok) throw new Error(r.status);
+    var withFiles = SEND_FILES && hasFiles();
+    post(payload(ref, withFiles)).then(function () {
+      filesSent = withFiles;
+    }, function (err) {
+      if (!withFiles) throw err;
+      console.error('Document upload failed:', err.message);
+      return post(payload(ref, false, err.message));   // retry without the files
+    }).then(function () {
       finish(ref, false);
-    }).catch(function () {
-      alert('Sorry, we could not submit your request online. Your email app will open so you can send it to us instead.');
+    }).catch(function (err) {
+      console.error('Submission failed:', err && err.message);
+      alert('Sorry, we could not submit your request online (' + (err && err.message) + '). Your email app will open so you can send it to us instead.');
       location.href = mailtoUrl(ref); finish(ref, true);
     }).finally(function () { next.disabled = false; });
   }
