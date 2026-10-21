@@ -8,6 +8,10 @@ var SUBMIT_EMAIL = 'devoriy@evictpoint.com';
 // listed in the email and the visitor is asked to email the files.
 var SEND_FILES = true;
 var DRAFT_KEY = 'evictpoint-draft';
+// Trial period: also send a silent copy to the new Evict Point back end, which
+// saves the case for the admin system. Formspree stays the main path; failures
+// here are ignored and never affect the visitor. Set to '' to stop the copies.
+var SHADOW_URL = 'https://evictpoint-app.meirb1435.workers.dev/api/submit';
 
 (function () {
   var form = document.getElementById('ev');
@@ -258,8 +262,29 @@ var DRAFT_KEY = 'evictpoint-draft';
       });
     });
   }
+  function shadowCopy(ref) {
+    if (!SHADOW_URL) return;
+    try {
+      var fd = new FormData();
+      fd.append('client_ref', ref);
+      fd.append('_gotcha', form.querySelector('[name=_gotcha]').value);
+      fd.append('data', JSON.stringify({
+        property: { street: val('p_street'), unit: val('p_unit'), city: val('p_city'), state: val('p_state'), zip: val('p_zip'), county: val('p_county'), type: val('p_type') },
+        landlord: { name: val('l_name'), company: val('l_company'), phone: val('l_phone'), email: val('l_email'), street: val('l_street'), city: val('l_city'), state: val('l_state'), zip: val('l_zip') },
+        tenants: tenantNames(),
+        eviction: {
+          reason: form.querySelector('[name=e_reason]:checked').value, details: val('e_details'),
+          rent: val('e_rent'), owed: val('e_owed'), due: val('e_due'), last_paid: val('e_lastpaid'), last_amount: val('e_lastamt'),
+          lease: val('h_lease'), lease_end: val('h_end'), notice_served: val('h_notice'), tenancy_length: val('h_length')
+        }
+      }));
+      Object.keys(files).forEach(function (k) { files[k].forEach(function (f) { fd.append('doc_' + k, f, f.name); }); });
+      fetch(SHADOW_URL, { method: 'POST', body: fd }).catch(function () {});
+    } catch (e) {}
+  }
   function submit() {
     var ref = 'EP-' + Date.now().toString(36).toUpperCase().slice(-6);
+    shadowCopy(ref);
     if (!SUBMIT_URL) { location.href = mailtoUrl(ref); return finish(ref, true); }
     next.disabled = true; next.textContent = 'Submitting…';
     var withFiles = SEND_FILES && hasFiles();
