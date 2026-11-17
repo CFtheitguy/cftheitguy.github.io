@@ -1,4 +1,72 @@
-to install the gentech filter 
-https://b-gfb-a.gentechsolution.com/livigent/livigent_ic/download/GFB/26.1021.4.0_x64/Livigent_IC_x64_26.10.21.exe
-the password is test123!
-the username is Mainworker1
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Frontline – Filter Install</title>
+<style>
+  :root{--bg:#0f172a;--card:#1e293b;--text:#e2e8f0;--muted:#94a3b8;--accent:#3b82f6;--accent2:#2563eb;--field:#0f172a;--border:#334155;--ok:#22c55e}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--text);
+    background:radial-gradient(circle at top,#1e3a8a 0%,var(--bg) 60%)}
+  .card{width:100%;max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:32px 28px;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+  .icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#8b5cf6);
+    display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+  h1{margin:0 0 6px;font-size:1.6rem}
+  p.sub{margin:0 0 24px;color:var(--muted)}
+  ol{margin:0;padding:0;list-style:none;counter-reset:s}
+  li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:22px}
+  li::before{content:counter(s);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;
+    background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+  .label{font-weight:600;margin-bottom:8px;line-height:28px}
+  .btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;text-decoration:none;
+    padding:12px 18px;border-radius:10px;font-weight:600;border:0;cursor:pointer;transition:background .2s}
+  .btn:hover{background:var(--accent2)}
+  .field{display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--border);
+    border-radius:10px;padding:8px 8px 8px 14px;margin-bottom:8px}
+  .field span.k{color:var(--muted);font-size:.85rem;width:80px;flex-shrink:0}
+  .field code{flex:1;font-family:ui-monospace,Consolas,monospace;font-size:1rem;overflow-wrap:anywhere}
+  .copy{background:transparent;border:1px solid var(--border);color:var(--text);border-radius:8px;
+    padding:6px 10px;cursor:pointer;font-size:.8rem}
+  .copy:hover{border-color:var(--accent)}
+  .copy.done{color:var(--ok);border-color:var(--ok)}
+  .note{color:var(--muted);font-size:.85rem;margin-top:6px}
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="icon" aria-hidden="true">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <h1>Install the Gentech Filter</h1>
+    <p class="sub">Follow these steps to set up the filter on your Windows PC.</p>
+    <ol>
+      <li>
+        <div class="label">Download the installer</div>
+        <a class="btn" href="https://b-gfb-a.gentechsolution.com/livigent/livigent_ic/download/GFB/26.1021.4.0_x64/Livigent_IC_x64_26.10.21.exe">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for Windows (64-bit)
+        </a>
+        <div class="note">Livigent IC · version 26.10.21</div>
+      </li>
+      <li>
+        <div class="label">Run it and sign in with these details</div>
+        <div class="field"><span class="k">Username</span><code>Mainworker1</code><button class="copy" data-v="Mainworker1">Copy</button></div>
+        <div class="field"><span class="k">Password</span><code>test123!</code><button class="copy" data-v="test123!">Copy</button></div>
+      </li>
+      <li>
+        <div class="label">Restart your computer when the install finishes</div>
+      </li>
+    </ol>
+  </main>
+<script>
+document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(b.dataset.v);b.textContent='Copied';b.classList.add('done');
+    setTimeout(()=>{b.textContent='Copy';b.classList.remove('done')},1500)}catch(e){}
+}));
+</script>
+</body>
+</html>
