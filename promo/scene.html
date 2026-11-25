@@ -1,0 +1,64 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#050507;font-family:Inter,sans-serif;color:#fff}
+#bg{position:absolute;inset:0}
+#pat{position:absolute;inset:0;background:url(pattern-tile-white.png) repeat;background-size:110px;opacity:.04}
+.s{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;opacity:0}
+.k{font-size:24px;font-weight:600;letter-spacing:.42em;text-transform:uppercase;color:#70f2ff}
+h1{font-size:110px;font-weight:600;letter-spacing:-.03em;line-height:1.05}
+h2{font-size:76px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+p{font-size:34px;color:rgba(255,255,255,.72);max-width:1300px;line-height:1.45}
+.grad{background:linear-gradient(90deg,#6999f5,#70f2ff);-webkit-background-clip:text;color:transparent}
+.cards{display:grid;grid-template-columns:repeat(4,390px);gap:28px;margin-top:60px}
+.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:28px;padding:44px 34px;text-align:left;height:400px}
+.card .ic{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#6999f5,#70f2ff);display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:30px}
+.card h3{font-size:36px;font-weight:600;margin-bottom:16px}
+.card div.t{font-size:24px;color:rgba(255,255,255,.68);line-height:1.5}
+.stats{display:flex;gap:110px;margin-top:70px}
+.stat b{display:block;font-size:130px;font-weight:700;letter-spacing:-.04em}
+.stat span{font-size:24px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.pill{display:inline-block;margin-top:50px;background:#70f2ff;color:#000;font-weight:700;font-size:34px;padding:24px 56px;border-radius:999px}
+.chips{display:flex;gap:18px;margin-top:50px;flex-wrap:wrap;justify-content:center;max-width:1500px}
+.chip{border:1px solid rgba(112,242,255,.5);border-radius:999px;padding:14px 30px;font-size:28px;color:#cfefff}
+#bar{position:absolute;left:0;bottom:0;height:6px;background:linear-gradient(90deg,#6999f5,#70f2ff)}
+</style></head><body>
+<div id="bg"></div><div id="pat"></div>
+<div class="s" id="s1"><img id="icon" src="icon-white.svg" style="width:200px;position:absolute;top:340px;left:860px"><img id="logo" src="logo-white.svg" style="width:900px"><div class="k" id="tag" style="margin-top:50px">Not on our watch</div></div>
+<div class="s" id="s2"><div class="k" style="margin-bottom:40px">Monroe, NY · Hudson Valley</div><h1 class="r">Managed IT &amp;<br><span class="grad">Cybersecurity</span></h1><p class="r" style="margin-top:44px">Fast, secure, hassle-free technology for growing businesses — so you can focus on running yours.</p></div>
+<div class="s" id="s3"><div class="k">What we do</div><h2 style="margin-top:24px">Everything your IT needs.</h2><div class="cards">
+<div class="card"><div class="ic">🖥</div><h3>Proactive IT</h3><div class="t">24/7 monitoring, patching and a helpdesk that keeps your team productive.</div></div>
+<div class="card"><div class="ic">🛡</div><h3>Security First</h3><div class="t">Endpoint protection, email security, MFA and policies against today's threats.</div></div>
+<div class="card"><div class="ic">☁</div><h3>Cloud &amp; Backup</h3><div class="t">Microsoft 365, OneDrive &amp; SharePoint, with tested backup &amp; disaster recovery.</div></div>
+<div class="card"><div class="ic">📶</div><h3>Networks</h3><div class="t">Wi-Fi, firewalls and VPNs — designed, deployed and maintained to scale.</div></div></div></div>
+<div class="s" id="s4"><div class="k">Built around you</div><h2 style="margin-top:24px">Numbers we staff around.</h2><div class="stats">
+<div class="stat"><b class="grad" id="n1">0</b><span>Uptime target</span></div>
+<div class="stat"><b class="grad" id="n2">0</b><span>First response</span></div>
+<div class="stat"><b class="grad" id="n3">0</b><span>Days monitored</span></div>
+<div class="stat"><b class="grad">24/7</b><span>Alerting</span></div></div>
+<div class="chips"><div class="chip">Microsoft 365</div><div class="chip">Intune / Entra ID</div><div class="chip">Backup &amp; DR</div><div class="chip">SonicWall / UniFi</div><div class="chip">Network &amp; Wi-Fi</div></div></div>
+<div class="s" id="s5"><h1>Hackers with <span class="grad">AI</span><br>aren't just hackers.</h1><p style="margin-top:44px">Attacks are faster and more convincing than ever. We put modern, layered security in front of your business — before someone else tests it for you.</p></div>
+<div class="s" id="s6"><img src="logo-white.svg" style="width:720px"><h2 style="margin-top:50px;font-size:62px">Stay safe. Stay covered.</h2><p style="margin-top:20px">(845) 604-1462 · linearit.co</p><div class="pill">Book a consult</div></div>
+<div id="bar"></div>
+<script>
+const D=42, S=[[0,6],[6,12.5],[12.5,22],[22,29.5],[29.5,35.5],[35.5,42]];
+const cl=(x)=>Math.max(0,Math.min(1,x)), ease=x=>1-Math.pow(1-cl(x),3);
+const $=id=>document.getElementById(id);
+function seek(t){
+ const a=t*0.25;
+ $('bg').style.background=`radial-gradient(46% 62% at ${16+10*Math.sin(a)}% ${22+8*Math.cos(a)}%, rgba(105,153,245,.55),transparent),radial-gradient(50% 65% at ${82-10*Math.cos(a*.8)}% ${72+8*Math.sin(a*.8)}%, rgba(64,220,205,.45),transparent),#050507`;
+ $('pat').style.backgroundPosition=`${t*8}px ${t*5}px`;
+ S.forEach(([a0,a1],i)=>{const el=$('s'+(i+1)),l=t-a0;
+  let o=ease(l/0.8)*(i==5?1:1-cl((t-(a1-0.6))/0.6)); if(t<a0||t>a1)o=0;
+  el.style.opacity=o; el.style.transform=`scale(${1+0.04*(1-ease(l/1))+0.01*cl(l/(a1-a0))})`;
+  el.querySelectorAll('.card,.stat,.chip,.r,.pill').forEach((c,j)=>{const e=ease((l-0.5-j*0.18)/0.7);c.style.opacity=e;c.style.transform=`translateY(${(1-e)*50}px)`});
+ });
+ const l1=t; const ie=ease(l1/1.2);
+ $('icon').style.transform=`rotate(${(1-ie)*-120}deg) scale(${0.3+0.7*ie})`;$('icon').style.opacity=ie*(1-cl((l1-1.1)/0.4));
+ const le=ease((l1-1.1)/1);$('logo').style.opacity=le;$('logo').style.clipPath=`inset(0 ${(1-le)*100}% 0 0)`;
+ const te=ease((l1-2)/0.8);$('tag').style.opacity=te;$('tag').style.letterSpacing=(0.9-0.48*te)+'em';
+ const c=ease((t-23)/1.8);
+ $('n1').textContent=(99.9*c).toFixed(1)+'%';$('n2').textContent=Math.round(15*c)+' min';$('n3').textContent=Math.round(365*c);
+ $('bar').style.width=(t/D*100)+'%';
+}
+seek(0);
+</script></body></html>
