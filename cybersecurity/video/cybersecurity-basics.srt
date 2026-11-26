@@ -1,0 +1,283 @@
+1
+00:00:00,800 --> 00:00:16,857
+Welcome to Cybersecurity Basics. Most attacks don't begin with brilliant hacking. They begin with a reused password, a rushed click, or a missed update. Over the next few minutes, we'll walk through thirteen areas, and the simple habits in each one that keep you, and your organization, safe.
+
+2
+00:00:18,357 --> 00:00:22,676
+Let's start with passwords and accounts. Your passwords are the keys to everything else.
+
+3
+00:00:23,475 --> 00:00:28,445
+Use a unique, long passphrase for every account. Aim for sixteen characters or more.
+
+4
+00:00:29,195 --> 00:00:34,779
+Store your passwords in a reputable password manager, instead of reusing them or writing them down.
+
+5
+00:00:35,529 --> 00:00:40,823
+Turn on multi-factor authentication, especially for email, banking, and admin accounts.
+
+6
+00:00:41,573 --> 00:00:47,541
+Where you can, choose passkeys or hardware security keys over text message codes, which can be intercepted.
+
+7
+00:00:48,291 --> 00:00:53,027
+And watch for breach alerts. If a password shows up in a leak, change it right away.
+
+8
+00:00:54,527 --> 00:01:00,518
+Next, phishing and social engineering. Attackers know it's often easier to trick a person than to break a system.
+
+9
+00:01:01,318 --> 00:01:07,657
+Be suspicious of urgent requests for money, credentials, or gift cards. Pressure is the attacker's favorite tool.
+
+10
+00:01:08,407 --> 00:01:12,285
+Check the actual sender address, and hover over links before you click them.
+
+11
+00:01:13,035 --> 00:01:17,551
+Go to websites directly, rather than through links in unexpected emails or texts.
+
+12
+00:01:18,301 --> 00:01:24,245
+Verify unusual requests by calling back on a number you already know, never one that's in the message.
+
+13
+00:01:24,995 --> 00:01:30,533
+And report suspicious messages to IT, or to your email provider. Your report could protect everyone else.
+
+14
+00:01:32,033 --> 00:01:34,204
+Now, your devices and software.
+
+15
+00:01:35,004 --> 00:01:40,809
+Install security updates promptly, especially for browsers, operating systems, and V P Ns.
+
+16
+00:01:41,559 --> 00:01:46,424
+Run antivirus, or endpoint detection and response software, on every device.
+
+17
+00:01:47,174 --> 00:01:51,725
+Enable full disk encryption. That's Bit Locker on Windows, and File Vault on Mac.
+
+18
+00:01:52,475 --> 00:01:57,258
+Set devices to lock automatically, and require a pin or a biometric to get back in.
+
+19
+00:01:58,008 --> 00:02:02,339
+And remove software you no longer use. Every extra program is one more way in.
+
+20
+00:02:03,839 --> 00:02:04,710
+On to networks.
+
+21
+00:02:05,510 --> 00:02:09,503
+Change the default passwords on your router, and on every connected device.
+
+22
+00:02:10,253 --> 00:02:17,556
+Use W P A three, or W P A two, on your Wi-Fi, and keep guest networks separate from business systems.
+
+23
+00:02:18,306 --> 00:02:21,394
+Use a firewall, and close any ports you don't need.
+
+24
+00:02:22,144 --> 00:02:29,191
+On public Wi-Fi, use a V P N, or a zero trust access tool in place of a traditional V P N.
+
+25
+00:02:29,941 --> 00:02:33,784
+And segment your network, so that one compromised device can't reach everything.
+
+26
+00:02:35,284 --> 00:02:39,116
+Email security. Email is still the number one way attackers get in.
+
+27
+00:02:39,916 --> 00:02:47,137
+Set up S P F, dee kim, and dee mark for your domain. Together, they stop other people from spoofing your email address.
+
+28
+00:02:47,887 --> 00:02:52,415
+Enable spam and malware filtering, and sandboxing of attachments where it's available.
+
+29
+00:02:53,165 --> 00:02:58,738
+And disable any automatic forwarding rules you didn't create. Attackers often add them to quietly read your mail.
+
+30
+00:03:00,238 --> 00:03:03,755
+Data protection and backups. This is what saves you on your worst day.
+
+31
+00:03:04,555 --> 00:03:11,928
+Follow the three, two, one rule. Three copies of your data, on two types of media, with one copy off site or offline.
+
+32
+00:03:12,678 --> 00:03:16,439
+Test your restores regularly. An untested backup is not a backup.
+
+33
+00:03:17,189 --> 00:03:21,961
+Keep at least one backup offline, or immutable, to protect against ransomware.
+
+34
+00:03:22,711 --> 00:03:25,881
+Encrypt sensitive data, both at rest and in transit.
+
+35
+00:03:26,630 --> 00:03:30,880
+And limit who can access sensitive data. When people leave, remove their access.
+
+36
+00:03:32,380 --> 00:03:33,332
+Access control.
+
+37
+00:03:34,132 --> 00:03:38,822
+Apply least privilege. Give each person only the access their job requires.
+
+38
+00:03:39,572 --> 00:03:44,553
+Use separate admin accounts for administrative tasks, not for daily email and browsing.
+
+39
+00:03:45,303 --> 00:03:48,693
+Review user access, and shared accounts, on a regular schedule.
+
+40
+00:03:49,443 --> 00:03:52,392
+And remove a former employee's access the same day they leave.
+
+41
+00:03:53,892 --> 00:03:58,675
+Ransomware and incident response. When something goes wrong, the first few minutes matter most.
+
+42
+00:03:59,475 --> 00:04:03,736
+Keep an incident response plan, with clear contacts, and clear steps.
+
+43
+00:04:04,486 --> 00:04:10,651
+Isolate infected machines right away. Disconnect them from the network, but don't power them off. That preserves evidence.
+
+44
+00:04:11,401 --> 00:04:17,008
+Report incidents to your IT provider, your legal counsel, and, where required, to regulators.
+
+45
+00:04:17,758 --> 00:04:21,416
+And keep logs for your key systems, so you can investigate what happened.
+
+46
+00:04:22,916 --> 00:04:25,110
+Cloud, and software as a service.
+
+47
+00:04:25,910 --> 00:04:33,955
+Enable multi-factor authentication, and audit logging, on Microsoft three sixty five, Google Workspace, and your other cloud platforms.
+
+48
+00:04:34,705 --> 00:04:38,374
+Review your sharing settings, to prevent public links to sensitive files.
+
+49
+00:04:39,124 --> 00:04:44,523
+Monitor for unusual log-ins, like a new country, or impossible travel between two places.
+
+50
+00:04:45,273 --> 00:04:50,242
+And check the security settings of third party apps that have access to your email, or your files.
+
+51
+00:04:51,742 --> 00:04:56,305
+Vendors and the supply chain. Your security is only as strong as the companies you trust.
+
+52
+00:04:57,105 --> 00:05:00,251
+Vet a vendor's security practices before you share data with them.
+
+53
+00:05:01,001 --> 00:05:03,334
+Limit third party access, and monitor it.
+
+54
+00:05:04,084 --> 00:05:09,808
+And watch for compromised software updates, and unexpected changes, even from suppliers you trust.
+
+55
+00:05:11,308 --> 00:05:12,330
+Mobile devices.
+
+56
+00:05:13,130 --> 00:05:17,843
+Install apps only from official stores, and review the permissions each app asks for.
+
+57
+00:05:18,593 --> 00:05:22,251
+Keep your phone updated, and avoid jail breaking or rooting it.
+
+58
+00:05:23,001 --> 00:05:27,389
+And where possible, use separate work and personal profiles, or containers.
+
+59
+00:05:28,889 --> 00:05:33,777
+Human factors. Technology alone is never enough. People are the strongest defense.
+
+60
+00:05:34,577 --> 00:05:38,385
+Run regular security awareness training, with simulated phishing tests.
+
+61
+00:05:39,135 --> 00:05:44,325
+Make reporting mistakes safe and easy, so people report quickly, instead of hiding errors.
+
+62
+00:05:45,075 --> 00:05:50,717
+And create a culture where asking for verification is normal, even when the request comes from an executive.
+
+63
+00:05:52,217 --> 00:05:59,055
+Finally, AI and emerging threats. Artificial intelligence is changing the game, for attackers and defenders alike.
+
+64
+00:05:59,855 --> 00:06:09,190
+AI generated phishing. Attackers can now write convincing, error free messages at scale, so good grammar is no longer a reliable sign that a message is safe.
+
+65
+00:06:09,940 --> 00:06:16,673
+Deep fakes. Voices and video can be faked, so verify any payment or account change through a second, known channel.
+
+66
+00:06:17,423 --> 00:06:27,965
+Prompt injection. Malicious instructions hidden in emails, web pages, or documents can manipulate the AI tools that read them. So limit what those tools are allowed to do automatically.
+
+67
+00:06:28,715 --> 00:06:37,040
+Data leakage. Don't paste confidential client data, credentials, or proprietary code into public AI services, unless your organization has approved them.
+
+68
+00:06:37,790 --> 00:06:45,940
+Shadow AI Employees using unapproved AI apps can expose data. So set a clear AI use policy, and provide approved tools.
+
+69
+00:06:46,690 --> 00:06:54,283
+AI in defense. It helps with threat detection, log analysis, and alert triage. But it should supplement human review, not replace it.
+
+70
+00:06:55,033 --> 00:07:02,753
+And verify AI output. It can make mistakes, or invent facts, including code with vulnerabilities. So review it before you rely on it.
+
+71
+00:07:04,253 --> 00:07:22,388
+That's the basics. Remember, security isn't something you buy once. It's a set of small habits. Use strong, unique passwords with multi-factor authentication. Pause, and verify, before you click or pay. Keep your systems updated and backed up. And if something looks wrong, report it right away. Thanks for watching, and stay safe.

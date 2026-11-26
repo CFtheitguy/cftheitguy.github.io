@@ -1,0 +1,153 @@
+{
+  "intro": {
+    "title": "Cybersecurity Basics",
+    "subtitle": "Simple habits that keep you and your organization safe",
+    "say": "Welcome to Cybersecurity Basics. Most attacks don't begin with brilliant hacking. They begin with a reused password, a rushed click, or a missed update. Over the next few minutes, we'll walk through thirteen areas, and the simple habits in each one that keep you, and your organization, safe."
+  },
+  "sections": [
+    {
+      "title": "Passwords and Accounts",
+      "say": "Let's start with passwords and accounts. Your passwords are the keys to everything else.",
+      "items": [
+        ["Unique, long passphrase for every account", "16+ characters", "Use a unique, long passphrase for every account. Aim for sixteen characters or more."],
+        ["Use a reputable password manager", "No reusing, no sticky notes", "Store your passwords in a reputable password manager, instead of reusing them or writing them down."],
+        ["Turn on multi-factor authentication", "Email, banking, and admin accounts first", "Turn on multi-factor authentication, especially for email, banking, and admin accounts."],
+        ["Prefer passkeys or hardware security keys", "SMS codes can be intercepted", "Where you can, choose passkeys or hardware security keys over text message codes, which can be intercepted."],
+        ["Act on breach alerts", "Change any password that appears in a leak", "And watch for breach alerts. If a password shows up in a leak, change it right away."]
+      ]
+    },
+    {
+      "title": "Phishing and Social Engineering",
+      "say": "Next, phishing and social engineering. Attackers know it's often easier to trick a person than to break a system.",
+      "items": [
+        ["Be suspicious of urgency", "Money, credentials, or gift cards", "Be suspicious of urgent requests for money, credentials, or gift cards. Pressure is the attacker's favorite tool."],
+        ["Check the real sender and the real link", "Hover before you click", "Check the actual sender address, and hover over links before you click them."],
+        ["Go to websites directly", "Not through links in unexpected messages", "Go to websites directly, rather than through links in unexpected emails or texts."],
+        ["Verify unusual requests by calling back", "Use a number you already know", "Verify unusual requests by calling back on a number you already know, never one that's in the message."],
+        ["Report suspicious messages", "To IT or your email provider", "And report suspicious messages to I.T., or to your email provider. Your report could protect everyone else."]
+      ]
+    },
+    {
+      "title": "Devices and Software",
+      "say": "Now, your devices and software.",
+      "items": [
+        ["Install security updates promptly", "Browsers, operating systems, and VPNs", "Install security updates promptly, especially for browsers, operating systems, and V P Ns."],
+        ["Antivirus or EDR on every device", "Endpoint detection and response", "Run antivirus, or endpoint detection and response software, on every device."],
+        ["Enable full-disk encryption", "BitLocker on Windows, FileVault on Mac", "Enable full disk encryption. That's Bit Locker on Windows, and File Vault on Mac."],
+        ["Lock devices automatically", "Require a PIN or biometric", "Set devices to lock automatically, and require a pin or a biometric to get back in."],
+        ["Remove software you no longer use", "Every program adds attack surface", "And remove software you no longer use. Every extra program is one more way in."]
+      ]
+    },
+    {
+      "title": "Networks",
+      "say": "On to networks.",
+      "items": [
+        ["Change default passwords", "Routers and connected devices", "Change the default passwords on your router, and on every connected device."],
+        ["Use WPA3 or WPA2 on Wi-Fi", "Keep guest networks separate", "Use W P A three, or W P A two, on your Wi-Fi, and keep guest networks separate from business systems."],
+        ["Use a firewall", "Close the ports you don't need", "Use a firewall, and close any ports you don't need."],
+        ["Protect yourself on public Wi-Fi", "VPN or zero-trust access", "On public Wi-Fi, use a V P N, or a zero trust access tool in place of a traditional V P N."],
+        ["Segment your network", "One compromised device can't reach everything", "And segment your network, so that one compromised device can't reach everything."]
+      ]
+    },
+    {
+      "title": "Email Security",
+      "say": "Email security. Email is still the number one way attackers get in.",
+      "items": [
+        ["Set up SPF, DKIM, and DMARC", "Stops others from spoofing your domain", "Set up S P F, dee kim, and dee mark for your domain. Together, they stop other people from spoofing your email address."],
+        ["Filter spam and malware", "Sandbox attachments where available", "Enable spam and malware filtering, and sandboxing of attachments where it's available."],
+        ["Check your forwarding rules", "Attackers often add hidden ones", "And disable any automatic forwarding rules you didn't create. Attackers often add them to quietly read your mail."]
+      ]
+    },
+    {
+      "title": "Data Protection and Backups",
+      "say": "Data protection and backups. This is what saves you on your worst day.",
+      "items": [
+        ["Follow the 3-2-1 rule", "3 copies · 2 media types · 1 off-site or offline", "Follow the three, two, one rule. Three copies of your data, on two types of media, with one copy off site or offline."],
+        ["Test your restores regularly", "An untested backup is not a backup", "Test your restores regularly. An untested backup is not a backup."],
+        ["Keep one backup offline or immutable", "Protection against ransomware", "Keep at least one backup offline, or immutable, to protect against ransomware."],
+        ["Encrypt sensitive data", "At rest and in transit", "Encrypt sensitive data, both at rest and in transit."],
+        ["Limit access to sensitive data", "Remove it when people leave", "And limit who can access sensitive data. When people leave, remove their access."]
+      ]
+    },
+    {
+      "title": "Access Control",
+      "say": "Access control.",
+      "items": [
+        ["Apply least privilege", "Only the access the job requires", "Apply least privilege. Give each person only the access their job requires."],
+        ["Separate admin accounts", "Never for daily email or browsing", "Use separate admin accounts for administrative tasks, not for daily email and browsing."],
+        ["Review access on a schedule", "Including shared accounts", "Review user access, and shared accounts, on a regular schedule."],
+        ["Offboard the same day", "Remove former employees' access immediately", "And remove a former employee's access the same day they leave."]
+      ]
+    },
+    {
+      "title": "Ransomware and Incident Response",
+      "say": "Ransomware and incident response. When something goes wrong, the first few minutes matter most.",
+      "items": [
+        ["Keep an incident response plan", "Clear contacts and clear steps", "Keep an incident response plan, with clear contacts, and clear steps."],
+        ["Isolate infected machines right away", "Disconnect from the network — don't power off", "Isolate infected machines right away. Disconnect them from the network, but don't power them off. That preserves evidence."],
+        ["Report the incident", "IT provider, legal counsel, regulators if required", "Report incidents to your I.T. provider, your legal counsel, and, where required, to regulators."],
+        ["Keep logs for key systems", "So you can investigate what happened", "And keep logs for your key systems, so you can investigate what happened."]
+      ]
+    },
+    {
+      "title": "Cloud and SaaS",
+      "say": "Cloud, and software as a service.",
+      "items": [
+        ["Enable MFA and audit logging", "Microsoft 365, Google Workspace, and others", "Enable multi-factor authentication, and audit logging, on Microsoft three sixty five, Google Workspace, and your other cloud platforms."],
+        ["Review sharing settings", "No public links to sensitive files", "Review your sharing settings, to prevent public links to sensitive files."],
+        ["Monitor for unusual logins", "New countries or impossible travel", "Monitor for unusual log-ins, like a new country, or impossible travel between two places."],
+        ["Check third-party apps", "Anything with access to your email or files", "And check the security settings of third party apps that have access to your email, or your files."]
+      ]
+    },
+    {
+      "title": "Vendors and Supply Chain",
+      "say": "Vendors and the supply chain. Your security is only as strong as the companies you trust.",
+      "items": [
+        ["Vet vendors before sharing data", "Ask about their security practices", "Vet a vendor's security practices before you share data with them."],
+        ["Limit and monitor third-party access", "Only what they need", "Limit third party access, and monitor it."],
+        ["Watch trusted suppliers too", "Compromised updates and unexpected changes", "And watch for compromised software updates, and unexpected changes, even from suppliers you trust."]
+      ]
+    },
+    {
+      "title": "Mobile Devices",
+      "say": "Mobile devices.",
+      "items": [
+        ["Install apps only from official stores", "And review app permissions", "Install apps only from official stores, and review the permissions each app asks for."],
+        ["Keep phones updated", "Avoid jailbreaking or rooting", "Keep your phone updated, and avoid jail breaking or rooting it."],
+        ["Separate work and personal", "Use profiles or containers where possible", "And where possible, use separate work and personal profiles, or containers."]
+      ]
+    },
+    {
+      "title": "Human Factors",
+      "say": "Human factors. Technology alone is never enough. People are the strongest defense.",
+      "items": [
+        ["Run regular awareness training", "With simulated phishing tests", "Run regular security awareness training, with simulated phishing tests."],
+        ["Make reporting mistakes safe and easy", "Fast reports beat hidden errors", "Make reporting mistakes safe and easy, so people report quickly, instead of hiding errors."],
+        ["Make verification normal", "Even when the request comes from an executive", "And create a culture where asking for verification is normal, even when the request comes from an executive."]
+      ]
+    },
+    {
+      "title": "AI and Emerging Threats",
+      "say": "Finally, A.I. and emerging threats. Artificial intelligence is changing the game, for attackers and defenders alike.",
+      "items": [
+        ["AI-generated phishing", "Good grammar is no longer a sign of safety", "A.I. generated phishing. Attackers can now write convincing, error free messages at scale, so good grammar is no longer a reliable sign that a message is safe."],
+        ["Deepfakes", "Verify payment or account changes on a second channel", "Deep fakes. Voices and video can be faked, so verify any payment or account change through a second, known channel."],
+        ["Prompt injection", "Limit what AI tools can do automatically", "Prompt injection. Malicious instructions hidden in emails, web pages, or documents can manipulate the A.I. tools that read them. So limit what those tools are allowed to do automatically."],
+        ["Data leakage to AI tools", "No confidential data in unapproved AI services", "Data leakage. Don't paste confidential client data, credentials, or proprietary code into public A.I. services, unless your organization has approved them."],
+        ["Shadow AI", "Set a clear policy and provide approved tools", "Shadow A.I. Employees using unapproved A.I. apps can expose data. So set a clear A.I. use policy, and provide approved tools."],
+        ["AI in defense", "Supplements human review — doesn't replace it", "A.I. in defense. It helps with threat detection, log analysis, and alert triage. But it should supplement human review, not replace it."],
+        ["Verify AI output", "It can be wrong, including insecure code", "And verify A.I. output. It can make mistakes, or invent facts, including code with vulnerabilities. So review it before you rely on it."]
+      ]
+    }
+  ],
+  "outro": {
+    "title": "Security is a habit",
+    "say": "That's the basics. Remember, security isn't something you buy once. It's a set of small habits. Use strong, unique passwords with multi-factor authentication. Pause, and verify, before you click or pay. Keep your systems updated and backed up. And if something looks wrong, report it right away. Thanks for watching, and stay safe.",
+    "items": [
+      "Strong, unique passwords + MFA",
+      "Pause and verify before you click or pay",
+      "Keep systems updated and backed up",
+      "See something wrong? Report it right away"
+    ]
+  }
+}
