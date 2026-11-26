@@ -28,24 +28,26 @@
   li.now .sub { color:#C4EEF4; }
   .footer { position:absolute; left:120px; right:120px; bottom:44px; display:flex; justify-content:space-between; align-items:center;
     font-size:22px; color:var(--muted); letter-spacing:.04em; }
-  .footer b { color:var(--text); font-weight:600; }
+  .brand { display:flex; align-items:center; gap:22px; }
+  .brand img { height:46px; display:block; }
+  .brand i { width:1.5px; height:30px; background:rgba(139,149,168,.45); }
+  .hero { position:absolute; right:150px; top:50%; transform:translateY(-54%); width:400px; height:400px; border-radius:92px; display:grid; place-items:center;
+    background: radial-gradient(260px 240px at 18% 30%, rgba(112,242,255,.85), transparent 70%), radial-gradient(280px 260px at 82% 72%, rgba(105,153,245,.85), transparent 70%), #05060A;
+    box-shadow:0 30px 120px rgba(105,153,245,.25); }
+  .hero img { width:250px; }
+  .endlogo { position:absolute; right:120px; top:92px; height:92px; }
   .bar { position:absolute; left:0; bottom:0; height:8px; background:linear-gradient(90deg,var(--peri),var(--aqua)); }
   .center { height:100%; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding-bottom:40px; }
   .center h1 { font-size:122px; }
   .center .subtitle { font-size:44px; color:#B9C2D6; margin-top:36px; max-width:1300px; line-height:1.3; }
-  .shield { position:absolute; right:130px; top:50%; transform:translateY(-54%); width:370px; opacity:.95; }
   .take { margin-top:50px; }
   .take li { padding:22px 32px; }
 </style>
 <div class="glow"></div><div class="grid"></div>
 <div id="stage"></div>
-<div class="footer"><span><b>Linear Tech</b> &nbsp;·&nbsp; Security Awareness Training</span><span id="where"></span></div>
+<div class="footer"><span class="brand"><img src="../../../zurech3/assets/logo-white.svg" alt="linear"><i></i>Security Awareness Training</span><span id="where"></span></div>
 <div class="bar" id="bar"></div>
 <script>
-const SHIELD = `<svg class="shield" viewBox="0 0 200 230" fill="none">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#70F2FF"/><stop offset="1" stop-color="#6999F5"/></linearGradient></defs>
-  <path d="M100 8 L186 40 V108 C186 164 150 204 100 222 C50 204 14 164 14 108 V40 Z" stroke="url(#g)" stroke-width="7" fill="rgba(105,153,245,.10)" stroke-linejoin="round"/>
-  <path d="M62 114 L90 142 L140 86" stroke="url(#g)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 let C;
 function init(content){ C = content; }
@@ -55,9 +57,9 @@ function draw(scene, n, p, frac){
   const anim = `opacity:${p};transform:translateY(${(1-p)*36}px)`;
   let h = '';
   if (scene === 0) {
-    h = `<div class="center" style="${anim}"><div class="kicker">Security Awareness Training</div><h1>${esc(C.intro.title)}</h1><div class="rule"></div><div class="subtitle">${esc(C.intro.subtitle)}</div></div>${SHIELD.replace('class="shield"', `class="shield" style="opacity:${p}"`)}`;
+    h = `<div class="center" style="${anim}"><div class="kicker">Security Awareness Training</div><h1>${esc(C.intro.title)}</h1><div class="rule"></div><div class="subtitle">${esc(C.intro.subtitle)}</div></div><div class="hero" style="opacity:${p}"><img src="../../../zurech3/assets/icon-white.svg"></div>`;
   } else if (scene === N + 1) {
-    h = `<div style="${anim}"><div class="kicker">Key takeaways</div><h1>${esc(C.outro.title)}</h1><div class="rule"></div><ul class="take">` +
+    h = `<img class="endlogo" style="opacity:${p}" src="../../../zurech3/assets/logo-white.svg"><div style="${anim}"><div class="kicker">Key takeaways</div><h1>${esc(C.outro.title)}</h1><div class="rule"></div><ul class="take">` +
       C.outro.items.map((t,i)=>`<li class="now"><span class="num">✓</span><div class="main">${esc(t)}</div></li>`).join('') + `</ul></div>`;
   } else {
     const s = C.sections[scene-1], k = s.items.length;

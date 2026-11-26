@@ -19,6 +19,7 @@ const { total, segments } = JSON.parse(fs.readFileSync(path.join(out, 'segments.
       const x = f / ANIM, p = 1 - Math.pow(1 - x, 3);
       const frac = (s.start + (f === ANIM ? s.dur : f / FPS)) / total;
       await page.evaluate(([a, n, p, fr]) => draw(a, n, p, fr), [s.scene, s.n, p, frac]);
+      await page.evaluate(() => Promise.all([...document.images].map(i => i.decode())));
       last = path.join(dir, `s${String(k).padStart(3, '0')}_${String(f).padStart(2, '0')}.png`);
       await page.screenshot({ path: last });
       list += `file '${last}'\nduration ${f === ANIM ? (s.dur - (ANIM - 1) / FPS).toFixed(5) : (1 / FPS).toFixed(5)}\n`;
