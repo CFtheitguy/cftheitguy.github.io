@@ -1,0 +1,110 @@
+{
+  "scenes": [
+    {
+      "type": "intro",
+      "title": "Security Awareness Training",
+      "subtitle": "You are the first line of defense",
+      "say": "Welcome to Security Awareness Training. Firewalls and antivirus matter. But the most important security control in any organization, is you. In the next few minutes, you'll learn how to spot an attack, and what to do about it. And you'll test yourself with three quick scenarios."
+    },
+    {
+      "type": "bullets", "kicker": "Part 1", "title": "Why this matters",
+      "say": "First, why this matters.",
+      "items": [
+        ["Most breaches start with a person", "A click, a reply, or a reused password", "Most security breaches start with a person, not a machine. A click, a reply, or a reused password."],
+        ["Everyone is a target", "Not just executives or IT", "Everyone is a target. Attackers don't only go after executives, or I.T. Any account is a way in."],
+        ["Attackers count on you being busy", "Urgency makes you act before you think", "And attackers count on you being busy. They create urgency, so that you act before you think."]
+      ]
+    },
+    {
+      "type": "email", "kicker": "Spot the phish", "title": "Can you find the red flags?",
+      "say": "Let's look at an example. This email just landed in your inbox. It looks like it came from Microsoft. Can you spot the red flags?",
+      "tail": 2.2,
+      "email": {
+        "name": "Microsoft 365 Support",
+        "addr": "security@micros0ft-support.co",
+        "subject": "URGENT: Your account will be suspended in 24 hours",
+        "greeting": "Dear User,",
+        "body": "We detected unusual sign-in activity on your account. To avoid suspension, you must verify your password within 24 hours.",
+        "button": "Verify my account",
+        "link": "http://m365-verify.account-secure-login.co/reset",
+        "attach": "Invoice_8841.html"
+      },
+      "flags": [
+        ["from", "Look-alike sender address", "First, the sender. The name says Microsoft. But look at the actual address. That's a zero, not the letter O. Always check the real address, not just the display name."],
+        ["subject", "Urgency and threats", "Second, urgency. Your account will be suspended in twenty four hours. Pressure like this is designed to make you act before you think."],
+        ["greeting", "Generic greeting", "Third, a generic greeting. Dear user. A real provider usually knows your name."],
+        ["link", "Link goes somewhere else", "Fourth, the link. Hover over the button, and you'll see it doesn't go to Microsoft at all. When in doubt, don't click. Go to the website directly instead."],
+        ["attach", "Unexpected attachment", "Fifth, an attachment you weren't expecting. Never open one, unless you've confirmed it's legitimate."],
+        ["", "Perfect grammar proves nothing", "And one more thing. A.I. now lets attackers write flawless messages. So perfect spelling and grammar don't mean a message is safe."]
+      ]
+    },
+    {
+      "type": "quiz", "kicker": "Scenario 1 of 3", "title": "What would you do?",
+      "question": "A text from your CEO: “I'm in a meeting. I need you to buy 5 gift cards and send me the codes. It's urgent.”",
+      "options": ["Buy the cards — it's the CEO", "Reply to the text and ask if it's really them", "Call the CEO on a number you already know, and report it"],
+      "answer": 2,
+      "explain": "Verify through a second channel you already trust. Replying only reaches the attacker.",
+      "say": "Time to test yourself. Scenario one. You get a text message that appears to be from your C E O. It says: I'm in a meeting. I need you to buy five gift cards, and send me the codes. It's urgent. What would you do? A. Buy the cards. It's the C E O. B. Reply to the text, and ask if it's really them. Or C. Call the C E O on a number you already know, and report the message.",
+      "answer_say": "The answer is C. Replying to the message just asks the attacker to confirm their own lie. Always verify through a second channel that you already trust. And because A.I. can now clone voices, don't trust an incoming call either. Hang up, and call back yourself."
+    },
+    {
+      "type": "bullets", "kicker": "Part 2", "title": "Passwords and sign-ins",
+      "say": "Next, passwords, and sign ins.",
+      "items": [
+        ["One account, one password", "Long passphrases, never reused", "Use a different password for every account, and make each one a long passphrase. Then, if one site is breached, the rest stay safe."],
+        ["Let a password manager remember them", "Not sticky notes or spreadsheets", "Let a password manager remember them for you. Not sticky notes, and not a spreadsheet."],
+        ["Turn on multi-factor authentication", "A stolen password alone isn't enough", "Turn on multi-factor authentication wherever it's offered. Then a stolen password, on its own, isn't enough."],
+        ["Never share a password or sign-in code", "Not by phone, text, or email", "And never share a password, or a sign in code, with anyone. Not by phone, not by text, and not by email."]
+      ]
+    },
+    {
+      "type": "quiz", "kicker": "Scenario 2 of 3", "title": "What would you do?",
+      "question": "It's 11 PM. Your phone keeps asking you to approve a sign-in — but you're not signing in to anything.",
+      "options": ["Approve it so the notifications stop", "Ignore it and go to sleep", "Deny it, change your password, and report it"],
+      "answer": 2,
+      "explain": "Someone already has your password. Deny, change it, and tell IT.",
+      "say": "Scenario two. It's eleven at night. Your phone buzzes with a request to approve a sign in. But you're not signing in to anything. Then it buzzes again. And again. What would you do? A. Approve it, so the notifications stop. B. Ignore it, and go to sleep. Or C. Deny it, change your password, and report it.",
+      "answer_say": "The answer is C. Those prompts mean someone already has your password, and they're hoping you'll tap approve, just to make it stop. Deny the request, change your password, and tell I.T. right away."
+    },
+    {
+      "type": "bullets", "kicker": "Part 3", "title": "Devices and workspace",
+      "say": "Now, your devices, and your workspace.",
+      "items": [
+        ["Lock your screen when you step away", "Every time, even for a minute", "Lock your screen whenever you step away. Every time, even for a minute."],
+        ["Install updates when prompted", "They fix the holes attackers use", "Install updates when you're prompted. They fix the holes that attackers use."],
+        ["Be careful on public Wi-Fi", "Use the company VPN or your phone's hotspot", "Be careful on public Wi-Fi. Use the company V P N, or your phone's hot spot."],
+        ["Don't plug in unknown USB drives", "Hand found devices to IT", "Don't plug in a U S B drive that you found, or were handed. Give it to I.T. instead."],
+        ["Don't hold the door for strangers", "It's not rude to ask a visitor to sign in", "And don't hold the door for someone you don't recognize. It's not rude to ask a visitor to sign in."]
+      ]
+    },
+    {
+      "type": "bullets", "kicker": "Part 4", "title": "Data and AI tools",
+      "say": "Part four. Handling data, and using A.I. tools.",
+      "items": [
+        ["Double-check before you send", "Right recipient, right attachment", "Double check before you send. The right recipient, and the right attachment."],
+        ["Share only what's needed", "Avoid public links to sensitive files", "Share only what's needed, and avoid public links to sensitive files."],
+        ["Keep confidential data out of public AI tools", "Use only the tools your organization approved", "Keep confidential data out of public A.I. tools. Use only the tools your organization has approved."],
+        ["Check what AI tells you", "It can be confidently wrong", "And check what A.I. tells you. It can be confidently wrong."]
+      ]
+    },
+    {
+      "type": "quiz", "kicker": "Scenario 3 of 3", "title": "What would you do?",
+      "question": "You clicked a link in an email and typed in your password. A moment later, you realize the page was fake.",
+      "options": ["Delete the email and hope for the best", "Keep quiet — you don't want to get in trouble", "Report it to IT immediately and change your password"],
+      "answer": 2,
+      "explain": "Speed matters most. A fast report can stop an attack before the damage is done.",
+      "say": "Scenario three. You clicked a link in an email, and typed in your password. A moment later, you realize the page was fake. What would you do? A. Delete the email, and hope for the best. B. Keep quiet. You don't want to get in trouble. Or C. Report it to I.T. immediately, and change your password.",
+      "answer_say": "The answer is C. Everyone makes mistakes, and attackers are very good at what they do. What matters now is speed. A report in the first few minutes can stop an attack before any damage is done. Reporting quickly is always the right call."
+    },
+    {
+      "type": "outro", "kicker": "Remember", "title": "Four words to keep you safe",
+      "say": "So, here's what to remember. Four words.",
+      "items": [
+        ["Stop", "Urgency is a warning sign", "Stop. Urgency is a warning sign."],
+        ["Think", "Does this request really make sense?", "Think. Does this request really make sense?"],
+        ["Verify", "Use a channel you already trust", "Verify, using a channel you already trust."],
+        ["Report", "Quickly — even if you made a mistake", "And report. Quickly, even if you made a mistake. Security isn't just an I.T. job. It's everyone's job. Thanks for watching, and stay safe."]
+      ]
+    }
+  ]
+}
