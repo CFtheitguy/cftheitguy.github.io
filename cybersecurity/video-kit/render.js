@@ -1,9 +1,9 @@
 // Step 2: render frames for each narration segment and write an ffmpeg concat list.
-// usage: node render.js <out_dir>   (out_dir holds segments.json from tts.py)
+// usage: node render.js <content.json> <out_dir>   (out_dir holds segments.json from tts.py)
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
-const out = process.argv[2], FPS = 30, ANIM = 14;
-const content = JSON.parse(fs.readFileSync(path.join(__dirname, 'content.json')));
+const out = process.argv[3], FPS = 30, ANIM = 14;
+const content = JSON.parse(fs.readFileSync(process.argv[2]));
 const { total, segments } = JSON.parse(fs.readFileSync(path.join(out, 'segments.json')));
 (async () => {
   const b = await chromium.launch();

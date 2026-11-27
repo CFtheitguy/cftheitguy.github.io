@@ -1,0 +1,171 @@
+1
+00:00:00,800 --> 00:00:23,846
+Welcome to HIPAA compliance training. If you work with patient information, in any role, the law requires you to protect it. In the next few minutes, we'll cover what HIPAA is, what counts as protected health information, the rules you need to follow, and what to do when something goes wrong. You'll also test yourself with three real world scenarios. This video is general training. Always follow your own organization's policies.
+
+2
+00:00:25,346 --> 00:00:26,484
+First, what is HIPAA?
+
+3
+00:00:27,284 --> 00:00:34,621
+HIPAA is the Health Insurance Portability and Accountability Act. A United States federal law, passed in nineteen ninety six.
+
+4
+00:00:35,421 --> 00:00:41,481
+It sets national standards for protecting patient health information, and it gives patients rights over their own records.
+
+5
+00:00:42,281 --> 00:00:48,144
+It applies to covered entities. That means health care providers, health plans, and health care clearing houses.
+
+6
+00:00:48,944 --> 00:00:57,803
+And it applies to their business associates. Those are vendors that handle patient information on their behalf, such as billing companies, IT providers, and cloud services.
+
+7
+00:00:59,303 --> 00:01:02,356
+Next, protected health information, or PHI.
+
+8
+00:01:03,156 --> 00:01:10,517
+PHI is any information about a person's health, their care, or payment for that care, that can be linked to that individual.
+
+9
+00:01:11,317 --> 00:01:16,077
+It counts in any form. On paper, in a computer system, or spoken out loud.
+
+10
+00:01:16,877 --> 00:01:28,615
+HIPAA lists eighteen types of identifiers. They include names, dates, addresses, phone numbers, email addresses, social security numbers, medical record numbers, and full face photos.
+
+11
+00:01:29,415 --> 00:01:34,744
+When in doubt, treat it as PHI. Even confirming that someone is a patient can be a disclosure.
+
+12
+00:01:36,243 --> 00:01:39,657
+The privacy rule controls how PHI may be used and shared.
+
+13
+00:01:40,457 --> 00:01:47,109
+You may use and share PHI for treatment, payment, and health care operations, without the patient's written authorization.
+
+14
+00:01:47,909 --> 00:01:57,162
+Most other uses, such as marketing, need the patient's written authorization, apart from specific exceptions set out in the law, like public health reporting.
+
+15
+00:01:57,962 --> 00:02:03,733
+Follow the minimum necessary standard. Use, share, and access only the information you need to do your job.
+
+16
+00:02:04,532 --> 00:02:11,940
+And remember, patients have rights. They can see and get copies of their records, ask for corrections, and ask who their information was shared with.
+
+17
+00:02:13,440 --> 00:02:30,994
+Time to test yourself. Scenario one. A well known local figure is admitted to your facility. You're not involved in their care, but you're curious about what happened. What would you do? A. Take a quick look at the chart. No one will know. B. Ask a co-worker who is treating them. Or C. Don't look, and don't ask. You have no job related need.
+
+18
+00:02:34,394 --> 00:02:49,510
+The answer is C. Looking at a record without a job related reason is a violation, even if you never tell anyone. Asking a co-worker is, too. Access to records is logged and audited, and snooping is one of the most common reasons people are disciplined, or lose their jobs.
+
+19
+00:02:51,110 --> 00:02:55,742
+The security rule protects electronic PHI, with three kinds of safeguards.
+
+20
+00:02:56,542 --> 00:03:03,021
+Administrative safeguards. Risk analysis, written policies, workforce training, and managing who has access.
+
+21
+00:03:03,821 --> 00:03:10,264
+Physical safeguards. Locked areas, screens turned away from public view, and secure disposal of devices and paper.
+
+22
+00:03:11,064 --> 00:03:16,149
+Technical safeguards. Unique log-ins, encryption, audit logs, and automatic log off.
+
+23
+00:03:16,949 --> 00:03:25,506
+And your part, every day. Never share your log-in. Lock your screen when you step away. And only use approved systems to store, or send, PHI.
+
+24
+00:03:27,006 --> 00:03:41,507
+Scenario two. A doctor asks you to text a photo of a patient's lab result to their personal cell phone, to save time. What would you do? A. Text it. It's for patient care. B. Send it from your personal email instead. Or C. Use the approved secure messaging system.
+
+25
+00:03:44,907 --> 00:03:57,527
+The answer is C. The reason is good, but the method isn't. Ordinary text messages and personal email aren't secure, and they leave patient information sitting on personal devices. Always use the secure tools your organization has approved.
+
+26
+00:03:59,127 --> 00:04:03,527
+Most violations aren't malicious. They're everyday mistakes. Here are the common ones.
+
+27
+00:04:04,327 --> 00:04:09,134
+Talking about patients where others can hear. In hallways, elevators, and waiting areas.
+
+28
+00:04:09,933 --> 00:04:15,216
+Sending information to the wrong person. Double check every email address, fax number, and mailing.
+
+29
+00:04:16,016 --> 00:04:20,927
+Posting on social media. Never share patient details or photos, even without a name.
+
+30
+00:04:21,727 --> 00:04:28,890
+Lost or stolen devices. One unencrypted laptop, phone, or USB drive can expose thousands of records.
+
+31
+00:04:29,690 --> 00:04:33,963
+And careless disposal. Shred paper records. Never put them in the regular trash.
+
+32
+00:04:35,463 --> 00:04:37,506
+Finally, breaches, and reporting.
+
+33
+00:04:38,306 --> 00:04:45,469
+A breach is an impermissible use or disclosure of PHI, that compromises its security or privacy.
+
+34
+00:04:46,269 --> 00:04:54,849
+If you suspect one, report it right away, to your privacy officer or security officer. Don't try to investigate, or fix it, on your own.
+
+35
+00:04:55,649 --> 00:05:11,160
+The clock starts when the breach is discovered. The organization must notify affected individuals without unreasonable delay, and no later than sixty days. Breaches affecting five hundred or more people must also be reported to the Department of Health and Human Services, and to the media.
+
+36
+00:05:11,960 --> 00:05:20,296
+And the penalties are serious. Organizations can face large fines. Individuals can lose their jobs, and for deliberate misuse, face criminal charges.
+
+37
+00:05:21,796 --> 00:05:37,527
+Scenario three. You just emailed a patient's records to the wrong person. A stranger, with a similar email address. What would you do? A. Try to recall the email, and say nothing. B. Ask the stranger to delete it, then move on. Or C. Report it to your privacy officer immediately.
+
+38
+00:05:40,927 --> 00:05:53,211
+The answer is C. Mistakes happen. What matters is how fast you report them. Your privacy officer will decide what needs to be done, and whether anyone must be notified. Hiding a mistake turns a small problem into a serious one.
+
+39
+00:05:54,811 --> 00:05:57,353
+So, here's what to remember. Four habits.
+
+40
+00:05:58,153 --> 00:06:00,603
+Limit. Access only what your job requires.
+
+41
+00:06:01,403 --> 00:06:05,072
+Protect. Lock your screen, use approved tools, and shred paper.
+
+42
+00:06:05,872 --> 00:06:09,494
+Verify. Confirm who you're talking to, before you share anything.
+
+43
+00:06:10,294 --> 00:06:18,026
+And report. Right away, to your privacy or security officer. Behind every record is a real person, who is trusting you with it. Thanks for watching.

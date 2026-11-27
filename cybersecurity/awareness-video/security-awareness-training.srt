@@ -1,155 +1,155 @@
 1
-00:00:00,800 --> 00:00:15,162
+00:00:00,800 --> 00:00:15,185
 Welcome to Security Awareness Training. Firewalls and antivirus matter. But the most important security control in any organization, is you. In the next few minutes, you'll learn how to spot an attack, and what to do about it. And you'll test yourself with three quick scenarios.
 
 2
-00:00:16,662 --> 00:00:18,136
+00:00:16,685 --> 00:00:18,124
 First, why this matters.
 
 3
-00:00:18,936 --> 00:00:24,787
+00:00:18,924 --> 00:00:24,857
 Most security breaches start with a person, not a machine. A click, a reply, or a reused password.
 
 4
-00:00:25,587 --> 00:00:31,450
+00:00:25,657 --> 00:00:31,543
 Everyone is a target. Attackers don't only go after executives, or IT Any account is a way in.
 
 5
-00:00:32,250 --> 00:00:37,266
+00:00:32,343 --> 00:00:36,894
 And attackers count on you being busy. They create urgency, so that you act before you think.
 
 6
-00:00:38,766 --> 00:00:45,163
+00:00:38,394 --> 00:00:44,826
 Let's look at an example. This email just landed in your inbox. It looks like it came from Microsoft. Can you spot the red flags?
 
 7
-00:00:47,713 --> 00:00:56,896
+00:00:47,376 --> 00:00:56,188
 First, the sender. The name says Microsoft. But look at the actual address. That's a zero, not the letter O. Always check the real address, not just the display name.
 
 8
-00:00:57,696 --> 00:01:04,268
+00:00:56,988 --> 00:01:03,699
 Second, urgency. Your account will be suspended in twenty four hours. Pressure like this is designed to make you act before you think.
 
 9
-00:01:05,068 --> 00:01:09,305
+00:01:04,499 --> 00:01:08,620
 Third, a generic greeting. Dear user. A real provider usually knows your name.
 
 10
-00:01:10,105 --> 00:01:17,826
+00:01:09,420 --> 00:01:17,129
 Fourth, the link. Hover over the button, and you'll see it doesn't go to Microsoft at all. When in doubt, don't click. Go to the website directly instead.
 
 11
-00:01:18,626 --> 00:01:23,572
+00:01:17,929 --> 00:01:22,759
 Fifth, an attachment you weren't expecting. Never open one, unless you've confirmed it's legitimate.
 
 12
-00:01:24,372 --> 00:01:31,129
+00:01:23,559 --> 00:01:30,455
 And one more thing. AI now lets attackers write flawless messages. So perfect spelling and grammar don't mean a message is safe.
 
 13
-00:01:32,629 --> 00:01:53,306
+00:01:31,955 --> 00:01:52,273
 Time to test yourself. Scenario one. You get a text message that appears to be from your CEO. It says: I'm in a meeting. I need you to buy five gift cards, and send me the codes. It's urgent. What would you do? A. Buy the cards. It's the CEO. B. Reply to the text, and ask if it's really them. Or C. Call the CEO on a number you already know, and report the message.
 
 14
-00:01:56,706 --> 00:02:10,359
+00:01:55,673 --> 00:02:09,465
 The answer is C. Replying to the message just asks the attacker to confirm their own lie. Always verify through a second channel that you already trust. And because AI can now clone voices, don't trust an incoming call either. Hang up, and call back yourself.
 
 15
-00:02:11,959 --> 00:02:14,432
+00:02:11,065 --> 00:02:13,527
 Next, passwords, and sign ins.
 
 16
-00:02:15,232 --> 00:02:22,488
+00:02:14,327 --> 00:02:21,711
 Use a different password for every account, and make each one a long passphrase. Then, if one site is breached, the rest stay safe.
 
 17
-00:02:23,288 --> 00:02:27,747
+00:02:22,510 --> 00:02:26,737
 Let a password manager remember them for you. Not sticky notes, and not a spreadsheet.
 
 18
-00:02:28,547 --> 00:02:34,363
+00:02:27,536 --> 00:02:33,400
 Turn on multi-factor authentication wherever it's offered. Then a stolen password, on its own, isn't enough.
 
 19
-00:02:35,163 --> 00:02:41,827
+00:02:34,199 --> 00:02:40,794
 And never share a password, or a sign in code, with anyone. Not by phone, not by text, and not by email.
 
 20
-00:02:43,327 --> 00:02:59,512
+00:02:42,294 --> 00:02:58,455
 Scenario two. It's eleven at night. Your phone buzzes with a request to approve a sign in. But you're not signing in to anything. Then it buzzes again. And again. What would you do? A. Approve it, so the notifications stop. B. Ignore it, and go to sleep. Or C. Deny it, change your password, and report it.
 
 21
-00:03:02,912 --> 00:03:12,884
+00:03:01,855 --> 00:03:11,932
 The answer is C. Those prompts mean someone already has your password, and they're hoping you'll tap approve, just to make it stop. Deny the request, change your password, and tell IT right away.
 
 22
-00:03:14,484 --> 00:03:16,853
+00:03:13,532 --> 00:03:15,808
 Now, your devices, and your workspace.
 
 23
-00:03:17,653 --> 00:03:21,089
+00:03:16,608 --> 00:03:20,045
 Lock your screen whenever you step away. Every time, even for a minute.
 
 24
-00:03:21,889 --> 00:03:25,384
+00:03:20,845 --> 00:03:24,502
 Install updates when you're prompted. They fix the holes that attackers use.
 
 25
-00:03:26,184 --> 00:03:30,723
+00:03:25,302 --> 00:03:29,957
 Be careful on public Wi-Fi. Use the company VPN, or your phone's hot spot.
 
 26
-00:03:31,523 --> 00:03:36,400
+00:03:30,757 --> 00:03:35,680
 Don't plug in a USB drive that you found, or were handed. Give it to IT instead.
 
 27
-00:03:37,200 --> 00:03:41,727
+00:03:36,480 --> 00:03:41,170
 And don't hold the door for someone you don't recognize. It's not rude to ask a visitor to sign in.
 
 28
-00:03:43,227 --> 00:03:46,258
+00:03:42,670 --> 00:03:45,886
 Part four. Handling data, and using AI tools.
 
 29
-00:03:47,058 --> 00:03:50,517
+00:03:46,686 --> 00:03:50,123
 Double check before you send. The right recipient, and the right attachment.
 
 30
-00:03:51,317 --> 00:03:55,079
+00:03:50,923 --> 00:03:54,719
 Share only what's needed, and avoid public links to sensitive files.
 
 31
-00:03:55,879 --> 00:04:01,498
+00:03:55,519 --> 00:04:01,173
 Keep confidential data out of public AI tools. Use only the tools your organization has approved.
 
 32
-00:04:02,298 --> 00:04:05,073
+00:04:01,973 --> 00:04:04,748
 And check what AI tells you. It can be confidently wrong.
 
 33
-00:04:06,573 --> 00:04:22,420
+00:04:06,248 --> 00:04:21,944
 Scenario three. You clicked a link in an email, and typed in your password. A moment later, you realize the page was fake. What would you do? A. Delete the email, and hope for the best. B. Keep quiet. You don't want to get in trouble. Or C. Report it to IT immediately, and change your password.
 
 34
-00:04:25,820 --> 00:04:38,197
+00:04:25,344 --> 00:04:37,477
 The answer is C. Everyone makes mistakes, and attackers are very good at what they do. What matters now is speed. A report in the first few minutes can stop an attack before any damage is done. Reporting quickly is always the right call.
 
 35
-00:04:39,797 --> 00:04:42,351
+00:04:39,077 --> 00:04:41,689
 So, here's what to remember. Four words.
 
 36
-00:04:43,151 --> 00:04:45,159
+00:04:42,489 --> 00:04:44,532
 Stop. Urgency is a warning sign.
 
 37
-00:04:45,959 --> 00:04:47,991
+00:04:45,332 --> 00:04:47,283
 Think. Does this request really make sense?
 
 38
-00:04:48,791 --> 00:04:51,531
+00:04:48,083 --> 00:04:50,846
 Verify, using a channel you already trust.
 
 39
-00:04:52,331 --> 00:05:00,365
+00:04:51,646 --> 00:04:59,448
 And report. Quickly, even if you made a mistake. Security isn't just an IT job. It's everyone's job. Thanks for watching, and stay safe.

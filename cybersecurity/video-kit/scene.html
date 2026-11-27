@@ -91,13 +91,13 @@
 </style>
 <div class="glow"></div><div class="grid"></div>
 <div id="stage"></div>
-<div class="footer"><span class="brand"><img src="../../../zurech3/assets/logo-white.svg" alt="linear"><i></i>Security Awareness Training</span><span id="where"></span></div>
+<div class="footer"><span class="brand"><img src="../../zurech3/assets/logo-white.svg" alt="linear"><i></i><span id="label"></span></span><span id="where"></span></div>
 <div class="bar" id="bar"></div>
 <script>
-const A = '../../../zurech3/assets/';
+const A = '../../zurech3/assets/';
 const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 let S;
-function init(content){ S = content.scenes; }
+function init(content){ S = content.scenes; document.getElementById('label').textContent = content.footer || 'Security Awareness Training'; }
 // si: scene index. n: step within the scene. p: 0..1 entrance progress. frac: overall video progress.
 function draw(si, n, p, frac){
   const s = S[si], st = document.getElementById('stage');
@@ -106,7 +106,7 @@ function draw(si, n, p, frac){
   const head = (cls='') => `<div class="${cls}" style="${first}"><div class="kicker">${esc(s.kicker)}</div><h1>${esc(s.title)}</h1><div class="rule"></div></div>`;
   let h = '';
   if (s.type === 'intro') {
-    h = `<div class="center" style="${up}"><div class="kicker">Employee Training</div><h1>${esc(s.title)}</h1><div class="rule"></div><div class="subtitle">${esc(s.subtitle)}</div></div><div class="hero" style="opacity:${p}"><img src="${A}icon-white.svg"></div>`;
+    h = `<div class="center" style="${up}"><div class="kicker">${esc(s.kicker || 'Employee Training')}</div><h1>${esc(s.title)}</h1><div class="rule"></div><div class="subtitle">${esc(s.subtitle)}</div></div><div class="hero" style="opacity:${p}"><img src="${A}icon-white.svg"></div>`;
   } else if (s.type === 'bullets') {
     const k = s.items.length, v = k >= 5 ? '--gap:16px;--pad:16px' : '--gap:22px;--pad:24px;--main:42px;--subsz:28px';
     h = head() + `<ul style="${v}">` + s.items.map((it,i)=>{ const j=i+1;

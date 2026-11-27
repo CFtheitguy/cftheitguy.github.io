@@ -1,6 +1,6 @@
 """Step 1: narrate content.json with Piper. Writes narration.wav, segments.json, captions.srt.
 
-usage: python3 tts.py <voice.onnx> <out_dir>
+usage: python3 tts.py <voice.onnx> <content.json> <out_dir>
 (voice: `pip install piper-tts && python3 -m piper.download_voices en_US-ryan-high`)
 """
 import json, sys, wave, io, os
@@ -8,9 +8,9 @@ from piper import PiperVoice
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 voice = PiperVoice.load(sys.argv[1])
-out = sys.argv[2]
+out = sys.argv[3]
 os.makedirs(out, exist_ok=True)
-scenes = json.load(open(os.path.join(HERE, "content.json")))["scenes"]
+scenes = json.load(open(sys.argv[2]))["scenes"]
 
 
 def speak(text):
@@ -38,6 +38,10 @@ for i, s in enumerate(scenes):
             plan.append(dict(scene=i, n=j, say=it[2], lead=0.35, tail=0.9 if j == len(steps) else 0.45))
 plan[-1]["tail"] = 2.0
 
+# spoken spellings -> how they should read in the captions
+CAPTION_FIXES = [("A.I.", "AI"), ("I.T.", "IT"), ("C E O", "CEO"), ("U S B", "USB"), ("V P N", "VPN"), ("P H I", "PHI"),
+                 ("H H S", "HHS"), ("M F A", "MFA"), ("Hippa", "HIPAA"), ("hippa", "HIPAA")]
+
 pcm, t, rate, srt = b"", 0.0, None, []
 
 
@@ -53,7 +57,9 @@ for k, seg in enumerate(plan):
     seg["start"], seg["dur"] = t, len(chunk) / 2 / rate
     a = t + seg["lead"]
     b = a + len(audio) / 2 / rate
-    cap = seg["say"].replace("A.I.", "AI").replace("I.T.", "IT").replace("C E O", "CEO").replace("U S B", "USB").replace("V P N", "VPN")
+    cap = seg["say"]
+    for a_, b_ in CAPTION_FIXES:
+        cap = cap.replace(a_, b_)
     srt.append("%d\n%s --> %s\n%s\n" % (k + 1, ts(a), ts(b), cap))
     t += seg["dur"]
     pcm += chunk
